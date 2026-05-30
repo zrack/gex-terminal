@@ -1,0 +1,35 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+gex-env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs and local runtime output
+*.log
+logs/
+
+# OS and editor metadata
+.DS_Store
+.idea/
+.vscode/
+*.swp
