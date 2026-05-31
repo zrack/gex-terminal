@@ -44,6 +44,25 @@ Options volume ticks:
 Required option fields are `strike`, `option_type`, and `volume`. Implied
 volatility is optional and falls back to the consumer default when omitted.
 
+## Provider Selection
+
+List known providers:
+
+```bash
+gex-terminal --providers
+```
+
+Select a live provider:
+
+```bash
+gex-terminal --mode live --provider tradovate --symbol ES
+gex-terminal --mode live --provider databento --symbol ES
+gex-terminal --mode live --provider ibkr --symbol ES
+gex-terminal --mode live --provider yfinance --symbol SPY
+```
+
+`replay` is selected automatically when using `--replay`.
+
 ## Replay Adapter
 
 The replay adapter reads normalized JSONL records from disk:
@@ -69,11 +88,49 @@ The remaining production task is validating exact option-chain and quote payload
 shapes against live or demo Tradovate API access. Sanitized payload fixtures are
 welcome.
 
+## Databento Adapter
+
+The Databento adapter is scaffolded behind `--provider databento`. It validates
+`DATABENTO_API_KEY` and keeps the integration isolated while the exact live
+schema and futures-options chain mapping are designed.
+
+Optional dependency:
+
+```bash
+pip install -e ".[databento]"
+```
+
+## Interactive Brokers Adapter
+
+The IBKR adapter is scaffolded behind `--provider ibkr`. It expects TWS or IB
+Gateway connection settings through `IBKR_HOST`, `IBKR_PORT`, and
+`IBKR_CLIENT_ID`, and currently raises a clear setup message until contract and
+tick normalization are implemented.
+
+Optional dependency:
+
+```bash
+pip install -e ".[ibkr]"
+```
+
+## yfinance Adapter
+
+The yfinance adapter is scaffolded behind `--provider yfinance`. It is intended
+only for delayed equity/ETF options snapshots such as SPY or QQQ, not ES/NQ
+futures options.
+
+Optional dependency:
+
+```bash
+pip install -e ".[yfinance]"
+```
+
 ## Adding a Provider
 
 When adding a provider:
 
 - Keep provider SDKs or protocol details inside `gex_terminal/adapters/`.
+- Register the adapter in `gex_terminal/adapters/registry.py`.
 - Normalize payloads before they reach `StatefulGexConsumer`.
 - Add replay or fixture tests for representative provider payloads.
 - Document required credentials and data entitlements.

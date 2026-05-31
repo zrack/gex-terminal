@@ -4,6 +4,15 @@ from pathlib import Path
 from typing import Iterable
 
 from gex_terminal.market_data_adapter import MarketDataAdapter, dumps_normalized_message
+from gex_terminal.market_data_adapter import AdapterInfo
+
+
+ADAPTER_INFO = AdapterInfo(
+    name="replay",
+    label="Replay JSONL",
+    status="ready",
+    notes="Local normalized JSONL replay adapter for demos, screenshots, and deterministic testing.",
+)
 
 
 class ReplayAdapter(MarketDataAdapter):

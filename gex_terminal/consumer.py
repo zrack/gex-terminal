@@ -37,6 +37,8 @@ class StatefulGexConsumer:
     def runtime_status(self) -> str:
         if self.data_mode == "DEMO":
             return "SIM"
+        if self.data_mode == "REPLAY":
+            return "REPLAY" if self.current_spot and self.chain_state else "CONNECTED"
         if self.connection_state == "DISCONNECTED":
             return "DISCONNECTED"
         if self.last_message_at is None:

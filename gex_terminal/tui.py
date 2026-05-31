@@ -405,6 +405,8 @@ class GexTerminalApp(App):
             return "green"
         if status == "SIM":
             return "cyan"
+        if status == "REPLAY":
+            return "cyan"
         if status == "STALE":
             return "amber"
         if status == "CONNECTED":
@@ -419,6 +421,7 @@ async def run_mock_session():
         symbol=config.symbol,
         symbols=config.symbols,
         data_mode="demo",
+        data_provider=config.data_provider,
         contract_multiplier=config.contract_multiplier,
         risk_free_rate=config.risk_free_rate,
         days_to_expiry=config.days_to_expiry,

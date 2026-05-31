@@ -54,6 +54,7 @@ and terminal workflow become clearer.
 - [x] Define a provider adapter interface and document how to add new data sources.
 - [x] Keep Tradovate as the first adapter, then add replay/CSV as a no-credential
   reference adapter.
+- [x] Add provider registry scaffolds for Databento, IBKR, and yfinance.
 - [x] Add issue templates for bugs, feature requests, and provider adapters.
 - [x] Add a security policy for credential-handling issues.
 - Add a small set of labeled good-first issues after the first public push.

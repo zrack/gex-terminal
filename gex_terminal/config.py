@@ -12,6 +12,7 @@ class GexConfig:
     symbol: str
     symbols: tuple[str, ...]
     data_mode: str
+    data_provider: str
     contract_multiplier: int
     risk_free_rate: float
     days_to_expiry: float
@@ -29,6 +30,7 @@ class GexConfig:
             symbol=symbol,
             symbols=symbols,
             data_mode=_env_str("GEX_DATA_MODE", "demo").lower(),
+            data_provider=_env_str("GEX_DATA_PROVIDER", "tradovate").lower(),
             contract_multiplier=_env_int("GEX_CONTRACT_MULTIPLIER", 50),
             risk_free_rate=_env_float("GEX_RISK_FREE_RATE", 0.045),
             days_to_expiry=_env_float("GEX_DAYS_TO_EXPIRY", 0.01),

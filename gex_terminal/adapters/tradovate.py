@@ -4,9 +4,16 @@ import logging
 import os
 from typing import Any
 
-from gex_terminal.market_data_adapter import MarketDataAdapter, dumps_normalized_message
+from gex_terminal.market_data_adapter import AdapterInfo, MarketDataAdapter, dumps_normalized_message
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
+ADAPTER_INFO = AdapterInfo(
+    name="tradovate",
+    label="Tradovate",
+    status="scaffold",
+    notes="Live Tradovate adapter with auth validation and contract-discovery scaffolding.",
+)
 
 REQUIRED_TRADOVATE_ENV_VARS = (
     "TRADOVATE_NAME",

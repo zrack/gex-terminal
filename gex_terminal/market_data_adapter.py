@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -14,6 +15,18 @@ class MarketDataAdapter(ABC):
     @abstractmethod
     async def stream_market_data(self) -> None:
         """Stream normalized market-data messages into a consumer."""
+
+
+class AdapterConfigurationError(RuntimeError):
+    """Raised when a selected adapter cannot start with the current setup."""
+
+
+@dataclass(frozen=True)
+class AdapterInfo:
+    name: str
+    label: str
+    status: str
+    notes: str
 
 
 def validate_normalized_message(message: NormalizedMessage) -> None:

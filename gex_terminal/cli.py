@@ -7,10 +7,16 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Iterable
 
-from gex_terminal.adapters.replay import ReplayAdapter
+from gex_terminal.adapters.registry import (
+    adapter_info,
+    available_provider_names,
+    build_market_data_adapter,
+    effective_provider,
+)
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.market_data_adapter import AdapterConfigurationError
 from gex_terminal.tui import GexTerminalApp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -19,6 +25,12 @@ async def main():
     args = parse_args()
     config = apply_cli_overrides(GexConfig.from_env(), args)
     validate_data_mode(config.data_mode)
+
+    if args.providers:
+        print_provider_summary()
+        return
+
+    validate_provider(config)
 
     if args.screenshot:
         await export_demo_screenshot(
@@ -44,41 +56,26 @@ async def main():
     
     if config.data_mode == "demo":
         await seed_demo_session(state_consumer)
-    elif config.data_mode == "replay":
-        data_adapter = ReplayAdapter(
-            state_consumer,
-            replay_path=config.replay_path,
-            delay_seconds=config.replay_delay_seconds,
-        )
-        stream_task = asyncio.create_task(data_adapter.stream_market_data())
     else:
         try:
-            from gex_terminal.adapters.tradovate import (
-                TradovateAdapter,
-                validate_tradovate_credentials,
-            )
-            validate_tradovate_credentials()
-        except (ModuleNotFoundError, ValueError) as exc:
+            data_adapter = build_market_data_adapter(state_consumer, config)
+        except (AdapterConfigurationError, ModuleNotFoundError, ValueError) as exc:
             raise SystemExit(
                 "\n".join((
-                    f"Live mode is not ready: {exc}",
+                    f"{effective_provider(config)} provider is not ready: {exc}",
                     "Install dependencies with: pip install -e .",
                     "Or start demo mode with: gex-terminal --demo",
                 ))
             ) from exc
 
-        data_adapter = TradovateAdapter(
-            state_consumer,
-            target_underlying=config.symbol,
-            environment=config.tradovate_environment,
-        )
         stream_task = asyncio.create_task(data_adapter.stream_market_data())
-        calc_task = asyncio.create_task(
-            state_consumer.continuous_calculation_loop(
-                interval_seconds=config.refresh_interval_seconds * 2,
-                days_to_expiry=config.days_to_expiry,
+        if config.data_mode == "live":
+            calc_task = asyncio.create_task(
+                state_consumer.continuous_calculation_loop(
+                    interval_seconds=config.refresh_interval_seconds * 2,
+                    days_to_expiry=config.days_to_expiry,
+                )
             )
-        )
     
     app = GexTerminalApp(consumer=state_consumer, config=config)
     try:
@@ -132,6 +129,7 @@ async def export_demo_screenshot(
         symbol=config.symbol,
         symbols=config.symbols,
         data_mode="demo",
+        data_provider=config.data_provider,
         contract_multiplier=config.contract_multiplier,
         risk_free_rate=config.risk_free_rate,
         days_to_expiry=config.days_to_expiry,
@@ -182,6 +180,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--symbol",
         help="Target underlying symbol, for example ES or NQ. Overrides GEX_SYMBOL.",
+    )
+    parser.add_argument(
+        "--provider",
+        choices=available_provider_names(),
+        help="Market-data provider for live mode. Overrides GEX_DATA_PROVIDER.",
+    )
+    parser.add_argument(
+        "--providers",
+        action="store_true",
+        help="List available market-data providers and exit.",
     )
     parser.add_argument(
         "--multiplier",
@@ -236,6 +244,9 @@ def apply_cli_overrides(config: GexConfig, args: argparse.Namespace) -> GexConfi
         updates["symbol"] = symbol
         updates["symbols"] = _symbols_with_target(config.symbols, symbol)
 
+    if args.provider:
+        updates["data_provider"] = args.provider
+
     if args.multiplier is not None:
         updates["contract_multiplier"] = args.multiplier
 
@@ -263,6 +274,20 @@ def validate_data_mode(data_mode: str) -> None:
         raise SystemExit(
             f"Unsupported GEX_DATA_MODE '{data_mode}'. Expected one of: demo, replay, live"
         )
+
+
+def validate_provider(config: GexConfig) -> None:
+    if effective_provider(config) not in available_provider_names():
+        raise SystemExit(
+            f"Unsupported GEX_DATA_PROVIDER '{config.data_provider}'. "
+            f"Expected one of: {', '.join(available_provider_names())}"
+        )
+
+
+def print_provider_summary() -> None:
+    for provider in available_provider_names():
+        info = adapter_info(provider)
+        print(f"{info.name:10} {info.status:9} {info.label} - {info.notes}")
 
 
 def main_sync() -> None:

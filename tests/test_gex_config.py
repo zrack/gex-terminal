@@ -11,6 +11,7 @@ class GexConfigTests(unittest.TestCase):
             config = GexConfig.from_env()
 
         self.assertEqual(config.data_mode, "demo")
+        self.assertEqual(config.data_provider, "tradovate")
         self.assertEqual(config.replay_path, "sample_data/demo_replay.jsonl")
 
 

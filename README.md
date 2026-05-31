@@ -44,7 +44,7 @@ Design target:
 |   |-- tui.py          # Textual reactive terminal user interface
 |   |-- gex_terminal.tcss # Terminal dashboard theme and layout styles
 |   |-- market_data_adapter.py # Shared provider adapter contract
-|   `-- adapters/       # Replay and Tradovate market-data adapters
+|   `-- adapters/       # Replay, Tradovate, Databento, IBKR, and yfinance adapters
 |-- sample_data/        # Normalized replay data for local demos
 |-- tests/              # Math regression tests
 ```
@@ -221,7 +221,7 @@ gex-terminal --demo
 Run live mode for ES:
 
 ```bash
-gex-terminal --mode live --symbol ES
+gex-terminal --mode live --provider tradovate --symbol ES
 ```
 
 Run NQ with its futures multiplier:
@@ -248,6 +248,7 @@ cp .env.example .env
 GEX_SYMBOL=ES
 GEX_SYMBOLS=ES,NQ,SPX,QQQ
 GEX_DATA_MODE=demo
+GEX_DATA_PROVIDER=tradovate
 GEX_CONTRACT_MULTIPLIER=50
 GEX_RISK_FREE_RATE=0.045
 GEX_DAYS_TO_EXPIRY=0.01
@@ -263,6 +264,13 @@ TRADOVATE_APP_ID=your_app_id
 TRADOVATE_APP_VERSION=1.0
 TRADOVATE_CID=your_client_id
 TRADOVATE_SEC=your_client_secret
+
+DATABENTO_API_KEY=your_databento_api_key
+DATABENTO_DATASET=GLBX.MDP3
+
+IBKR_HOST=127.0.0.1
+IBKR_PORT=7497
+IBKR_CLIENT_ID=17
 ```
 
 Suggested futures multipliers:
@@ -297,7 +305,11 @@ gex-terminal --replay sample_data/demo_replay.jsonl
 Override `.env` settings from the command line:
 
 ```bash
-gex-terminal --mode live --symbol ES
+gex-terminal --providers
+gex-terminal --mode live --provider tradovate --symbol ES
+gex-terminal --mode live --provider databento --symbol ES
+gex-terminal --mode live --provider ibkr --symbol ES
+gex-terminal --mode live --provider yfinance --symbol SPY
 gex-terminal --demo --symbol NQ --multiplier 20
 gex-terminal --demo --refresh 0.5
 ```
