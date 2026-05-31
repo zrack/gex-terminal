@@ -54,14 +54,14 @@ and terminal workflow become clearer.
 - [x] Define a provider adapter interface and document how to add new data sources.
 - [x] Keep Tradovate as the first adapter, then add replay/CSV as a no-credential
   reference adapter.
-- Add issue templates for bugs, feature requests, and provider adapters.
-- Add a security policy for credential-handling issues.
+- [x] Add issue templates for bugs, feature requests, and provider adapters.
+- [x] Add a security policy for credential-handling issues.
 - Add a small set of labeled good-first issues after the first public push.
 
 ## Phase 6: Packaging and Distribution
 
-- Add `pyproject.toml` project metadata and tool configuration.
-- Make the app installable with a console command such as `gex-terminal`.
+- [x] Add `pyproject.toml` project metadata and tool configuration.
+- [x] Make the app installable with a console command such as `gex-terminal`.
 - Add release notes and versioning once the data model stabilizes.
 - Consider `pipx` installation support for users who want the terminal as a
   standalone tool.

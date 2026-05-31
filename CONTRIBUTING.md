@@ -30,7 +30,7 @@ source .venv/bin/activate
 Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 Create a local environment file:
@@ -50,13 +50,13 @@ please check your changes before opening a pull request.
 Launch the live terminal:
 
 ```bash
-python main.py
+gex-terminal
 ```
 
 You can also run the terminal with normalized replay data:
 
 ```bash
-python main.py --replay sample_data/demo_replay.jsonl
+gex-terminal --replay sample_data/demo_replay.jsonl
 ```
 
 Demo and replay modes are useful for UI and engine work that should not require
@@ -67,7 +67,7 @@ live market-data credentials.
 Run a source compile smoke check before opening a pull request:
 
 ```bash
-python -m compileall main.py gex_engine.py gex_consumer.py gex_terminal.py tradovate_adapter.py
+python -m compileall main.py gex_terminal tests
 ```
 
 Once a test suite is established, contributors will be expected to run `pytest`.
@@ -78,7 +78,7 @@ request description.
 
 - Keep market-data adapters separate from calculation logic.
 - Keep GEX math deterministic and covered by focused tests where possible.
-- Prefer vectorized NumPy operations in `gex_engine.py`.
+- Prefer vectorized NumPy operations in `gex_terminal/engine.py`.
 - Avoid committing generated files, local virtual environments, logs, or caches.
 - Keep credentials and user-specific settings in environment variables.
 - Use small, focused pull requests when changing calculation behavior.
@@ -88,6 +88,9 @@ request description.
 
 Provider adapters should normalize incoming data before it reaches
 `StatefulGexConsumer`. The consumer expects JSON messages shaped like:
+
+See [docs/adapters.md](docs/adapters.md) for the current adapter contract and
+provider implementation notes.
 
 ```json
 {

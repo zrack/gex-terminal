@@ -1,0 +1,24 @@
+[
+  {
+    "e": "md",
+    "d": {
+      "quotes": [
+        {
+          "symbol": "ES",
+          "bidPrice": 5943.0,
+          "offerPrice": 5943.5
+        },
+        {
+          "symbol": "ESM6 C5950",
+          "tradeVol": 125,
+          "impliedVol": 0.16
+        },
+        {
+          "symbol": "ESM6 P5900",
+          "tradeVol": 80,
+          "impliedVol": 0.18
+        }
+      ]
+    }
+  }
+]

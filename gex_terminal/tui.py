@@ -2,6 +2,7 @@ import asyncio
 import time
 from collections import deque
 from datetime import datetime
+from pathlib import Path
 from typing import Iterable
 
 from rich.text import Text
@@ -9,16 +10,16 @@ from textual.app import App, ComposeResult
 from textual.containers import Container, Grid, Vertical
 from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 
-from gex_consumer import StatefulGexConsumer
-from gex_config import GexConfig
-from gex_engine import IntradayGexEngine
+from gex_terminal.config import GexConfig
+from gex_terminal.consumer import StatefulGexConsumer
+from gex_terminal.engine import IntradayGexEngine
 
 
 class GexTerminalApp(App):
     """A real-time terminal interface tracking intraday option gamma imbalances."""
 
     TITLE = "Intraday GEX Imbalance Terminal"
-    CSS_PATH = "gex_terminal.tcss"
+    CSS_PATH = str(Path(__file__).with_name("gex_terminal.tcss"))
 
     BINDINGS = [("q", "quit", "Quit Terminal"), ("r", "refresh_terminal_data", "Refresh")]
 

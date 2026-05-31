@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from gex_engine import IntradayGexEngine
+from gex_terminal.engine import IntradayGexEngine
 
 
 class IntradayGexEngineTests(unittest.TestCase):

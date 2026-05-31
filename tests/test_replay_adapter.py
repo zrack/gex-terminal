@@ -2,9 +2,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gex_consumer import StatefulGexConsumer
-from gex_engine import IntradayGexEngine
-from replay_adapter import ReplayAdapter
+from gex_terminal.adapters.replay import ReplayAdapter
+from gex_terminal.consumer import StatefulGexConsumer
+from gex_terminal.engine import IntradayGexEngine
 
 
 class ReplayAdapterTests(unittest.IsolatedAsyncioTestCase):

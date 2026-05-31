@@ -31,18 +31,22 @@ Design target:
 |-- CONTRIBUTING.md     # Contribution guidelines and verification notes
 |-- README.md           # Project overview and setup notes
 |-- ROADMAP.md          # Planned project phases and future work
+|-- SECURITY.md         # Credential handling and vulnerability reporting
 |-- requirements.txt    # Runtime Python dependencies
-|-- main.py             # Application launchpad and orchestration
-|-- gex_config.py       # Environment-driven runtime configuration
-|-- gex_engine.py       # Vectorized Black-Scholes and GEX calculation matrix
-|-- gex_consumer.py     # Stateful asynchronous market-data aggregator
-|-- gex_terminal.py     # Textual reactive terminal user interface
-|-- gex_terminal.tcss   # Terminal dashboard theme and layout styles
-|-- market_data_adapter.py # Shared provider adapter contract
-|-- replay_adapter.py   # JSONL replay market-data adapter
+|-- pyproject.toml      # Package metadata and console entry point
+|-- main.py             # Backward-compatible CLI wrapper
+|-- docs/               # Adapter and contributor-facing technical notes
+|-- gex_terminal/       # Application package
+|   |-- cli.py          # Console command and orchestration
+|   |-- config.py       # Environment-driven runtime configuration
+|   |-- engine.py       # Vectorized Black-Scholes and GEX calculation matrix
+|   |-- consumer.py     # Stateful asynchronous market-data aggregator
+|   |-- tui.py          # Textual reactive terminal user interface
+|   |-- gex_terminal.tcss # Terminal dashboard theme and layout styles
+|   |-- market_data_adapter.py # Shared provider adapter contract
+|   `-- adapters/       # Replay and Tradovate market-data adapters
 |-- sample_data/        # Normalized replay data for local demos
 |-- tests/              # Math regression tests
-`-- tradovate_adapter.py # Tradovate REST/WebSocket market-data adapter
 ```
 
 ## Core Features
@@ -165,27 +169,27 @@ The terminal derives key market zones from the strike-level GEX matrix:
 Market Data WebSocket
         |
         v
-gex_consumer.py
+gex_terminal/consumer.py
   - Receives ticks
   - Normalizes option-chain payloads
   - Updates cumulative intraday volume
   - Publishes state snapshots
         |
         v
-gex_engine.py
+gex_terminal/engine.py
   - Vectorizes Black-Scholes inputs
   - Calculates gamma
   - Converts gamma to dollar GEX
   - Computes wall, node, and imbalance metrics
         |
         v
-gex_terminal.py
+gex_terminal/tui.py
   - Renders live strike matrix
   - Displays aggregate exposure
   - Highlights structural zones
         |
         v
-main.py
+gex_terminal/cli.py
   - Starts async tasks
   - Coordinates shutdown
   - Handles application lifecycle
@@ -203,7 +207,7 @@ source .venv/bin/activate
 Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Quick Start
@@ -211,25 +215,25 @@ pip install -r requirements.txt
 Run the terminal with seeded demo data:
 
 ```bash
-python3 main.py --demo
+gex-terminal --demo
 ```
 
 Run live mode for ES:
 
 ```bash
-python3 main.py --mode live --symbol ES
+gex-terminal --mode live --symbol ES
 ```
 
 Run NQ with its futures multiplier:
 
 ```bash
-python3 main.py --demo --symbol NQ --multiplier 20
+gex-terminal --demo --symbol NQ --multiplier 20
 ```
 
 Export the actual Textual terminal screenshot used by GitHub:
 
 ```bash
-python3 main.py --demo --screenshot assets/gex-terminal-actual.svg
+gex-terminal --demo --screenshot assets/gex-terminal-actual.svg
 ```
 
 ## Configuration
@@ -275,33 +279,33 @@ Suggested futures multipliers:
 Launch the terminal:
 
 ```bash
-python3 main.py
+gex-terminal
 ```
 
 Run with seeded demo data:
 
 ```bash
-python3 main.py --demo
+gex-terminal --demo
 ```
 
 Run with normalized replay data:
 
 ```bash
-python3 main.py --replay sample_data/demo_replay.jsonl
+gex-terminal --replay sample_data/demo_replay.jsonl
 ```
 
 Override `.env` settings from the command line:
 
 ```bash
-python3 main.py --mode live --symbol ES
-python3 main.py --demo --symbol NQ --multiplier 20
-python3 main.py --demo --refresh 0.5
+gex-terminal --mode live --symbol ES
+gex-terminal --demo --symbol NQ --multiplier 20
+gex-terminal --demo --refresh 0.5
 ```
 
 Export an actual Textual screenshot for GitHub:
 
 ```bash
-python3 main.py --demo --screenshot assets/gex-terminal-actual.svg
+gex-terminal --demo --screenshot assets/gex-terminal-actual.svg
 ```
 
 The dashboard is designed to update continuously as new option-chain and trade
@@ -324,20 +328,22 @@ If live mode is missing credentials or market-data dependencies, the app exits
 with an install/configuration hint instead of a Python traceback:
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Development Notes
 
 - Keep `.env` out of version control.
 - Keep market-data adapters isolated from calculation logic.
-- Prefer vectorized NumPy operations inside `gex_engine.py`.
+- Prefer vectorized NumPy operations inside `gex_terminal/engine.py`.
 - Treat consumer state as shared mutable data and update it through explicit
   locks or queue ownership.
 - Use deterministic fixtures for engine tests so the math can be regression
   tested independently from live data.
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+- See [docs/adapters.md](docs/adapters.md) for the provider adapter contract.
 - See [ROADMAP.md](ROADMAP.md) for planned phases and future work.
+- See [SECURITY.md](SECURITY.md) for credential-handling guidance.
 
 ## Testing Targets
 

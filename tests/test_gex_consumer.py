@@ -1,8 +1,8 @@
 import time
 import unittest
 
-from gex_consumer import StatefulGexConsumer
-from gex_engine import IntradayGexEngine
+from gex_terminal.consumer import StatefulGexConsumer
+from gex_terminal.engine import IntradayGexEngine
 
 
 class StatefulGexConsumerLifecycleTests(unittest.TestCase):

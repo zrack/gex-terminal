@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from gex_config import GexConfig
+from gex_terminal.config import GexConfig
 
 
 class GexConfigTests(unittest.TestCase):

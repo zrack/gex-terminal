@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Any
 
-from market_data_adapter import MarketDataAdapter, dumps_normalized_message
+from gex_terminal.market_data_adapter import MarketDataAdapter, dumps_normalized_message
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -63,7 +63,7 @@ class TradovateAdapter(MarketDataAdapter):
             import aiohttp
         except ModuleNotFoundError as exc:
             raise ModuleNotFoundError(
-                "aiohttp is required for Tradovate live mode. Install with: pip install -r requirements.txt"
+                "aiohttp is required for Tradovate live mode. Install with: pip install -e ."
             ) from exc
 
         logging.info("Authenticating with Tradovate REST API...")
@@ -87,7 +87,7 @@ class TradovateAdapter(MarketDataAdapter):
             import aiohttp
         except ModuleNotFoundError as exc:
             raise ModuleNotFoundError(
-                "aiohttp is required for Tradovate live mode. Install with: pip install -r requirements.txt"
+                "aiohttp is required for Tradovate live mode. Install with: pip install -e ."
             ) from exc
 
         headers = {"Authorization": f"Bearer {self.token}"}
@@ -132,7 +132,7 @@ class TradovateAdapter(MarketDataAdapter):
             import websockets
         except ModuleNotFoundError as exc:
             raise ModuleNotFoundError(
-                "websockets is required for Tradovate live mode. Install with: pip install -r requirements.txt"
+                "websockets is required for Tradovate live mode. Install with: pip install -e ."
             ) from exc
 
         if not self.token:

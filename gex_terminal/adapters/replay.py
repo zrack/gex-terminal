@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Iterable
 
-from market_data_adapter import MarketDataAdapter, dumps_normalized_message
+from gex_terminal.market_data_adapter import MarketDataAdapter, dumps_normalized_message
 
 
 class ReplayAdapter(MarketDataAdapter):

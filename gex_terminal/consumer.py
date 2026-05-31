@@ -4,7 +4,7 @@ import logging
 import time
 import numpy as np
 from typing import Dict, Any
-from gex_engine import IntradayGexEngine
+from gex_terminal.engine import IntradayGexEngine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

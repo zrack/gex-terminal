@@ -1,6 +1,6 @@
 import unittest
 
-from market_data_adapter import dumps_normalized_message, validate_normalized_message
+from gex_terminal.market_data_adapter import dumps_normalized_message, validate_normalized_message
 
 
 class MarketDataAdapterContractTests(unittest.TestCase):
