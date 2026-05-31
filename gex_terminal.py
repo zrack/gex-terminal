@@ -423,6 +423,8 @@ async def run_mock_session():
         days_to_expiry=config.days_to_expiry,
         refresh_interval_seconds=config.refresh_interval_seconds,
         stale_after_seconds=config.stale_after_seconds,
+        replay_path=config.replay_path,
+        replay_delay_seconds=config.replay_delay_seconds,
         tradovate_environment=config.tradovate_environment,
     )
     math_engine = IntradayGexEngine(multiplier=demo_config.contract_multiplier)

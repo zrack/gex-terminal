@@ -53,14 +53,14 @@ Launch the live terminal:
 python main.py
 ```
 
-You can also run the terminal with seeded mock state from `gex_terminal.py`:
+You can also run the terminal with normalized replay data:
 
 ```bash
-python gex_terminal.py
+python main.py --replay sample_data/demo_replay.jsonl
 ```
 
-The mock launcher is currently basic, but it is useful for UI work that should
-not require live market-data credentials.
+Demo and replay modes are useful for UI and engine work that should not require
+live market-data credentials.
 
 ## Verification
 

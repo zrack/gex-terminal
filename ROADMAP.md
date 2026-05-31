@@ -6,21 +6,23 @@ and terminal workflow become clearer.
 
 ## Phase 1: Prototype Hardening
 
-- Add a local mock-data and replay mode that can run without live Tradovate
+- [x] Add a local mock-data and replay mode that can run without live Tradovate
   credentials.
-- Add deterministic tests for the math engine, consumer state updates, and
+- [x] Add deterministic tests for the math engine, consumer state updates, and
   malformed market-data messages.
-- Move runtime settings into a typed configuration layer for symbol, multiplier,
+- [x] Move runtime settings into a typed configuration layer for symbol, multiplier,
   risk-free rate, expiry target, provider, and update interval.
-- Improve startup validation so missing credentials or unsupported provider
+- [x] Improve startup validation so missing credentials or unsupported provider
   settings fail with clear messages.
-- Document the current volume-as-open-interest proxy and its limitations.
+- [ ] Document the current volume-as-open-interest proxy and its limitations.
 
 ## Phase 2: Live Data Reliability
 
-- Complete real options-chain discovery for active ES/NQ contracts.
+- [ ] Complete real options-chain discovery for active ES/NQ contracts.
+  Initial Tradovate discovery scaffolding exists; the next step is validating
+  the exact option-chain payload shape against live/demo API access.
 - Harden Tradovate reconnect, backoff, heartbeat, and shutdown behavior.
-- Normalize provider payloads through a stable adapter contract before they
+- [x] Normalize provider payloads through a stable adapter contract before they
   reach the state consumer.
 - Track provider connection status, last message time, and data freshness in the
   terminal UI.
@@ -44,13 +46,13 @@ and terminal workflow become clearer.
   levels.
 - Add a compact status bar for provider, symbol, update cadence, and last refresh
   time.
-- Include a README screenshot or GIF once mock replay mode can render a stable
+- [x] Include a README screenshot or GIF once mock replay mode can render a stable
   demo.
 
 ## Phase 5: Contributor-Friendly Architecture
 
-- Define a provider adapter interface and document how to add new data sources.
-- Keep Tradovate as the first adapter, then add replay/CSV as a no-credential
+- [x] Define a provider adapter interface and document how to add new data sources.
+- [x] Keep Tradovate as the first adapter, then add replay/CSV as a no-credential
   reference adapter.
 - Add issue templates for bugs, feature requests, and provider adapters.
 - Add a security policy for credential-handling issues.

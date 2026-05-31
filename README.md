@@ -38,6 +38,9 @@ Design target:
 |-- gex_consumer.py     # Stateful asynchronous market-data aggregator
 |-- gex_terminal.py     # Textual reactive terminal user interface
 |-- gex_terminal.tcss   # Terminal dashboard theme and layout styles
+|-- market_data_adapter.py # Shared provider adapter contract
+|-- replay_adapter.py   # JSONL replay market-data adapter
+|-- sample_data/        # Normalized replay data for local demos
 |-- tests/              # Math regression tests
 `-- tradovate_adapter.py # Tradovate REST/WebSocket market-data adapter
 ```
@@ -240,12 +243,14 @@ cp .env.example .env
 ```bash
 GEX_SYMBOL=ES
 GEX_SYMBOLS=ES,NQ,SPX,QQQ
-GEX_DATA_MODE=live
+GEX_DATA_MODE=demo
 GEX_CONTRACT_MULTIPLIER=50
 GEX_RISK_FREE_RATE=0.045
 GEX_DAYS_TO_EXPIRY=0.01
 GEX_REFRESH_INTERVAL_SECONDS=1.0
 GEX_STALE_AFTER_SECONDS=10.0
+GEX_REPLAY_PATH=sample_data/demo_replay.jsonl
+GEX_REPLAY_DELAY_SECONDS=0.05
 
 TRADOVATE_ENV=demo
 TRADOVATE_NAME=your_username
@@ -279,6 +284,12 @@ Run with seeded demo data:
 python3 main.py --demo
 ```
 
+Run with normalized replay data:
+
+```bash
+python3 main.py --replay sample_data/demo_replay.jsonl
+```
+
 Override `.env` settings from the command line:
 
 ```bash
@@ -309,8 +320,8 @@ The terminal surfaces runtime lifecycle state as `LIVE`, `SIM`, `STALE`,
 `CONNECTED`, or `DISCONNECTED` so the UI distinguishes real-time data from demo
 and stale sessions.
 
-If live mode is missing market-data dependencies, the app exits with an install
-hint instead of a Python traceback:
+If live mode is missing credentials or market-data dependencies, the app exits
+with an install/configuration hint instead of a Python traceback:
 
 ```bash
 pip install -r requirements.txt

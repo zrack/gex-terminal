@@ -11,12 +11,14 @@ from gex_config import GexConfig
 from gex_engine import IntradayGexEngine
 from gex_consumer import StatefulGexConsumer
 from gex_terminal import GexTerminalApp
+from replay_adapter import ReplayAdapter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 async def main():
     args = parse_args()
     config = apply_cli_overrides(GexConfig.from_env(), args)
+    validate_data_mode(config.data_mode)
 
     if args.screenshot:
         await export_demo_screenshot(
@@ -42,14 +44,21 @@ async def main():
     
     if config.data_mode == "demo":
         await seed_demo_session(state_consumer)
+    elif config.data_mode == "replay":
+        data_adapter = ReplayAdapter(
+            state_consumer,
+            replay_path=config.replay_path,
+            delay_seconds=config.replay_delay_seconds,
+        )
+        stream_task = asyncio.create_task(data_adapter.stream_market_data())
     else:
         try:
-            from tradovate_adapter import TradovateAdapter
-        except ModuleNotFoundError as exc:
-            missing_package = exc.name or "live market-data dependency"
+            from tradovate_adapter import TradovateAdapter, validate_tradovate_credentials
+            validate_tradovate_credentials()
+        except (ModuleNotFoundError, ValueError) as exc:
             raise SystemExit(
                 "\n".join((
-                    f"Live mode requires the missing package: {missing_package}",
+                    f"Live mode is not ready: {exc}",
                     "Install live dependencies with: pip install -r requirements.txt",
                     "Or start demo mode with: python3 main.py --demo",
                 ))
@@ -125,6 +134,8 @@ async def export_demo_screenshot(
         days_to_expiry=config.days_to_expiry,
         refresh_interval_seconds=config.refresh_interval_seconds,
         stale_after_seconds=config.stale_after_seconds,
+        replay_path=config.replay_path,
+        replay_delay_seconds=config.replay_delay_seconds,
         tradovate_environment=config.tradovate_environment,
     )
     math_engine = IntradayGexEngine(multiplier=demo_config.contract_multiplier)
@@ -162,7 +173,7 @@ def parse_args() -> argparse.Namespace:
     )
     mode_group.add_argument(
         "--mode",
-        choices=("demo", "live"),
+        choices=("demo", "replay", "live"),
         help="Runtime data mode. Overrides GEX_DATA_MODE.",
     )
     parser.add_argument(
@@ -178,6 +189,16 @@ def parse_args() -> argparse.Namespace:
         "--refresh",
         type=float,
         help="UI refresh interval in seconds. Overrides GEX_REFRESH_INTERVAL_SECONDS.",
+    )
+    parser.add_argument(
+        "--replay",
+        metavar="PATH",
+        help="Replay normalized JSONL market data from PATH. Sets mode to replay.",
+    )
+    parser.add_argument(
+        "--replay-delay",
+        type=float,
+        help="Delay between replay messages in seconds. Overrides GEX_REPLAY_DELAY_SECONDS.",
     )
     parser.add_argument(
         "--screenshot",
@@ -218,12 +239,27 @@ def apply_cli_overrides(config: GexConfig, args: argparse.Namespace) -> GexConfi
     if args.refresh is not None:
         updates["refresh_interval_seconds"] = args.refresh
 
+    if args.replay:
+        updates["data_mode"] = "replay"
+        updates["replay_path"] = args.replay
+
+    if args.replay_delay is not None:
+        updates["replay_delay_seconds"] = args.replay_delay
+
     return replace(config, **updates) if updates else config
 
 
 def _symbols_with_target(symbols: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:
     cleaned = tuple(symbol for symbol in symbols if symbol != target_symbol)
     return (target_symbol, *cleaned)[:4]
+
+
+def validate_data_mode(data_mode: str) -> None:
+    supported_modes = {"demo", "replay", "live"}
+    if data_mode not in supported_modes:
+        raise SystemExit(
+            f"Unsupported GEX_DATA_MODE '{data_mode}'. Expected one of: demo, replay, live"
+        )
 
 
 if __name__ == "__main__":
