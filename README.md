@@ -11,6 +11,12 @@ exposure, imbalance, and structural market zones.
 The goal is to isolate hidden institutional support, resistance, and volatility
 acceleration boundaries at terminal speed, without the overhead of a browser UI.
 
+![Actual GEX terminal export](assets/gex-terminal-actual.svg)
+
+Design target:
+
+![GEX Imbalance Terminal mockup](assets/gex-terminal-mockup.png)
+
 > This project is intended for market research and engineering experimentation.
 > It is not financial advice.
 
@@ -27,9 +33,12 @@ acceleration boundaries at terminal speed, without the overhead of a browser UI.
 |-- ROADMAP.md          # Planned project phases and future work
 |-- requirements.txt    # Runtime Python dependencies
 |-- main.py             # Application launchpad and orchestration
+|-- gex_config.py       # Environment-driven runtime configuration
 |-- gex_engine.py       # Vectorized Black-Scholes and GEX calculation matrix
 |-- gex_consumer.py     # Stateful asynchronous market-data aggregator
 |-- gex_terminal.py     # Textual reactive terminal user interface
+|-- gex_terminal.tcss   # Terminal dashboard theme and layout styles
+|-- tests/              # Math regression tests
 `-- tradovate_adapter.py # Tradovate REST/WebSocket market-data adapter
 ```
 
@@ -194,6 +203,32 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+## Quick Start
+
+Run the terminal with seeded demo data:
+
+```bash
+python3 main.py --demo
+```
+
+Run live mode for ES:
+
+```bash
+python3 main.py --mode live --symbol ES
+```
+
+Run NQ with its futures multiplier:
+
+```bash
+python3 main.py --demo --symbol NQ --multiplier 20
+```
+
+Export the actual Textual terminal screenshot used by GitHub:
+
+```bash
+python3 main.py --demo --screenshot assets/gex-terminal-actual.svg
+```
+
 ## Configuration
 
 Copy the example environment file and fill in your local Tradovate credentials:
@@ -203,6 +238,15 @@ cp .env.example .env
 ```
 
 ```bash
+GEX_SYMBOL=ES
+GEX_SYMBOLS=ES,NQ,SPX,QQQ
+GEX_DATA_MODE=live
+GEX_CONTRACT_MULTIPLIER=50
+GEX_RISK_FREE_RATE=0.045
+GEX_DAYS_TO_EXPIRY=0.01
+GEX_REFRESH_INTERVAL_SECONDS=1.0
+GEX_STALE_AFTER_SECONDS=10.0
+
 TRADOVATE_ENV=demo
 TRADOVATE_NAME=your_username
 TRADOVATE_PASSWORD=your_password
@@ -226,7 +270,27 @@ Suggested futures multipliers:
 Launch the terminal:
 
 ```bash
-python main.py
+python3 main.py
+```
+
+Run with seeded demo data:
+
+```bash
+python3 main.py --demo
+```
+
+Override `.env` settings from the command line:
+
+```bash
+python3 main.py --mode live --symbol ES
+python3 main.py --demo --symbol NQ --multiplier 20
+python3 main.py --demo --refresh 0.5
+```
+
+Export an actual Textual screenshot for GitHub:
+
+```bash
+python3 main.py --demo --screenshot assets/gex-terminal-actual.svg
 ```
 
 The dashboard is designed to update continuously as new option-chain and trade
@@ -240,6 +304,17 @@ events arrive. During a live session, the matrix should surface:
 - zero-gamma node
 - call/put imbalance
 - positive and negative gamma zones
+
+The terminal surfaces runtime lifecycle state as `LIVE`, `SIM`, `STALE`,
+`CONNECTED`, or `DISCONNECTED` so the UI distinguishes real-time data from demo
+and stale sessions.
+
+If live mode is missing market-data dependencies, the app exits with an install
+hint instead of a Python traceback:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Development Notes
 
@@ -261,6 +336,7 @@ Recommended early test coverage:
 - Dollar GEX conversion for calls and puts.
 - Net GEX aggregation by strike.
 - Zero-gamma interpolation across sign changes.
+- Runtime lifecycle states for demo, live, stale, and disconnected sessions.
 - Async consumer state updates under bursty tick delivery.
 - Terminal rendering with empty, partial, and live-like snapshots.
 

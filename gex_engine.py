@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import norm
 
 class IntradayGexEngine:
     def __init__(self, multiplier: int = 100):
@@ -57,19 +56,53 @@ class IntradayGexEngine:
         gamma_wall_index = np.argmax(np.abs(net_gex_dollars))
         gamma_wall_strike = strikes[gamma_wall_index]
         
-        # Zero Gamma approximation: find the strike where the sign flips or approaches absolute zero
-        zero_gamma_idx = np.argmin(np.abs(net_gex_dollars))
-        zero_gamma_strike = strikes[zero_gamma_idx]
+        zero_gamma_strike = self.interpolate_zero_gamma_strike(strikes, net_gex_dollars)
+        nearest_zero_idx = np.argmin(np.abs(strikes - zero_gamma_strike))
+        nearest_zero_strike = strikes[nearest_zero_idx]
 
         return {
             "strikes": strikes.tolist(),
+            "gammas": gammas.tolist(),
             "call_gex": call_gex_dollars.tolist(),
             "put_gex": put_gex_dollars.tolist(),
             "net_gex": net_gex_dollars.tolist(),
             "total_net_gex": total_net_gex,
             "gamma_wall_strike": gamma_wall_strike,
-            "zero_gamma_strike": zero_gamma_strike
+            "zero_gamma_strike": zero_gamma_strike,
+            "nearest_zero_strike": nearest_zero_strike
         }
+
+    @staticmethod
+    def interpolate_zero_gamma_strike(strikes: np.ndarray, net_gex_dollars: np.ndarray) -> float:
+        """
+        Estimate the zero-gamma boundary between strikes with linear interpolation.
+
+        If no sign change exists in the current strike slice, fall back to the strike
+        with the smallest absolute net GEX.
+        """
+        if len(strikes) == 0:
+            return 0.0
+
+        signs = np.sign(net_gex_dollars)
+        exact_zero = np.where(signs == 0)[0]
+        if len(exact_zero):
+            return float(strikes[exact_zero[0]])
+
+        sign_changes = np.where(signs[:-1] * signs[1:] < 0)[0]
+        if len(sign_changes):
+            candidates = []
+            for idx in sign_changes:
+                x0, x1 = strikes[idx], strikes[idx + 1]
+                y0, y1 = net_gex_dollars[idx], net_gex_dollars[idx + 1]
+                if y1 == y0:
+                    candidates.append(float(x0))
+                else:
+                    candidates.append(float(x0 - y0 * (x1 - x0) / (y1 - y0)))
+
+            spot_center = float(strikes[np.argmin(np.abs(net_gex_dollars))])
+            return min(candidates, key=lambda value: abs(value - spot_center))
+
+        return float(strikes[np.argmin(np.abs(net_gex_dollars))])
 
 # --- Quick Verification Block ---
 if __name__ == "__main__":

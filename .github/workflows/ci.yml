@@ -24,3 +24,14 @@ jobs:
 
       - name: Compile source
         run: python -m compileall .
+
+      - name: Run tests
+        run: python -m unittest discover -s tests
+
+      - name: Check CLI help
+        run: python main.py --help
+
+      - name: Export screenshot smoke test
+        run: |
+          python main.py --demo --screenshot /tmp/gex-terminal-ci.svg
+          test -s /tmp/gex-terminal-ci.svg

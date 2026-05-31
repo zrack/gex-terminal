@@ -4,20 +4,16 @@ import logging
 import os
 import aiohttp
 import websockets
-from dotenv import load_dotenv
-
-# Load credentials from the .env file
-load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 class TradovateAdapter:
-    def __init__(self, consumer, target_underlying="ES"):
+    def __init__(self, consumer, target_underlying="ES", environment: str | None = None):
         self.consumer = consumer
         self.target_underlying = target_underlying
         
         # Load Config
-        environment = os.getenv("TRADOVATE_ENV", "demo")
+        environment = environment or os.getenv("TRADOVATE_ENV", "demo")
         self.rest_url = "https://live.tradovateapi.com/v1" if environment == "live" else "https://demo.tradovateapi.com/v1"
         self.ws_url = "wss://md.tradovateapi.com/v1/websocket" if environment == "live" else "wss://md.tradovateapi.com/v1/websocket"
         
@@ -62,6 +58,7 @@ class TradovateAdapter:
 
         async for websocket in websockets.connect(self.ws_url):
             logging.info("Connected to Tradovate Market Data WebSocket.")
+            self.consumer.mark_connected()
             
             # Start the background heartbeat
             heartbeat_task = asyncio.create_task(self.keep_alive(websocket))
@@ -85,10 +82,12 @@ class TradovateAdapter:
                         
             except websockets.ConnectionClosed:
                 logging.warning("Tradovate WebSocket disconnected. Reconnecting...")
+                self.consumer.mark_disconnected()
                 heartbeat_task.cancel()
                 continue
             except Exception as e:
                 logging.error(f"WebSocket Error: {e}")
+                self.consumer.mark_disconnected()
                 heartbeat_task.cancel()
                 break
 
