@@ -26,6 +26,7 @@ class StatefulGexConsumer:
         # State: { strike_price: { 'C': accumulated_volume, 'P': accumulated_volume, 'iv': implied_vol } }
         self.chain_state: Dict[float, Dict[str, Any]] = {}
         self.current_spot: float = 0.0
+        self.session_open: float = 0.0
         self.last_message_at: float | None = None
         self.last_snapshot_at: float | None = None
         self.connection_state: str = "SIM" if self.data_mode == "DEMO" else "DISCONNECTED"

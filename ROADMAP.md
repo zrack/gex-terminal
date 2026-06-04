@@ -40,11 +40,11 @@ and terminal workflow become clearer.
 
 ## Phase 4: Terminal Experience
 
-- Add color-coded positive and negative GEX rows.
-- Improve empty, loading, disconnected, and error states.
-- Add sorting or filtering for strikes, expirations, and high-concentration
+- [x] Add color-coded positive and negative GEX rows.
+- [x] Improve empty, loading, disconnected, and error states.
+- [x] Add sorting or filtering for strikes, expirations, and high-concentration
   levels.
-- Add a compact status bar for provider, symbol, update cadence, and last refresh
+- [x] Add a compact status bar for provider, symbol, update cadence, and last refresh
   time.
 - [x] Include a README screenshot or GIF once mock replay mode can render a stable
   demo.

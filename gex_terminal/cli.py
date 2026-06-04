@@ -90,6 +90,7 @@ async def main():
 
 async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
     consumer.current_spot = 5943.25
+    consumer.session_open = 5904.50
     seed_rows: Iterable[tuple[int, int, int, float]] = (
         (5875, 2104, 8992, 0.18),
         (5900, 4781, 7406, 0.16),

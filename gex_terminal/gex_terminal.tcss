@@ -19,7 +19,7 @@ Footer {
     layout: grid;
     grid-size: 3 3;
     grid-columns: 20 1fr 40;
-    grid-rows: 10 1fr 12;
+    grid-rows: 9 1fr 12;
     background: #080a0d;
 }
 
@@ -104,23 +104,27 @@ Footer {
 }
 
 .metric-card {
-    border: round #1d252e;
-    background: #151b22;
-    padding: 1;
+    border: round #232e3a;
+    background: #131a22;
+    padding: 0 1;
     height: 100%;
 }
 
 .metric-label {
-    color: #94a3b8;
+    height: 1;
+    color: #8a97a6;
     text-style: bold;
 }
 
 .metric-value {
+    height: 1;
     text-style: bold;
+    color: #f1f5f9;
     margin-top: 1;
 }
 
 .metric-foot {
+    height: 1;
     color: #64748b;
 }
 
@@ -141,11 +145,11 @@ Footer {
 }
 
 .zone-card {
-    height: 8;
-    border: round #1d252e;
+    height: 6;
+    border: round #232e3a;
     background: #10151b;
     margin-bottom: 1;
-    padding: 1;
+    padding: 0 1;
 }
 
 .zone-value {
@@ -155,6 +159,19 @@ Footer {
 .event-line {
     height: 1;
     color: #94a3b8;
+}
+
+.state-banner {
+    height: 1;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#status-bar {
+    height: 1;
+    background: #0c1015;
+    color: #94a3b8;
+    padding: 0 1;
 }
 
 DataTable {

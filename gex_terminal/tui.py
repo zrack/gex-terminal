@@ -21,7 +21,17 @@ class GexTerminalApp(App):
     TITLE = "Intraday GEX Imbalance Terminal"
     CSS_PATH = str(Path(__file__).with_name("gex_terminal.tcss"))
 
-    BINDINGS = [("q", "quit", "Quit Terminal"), ("r", "refresh_terminal_data", "Refresh")]
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+        ("r", "refresh_terminal_data", "Refresh"),
+        ("s", "cycle_sort", "Sort"),
+        ("f", "cycle_filter", "Filter"),
+    ]
+
+    SORT_MODES = ("strike", "net", "volume")
+    FILTER_MODES = ("all", "near", "active")
+    SORT_LABELS = {"strike": "strike ↑", "net": "|net| ↓", "volume": "volume ↓"}
+    FILTER_LABELS = {"all": "all strikes", "near": "near-money", "active": "active only"}
 
     def __init__(self, consumer: StatefulGexConsumer, config: GexConfig | None = None):
         super().__init__()
@@ -37,6 +47,10 @@ class GexTerminalApp(App):
         self._last_regime: str | None = None
         self._last_runtime_status: str | None = None
         self._last_latency_ms = 0.0
+        self._sort_mode = "strike"
+        self._filter_mode = "all"
+        self._last_data: dict | None = None
+        self._last_refresh_at: str = "--:--:--"
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -65,6 +79,8 @@ class GexTerminalApp(App):
             with Vertical(id="matrix-panel"):
                 yield Static("Strike Gamma Exposure Matrix", classes="section-title")
                 yield Static("waiting for runtime configuration", id="matrix-meta", classes="subtle")
+                yield Static("", id="matrix-controls", classes="subtle")
+                yield Static("", id="matrix-state", classes="state-banner")
                 yield DataTable(id="gex-table")
 
             with Vertical(id="structure-panel"):
@@ -85,11 +101,14 @@ class GexTerminalApp(App):
                 yield Static("async consumer", classes="subtle")
                 yield Static("", id="event-log")
 
+        yield Static("", id="status-bar")
         yield Footer()
 
     def _metric(self, label: str, value: str, corner: str, foot: str, value_id: str) -> Container:
+        header = Text(label.upper(), style="bold #8a97a6")
+        header.append(f"  {corner}", style="#5b6675")
         return Container(
-            Static(f"{label.upper()}                 {corner}", classes="metric-label"),
+            Static(header, classes="metric-label"),
             Static(value, id=value_id, classes="metric-value"),
             Static(foot, id=f"{value_id}-foot", classes="metric-foot"),
             classes="metric-card",
@@ -97,6 +116,9 @@ class GexTerminalApp(App):
 
     def on_mount(self) -> None:
         self.title = "Intraday GEX Imbalance Terminal"
+        self.sub_title = (
+            f"{self.config.symbol} · OPTIONS CHAIN · CUMULATIVE SESSION VOLUME"
+        )
         table = self.query_one("#gex-table", DataTable)
         table.cursor_type = "row"
         table.zebra_stripes = True
@@ -107,11 +129,62 @@ class GexTerminalApp(App):
         table.add_column("Call GEX", width=12)
         table.add_column("Put GEX", width=12)
         table.add_column("Net GEX", width=18)
+        self.query_one("#matrix-state", Static).display = False
+        self._render_controls()
+        self._render_status_bar(self.consumer.runtime_status)
         self.set_interval(self.config.refresh_interval_seconds, self.refresh_terminal_data)
         self.call_later(self.refresh_terminal_data)
 
     async def action_refresh_terminal_data(self) -> None:
         await self.refresh_terminal_data()
+
+    def action_cycle_sort(self) -> None:
+        index = self.SORT_MODES.index(self._sort_mode)
+        self._sort_mode = self.SORT_MODES[(index + 1) % len(self.SORT_MODES)]
+        self._event(f"sort -> {self.SORT_LABELS[self._sort_mode]}")
+        self._render_controls()
+        if self._last_data is not None:
+            self._render_table(self._last_data)
+
+    def action_cycle_filter(self) -> None:
+        index = self.FILTER_MODES.index(self._filter_mode)
+        self._filter_mode = self.FILTER_MODES[(index + 1) % len(self.FILTER_MODES)]
+        self._event(f"filter -> {self.FILTER_LABELS[self._filter_mode]}")
+        self._render_controls()
+        if self._last_data is not None:
+            self._render_table(self._last_data)
+
+    def _render_controls(self) -> None:
+        self.query_one("#matrix-controls", Static).update(
+            f"sort: [#cbd5e1]{self.SORT_LABELS[self._sort_mode]}[/]  ·  "
+            f"filter: [#cbd5e1]{self.FILTER_LABELS[self._filter_mode]}[/]   "
+            f"[#5b6675]([b]s[/] sort  [b]f[/] filter  [b]r[/] refresh)[/]"
+        )
+
+    def _render_status_bar(self, status: str) -> None:
+        color = self._status_color(status)
+        bar = Text(" ", style="#94a3b8")
+        segments = (
+            f"provider {self.config.data_provider}",
+            f"{self.config.symbol} ×{self.config.contract_multiplier}",
+            f"refresh {self.config.refresh_interval_seconds:g}s",
+            f"last {self._last_refresh_at}",
+        )
+        bar.append("  ·  ".join(segments), style="#94a3b8")
+        bar.append("  ·  ", style="#3a4654")
+        bar.append(status, style=f"bold {self._hex_status(status)}")
+        self.query_one("#status-bar", Static).update(bar)
+
+    def _render_state_banner(self, status: str) -> None:
+        banner = self.query_one("#matrix-state", Static)
+        if status == "STALE":
+            banner.display = True
+            banner.update("[amber]■ STALE FEED[/]  no fresh ticks — showing last known snapshot")
+        elif status == "DISCONNECTED":
+            banner.display = True
+            banner.update("[red]■ DISCONNECTED[/]  provider feed is down — snapshot may be outdated")
+        else:
+            banner.display = False
 
     async def refresh_terminal_data(self) -> None:
         """Poll the consumer and render the latest GEX matrix."""
@@ -119,12 +192,17 @@ class GexTerminalApp(App):
         data = await self.consumer.process_latest_snapshot(days_to_expiry=self.config.days_to_expiry)
         self._last_latency_ms = (time.perf_counter() - started) * 1000
         self._latencies.append(self._last_latency_ms)
+        self._last_refresh_at = self._timestamp()
         self._render_lifecycle()
+        status = self.consumer.runtime_status
+        self._render_status_bar(status)
 
         if "error" in data:
-            self._render_empty_state(data["error"])
+            self._last_data = None
+            self._render_empty_state(data["error"], status)
             return
 
+        self._last_data = data
         self._gex_flow.append(float(data["total_net_gex"]))
         self._record_events(data)
         self._render_metrics(data)
@@ -133,11 +211,26 @@ class GexTerminalApp(App):
         self._render_sidebar(data)
         self._render_flow()
         self._render_events()
+        self._render_state_banner(status)
 
-    def _render_empty_state(self, reason: str) -> None:
+    def _render_empty_state(self, reason: str, status: str) -> None:
+        self.query_one("#gex-table", DataTable).clear()
         self.query_one("#stat-latency", Static).update(f"{self._last_latency_ms:.0f}ms")
-        self.query_one("#feed-chain", Static).update("[red]*[/] Option chain\n  empty")
-        self.query_one("#dealer-regime", Static).update(f"[amber]Waiting for data[/]\n{reason}")
+
+        banner = self.query_one("#matrix-state", Static)
+        banner.display = True
+        if status == "DISCONNECTED":
+            banner.update("[red]■ DISCONNECTED[/]  trying to reach the market-data provider — no snapshot yet")
+            self.query_one("#feed-chain", Static).update("[red]*[/] Option chain\n  disconnected")
+        elif status == "CONNECTED":
+            banner.update("[cyan]■ CONNECTING[/]  awaiting the first option-chain snapshot")
+            self.query_one("#feed-chain", Static).update("[cyan]*[/] Option chain\n  connecting")
+        else:
+            banner.update(f"[amber]■ WAITING[/]  {reason}")
+            self.query_one("#feed-chain", Static).update("[amber]*[/] Option chain\n  no contracts")
+        self.query_one("#dealer-regime", Static).update(
+            f"[b]Dealer Regime[/]   [#64748b]--[/]\nNo snapshot to model yet."
+        )
 
     def _render_metrics(self, data: dict) -> None:
         total_net = float(data["total_net_gex"])
@@ -147,7 +240,7 @@ class GexTerminalApp(App):
         regime = "positive gamma regime" if total_net >= 0 else "negative gamma regime"
 
         self.query_one("#stat-spot", Static).update(f"{self.consumer.current_spot:,.2f}")
-        self.query_one("#stat-spot-foot", Static).update(self.consumer.target_underlying)
+        self.query_one("#stat-spot-foot", Static).update(self._spot_change_text())
 
         self.query_one("#stat-netgex", Static).update(self._colored_money(total_net))
         self.query_one("#stat-netgex-foot", Static).update(regime)
@@ -176,36 +269,45 @@ class GexTerminalApp(App):
         max_abs_net = max((abs(float(value)) for value in data["net_gex"]), default=0)
         nearest_zero = float(data.get("nearest_zero_strike", data["zero_gamma_strike"]))
 
-        rows = list(zip(
-            data["strikes"],
-            data["gammas"],
-            data["call_gex"],
-            data["put_gex"],
-            data["net_gex"],
-        ))
-        for strike, gamma, call_gex, put_gex, net_gex in rows:
+        rows = []
+        for strike, gamma, call_gex, put_gex, net_gex in zip(
+            data["strikes"], data["gammas"], data["call_gex"], data["put_gex"], data["net_gex"]
+        ):
             state = self.consumer.chain_state.get(float(strike), {"C": 0, "P": 0})
-            total_volume = int(state["C"]) + int(state["P"])
+            rows.append({
+                "strike": float(strike),
+                "gamma": float(gamma),
+                "call_gex": float(call_gex),
+                "put_gex": float(put_gex),
+                "net_gex": float(net_gex),
+                "call_vol": int(state["C"]),
+                "put_vol": int(state["P"]),
+                "volume": int(state["C"]) + int(state["P"]),
+            })
+
+        rows = self._arrange_rows(
+            rows, self._sort_mode, self._filter_mode, self.consumer.current_spot, max_volume
+        )
+
+        for row in rows:
             row_style = self._row_style(
-                strike=float(strike),
+                strike=row["strike"],
                 wall=float(data["gamma_wall_strike"]),
                 nearest_zero=nearest_zero,
-                total_volume=total_volume,
+                total_volume=row["volume"],
                 max_volume=max_volume,
             )
             strike_label = self._strike_label(
-                strike,
-                data["gamma_wall_strike"],
-                nearest_zero,
+                row["strike"], data["gamma_wall_strike"], nearest_zero
             )
             table.add_row(
                 strike_label,
-                self._text(f"{int(state['C']):,}", row_style),
-                self._text(f"{int(state['P']):,}", row_style),
-                self._text(f"{float(gamma):.5f}", row_style),
-                self._money_cell(float(call_gex), row_style),
-                self._money_cell(float(put_gex), row_style),
-                self._net_cell(float(net_gex), max_abs_net, row_style),
+                self._text(f"{row['call_vol']:,}", row_style),
+                self._text(f"{row['put_vol']:,}", row_style),
+                self._text(f"{row['gamma']:.5f}", row_style),
+                self._money_cell(row["call_gex"], row_style),
+                self._money_cell(row["put_gex"], row_style),
+                self._net_cell(row["net_gex"], max_abs_net, row_style),
             )
 
     def _render_structure(self, data: dict) -> None:
@@ -222,23 +324,34 @@ class GexTerminalApp(App):
             f"computed {self._last_latency_ms:.0f}ms ago | p95 {self._p95_latency():.0f}ms"
         )
         self.query_one("#dealer-regime", Static).update(
-            f"Dealer Regime                 [{regime_color}]{regime_label}[/]\n"
-            f"Net exposure is {self._format_money(total_net)}. Wall is pinned at {wall}. "
-            f"Hedging flows are modeled as {'compressing' if total_net >= 0 else 'accelerating'} realized volatility."
+            f"[b]Dealer Regime[/]   [{regime_color}]{regime_label}[/]\n"
+            f"Net {self._format_money(total_net)} · wall pinned {wall}\n"
+            f"Hedging {'compresses' if total_net >= 0 else 'accelerates'} realized vol."
         )
         self.query_one("#balance-pressure", Static).update(
-            f"Balance Pressure              [cyan]{imbalance:.2f}x[/]\n"
-            f"{'Call-side' if imbalance >= 1 else 'Put-side'} exposure is leading on the intraday volume proxy."
+            f"[b]Balance Pressure[/]   [cyan]{imbalance:.2f}x[/]\n"
+            f"{'Call-side' if imbalance >= 1 else 'Put-side'} leads on the volume proxy."
         )
         self.query_one("#vol-boundary", Static).update(
-            f"Volatility Boundary           [amber]{zero}[/]\n"
-            f"Interpolated zero-gamma boundary. A break through it may shift the realized volatility regime."
+            f"[b]Volatility Boundary[/]   [amber]{zero}[/]\n"
+            f"Zero-gamma flip — a break shifts the vol regime."
         )
-        self.query_one("#zone-ladder", Static).update(
-            f"[green]+GEX zone[/]\n"
-            f"[cyan]zero {zero}[/]\n"
-            f"[red]-GEX zone[/]"
-        )
+        net_values = [float(value) for value in data["net_gex"]]
+        positive = sum(value for value in net_values if value > 0)
+        negative = abs(sum(value for value in net_values if value < 0))
+        share = positive / (positive + negative) if (positive + negative) else 0.5
+        track = 16
+        green_cells = max(0, min(track, round(share * track)))
+        red_cells = track - green_cells
+        gauge = Text("Net Gamma Profile\n", style="bold #8a97a6")
+        gauge.append("█" * green_cells, style="#4ade80")
+        gauge.append("│", style="#38bdf8")
+        gauge.append("█" * red_cells, style="#fb7185")
+        gauge.append("\n")
+        gauge.append(f"+GEX {wall} wall", style="#4ade80")
+        gauge.append("  ", style="#64748b")
+        gauge.append(f"zero {zero}", style="#38bdf8")
+        self.query_one("#zone-ladder", Static).update(gauge)
 
     def _render_sidebar(self, data: dict) -> None:
         contract_count = len(data["strikes"])
@@ -255,6 +368,10 @@ class GexTerminalApp(App):
         if status != self._last_runtime_status:
             self._event(f"runtime state {status}")
             self._last_runtime_status = status
+
+        self.sub_title = (
+            f"{self.config.symbol} · OPTIONS CHAIN · CUMULATIVE SESSION VOLUME · {status}"
+        )
 
         self.query_one("#feed-websocket", Static).update(
             f"[{color}]*[/] Data mode\n  {status}"
@@ -333,6 +450,19 @@ class GexTerminalApp(App):
             return "#64748b"
         return "#dce5ee"
 
+    def _spot_change_text(self) -> Text:
+        symbol = self.consumer.target_underlying
+        spot = self.consumer.current_spot
+        open_price = self.consumer.session_open
+        if not open_price:
+            return Text(symbol, style="#64748b")
+        change = spot - open_price
+        pct = (change / open_price * 100) if open_price else 0.0
+        color = "#4ade80" if change >= 0 else "#fb7185"
+        text = Text(f"{symbol}  ", style="#64748b")
+        text.append(f"{change:+.2f} / {pct:+.2f}%", style=color)
+        return text
+
     def _colored_money(self, value: float) -> str:
         color = "green" if value >= 0 else "red"
         return f"[{color}]{self._format_money(value)}[/]"
@@ -344,14 +474,29 @@ class GexTerminalApp(App):
         return Text(self._format_money(value), style=style)
 
     def _net_cell(self, value: float, max_abs_net: float, fallback_style: str = "#dce5ee") -> Text:
-        style = "#4ade80" if value >= 0 else "#fb7185"
+        base = "#4ade80" if value >= 0 else "#fb7185"
         if fallback_style == "#64748b":
-            style = "#64748b"
-        intensity = 0 if max_abs_net == 0 else max(1, round(abs(value) / max_abs_net * 8))
-        cell = Text(self._format_money(value), style=style)
-        if intensity:
-            cell.append(" " + ("#" * intensity), style=style)
+            base = "#475569"
+        ratio = 0.0 if max_abs_net == 0 else abs(value) / max_abs_net
+        cell = Text(f"{self._format_money(value):<8}", style=("bold " + base) if ratio >= 0.6 else base)
+        bar = self._bar(ratio, width=9)
+        if bar:
+            cell.append(bar, style=base)
         return cell
+
+    @staticmethod
+    def _bar(ratio: float, width: int = 9) -> str:
+        """Render a proportional bar using eighth-block characters for a smooth tip."""
+        ratio = max(0.0, min(1.0, ratio))
+        units = ratio * width
+        full = int(units)
+        eighths = " ▏▎▍▌▋▊▉█"
+        bar = "█" * full
+        if full < width:
+            tip = int((units - full) * 8)
+            if tip:
+                bar += eighths[tip]
+        return bar
 
     @staticmethod
     def _text(value: str, style: str = "#dce5ee") -> Text:
@@ -413,6 +558,45 @@ class GexTerminalApp(App):
             return "cyan"
         return "red"
 
+    @staticmethod
+    def _hex_status(status: str) -> str:
+        return {
+            "LIVE": "#4ade80",
+            "SIM": "#38bdf8",
+            "REPLAY": "#38bdf8",
+            "CONNECTED": "#38bdf8",
+            "STALE": "#fbbf24",
+        }.get(status, "#fb7185")
+
+    @staticmethod
+    def _arrange_rows(rows, sort_mode, filter_mode, spot, max_volume):
+        """Filter then sort the matrix rows. Pure function for easy testing."""
+        return GexTerminalApp._sort_rows(
+            GexTerminalApp._filter_rows(rows, filter_mode, spot, max_volume),
+            sort_mode,
+        )
+
+    @staticmethod
+    def _filter_rows(rows, filter_mode, spot, max_volume):
+        """Filter rows by mode. Never returns empty if input was non-empty (usability safety)."""
+        if filter_mode == "near" and spot:
+            window = max(spot * 0.01, 1.0)
+            subset = [row for row in rows if abs(row["strike"] - spot) <= window]
+            return subset or list(rows)
+        if filter_mode == "active" and max_volume:
+            threshold = max_volume * 0.25
+            subset = [row for row in rows if row["volume"] >= threshold]
+            return subset or list(rows)
+        return list(rows)
+
+    @staticmethod
+    def _sort_rows(rows, sort_mode):
+        if sort_mode == "net":
+            return sorted(rows, key=lambda row: abs(row["net_gex"]), reverse=True)
+        if sort_mode == "volume":
+            return sorted(rows, key=lambda row: row["volume"], reverse=True)
+        return sorted(rows, key=lambda row: row["strike"])
+
 
 async def run_mock_session():
     """Boot the math engine, consumer state machine, and terminal together."""
@@ -440,6 +624,7 @@ async def run_mock_session():
         stale_after_seconds=demo_config.stale_after_seconds,
     )
     state_consumer.current_spot = 5943.25
+    state_consumer.session_open = 5904.50
 
     seed_rows: Iterable[tuple[int, int, int, float]] = (
         (5875, 2104, 8992, 0.18),

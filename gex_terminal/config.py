@@ -33,7 +33,7 @@ class GexConfig:
             data_provider=_env_str("GEX_DATA_PROVIDER", "tradovate").lower(),
             contract_multiplier=_env_int("GEX_CONTRACT_MULTIPLIER", 50),
             risk_free_rate=_env_float("GEX_RISK_FREE_RATE", 0.045),
-            days_to_expiry=_env_float("GEX_DAYS_TO_EXPIRY", 0.01),
+            days_to_expiry=_env_float("GEX_DAYS_TO_EXPIRY", 0.25),
             refresh_interval_seconds=_env_float("GEX_REFRESH_INTERVAL_SECONDS", 1.0),
             stale_after_seconds=_env_float("GEX_STALE_AFTER_SECONDS", 10.0),
             replay_path=_env_str("GEX_REPLAY_PATH", "sample_data/demo_replay.jsonl"),
