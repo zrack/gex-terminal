@@ -53,9 +53,23 @@ class IntradayGexEngine:
         
         # 3. Locate structural boundaries
         total_net_gex = np.sum(net_gex_dollars)
-        gamma_wall_index = np.argmax(np.abs(net_gex_dollars))
+        abs_net = np.abs(net_gex_dollars)
+        gamma_wall_index = np.argmax(abs_net)
         gamma_wall_strike = strikes[gamma_wall_index]
-        
+
+        # Call wall: strike with the most positive (call-side) dollar gamma.
+        # Put wall: strike with the most negative (put-side) dollar gamma.
+        call_wall_strike = strikes[np.argmax(call_gex_dollars)]
+        put_wall_strike = strikes[np.argmax(np.abs(put_gex_dollars))]
+
+        # Concentration: how tightly net gamma is clustered. concentration_ratio is
+        # the single largest strike's share of total |net| gamma; concentration_band
+        # is the strike range covering the smallest set of strikes that together hold
+        # at least 70% of total |net| gamma.
+        total_abs = float(np.sum(abs_net))
+        concentration_ratio = float(np.max(abs_net) / total_abs) if total_abs else 0.0
+        band_low, band_high = self.concentration_band(strikes, abs_net, threshold=0.70)
+
         zero_gamma_strike = self.interpolate_zero_gamma_strike(strikes, net_gex_dollars)
         nearest_zero_idx = np.argmin(np.abs(strikes - zero_gamma_strike))
         nearest_zero_strike = strikes[nearest_zero_idx]
@@ -68,9 +82,34 @@ class IntradayGexEngine:
             "net_gex": net_gex_dollars.tolist(),
             "total_net_gex": total_net_gex,
             "gamma_wall_strike": gamma_wall_strike,
+            "call_wall_strike": call_wall_strike,
+            "put_wall_strike": put_wall_strike,
+            "concentration_ratio": concentration_ratio,
+            "concentration_band_low": band_low,
+            "concentration_band_high": band_high,
             "zero_gamma_strike": zero_gamma_strike,
             "nearest_zero_strike": nearest_zero_strike
         }
+
+    @staticmethod
+    def concentration_band(strikes: np.ndarray, abs_net: np.ndarray, threshold: float = 0.70) -> tuple:
+        """Return (low, high) strikes for the smallest set of strikes whose absolute
+        net gamma sums to at least `threshold` of the total. Falls back to the full
+        strike range when there is no exposure."""
+        if len(strikes) == 0:
+            return 0.0, 0.0
+        total = float(np.sum(abs_net))
+        if total <= 0:
+            return float(np.min(strikes)), float(np.max(strikes))
+        order = np.argsort(abs_net)[::-1]
+        cumulative = 0.0
+        chosen = []
+        for idx in order:
+            chosen.append(float(strikes[idx]))
+            cumulative += float(abs_net[idx])
+            if cumulative >= threshold * total:
+                break
+        return min(chosen), max(chosen)
 
     @staticmethod
     def interpolate_zero_gamma_strike(strikes: np.ndarray, net_gex_dollars: np.ndarray) -> float:

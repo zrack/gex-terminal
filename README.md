@@ -320,6 +320,23 @@ Export an actual Textual screenshot for GitHub:
 gex-terminal --demo --screenshot assets/gex-terminal-actual.svg
 ```
 
+Export a JSON snapshot of the current GEX state (metrics, call/put walls,
+concentration, expiry breakdown, and the full strike matrix):
+
+```bash
+gex-terminal --demo --export gex_snapshot.json
+```
+
+While the terminal is running, these keys are available:
+
+| Key | Action |
+| --- | --- |
+| `r` | Refresh the snapshot now |
+| `s` | Cycle strike sort (strike / \|net\| / volume) |
+| `f` | Cycle strike filter (all / near-money / active) |
+| `e` | Export the current snapshot to a timestamped JSON file |
+| `q` | Quit |
+
 The dashboard is designed to update continuously as new option-chain and trade
 events arrive. During a live session, the matrix should surface:
 

@@ -41,6 +41,10 @@ async def main():
         )
         return
 
+    if args.export:
+        await export_demo_snapshot(config=config, output_path=args.export)
+        return
+
     math_engine = IntradayGexEngine(multiplier=config.contract_multiplier)
     
     state_consumer = StatefulGexConsumer(
@@ -163,6 +167,38 @@ async def export_demo_screenshot(
     print(f"Saved screenshot to {target}")
 
 
+async def export_demo_snapshot(config: GexConfig, output_path: str) -> None:
+    """Compute one snapshot from seeded demo data and write it to JSON, then exit."""
+    from gex_terminal.snapshot import build_snapshot, write_snapshot
+
+    math_engine = IntradayGexEngine(multiplier=config.contract_multiplier)
+    consumer = StatefulGexConsumer(
+        math_engine,
+        target_underlying=config.symbol,
+        risk_free_rate=config.risk_free_rate,
+        data_mode="demo",
+        stale_after_seconds=config.stale_after_seconds,
+    )
+    await seed_demo_session(consumer)
+    data = await consumer.process_latest_snapshot(days_to_expiry=config.days_to_expiry)
+    if "error" in data:
+        raise SystemExit(f"Cannot export snapshot: {data['error']}")
+    breakdown = await consumer.process_expiry_breakdown(days_to_expiry=config.days_to_expiry)
+    snapshot = build_snapshot(
+        symbol=consumer.target_underlying,
+        spot=consumer.current_spot,
+        session_open=consumer.session_open,
+        days_to_expiry=config.days_to_expiry,
+        contract_multiplier=config.contract_multiplier,
+        risk_free_rate=config.risk_free_rate,
+        data=data,
+        chain_state=consumer.chain_state,
+        expiry_breakdown=breakdown,
+    )
+    target = write_snapshot(snapshot, output_path)
+    print(f"Saved snapshot to {target}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Intraday GEX imbalance terminal",
@@ -216,6 +252,11 @@ def parse_args() -> argparse.Namespace:
         "--screenshot",
         metavar="PATH",
         help="Export a real Textual SVG screenshot using seeded demo data, then exit.",
+    )
+    parser.add_argument(
+        "--export",
+        metavar="PATH",
+        help="Compute one GEX snapshot from seeded demo data, write it to PATH as JSON, then exit.",
     )
     parser.add_argument(
         "--screenshot-width",

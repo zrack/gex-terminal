@@ -13,6 +13,7 @@ from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.snapshot import build_snapshot, write_snapshot
 
 
 class GexTerminalApp(App):
@@ -26,6 +27,7 @@ class GexTerminalApp(App):
         ("r", "refresh_terminal_data", "Refresh"),
         ("s", "cycle_sort", "Sort"),
         ("f", "cycle_filter", "Filter"),
+        ("e", "export_snapshot", "Export"),
     ]
 
     SORT_MODES = ("strike", "net", "volume")
@@ -50,6 +52,7 @@ class GexTerminalApp(App):
         self._sort_mode = "strike"
         self._filter_mode = "all"
         self._last_data: dict | None = None
+        self._last_breakdown: dict = {}
         self._last_refresh_at: str = "--:--:--"
 
     def compose(self) -> ComposeResult:
@@ -186,6 +189,40 @@ class GexTerminalApp(App):
         else:
             banner.display = False
 
+    def _render_expiry(self, breakdown: dict) -> None:
+        meta = self.query_one("#structure-meta", Static)
+        if not breakdown:
+            meta.update("by expiry · --")
+            return
+        parts = " · ".join(
+            f"{label} {self._format_money(total)}" for label, total in breakdown.items()
+        )
+        meta.update(f"by expiry · {parts}")
+
+    def action_export_snapshot(self) -> None:
+        if self._last_data is None:
+            self._event("export skipped — no snapshot yet")
+            self._render_events()
+            return
+        snapshot = build_snapshot(
+            symbol=self.consumer.target_underlying,
+            spot=self.consumer.current_spot,
+            session_open=self.consumer.session_open,
+            days_to_expiry=self.config.days_to_expiry,
+            contract_multiplier=self.config.contract_multiplier,
+            risk_free_rate=self.config.risk_free_rate,
+            data=self._last_data,
+            chain_state=self.consumer.chain_state,
+            expiry_breakdown=self._last_breakdown,
+        )
+        filename = f"gex_snapshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        try:
+            target = write_snapshot(snapshot, filename)
+            self._event(f"snapshot exported -> {target.name}")
+        except OSError as error:
+            self._event(f"export failed — {error}")
+        self._render_events()
+
     async def refresh_terminal_data(self) -> None:
         """Poll the consumer and render the latest GEX matrix."""
         started = time.perf_counter()
@@ -203,11 +240,15 @@ class GexTerminalApp(App):
             return
 
         self._last_data = data
+        self._last_breakdown = await self.consumer.process_expiry_breakdown(
+            days_to_expiry=self.config.days_to_expiry
+        )
         self._gex_flow.append(float(data["total_net_gex"]))
         self._record_events(data)
         self._render_metrics(data)
         self._render_table(data)
         self._render_structure(data)
+        self._render_expiry(self._last_breakdown)
         self._render_sidebar(data)
         self._render_flow()
         self._render_events()
@@ -317,24 +358,28 @@ class GexTerminalApp(App):
         imbalance = self._imbalance(call_total, put_total_abs)
         zero = self._format_strike(data["zero_gamma_strike"], decimals=1)
         wall = self._format_strike(data["gamma_wall_strike"])
+        call_wall = self._format_strike(data.get("call_wall_strike", data["gamma_wall_strike"]))
+        put_wall = self._format_strike(data.get("put_wall_strike", data["gamma_wall_strike"]))
+        concentration = float(data.get("concentration_ratio", 0.0))
+        band_low = self._format_strike(data.get("concentration_band_low", data["gamma_wall_strike"]))
+        band_high = self._format_strike(data.get("concentration_band_high", data["gamma_wall_strike"]))
         regime_label = "+GEX" if total_net >= 0 else "-GEX"
         regime_color = "green" if total_net >= 0 else "red"
 
-        self.query_one("#structure-meta", Static).update(
-            f"computed {self._last_latency_ms:.0f}ms ago | p95 {self._p95_latency():.0f}ms"
-        )
         self.query_one("#dealer-regime", Static).update(
             f"[b]Dealer Regime[/]   [{regime_color}]{regime_label}[/]\n"
             f"Net {self._format_money(total_net)} · wall pinned {wall}\n"
-            f"Hedging {'compresses' if total_net >= 0 else 'accelerates'} realized vol."
+            f"[green]call wall {call_wall}[/] · [red]put wall {put_wall}[/]"
         )
         self.query_one("#balance-pressure", Static).update(
             f"[b]Balance Pressure[/]   [cyan]{imbalance:.2f}x[/]\n"
-            f"{'Call-side' if imbalance >= 1 else 'Put-side'} leads on the volume proxy."
+            f"{'Call-side' if imbalance >= 1 else 'Put-side'} leads on the volume proxy.\n"
+            f"Top strike holds [#cbd5e1]{concentration:.0%}[/] of net gamma."
         )
         self.query_one("#vol-boundary", Static).update(
             f"[b]Volatility Boundary[/]   [amber]{zero}[/]\n"
-            f"Zero-gamma flip — a break shifts the vol regime."
+            f"Zero-gamma flip — a break shifts the vol regime.\n"
+            f"70% band {band_low}–{band_high}."
         )
         net_values = [float(value) for value in data["net_gex"]]
         positive = sum(value for value in net_values if value > 0)

@@ -31,16 +31,21 @@ and terminal workflow become clearer.
 
 ## Phase 3: Market Structure Metrics
 
-- [ ] Add call wall, put wall, and gamma concentration bands. Gamma wall and a
-  dealer-positioning/regime read (net-gamma profile gauge) now ship; call/put
-  walls and concentration bands are still open.
+- [x] Add call wall, put wall, and gamma concentration bands. The engine now
+  reports call/put walls, a top-strike concentration ratio, and the 70% net-gamma
+  band; all surface in the Market Structure panel alongside the gamma wall and
+  regime read.
 - [x] Improve zero-gamma detection with interpolation across strike-level sign
   changes.
 - [x] Track intraday changes in total net GEX, gamma wall, and zero-gamma levels
   (event log records wall shifts, zero-node moves, regime flips, and imbalance
   threshold crossings; Session GEX Flow sparkline trends net GEX).
-- [ ] Support exposure breakdowns by expiry once chain discovery is available.
-- [ ] Add exportable snapshot summaries for later review.
+- [x] Support exposure breakdowns by expiry. Ticks may carry an `expiry` tag and
+  the consumer reports net GEX per expiry (single session bucket otherwise);
+  populating multiple live expiries still depends on Phase 2 chain discovery.
+- [x] Add exportable snapshot summaries for later review (JSON via `--export PATH`
+  or the in-app `e` key; includes metrics, walls, concentration, expiry breakdown,
+  and the full strike matrix).
 
 ## Phase 4: Terminal Experience
 

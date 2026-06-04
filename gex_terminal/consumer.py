@@ -25,6 +25,9 @@ class StatefulGexConsumer:
         
         # State: { strike_price: { 'C': accumulated_volume, 'P': accumulated_volume, 'iv': implied_vol } }
         self.chain_state: Dict[float, Dict[str, Any]] = {}
+        # Per-expiry volume state, only populated when ticks carry an "expiry" tag.
+        # { expiry_label: { strike: { 'C', 'P', 'iv' } } }
+        self.expiry_state: Dict[str, Dict[float, Dict[str, Any]]] = {}
         self.current_spot: float = 0.0
         self.session_open: float = 0.0
         self.last_message_at: float | None = None
@@ -76,13 +79,24 @@ class StatefulGexConsumer:
                 volume = int(data["volume"])
                 iv = float(data.get("iv", 0.15)) # Default or fallback IV
 
+                expiry = data.get("expiry")
+
                 async with self.state_lock:
                     if strike not in self.chain_state:
                         self.chain_state[strike] = {"C": 0, "P": 0, "iv": iv}
-                    
+
                     self.chain_state[strike][option_type] += volume
                     self.chain_state[strike]["iv"] = iv # Update local IV skew dynamically
                     self.last_message_at = time.monotonic()
+
+                    # Optionally track the same flow grouped by expiry for breakdowns.
+                    if expiry is not None:
+                        label = str(expiry)
+                        bucket = self.expiry_state.setdefault(label, {})
+                        if strike not in bucket:
+                            bucket[strike] = {"C": 0, "P": 0, "iv": iv}
+                        bucket[strike][option_type] += volume
+                        bucket[strike]["iv"] = iv
 
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logging.error(f"Failed parsing market data frame: {e}")
@@ -117,6 +131,55 @@ class StatefulGexConsumer:
             accumulated_call_vol=call_vol_arr,
             accumulated_put_vol=put_vol_arr
         )
+
+    async def process_expiry_breakdown(self, days_to_expiry: float, expiry_days: dict | None = None) -> dict:
+        """Return total net GEX grouped by expiry.
+
+        When ticks have carried an ``expiry`` tag, each expiry bucket is priced with
+        its own days-to-expiry (from ``expiry_days``, falling back to ``days_to_expiry``).
+        When no per-expiry data exists, returns a single session bucket computed from
+        the aggregate chain state.
+        """
+        expiry_days = expiry_days or {}
+        async with self.state_lock:
+            if not self.chain_state or self.current_spot == 0.0:
+                return {}
+            spot = self.current_spot
+            buckets = {
+                label: {strike: dict(values) for strike, values in strikes.items()}
+                for label, strikes in self.expiry_state.items()
+            }
+            aggregate = {strike: dict(values) for strike, values in self.chain_state.items()}
+
+        if not buckets:
+            label = f"{days_to_expiry:g}DTE"
+            return {label: self._bucket_net_gex(aggregate, spot, days_to_expiry)}
+
+        breakdown = {}
+        for label, strikes in buckets.items():
+            dte = expiry_days.get(label, days_to_expiry)
+            breakdown[label] = self._bucket_net_gex(strikes, spot, dte)
+        return breakdown
+
+    def _bucket_net_gex(self, strikes_map: Dict[float, Dict[str, Any]], spot: float, days_to_expiry: float) -> float:
+        """Compute total net dollar GEX for one strike->volume bucket."""
+        if not strikes_map:
+            return 0.0
+        sorted_strikes = sorted(strikes_map.keys())
+        strikes_arr = np.array(sorted_strikes, dtype=float)
+        iv_arr = np.array([strikes_map[k]["iv"] for k in sorted_strikes], dtype=float)
+        call_arr = np.array([strikes_map[k]["C"] for k in sorted_strikes], dtype=float)
+        put_arr = np.array([strikes_map[k]["P"] for k in sorted_strikes], dtype=float)
+        matrix = self.engine.compute_intraday_gex_matrix(
+            spot_price=spot,
+            strikes=strikes_arr,
+            days_to_expiry=days_to_expiry,
+            risk_free_rate=self.risk_free_rate,
+            implied_vols=iv_arr,
+            accumulated_call_vol=call_arr,
+            accumulated_put_vol=put_arr,
+        )
+        return float(matrix["total_net_gex"])
 
     async def continuous_calculation_loop(
         self,
