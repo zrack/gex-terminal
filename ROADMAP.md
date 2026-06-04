@@ -21,22 +21,26 @@ and terminal workflow become clearer.
 - [ ] Complete real options-chain discovery for active ES/NQ contracts.
   Initial Tradovate discovery scaffolding exists; the next step is validating
   the exact option-chain payload shape against live/demo API access.
-- Harden Tradovate reconnect, backoff, heartbeat, and shutdown behavior.
+- [ ] Harden Tradovate reconnect, backoff, heartbeat, and shutdown behavior.
 - [x] Normalize provider payloads through a stable adapter contract before they
   reach the state consumer.
-- Track provider connection status, last message time, and data freshness in the
-  terminal UI.
-- Add logging controls suitable for live, demo, and debug sessions.
+- [x] Track provider connection status, last message time, and data freshness in
+  the terminal UI (runtime status LIVE/SIM/STALE/DISCONNECTED, feed-health rail,
+  status bar with last-refresh time, and stale/disconnected matrix banners).
+- [ ] Add logging controls suitable for live, demo, and debug sessions.
 
 ## Phase 3: Market Structure Metrics
 
-- Add call wall, put wall, gamma concentration bands, and dealer positioning
-  bias metrics.
-- Improve zero-gamma detection with interpolation across strike-level sign
+- [ ] Add call wall, put wall, and gamma concentration bands. Gamma wall and a
+  dealer-positioning/regime read (net-gamma profile gauge) now ship; call/put
+  walls and concentration bands are still open.
+- [x] Improve zero-gamma detection with interpolation across strike-level sign
   changes.
-- Track intraday changes in total net GEX, gamma wall, and zero-gamma levels.
-- Support exposure breakdowns by expiry once chain discovery is available.
-- Add exportable snapshot summaries for later review.
+- [x] Track intraday changes in total net GEX, gamma wall, and zero-gamma levels
+  (event log records wall shifts, zero-node moves, regime flips, and imbalance
+  threshold crossings; Session GEX Flow sparkline trends net GEX).
+- [ ] Support exposure breakdowns by expiry once chain discovery is available.
+- [ ] Add exportable snapshot summaries for later review.
 
 ## Phase 4: Terminal Experience
 
@@ -57,14 +61,14 @@ and terminal workflow become clearer.
 - [x] Add provider registry scaffolds for Databento, IBKR, and yfinance.
 - [x] Add issue templates for bugs, feature requests, and provider adapters.
 - [x] Add a security policy for credential-handling issues.
-- Add a small set of labeled good-first issues after the first public push.
+- [ ] Add a small set of labeled good-first issues after the first public push.
 
 ## Phase 6: Packaging and Distribution
 
 - [x] Add `pyproject.toml` project metadata and tool configuration.
 - [x] Make the app installable with a console command such as `gex-terminal`.
-- Add release notes and versioning once the data model stabilizes.
-- Consider `pipx` installation support for users who want the terminal as a
+- [ ] Add release notes and versioning once the data model stabilizes.
+- [ ] Consider `pipx` installation support for users who want the terminal as a
   standalone tool.
 
 ## Good First Contributions
