@@ -1,0 +1,158 @@
+<svg width="1400" height="900" viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Live Gamma Regime Map mockup for gex-terminal</title>
+  <desc id="desc">A terminal-style mockup showing price, gamma wall, zero-gamma node, regime state, alerts, and exposure bands.</desc>
+  <defs>
+    <linearGradient id="terminal-bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#071018"/>
+      <stop offset="0.55" stop-color="#0d141b"/>
+      <stop offset="1" stop-color="#101319"/>
+    </linearGradient>
+    <linearGradient id="regime-band" x1="0" x2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="0.45" stop-color="#fbbf24"/>
+      <stop offset="0.64" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#4ade80"/>
+    </linearGradient>
+    <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .mono { font-family: "Fira Code", "SFMono-Regular", Consolas, monospace; }
+      .label { fill: #94a3b8; font-size: 16px; }
+      .small { fill: #64748b; font-size: 13px; }
+      .value { fill: #e2e8f0; font-size: 22px; font-weight: 700; }
+      .panel-title { fill: #cbd5e1; font-size: 17px; font-weight: 700; letter-spacing: 0; }
+      .muted-line { stroke: #1f2a35; stroke-width: 1; }
+      .frame { fill: #111820; stroke: #263241; stroke-width: 1.5; }
+      .panel { fill: #0d141c; stroke: #253244; stroke-width: 1.2; }
+      .green { fill: #4ade80; }
+      .cyan { fill: #38bdf8; }
+      .yellow { fill: #fbbf24; }
+      .red { fill: #fb7185; }
+      .white { fill: #f8fafc; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="900" fill="#05080c"/>
+  <rect x="28" y="24" width="1344" height="852" rx="14" fill="url(#terminal-bg)" stroke="#2a3848" stroke-width="2"/>
+  <rect x="28" y="24" width="1344" height="46" rx="14" fill="#111827"/>
+  <circle cx="58" cy="47" r="7" fill="#fb7185"/>
+  <circle cx="82" cy="47" r="7" fill="#fbbf24"/>
+  <circle cx="106" cy="47" r="7" fill="#4ade80"/>
+  <text x="132" y="53" class="mono white" font-size="18" font-weight="700">gex-terminal // live gamma regime map</text>
+  <text x="1020" y="53" class="mono label">ES M5 | Tradovate demo | 0DTE | 09:47:12 PT</text>
+
+  <rect x="54" y="92" width="1292" height="86" rx="8" class="frame"/>
+  <text x="78" y="125" class="mono label">REGIME</text>
+  <text x="78" y="158" class="mono" fill="#4ade80" font-size="30" font-weight="800">PINNED POSITIVE GAMMA</text>
+  <text x="470" y="125" class="mono label">SPOT</text>
+  <text x="470" y="158" class="mono value">5948.75</text>
+  <text x="630" y="125" class="mono label">ZERO GAMMA</text>
+  <text x="630" y="158" class="mono value">5941.50</text>
+  <text x="830" y="125" class="mono label">GAMMA WALL</text>
+  <text x="830" y="158" class="mono value">5965</text>
+  <text x="1030" y="125" class="mono label">NEXT TRIGGER</text>
+  <text x="1030" y="158" class="mono" fill="#fbbf24" font-size="22" font-weight="700">Break below zero-gamma</text>
+
+  <rect x="54" y="202" width="1292" height="318" rx="8" class="panel"/>
+  <text x="78" y="236" class="mono panel-title">REGIME LANE</text>
+  <text x="1170" y="236" class="mono small">prices shown in ES points</text>
+
+  <rect x="112" y="282" width="1176" height="68" rx="6" fill="url(#regime-band)" opacity="0.86"/>
+  <rect x="112" y="282" width="407" height="68" rx="6" fill="#7f1d1d" opacity="0.45"/>
+  <rect x="519" y="282" width="148" height="68" fill="#713f12" opacity="0.48"/>
+  <rect x="667" y="282" width="621" height="68" rx="6" fill="#14532d" opacity="0.45"/>
+
+  <line x1="112" y1="372" x2="1288" y2="372" stroke="#334155" stroke-width="2"/>
+  <g class="mono small">
+    <text x="98" y="402">5900</text>
+    <text x="310" y="402">5920</text>
+    <text x="522" y="402">5940</text>
+    <text x="734" y="402">5960</text>
+    <text x="946" y="402">5980</text>
+    <text x="1165" y="402">6000</text>
+  </g>
+  <g stroke="#263241" stroke-width="1">
+    <line x1="112" y1="266" x2="112" y2="388"/>
+    <line x1="348" y1="266" x2="348" y2="388"/>
+    <line x1="584" y1="266" x2="584" y2="388"/>
+    <line x1="820" y1="266" x2="820" y2="388"/>
+    <line x1="1056" y1="266" x2="1056" y2="388"/>
+    <line x1="1288" y1="266" x2="1288" y2="388"/>
+  </g>
+
+  <line x1="602" y1="258" x2="602" y2="428" stroke="#fbbf24" stroke-width="4" stroke-dasharray="9 8"/>
+  <circle cx="602" cy="282" r="8" fill="#fbbf24" filter="url(#soft-glow)"/>
+  <text x="532" y="454" class="mono yellow" font-size="16" font-weight="700">ZERO-GAMMA 5941.50</text>
+
+  <line x1="692" y1="250" x2="692" y2="438" stroke="#38bdf8" stroke-width="4"/>
+  <polygon points="692,244 680,263 704,263" fill="#38bdf8"/>
+  <text x="648" y="482" class="mono cyan" font-size="17" font-weight="700">SPOT 5948.75</text>
+
+  <line x1="884" y1="258" x2="884" y2="428" stroke="#4ade80" stroke-width="4"/>
+  <circle cx="884" cy="282" r="8" fill="#4ade80" filter="url(#soft-glow)"/>
+  <text x="826" y="454" class="mono green" font-size="16" font-weight="700">GAMMA WALL 5965</text>
+
+  <line x1="414" y1="258" x2="414" y2="428" stroke="#fb7185" stroke-width="3"/>
+  <text x="354" y="482" class="mono red" font-size="16" font-weight="700">PUT WALL 5925</text>
+  <line x1="1002" y1="258" x2="1002" y2="428" stroke="#86efac" stroke-width="3"/>
+  <text x="938" y="482" class="mono green" font-size="16" font-weight="700">CALL WALL 5975</text>
+
+  <text x="145" y="326" class="mono white" font-size="18" font-weight="700">NEGATIVE GAMMA</text>
+  <text x="145" y="345" class="mono small" fill="#fecdd3">trend risk expands</text>
+  <text x="534" y="326" class="mono white" font-size="18" font-weight="700">TRANSITION</text>
+  <text x="534" y="345" class="mono small" fill="#fde68a">watch zero-gamma</text>
+  <text x="807" y="326" class="mono white" font-size="18" font-weight="700">POSITIVE GAMMA</text>
+  <text x="807" y="345" class="mono small" fill="#bbf7d0">mean reversion/pinning</text>
+
+  <rect x="54" y="544" width="414" height="270" rx="8" class="panel"/>
+  <text x="78" y="578" class="mono panel-title">REGIME SIGNALS</text>
+  <line x1="78" y1="598" x2="444" y2="598" class="muted-line"/>
+  <text x="78" y="636" class="mono label">Volatility state</text>
+  <text x="270" y="636" class="mono green" font-size="18" font-weight="700">COMPRESSED</text>
+  <text x="78" y="676" class="mono label">Pin risk</text>
+  <text x="270" y="676" class="mono green" font-size="18" font-weight="700">HIGH</text>
+  <text x="78" y="716" class="mono label">Breakout trigger</text>
+  <text x="270" y="716" class="mono yellow" font-size="18" font-weight="700">&lt; 5941.50</text>
+  <text x="78" y="756" class="mono label">Imbalance</text>
+  <text x="270" y="756" class="mono cyan" font-size="18" font-weight="700">CALL +1.42x</text>
+
+  <rect x="494" y="544" width="414" height="270" rx="8" class="panel"/>
+  <text x="518" y="578" class="mono panel-title">EXPOSURE CONCENTRATION</text>
+  <line x1="518" y1="598" x2="884" y2="598" class="muted-line"/>
+  <text x="518" y="630" class="mono small">Top strikes account for 70% of net GEX</text>
+  <rect x="518" y="657" width="342" height="18" rx="4" fill="#1f2937"/>
+  <rect x="518" y="657" width="254" height="18" rx="4" fill="#4ade80"/>
+  <text x="518" y="704" class="mono label">70% band</text>
+  <text x="690" y="704" class="mono value">5935 - 5975</text>
+  <text x="518" y="744" class="mono label">Largest strike</text>
+  <text x="690" y="744" class="mono value">5965</text>
+  <text x="518" y="784" class="mono label">Net session GEX</text>
+  <text x="690" y="784" class="mono green" font-size="22" font-weight="700">+8.7B</text>
+
+  <rect x="934" y="544" width="412" height="270" rx="8" class="panel"/>
+  <text x="958" y="578" class="mono panel-title">EVENT TAPE</text>
+  <line x1="958" y1="598" x2="1322" y2="598" class="muted-line"/>
+  <text x="958" y="634" class="mono small">09:47:12</text>
+  <text x="1046" y="634" class="mono green" font-size="16">price holding above zero-gamma</text>
+  <text x="958" y="674" class="mono small">09:43:08</text>
+  <text x="1046" y="674" class="mono cyan" font-size="16">gamma wall shifted 5955 to 5965</text>
+  <text x="958" y="714" class="mono small">09:38:51</text>
+  <text x="1046" y="714" class="mono yellow" font-size="16">call imbalance crossed 1.35x</text>
+  <text x="958" y="754" class="mono small">09:31:20</text>
+  <text x="1046" y="754" class="mono red" font-size="16">negative gamma below 5925</text>
+  <text x="958" y="794" class="mono small">09:30:00</text>
+  <text x="1046" y="794" class="mono label">session opened in transition zone</text>
+
+  <rect x="54" y="836" width="1292" height="24" rx="5" fill="#0b1118" stroke="#202b37"/>
+  <text x="76" y="854" class="mono small">provider: LIVE</text>
+  <text x="198" y="854" class="mono small">latency: 82ms</text>
+  <text x="330" y="854" class="mono small">last tick: 1.4s ago</text>
+  <text x="505" y="854" class="mono small">mode: research</text>
+  <text x="650" y="854" class="mono small">alert keys: zero-gamma, wall-shift, imbalance, stale-feed</text>
+  <text x="1160" y="854" class="mono small">q quit | e export | a alerts</text>
+</svg>
