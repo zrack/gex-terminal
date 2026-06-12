@@ -52,9 +52,9 @@ providers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/scottzeitner/gex-terminal"
-Repository = "https://github.com/scottzeitner/gex-terminal"
-Issues = "https://github.com/scottzeitner/gex-terminal/issues"
+Homepage = "https://github.com/zrack/gex-terminal"
+Repository = "https://github.com/zrack/gex-terminal"
+Issues = "https://github.com/zrack/gex-terminal/issues"
 
 [project.scripts]
 gex-terminal = "gex_terminal.cli:main_sync"

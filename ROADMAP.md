@@ -4,39 +4,17 @@ This roadmap captures the major directions for `gex-terminal`. The project is
 still early, so priorities may shift as the data model, provider integrations,
 and terminal workflow become clearer.
 
-## High-Impact Concepts
+## Signature Capabilities
 
-These are the larger "wow" features that would make `gex-terminal` feel less
-like a generic dashboard and more like a focused market-structure workstation.
+These higher-impact features would make `gex-terminal` feel less like a generic
+dashboard and more like a focused market-structure workstation. See
+[docs/product-vision.md](docs/product-vision.md) for concept notes and mockups.
 
-### Live Gamma Regime Map
-
-Build a real-time regime panel showing whether price is in positive gamma,
-negative gamma, near zero-gamma, pinned near a gamma wall, or entering a
-volatility expansion zone.
-
-![Live Gamma Regime Map mockup](assets/live-gamma-regime-map-mockup.svg)
-
-### Replayable Market Days
-
-Save full intraday sessions and replay them later with synchronized GEX, price,
-wall shifts, zero-gamma moves, and event markers.
-
-### TradingView Overlay Export
-
-Export gamma wall, zero-gamma, call wall, put wall, and major exposure bands into
-a TradingView-compatible format so users can overlay levels on their charts.
-
-### GEX Alert Engine
-
-Trigger local alerts for zero-gamma crosses, gamma wall shifts, stale data,
-regime flips, and major call/put imbalance changes, with optional Discord or
-webhook output.
-
-### Multi-Symbol Market Structure Scanner
-
-Scan ES, NQ, SPX, SPY, QQQ, and IWM to rank symbols by gamma concentration,
-negative-gamma risk, 0DTE pressure, and the biggest intraday structural shifts.
+- Live Gamma Regime Map.
+- Replayable Market Days.
+- TradingView Overlay Export.
+- GEX Alert Engine.
+- Multi-Symbol Market Structure Scanner.
 
 ## Phase 1: Prototype Hardening
 

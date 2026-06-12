@@ -43,6 +43,20 @@ That openness is the invitation: contributors can improve the model, add
 providers, submit normalized payload fixtures, and build export or visualization
 tools without needing to join a closed commercial platform.
 
+## Looking For Contributors
+
+Helpful contributions include provider adapters, normalized market-data fixtures,
+math/model improvements, terminal UI experiments, replay datasets, data-quality
+checks, and docs that make GEX research easier to understand.
+
+Good starting points:
+
+- Pick an issue labeled `good first issue` or `help wanted`.
+- Submit sanitized replay or provider payload fixtures.
+- Improve the assumptions documentation around GEX calculations.
+- Prototype one of the signature capabilities in the roadmap.
+- Help validate provider-specific option-chain payload shapes.
+
 ## Project Layout
 
 ```text
@@ -50,6 +64,8 @@ tools without needing to join a closed commercial platform.
 |-- .env.example        # Template for local provider credentials
 |-- .gitignore          # Keeps secrets, virtualenvs, and caches out of Git
 |-- .github/workflows/  # GitHub Actions smoke-test workflow
+|-- CHANGELOG.md        # Notable project changes and public-prep milestones
+|-- CODE_OF_CONDUCT.md  # Community participation expectations
 |-- LICENSE             # MIT License
 |-- CONTRIBUTING.md     # Contribution guidelines and verification notes
 |-- README.md           # Project overview and setup notes
@@ -58,6 +74,7 @@ tools without needing to join a closed commercial platform.
 |-- requirements.txt    # Runtime Python dependencies
 |-- pyproject.toml      # Package metadata and console entry point
 |-- main.py             # Backward-compatible CLI wrapper
+|-- assets/             # Screenshots, mockups, and social preview assets
 |-- docs/               # Adapter and contributor-facing technical notes
 |-- gex_terminal/       # Application package
 |   |-- cli.py          # Console command and orchestration
@@ -393,7 +410,11 @@ pip install -e .
 - Use deterministic fixtures for engine tests so the math can be regression
   tested independently from live data.
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+- See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
+- See [CHANGELOG.md](CHANGELOG.md) for notable project changes.
 - See [docs/adapters.md](docs/adapters.md) for the provider adapter contract.
+- See [docs/product-vision.md](docs/product-vision.md) for signature capability
+  concepts and mockups.
 - See [ROADMAP.md](ROADMAP.md) for planned phases and future work.
 - See [SECURITY.md](SECURITY.md) for credential-handling guidance.
 
