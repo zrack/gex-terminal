@@ -14,19 +14,27 @@ and terminal workflow become clearer.
   risk-free rate, expiry target, provider, and update interval.
 - [x] Improve startup validation so missing credentials or unsupported provider
   settings fail with clear messages.
-- [ ] Document the current volume-as-open-interest proxy and its limitations.
+- [ ] Document the current model assumptions, including the
+  volume-as-open-interest proxy, call/put sign convention, and limitations versus
+  proprietary dealer-positioning models.
 
 ## Phase 2: Live Data Reliability
 
 - [ ] Complete real options-chain discovery for active ES/NQ contracts.
   Initial Tradovate discovery scaffolding exists; the next step is validating
   the exact option-chain payload shape against live/demo API access.
+- [ ] Make one live provider production-ready end to end before expanding the
+  provider list beyond scaffolds.
 - [ ] Harden Tradovate reconnect, backoff, heartbeat, and shutdown behavior.
+- [ ] Add official open-interest ingestion when provider entitlements support it
+  so the terminal can move beyond the intraday volume proxy.
 - [x] Normalize provider payloads through a stable adapter contract before they
   reach the state consumer.
 - [x] Track provider connection status, last message time, and data freshness in
   the terminal UI (runtime status LIVE/SIM/STALE/DISCONNECTED, feed-health rail,
   status bar with last-refresh time, and stale/disconnected matrix banners).
+- [ ] Add a data-quality panel for provider latency, dropped messages, stale
+  fields, and entitlement failures.
 - [ ] Add logging controls suitable for live, demo, and debug sessions.
 
 ## Phase 3: Market Structure Metrics
@@ -43,6 +51,12 @@ and terminal workflow become clearer.
 - [x] Support exposure breakdowns by expiry. Ticks may carry an `expiry` tag and
   the consumer reports net GEX per expiry (single session bucket otherwise);
   populating multiple live expiries still depends on Phase 2 chain discovery.
+- [ ] Add first-class 0DTE filtering and expiration selection in the runtime
+  configuration and terminal UI.
+- [ ] Add dealer/customer direction inference so GEX sign handling can move
+  beyond a naive call-positive/put-negative convention when data supports it.
+- [ ] Add Delta Exposure (DEX), vanna, charm, vega, and theta exposure metrics
+  after the live option-chain model stabilizes.
 - [x] Add exportable snapshot summaries for later review (JSON via `--export PATH`
   or the in-app `e` key; includes metrics, walls, concentration, expiry breakdown,
   and the full strike matrix).
@@ -57,6 +71,10 @@ and terminal workflow become clearer.
   time.
 - [x] Include a README screenshot or GIF once mock replay mode can render a stable
   demo.
+- [ ] Add alerts for gamma wall shifts, zero-gamma crosses, stale data, and major
+  exposure changes.
+- [ ] Add export formats designed for TradingView overlays, Discord posts, and
+  lightweight webhooks.
 
 ## Phase 5: Contributor-Friendly Architecture
 
@@ -66,6 +84,9 @@ and terminal workflow become clearer.
 - [x] Add provider registry scaffolds for Databento, IBKR, and yfinance.
 - [x] Add issue templates for bugs, feature requests, and provider adapters.
 - [x] Add a security policy for credential-handling issues.
+- [ ] Publish sample replay datasets so new users can evaluate the app without
+  paid data.
+- [ ] Add contribution notes for normalized provider payload fixtures.
 - [ ] Add a small set of labeled good-first issues after the first public push.
 
 ## Phase 6: Packaging and Distribution
@@ -75,6 +96,16 @@ and terminal workflow become clearer.
 - [ ] Add release notes and versioning once the data model stabilizes.
 - [ ] Consider `pipx` installation support for users who want the terminal as a
   standalone tool.
+
+## Phase 7: Research Workflow
+
+- [ ] Add a historical session store for replaying prior market days.
+- [ ] Add day-over-day level comparison for gamma wall, zero-gamma, expiry
+  exposure, and total net GEX.
+- [ ] Add a validation workflow that compares generated levels against saved
+  price action and replay fixtures.
+- [ ] Add a multi-symbol scanner for ES, MES, NQ, MNQ, SPX, SPY, QQQ, and IWM.
+- [ ] Add an options P/L scenario tool with Greeks, volatility, and time controls.
 
 ## Good First Contributions
 
@@ -87,9 +118,5 @@ and terminal workflow become clearer.
 
 ## Future Ideas
 
-- Session persistence for replaying prior market days.
-- CSV and JSON export for calculated GEX snapshots.
-- Multiple symbol support for ES, MES, NQ, and MNQ.
-- Optional historical comparison against prior sessions.
 - Configurable risk-free rate and expiry selection from the terminal.
 - Provider adapters for additional broker or market-data APIs.

@@ -20,11 +20,34 @@ Design target:
 > This project is intended for market research and engineering experimentation.
 > It is not financial advice.
 
+## Why This Project Exists
+
+`gex-terminal` is an open-source GEX research terminal for traders and developers
+who want a local, explainable workflow instead of a closed market-structure
+dashboard. The project is designed around:
+
+- **Open-source model development**: contributors can inspect the assumptions,
+  improve the math, and compare results against replayable sessions.
+- **Local-first credential handling**: API keys and market-data credentials stay
+  in local environment files, not in source code or hosted dashboards.
+- **Transparent calculations**: the current model documents its practical
+  assumptions, including intraday volume as an open-interest proxy.
+- **Provider-agnostic ingestion**: market data flows through adapters so the app
+  can grow beyond any single broker or feed.
+- **Replayable research datasets**: normalized fixtures make it possible to
+  learn, test, and reproduce behavior without paid data access.
+- **Fast ES/NQ intraday workflow**: the terminal is built for traders who already
+  have data access and want quick structural reads without browser overhead.
+
+That openness is the invitation: contributors can improve the model, add
+providers, submit normalized payload fixtures, and build export or visualization
+tools without needing to join a closed commercial platform.
+
 ## Project Layout
 
 ```text
 .
-|-- .env.example        # Template for local Tradovate credentials
+|-- .env.example        # Template for local provider credentials
 |-- .gitignore          # Keeps secrets, virtualenvs, and caches out of Git
 |-- .github/workflows/  # GitHub Actions smoke-test workflow
 |-- LICENSE             # MIT License
