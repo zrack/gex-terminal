@@ -69,10 +69,13 @@ The replay adapter reads normalized JSONL records from disk:
 
 ```bash
 gex-terminal --replay sample_data/demo_replay.jsonl
+gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
 ```
 
 Replay files are the preferred way to reproduce UI and engine behavior without
-live credentials.
+live credentials. `demo_replay.jsonl` is a compact screenshot/demo fixture, while
+`es_synthetic_full_session.jsonl` simulates open, mid-session, and late-session
+ES 0DTE activity for contributor testing.
 
 ## Tradovate Adapter
 

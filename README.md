@@ -340,7 +340,12 @@ Run with normalized replay data:
 
 ```bash
 gex-terminal --replay sample_data/demo_replay.jsonl
+gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
 ```
+
+`demo_replay.jsonl` is the shortest local fixture. `es_synthetic_full_session.jsonl`
+is a synthetic ES 0DTE replay that walks through open, mid-session, and
+late-session activity without requiring live credentials.
 
 Override `.env` settings from the command line:
 
@@ -413,6 +418,8 @@ pip install -e .
 - See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
 - See [CHANGELOG.md](CHANGELOG.md) for notable project changes.
 - See [docs/adapters.md](docs/adapters.md) for the provider adapter contract.
+- See [docs/model-assumptions.md](docs/model-assumptions.md) for GEX model
+  assumptions and limitations.
 - See [docs/product-vision.md](docs/product-vision.md) for signature capability
   concepts and mockups.
 - See [ROADMAP.md](ROADMAP.md) for planned phases and future work.

@@ -57,6 +57,7 @@ You can also run the terminal with normalized replay data:
 
 ```bash
 gex-terminal --replay sample_data/demo_replay.jsonl
+gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
 ```
 
 Demo and replay modes are useful for UI and engine work that should not require

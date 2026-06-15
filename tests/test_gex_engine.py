@@ -14,6 +14,22 @@ class IntradayGexEngineTests(unittest.TestCase):
 
         self.assertEqual(zero, 105.0)
 
+    def test_interpolates_zero_gamma_between_uneven_adjacent_strikes(self):
+        strikes = np.array([100.0, 125.0])
+        net_gex = np.array([-25.0, 75.0])
+
+        zero = IntradayGexEngine.interpolate_zero_gamma_strike(strikes, net_gex)
+
+        self.assertEqual(zero, 106.25)
+
+    def test_exact_zero_gamma_returns_that_strike(self):
+        strikes = np.array([100.0, 110.0, 120.0])
+        net_gex = np.array([-50.0, 0.0, 50.0])
+
+        zero = IntradayGexEngine.interpolate_zero_gamma_strike(strikes, net_gex)
+
+        self.assertEqual(zero, 110.0)
+
     def test_zero_gamma_falls_back_to_nearest_absolute_exposure_without_sign_change(self):
         strikes = np.array([100.0, 110.0, 120.0])
         net_gex = np.array([80.0, 20.0, 40.0])
@@ -21,6 +37,30 @@ class IntradayGexEngineTests(unittest.TestCase):
         zero = IntradayGexEngine.interpolate_zero_gamma_strike(strikes, net_gex)
 
         self.assertEqual(zero, 110.0)
+
+    def test_zero_gamma_falls_back_for_all_negative_exposure(self):
+        strikes = np.array([100.0, 110.0, 120.0])
+        net_gex = np.array([-80.0, -20.0, -40.0])
+
+        zero = IntradayGexEngine.interpolate_zero_gamma_strike(strikes, net_gex)
+
+        self.assertEqual(zero, 110.0)
+
+    def test_multiple_sign_changes_choose_candidate_nearest_lowest_absolute_exposure(self):
+        strikes = np.array([90.0, 100.0, 110.0, 120.0])
+        net_gex = np.array([-10.0, 10.0, 1.0, -1.0])
+
+        zero = IntradayGexEngine.interpolate_zero_gamma_strike(strikes, net_gex)
+
+        self.assertEqual(zero, 115.0)
+
+    def test_empty_zero_gamma_input_returns_zero(self):
+        zero = IntradayGexEngine.interpolate_zero_gamma_strike(
+            np.array([]),
+            np.array([]),
+        )
+
+        self.assertEqual(zero, 0.0)
 
     def test_compute_matrix_returns_gamma_and_nearest_zero_strike(self):
         engine = IntradayGexEngine(multiplier=50)

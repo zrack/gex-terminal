@@ -14,6 +14,7 @@ from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.snapshot import build_snapshot, write_snapshot
+from gex_terminal.table_rows import arrange_rows, filter_rows, sort_rows
 
 
 class GexTerminalApp(App):
@@ -616,31 +617,16 @@ class GexTerminalApp(App):
     @staticmethod
     def _arrange_rows(rows, sort_mode, filter_mode, spot, max_volume):
         """Filter then sort the matrix rows. Pure function for easy testing."""
-        return GexTerminalApp._sort_rows(
-            GexTerminalApp._filter_rows(rows, filter_mode, spot, max_volume),
-            sort_mode,
-        )
+        return arrange_rows(rows, sort_mode, filter_mode, spot, max_volume)
 
     @staticmethod
     def _filter_rows(rows, filter_mode, spot, max_volume):
         """Filter rows by mode. Never returns empty if input was non-empty (usability safety)."""
-        if filter_mode == "near" and spot:
-            window = max(spot * 0.01, 1.0)
-            subset = [row for row in rows if abs(row["strike"] - spot) <= window]
-            return subset or list(rows)
-        if filter_mode == "active" and max_volume:
-            threshold = max_volume * 0.25
-            subset = [row for row in rows if row["volume"] >= threshold]
-            return subset or list(rows)
-        return list(rows)
+        return filter_rows(rows, filter_mode, spot, max_volume)
 
     @staticmethod
     def _sort_rows(rows, sort_mode):
-        if sort_mode == "net":
-            return sorted(rows, key=lambda row: abs(row["net_gex"]), reverse=True)
-        if sort_mode == "volume":
-            return sorted(rows, key=lambda row: row["volume"], reverse=True)
-        return sorted(rows, key=lambda row: row["strike"])
+        return sort_rows(rows, sort_mode)
 
 
 async def run_mock_session():

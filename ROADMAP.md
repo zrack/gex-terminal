@@ -26,7 +26,7 @@ dashboard and more like a focused market-structure workstation. See
   risk-free rate, expiry target, provider, and update interval.
 - [x] Improve startup validation so missing credentials or unsupported provider
   settings fail with clear messages.
-- [ ] Document the current model assumptions, including the
+- [x] Document the current model assumptions, including the
   volume-as-open-interest proxy, call/put sign convention, and limitations versus
   proprietary dealer-positioning models.
 
@@ -99,7 +99,7 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Add provider registry scaffolds for Databento, IBKR, and yfinance.
 - [x] Add issue templates for bugs, feature requests, and provider adapters.
 - [x] Add a security policy for credential-handling issues.
-- [ ] Publish sample replay datasets so new users can evaluate the app without
+- [x] Publish sample replay datasets so new users can evaluate the app without
   paid data.
 - [ ] Add contribution notes for normalized provider payload fixtures.
 - [ ] Add a small set of labeled good-first issues after the first public push.
@@ -126,7 +126,7 @@ dashboard and more like a focused market-structure workstation. See
 
 - Add tests for `IntradayGexEngine.calculate_gamma`.
 - Add tests for malformed JSON and missing fields in `StatefulGexConsumer`.
-- Add a small sample replay dataset.
+- Add additional replay datasets for different symbols, expirations, or regimes.
 - Improve terminal empty states before live data arrives.
 - Document a known Tradovate options-chain payload shape.
 - Add README screenshots once replay mode exists.

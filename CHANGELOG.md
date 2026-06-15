@@ -12,7 +12,11 @@ by date and public-prep milestone.
 
 - Code of Conduct for community participation expectations.
 - GitHub social-preview source asset for sharing the project.
+- Model assumptions documentation covering volume-as-open-interest proxy, sign
+  convention, zero-gamma behavior, and known limitations.
 - Product vision notes for signature capabilities and contributor-facing ideas.
+- Synthetic ES 0DTE full-session replay dataset for no-credential testing.
+- Zero-gamma interpolation edge-case tests.
 
 ## 2026-06-12
 
