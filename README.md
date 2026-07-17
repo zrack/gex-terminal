@@ -86,7 +86,7 @@ Good starting points:
 |   |-- market_data_adapter.py # Shared provider adapter contract
 |   `-- adapters/       # Replay, Tradovate, Databento, IBKR, and yfinance adapters
 |-- sample_data/        # Normalized replay data for local demos
-|-- tests/              # Math regression tests
+|-- tests/              # Regression tests and sanitized provider fixtures
 ```
 
 ## Core Features
@@ -456,6 +456,8 @@ pip install -e .
 - See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
 - See [CHANGELOG.md](CHANGELOG.md) for notable project changes.
 - See [docs/adapters.md](docs/adapters.md) for the provider adapter contract.
+- See [docs/databento-fixtures.md](docs/databento-fixtures.md) for Databento
+  fixture mapping and GLBX.MDP3 schema notes.
 - See [docs/exports.md](docs/exports.md) for snapshot and TradingView overlay
   export formats.
 - See [docs/model-assumptions.md](docs/model-assumptions.md) for GEX model
@@ -482,6 +484,8 @@ Recommended early test coverage:
 - Live Gamma Regime Map classification for positive, negative, transition, and
   pinned states.
 - Fixture validation for replay/provider JSONL submissions.
+- Databento fixture mapping for definitions, trades, underlying quotes, and
+  statistics-style open interest.
 - Model sensitivity reports across multiplier, expiry, rate, IV, and volume/OI
   assumptions.
 - Delayed yfinance ETF option-chain normalization with mocked adapter tests.

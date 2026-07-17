@@ -1,0 +1,14 @@
+{
+  "dataset": "GLBX.MDP3",
+  "schema": "statistics",
+  "source": "synthetic fixture for mapper tests",
+  "records": [
+    {
+      "instrument_id": 9001001,
+      "raw_symbol": "ESM6 C5950",
+      "stat_type": "open_interest",
+      "open_interest": 1200,
+      "ts_ref": "2026-06-18"
+    }
+  ]
+}

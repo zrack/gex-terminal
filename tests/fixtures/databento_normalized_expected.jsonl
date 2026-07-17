@@ -1,0 +1,4 @@
+{"type":"underlying_tick","symbol":"ES","price":5943.25}
+{"type":"options_volume_tick","strike":5950.0,"option_type":"C","volume":42,"expiry":"2026-06-19"}
+{"type":"options_volume_tick","strike":5900.0,"option_type":"P","volume":31,"expiry":"2026-06-19"}
+{"type":"options_volume_tick","strike":6000.0,"option_type":"C","volume":24,"expiry":"2026-06-19"}

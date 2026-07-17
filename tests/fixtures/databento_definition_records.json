@@ -1,0 +1,42 @@
+{
+  "dataset": "GLBX.MDP3",
+  "schema": "definition",
+  "source": "synthetic fixture for mapper tests",
+  "records": [
+    {
+      "instrument_id": 9001001,
+      "raw_symbol": "ESM6 C5950",
+      "instrument_class": "C",
+      "underlying": "ES",
+      "strike_price": 5950,
+      "expiration": "2026-06-19",
+      "min_price_increment": 0.25
+    },
+    {
+      "instrument_id": 9001002,
+      "raw_symbol": "ESM6 P5900",
+      "instrument_class": "P",
+      "underlying": "ES",
+      "strike_price": 5900,
+      "expiration": "2026-06-19",
+      "min_price_increment": 0.25
+    },
+    {
+      "instrument_id": 9001004,
+      "raw_symbol": "ESM6 C6000",
+      "instrument_class": "C",
+      "underlying": "ES",
+      "strike_price": 6000,
+      "expiration": "2026-06-19",
+      "min_price_increment": 0.25
+    },
+    {
+      "instrument_id": 9001003,
+      "raw_symbol": "ESM6",
+      "instrument_class": "F",
+      "underlying": "ES",
+      "expiration": "2026-06-19",
+      "min_price_increment": 0.25
+    }
+  ]
+}

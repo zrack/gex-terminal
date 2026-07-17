@@ -94,8 +94,14 @@ welcome.
 ## Databento Adapter
 
 The Databento adapter is scaffolded behind `--provider databento`. It validates
-`DATABENTO_API_KEY` and keeps the integration isolated while the exact live
-schema and futures-options chain mapping are designed.
+`DATABENTO_API_KEY`, keeps live ingestion isolated, and now includes tested
+fixture-mapping helpers for `GLBX.MDP3` futures options definitions, trades,
+underlying `mbp-1` quotes, and statistics-style open interest.
+
+See [docs/databento-fixtures.md](databento-fixtures.md) for the synthetic
+fixture design, schema mapping, and contributor rules. Live Databento streaming
+is still future work; the current helpers are intended to make payload review
+and normalization safer before credentials or entitlements are required.
 
 Optional dependency:
 

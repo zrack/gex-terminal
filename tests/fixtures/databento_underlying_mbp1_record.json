@@ -1,0 +1,12 @@
+{
+  "dataset": "GLBX.MDP3",
+  "schema": "mbp-1",
+  "source": "synthetic fixture for mapper tests",
+  "record": {
+    "instrument_id": 9001003,
+    "raw_symbol": "ESM6",
+    "bid_px_00": 5943.0,
+    "ask_px_00": 5943.5,
+    "ts_event": "2026-06-18T14:30:00.000000000Z"
+  }
+}

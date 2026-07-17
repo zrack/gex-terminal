@@ -109,6 +109,9 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Add contribution notes for normalized provider payload fixtures. The
   `validate-fixture` command checks normalized JSONL before submission, and
   replay research docs describe the fixture workflow.
+- [x] Add Databento synthetic fixture mapping notes for `GLBX.MDP3`
+  definitions, option trades, underlying `mbp-1` quotes, and statistics-style
+  open interest.
 - [ ] Add a small set of labeled good-first issues after the first public push.
 
 ## Phase 6: Packaging and Distribution

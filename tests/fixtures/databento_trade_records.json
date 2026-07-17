@@ -1,0 +1,28 @@
+{
+  "dataset": "GLBX.MDP3",
+  "schema": "trades",
+  "source": "synthetic fixture for mapper tests",
+  "records": [
+    {
+      "instrument_id": 9001001,
+      "raw_symbol": "ESM6 C5950",
+      "price": 18.5,
+      "size": 42,
+      "ts_event": "2026-06-18T14:30:00.000000000Z"
+    },
+    {
+      "instrument_id": 9001002,
+      "raw_symbol": "ESM6 P5900",
+      "price": 16.25,
+      "size": 31,
+      "ts_event": "2026-06-18T14:30:00.500000000Z"
+    },
+    {
+      "instrument_id": 9001004,
+      "raw_symbol": "ESM6 C6000",
+      "price": 12.75,
+      "size": 24,
+      "ts_event": "2026-06-18T14:30:01.000000000Z"
+    }
+  ]
+}

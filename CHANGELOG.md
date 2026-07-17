@@ -23,6 +23,9 @@ by date and public-prep milestone.
 - Offline provider-health scenarios for stale, partial-chain, dropped-message,
   latency, and combined stress cases.
 - Delayed yfinance adapter path for SPY/QQQ-style ETF option-chain research.
+- Databento fixture mapping helpers, sanitized synthetic GLBX.MDP3 fixtures, and
+  contributor documentation for definitions, trades, `mbp-1` quotes, and
+  statistics-style open interest.
 - Live Gamma Regime Map prototype showing current regime, spot, zero-gamma,
   gamma wall, next trigger, and positive/negative/transition/pinned states.
 - Code of Conduct for community participation expectations.
