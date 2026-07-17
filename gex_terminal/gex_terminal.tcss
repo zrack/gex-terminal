@@ -17,14 +17,14 @@ Footer {
 #dashboard {
     height: 1fr;
     layout: grid;
-    grid-size: 3 3;
+    grid-size: 3 4;
     grid-columns: 20 1fr 40;
-    grid-rows: 9 1fr 12;
+    grid-rows: 9 1fr 10 7;
     background: #080a0d;
 }
 
 #sidebar {
-    row-span: 3;
+    row-span: 4;
     border-right: solid #26313d;
     background: #0b0f14;
     padding: 1;
@@ -60,7 +60,14 @@ Footer {
     background: #0d1218;
 }
 
+#quality-panel {
+    border-top: solid #26313d;
+    padding: 1 2;
+    background: #0d1218;
+}
+
 #event-panel {
+    column-span: 2;
     border-top: solid #26313d;
     padding: 1 2;
     background: #0d1218;
@@ -145,10 +152,24 @@ Footer {
 }
 
 .zone-card {
-    height: 6;
+    height: 5;
     border: round #232e3a;
     background: #10151b;
     margin-bottom: 1;
+    padding: 0 1;
+}
+
+.regime-card {
+    height: 6;
+    border: round #232e3a;
+    background: #10151b;
+    padding: 0 1;
+}
+
+.quality-card {
+    height: 6;
+    border: round #232e3a;
+    background: #10151b;
     padding: 0 1;
 }
 

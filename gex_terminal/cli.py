@@ -17,6 +17,8 @@ from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.market_data_adapter import AdapterConfigurationError
+from gex_terminal.overlays import write_tradingview_overlay
+from gex_terminal.snapshot import build_snapshot, write_snapshot
 from gex_terminal.tui import GexTerminalApp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -43,6 +45,10 @@ async def main():
 
     if args.export:
         await export_demo_snapshot(config=config, output_path=args.export)
+        return
+
+    if args.tradingview_overlay:
+        await export_demo_tradingview_overlay(config=config, output_path=args.tradingview_overlay)
         return
 
     math_engine = IntradayGexEngine(multiplier=config.contract_multiplier)
@@ -169,8 +175,22 @@ async def export_demo_screenshot(
 
 async def export_demo_snapshot(config: GexConfig, output_path: str) -> None:
     """Compute one snapshot from seeded demo data and write it to JSON, then exit."""
-    from gex_terminal.snapshot import build_snapshot, write_snapshot
+    snapshot = await compute_demo_snapshot(config)
+    target = write_snapshot(snapshot, output_path)
+    print(f"Saved snapshot to {target}")
 
+
+async def export_demo_tradingview_overlay(config: GexConfig, output_path: str) -> None:
+    """Compute one demo snapshot and write chart-overlay levels to JSON or CSV."""
+    snapshot = await compute_demo_snapshot(config)
+    try:
+        target = write_tradingview_overlay(snapshot, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(f"Saved TradingView overlay to {target}")
+
+
+async def compute_demo_snapshot(config: GexConfig) -> dict:
     math_engine = IntradayGexEngine(multiplier=config.contract_multiplier)
     consumer = StatefulGexConsumer(
         math_engine,
@@ -184,7 +204,7 @@ async def export_demo_snapshot(config: GexConfig, output_path: str) -> None:
     if "error" in data:
         raise SystemExit(f"Cannot export snapshot: {data['error']}")
     breakdown = await consumer.process_expiry_breakdown(days_to_expiry=config.days_to_expiry)
-    snapshot = build_snapshot(
+    return build_snapshot(
         symbol=consumer.target_underlying,
         spot=consumer.current_spot,
         session_open=consumer.session_open,
@@ -195,8 +215,6 @@ async def export_demo_snapshot(config: GexConfig, output_path: str) -> None:
         chain_state=consumer.chain_state,
         expiry_breakdown=breakdown,
     )
-    target = write_snapshot(snapshot, output_path)
-    print(f"Saved snapshot to {target}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -257,6 +275,11 @@ def parse_args() -> argparse.Namespace:
         "--export",
         metavar="PATH",
         help="Compute one GEX snapshot from seeded demo data, write it to PATH as JSON, then exit.",
+    )
+    parser.add_argument(
+        "--tradingview-overlay",
+        metavar="PATH",
+        help="Compute one demo GEX snapshot and write TradingView overlay levels to .json or .csv.",
     )
     parser.add_argument(
         "--screenshot-width",

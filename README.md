@@ -372,6 +372,13 @@ concentration, expiry breakdown, and the full strike matrix):
 gex-terminal --demo --export gex_snapshot.json
 ```
 
+Export TradingView-friendly overlay levels and bands:
+
+```bash
+gex-terminal --demo --tradingview-overlay gex_levels.json
+gex-terminal --demo --tradingview-overlay gex_levels.csv
+```
+
 While the terminal is running, these keys are available:
 
 | Key | Action |
@@ -393,6 +400,9 @@ events arrive. During a live session, the matrix should surface:
 - zero-gamma node
 - call/put imbalance
 - positive and negative gamma zones
+- Live Gamma Regime Map state with spot, zero-gamma, gamma wall, and next trigger
+- Provider Health panel with connection state, stale checks, latency, dropped
+  payloads, malformed payloads, and entitlement placeholders
 
 The terminal surfaces runtime lifecycle state as `LIVE`, `SIM`, `STALE`,
 `CONNECTED`, or `DISCONNECTED` so the UI distinguishes real-time data from demo
@@ -418,6 +428,8 @@ pip install -e .
 - See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
 - See [CHANGELOG.md](CHANGELOG.md) for notable project changes.
 - See [docs/adapters.md](docs/adapters.md) for the provider adapter contract.
+- See [docs/exports.md](docs/exports.md) for snapshot and TradingView overlay
+  export formats.
 - See [docs/model-assumptions.md](docs/model-assumptions.md) for GEX model
   assumptions and limitations.
 - See [docs/product-vision.md](docs/product-vision.md) for signature capability
@@ -434,6 +446,11 @@ Recommended early test coverage:
 - Net GEX aggregation by strike.
 - Zero-gamma interpolation across sign changes.
 - Runtime lifecycle states for demo, live, stale, and disconnected sessions.
+- Provider health summaries for simulated, stale, degraded, disconnected, and
+  entitlement-error states.
+- TradingView overlay export rows for levels and exposure bands.
+- Live Gamma Regime Map classification for positive, negative, transition, and
+  pinned states.
 - Async consumer state updates under bursty tick delivery.
 - Terminal rendering with empty, partial, and live-like snapshots.
 

@@ -5,6 +5,7 @@ import time
 import numpy as np
 from typing import Dict, Any
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.feed_quality import build_feed_quality_snapshot
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -33,6 +34,10 @@ class StatefulGexConsumer:
         self.last_message_at: float | None = None
         self.last_snapshot_at: float | None = None
         self.connection_state: str = "SIM" if self.data_mode == "DEMO" else "DISCONNECTED"
+        self.message_count: int = 0
+        self.malformed_message_count: int = 0
+        self.dropped_message_count: int = 0
+        self.entitlement_error_count: int = 0
         
         # Lock to ensure thread-safe state mutations during high-frequency bursts
         self.state_lock = asyncio.Lock()
@@ -57,6 +62,39 @@ class StatefulGexConsumer:
     def mark_disconnected(self) -> None:
         self.connection_state = "DISCONNECTED"
 
+    def record_entitlement_error(self) -> None:
+        self.entitlement_error_count += 1
+
+    def feed_quality_snapshot(
+        self,
+        *,
+        latency_ms: float = 0.0,
+        p95_latency_ms: float = 0.0,
+        now: float | None = None,
+    ) -> dict:
+        now = time.monotonic() if now is None else now
+        last_message_age = None
+        if self.last_message_at is not None:
+            last_message_age = max(0.0, now - self.last_message_at)
+        last_snapshot_age = None
+        if self.last_snapshot_at is not None:
+            last_snapshot_age = max(0.0, now - self.last_snapshot_at)
+
+        return build_feed_quality_snapshot(
+            status=self.runtime_status,
+            data_mode=self.data_mode,
+            connection_state=self.connection_state,
+            message_count=self.message_count,
+            malformed_count=self.malformed_message_count,
+            dropped_count=self.dropped_message_count,
+            entitlement_error_count=self.entitlement_error_count,
+            last_message_age_seconds=last_message_age,
+            last_snapshot_age_seconds=last_snapshot_age,
+            stale_after_seconds=self.stale_after_seconds,
+            latency_ms=latency_ms,
+            p95_latency_ms=p95_latency_ms,
+        ).to_dict()
+
     async def update_market_state(self, raw_message: str):
         """
         Parses incoming WebSocket frames and safely increments volume data structures.
@@ -66,10 +104,14 @@ class StatefulGexConsumer:
             data = json.loads(raw_message)
             
             # 1. Update Underlying Spot Price
-            if data.get("type") == "underlying_tick" and data.get("symbol") == self.target_underlying:
+            if data.get("type") == "underlying_tick":
+                if data.get("symbol") != self.target_underlying:
+                    self.dropped_message_count += 1
+                    return
                 async with self.state_lock:
                     self.current_spot = float(data["price"])
                     self.last_message_at = time.monotonic()
+                    self.message_count += 1
                 return
 
             # 2. Update Options Traded Volume
@@ -88,6 +130,7 @@ class StatefulGexConsumer:
                     self.chain_state[strike][option_type] += volume
                     self.chain_state[strike]["iv"] = iv # Update local IV skew dynamically
                     self.last_message_at = time.monotonic()
+                    self.message_count += 1
 
                     # Optionally track the same flow grouped by expiry for breakdowns.
                     if expiry is not None:
@@ -97,8 +140,12 @@ class StatefulGexConsumer:
                             bucket[strike] = {"C": 0, "P": 0, "iv": iv}
                         bucket[strike][option_type] += volume
                         bucket[strike]["iv"] = iv
+                return
+
+            self.dropped_message_count += 1
 
         except (json.JSONDecodeError, KeyError, ValueError) as e:
+            self.malformed_message_count += 1
             logging.error(f"Failed parsing market data frame: {e}")
 
     async def process_latest_snapshot(self, days_to_expiry: float) -> dict:

@@ -13,6 +13,7 @@ from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.regime import build_regime_map
 from gex_terminal.snapshot import build_snapshot, write_snapshot
 from gex_terminal.table_rows import arrange_rows, filter_rows, sort_rows
 
@@ -93,12 +94,17 @@ class GexTerminalApp(App):
                 yield Static("", id="dealer-regime", classes="zone-card")
                 yield Static("", id="balance-pressure", classes="zone-card")
                 yield Static("", id="vol-boundary", classes="zone-card")
-                yield Static("", id="zone-ladder", classes="zone-card")
+                yield Static("", id="regime-map", classes="regime-card")
 
             with Vertical(id="flow-panel"):
                 yield Static("Session GEX Flow", classes="section-title")
                 yield Static("rolling 36 intervals", classes="subtle")
                 yield Sparkline([], min_color="#fb7185", max_color="#38bdf8", id="gex-flow")
+
+            with Vertical(id="quality-panel"):
+                yield Static("Provider Health", classes="section-title")
+                yield Static("feed quality checks", classes="subtle")
+                yield Static("", id="quality-summary", classes="quality-card")
 
             with Vertical(id="event-panel"):
                 yield Static("Event Log", classes="section-title")
@@ -234,6 +240,7 @@ class GexTerminalApp(App):
         self._render_lifecycle()
         status = self.consumer.runtime_status
         self._render_status_bar(status)
+        self._render_quality()
 
         if "error" in data:
             self._last_data = None
@@ -382,22 +389,39 @@ class GexTerminalApp(App):
             f"Zero-gamma flip — a break shifts the vol regime.\n"
             f"70% band {band_low}–{band_high}."
         )
-        net_values = [float(value) for value in data["net_gex"]]
-        positive = sum(value for value in net_values if value > 0)
-        negative = abs(sum(value for value in net_values if value < 0))
-        share = positive / (positive + negative) if (positive + negative) else 0.5
-        track = 16
-        green_cells = max(0, min(track, round(share * track)))
-        red_cells = track - green_cells
-        gauge = Text("Net Gamma Profile\n", style="bold #8a97a6")
-        gauge.append("█" * green_cells, style="#4ade80")
-        gauge.append("│", style="#38bdf8")
-        gauge.append("█" * red_cells, style="#fb7185")
-        gauge.append("\n")
-        gauge.append(f"+GEX {wall} wall", style="#4ade80")
-        gauge.append("  ", style="#64748b")
-        gauge.append(f"zero {zero}", style="#38bdf8")
-        self.query_one("#zone-ladder", Static).update(gauge)
+        self._render_regime_map(data)
+
+    def _render_regime_map(self, data: dict) -> None:
+        regime = build_regime_map(data, self.consumer.current_spot)
+        trigger = regime["next_trigger"]
+        primary = "+GEX" if regime["primary_regime"] == "positive_gamma" else "-GEX"
+
+        text = Text("Live Gamma Regime Map\n", style="bold #8a97a6")
+        text.append(regime["label"], style=f"bold {regime['color']}")
+        text.append(f"  base {primary}\n", style="#64748b")
+        text.append("Spot ", style="#64748b")
+        text.append(self._format_strike(regime["spot"], decimals=1), style="#cbd5e1")
+        text.append(" · zero ", style="#64748b")
+        text.append(self._format_strike(regime["zero_gamma"], decimals=1), style="#38bdf8")
+        text.append(" · wall ", style="#64748b")
+        text.append(self._format_strike(regime["gamma_wall"]), style="#fbbf24")
+        text.append("\n")
+        text.append("Next trigger ", style="#64748b")
+        text.append(trigger["label"], style="#cbd5e1")
+        text.append(
+            f" {trigger['side']} {abs(trigger['distance']):.1f} @ "
+            f"{self._format_strike(trigger['price'], decimals=1)}\n",
+            style="#94a3b8",
+        )
+        text.append("+GEX", style="#22c55e")
+        text.append(" / ", style="#64748b")
+        text.append("-GEX", style="#ef4444")
+        text.append(" / ", style="#64748b")
+        text.append("TRANS", style="#38bdf8")
+        text.append(" / ", style="#64748b")
+        text.append("PIN", style="#f59e0b")
+        text.append(f"  threshold {regime['proximity_threshold']:.1f}", style="#64748b")
+        self.query_one("#regime-map", Static).update(text)
 
     def _render_sidebar(self, data: dict) -> None:
         contract_count = len(data["strikes"])
@@ -407,6 +431,43 @@ class GexTerminalApp(App):
         self.query_one("#feed-chain", Static).update(f"[green]*[/] Option chain\n  {contract_count:,} contracts")
         self.query_one("#feed-proxy", Static).update(f"[amber]*[/] OI proxy\n  {volume:,} volume")
         self.query_one("#feed-lock", Static).update("[green]*[/] State lock\n  clean")
+
+    def _render_quality(self) -> None:
+        quality = self.consumer.feed_quality_snapshot(
+            latency_ms=self._last_latency_ms,
+            p95_latency_ms=self._p95_latency(),
+        )
+        status_color = self._hex_status(quality["status"])
+        health_color = self._health_color(quality["health"])
+        text = Text()
+        text.append("Connection  ", style="bold #8a97a6")
+        text.append(quality["status"], style=f"bold {self._hex_status(quality['status'])}")
+        text.append(f" / {quality['connection_state']}\n", style="#94a3b8")
+
+        text.append("Health      ", style="bold #8a97a6")
+        text.append(quality["health"].upper(), style=f"bold {health_color}")
+        text.append(f"  mode {quality['data_mode'].lower()}\n", style="#94a3b8")
+
+        text.append("Last msg    ", style="bold #8a97a6")
+        text.append(self._format_age(quality["last_message_age_seconds"]), style="#cbd5e1")
+        text.append("  snap ", style="#64748b")
+        text.append(self._format_age(quality["last_snapshot_age_seconds"]), style="#cbd5e1")
+        text.append(f"  stale>{quality['stale_after_seconds']:g}s\n", style="#64748b")
+
+        text.append("Latency     ", style="bold #8a97a6")
+        text.append(f"{quality['latency_ms']:.0f}ms", style="#cbd5e1")
+        text.append(f" now / {quality['p95_latency_ms']:.0f}ms p95\n", style="#64748b")
+
+        text.append("Payloads    ", style="bold #8a97a6")
+        text.append(f"{quality['message_count']:,} ok", style="#cbd5e1")
+        text.append(
+            f" · {quality['malformed_count']} bad · {quality['dropped_count']} dropped · "
+            f"{quality['entitlement_error_count']} entitlement\n",
+            style="#64748b",
+        )
+        text.append("Note        ", style="bold #8a97a6")
+        text.append("; ".join(quality["notes"][:2]), style=status_color)
+        self.query_one("#quality-summary", Static).update(text)
 
     def _render_lifecycle(self) -> None:
         status = self.consumer.runtime_status
@@ -584,6 +645,27 @@ class GexTerminalApp(App):
         values = sorted(self._latencies)
         index = max(0, round((len(values) - 1) * 0.95))
         return values[index]
+
+    @staticmethod
+    def _format_age(value: float | None) -> str:
+        if value is None:
+            return "--"
+        if value < 1:
+            return f"{value * 1000:.0f}ms ago"
+        if value < 60:
+            return f"{value:.1f}s ago"
+        return f"{value / 60:.1f}m ago"
+
+    @staticmethod
+    def _health_color(health: str) -> str:
+        return {
+            "healthy": "#4ade80",
+            "simulated": "#38bdf8",
+            "degraded": "#fbbf24",
+            "stale": "#fbbf24",
+            "entitlement": "#fb7185",
+            "down": "#fb7185",
+        }.get(health, "#94a3b8")
 
     @staticmethod
     def _crossed_imbalance_threshold(previous: float, current: float) -> bool:

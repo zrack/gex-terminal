@@ -10,6 +10,12 @@ by date and public-prep milestone.
 
 ### Added
 
+- Provider Health panel with simulated/demo-ready feed-quality summaries,
+  stale checks, latency, malformed/dropped payload counters, and entitlement
+  placeholders.
+- TradingView overlay exports in JSON or CSV via `--tradingview-overlay PATH`.
+- Live Gamma Regime Map prototype showing current regime, spot, zero-gamma,
+  gamma wall, next trigger, and positive/negative/transition/pinned states.
 - Code of Conduct for community participation expectations.
 - GitHub social-preview source asset for sharing the project.
 - Model assumptions documentation covering volume-as-open-interest proxy, sign

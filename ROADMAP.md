@@ -45,8 +45,10 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Track provider connection status, last message time, and data freshness in
   the terminal UI (runtime status LIVE/SIM/STALE/DISCONNECTED, feed-health rail,
   status bar with last-refresh time, and stale/disconnected matrix banners).
-- [ ] Add a data-quality panel for provider latency, dropped messages, stale
-  fields, and entitlement failures.
+- [x] Add a data-quality panel for provider latency, dropped messages, stale
+  fields, malformed payloads, and entitlement failures. The Provider Health
+  panel works in demo/replay mode with simulated feed-quality states and leaves
+  counters for live adapters to increment later.
 - [ ] Add logging controls suitable for live, demo, and debug sessions.
 
 ## Phase 3: Market Structure Metrics
@@ -83,13 +85,16 @@ dashboard and more like a focused market-structure workstation. See
   time.
 - [x] Include a README screenshot or GIF once mock replay mode can render a stable
   demo.
-- [ ] Add a Live Gamma Regime Map panel that summarizes positive/negative gamma,
+- [x] Add a Live Gamma Regime Map panel that summarizes positive/negative gamma,
   zero-gamma proximity, wall-pinning risk, and volatility expansion zones.
-  Mockup: [assets/live-gamma-regime-map-mockup.svg](assets/live-gamma-regime-map-mockup.svg).
+  The prototype renders current state, spot, zero-gamma, gamma wall, next
+  trigger, and state legend from demo/replay data. Mockup:
+  [assets/live-gamma-regime-map-mockup.svg](assets/live-gamma-regime-map-mockup.svg).
 - [ ] Add alerts for gamma wall shifts, zero-gamma crosses, stale data, and major
   exposure changes.
-- [ ] Add export formats designed for TradingView overlays, Discord posts, and
-  lightweight webhooks.
+- [x] Add an initial TradingView overlay export format with JSON and CSV levels
+  for gamma wall, zero-gamma, call wall, put wall, major exposure levels, and
+  the 70% concentration band. Discord/webhook formats remain future work.
 
 ## Phase 5: Contributor-Friendly Architecture
 
