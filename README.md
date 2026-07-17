@@ -341,11 +341,16 @@ Run with normalized replay data:
 ```bash
 gex-terminal --replay sample_data/demo_replay.jsonl
 gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
+gex-terminal list-replays
+gex-terminal --replay-session trend-day
+gex-terminal --replay-session zero-gamma-flip
 ```
 
 `demo_replay.jsonl` is the shortest local fixture. `es_synthetic_full_session.jsonl`
 is a synthetic ES 0DTE replay that walks through open, mid-session, and
-late-session activity without requiring live credentials.
+late-session activity without requiring live credentials. Additional bundled
+sessions cover trend, chop, volatility-spike, zero-gamma-flip, expiration
+compression, and provider-quality stress cases.
 
 Override `.env` settings from the command line:
 
@@ -366,10 +371,13 @@ gex-terminal --demo --screenshot assets/gex-terminal-actual.svg
 ```
 
 Export a JSON snapshot of the current GEX state (metrics, call/put walls,
-concentration, expiry breakdown, and the full strike matrix):
+concentration, expiry breakdown, and the full strike matrix). The extension
+controls the format:
 
 ```bash
 gex-terminal --demo --export gex_snapshot.json
+gex-terminal --demo --export gex_snapshot.csv
+gex-terminal --demo --export gex_snapshot.md
 ```
 
 Export TradingView-friendly overlay levels and bands:
@@ -377,6 +385,26 @@ Export TradingView-friendly overlay levels and bands:
 ```bash
 gex-terminal --demo --tradingview-overlay gex_levels.json
 gex-terminal --demo --tradingview-overlay gex_levels.csv
+```
+
+Validate a normalized replay or provider fixture before submitting it:
+
+```bash
+gex-terminal validate-fixture sample_data/es_trend_day.jsonl
+```
+
+Compare model sensitivity to multiplier, expiry, rate, IV, and volume/OI proxy
+assumptions:
+
+```bash
+gex-terminal --demo --sensitivity sensitivity.md
+gex-terminal --replay-session trend-day --sensitivity sensitivity.csv
+```
+
+Simulate provider-health states without live data:
+
+```bash
+gex-terminal --demo --quality-scenario all
 ```
 
 While the terminal is running, these keys are available:
@@ -434,6 +462,8 @@ pip install -e .
   assumptions and limitations.
 - See [docs/product-vision.md](docs/product-vision.md) for signature capability
   concepts and mockups.
+- See [docs/replay-research.md](docs/replay-research.md) for bundled replay
+  sessions, fixture validation, quality simulations, and sensitivity reports.
 - See [ROADMAP.md](ROADMAP.md) for planned phases and future work.
 - See [SECURITY.md](SECURITY.md) for credential-handling guidance.
 
@@ -451,6 +481,10 @@ Recommended early test coverage:
 - TradingView overlay export rows for levels and exposure bands.
 - Live Gamma Regime Map classification for positive, negative, transition, and
   pinned states.
+- Fixture validation for replay/provider JSONL submissions.
+- Model sensitivity reports across multiplier, expiry, rate, IV, and volume/OI
+  assumptions.
+- Delayed yfinance ETF option-chain normalization with mocked adapter tests.
 - Async consumer state updates under bursty tick delivery.
 - Terminal rendering with empty, partial, and live-like snapshots.
 

@@ -14,6 +14,15 @@ by date and public-prep milestone.
   stale checks, latency, malformed/dropped payload counters, and entitlement
   placeholders.
 - TradingView overlay exports in JSON or CSV via `--tradingview-overlay PATH`.
+- Replay Research Mode catalog with trend-day, chop-day, volatility-spike,
+  zero-gamma-flip, expiration-compression, and quality-stress JSONL fixtures.
+- Fixture validation command for normalized JSONL submissions.
+- Model sensitivity reports for multiplier, expiry, rate, IV, and volume/OI
+  proxy assumptions.
+- Snapshot sharing exports in CSV and Markdown in addition to JSON.
+- Offline provider-health scenarios for stale, partial-chain, dropped-message,
+  latency, and combined stress cases.
+- Delayed yfinance adapter path for SPY/QQQ-style ETF option-chain research.
 - Live Gamma Regime Map prototype showing current regime, spot, zero-gamma,
   gamma wall, next trigger, and positive/negative/transition/pinned states.
 - Code of Conduct for community participation expectations.

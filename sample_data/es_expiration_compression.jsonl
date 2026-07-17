@@ -1,0 +1,11 @@
+{"type":"underlying_tick","symbol":"ES","price":5946.75,"timestamp":"2026-07-16T18:30:00Z","session_phase":"late","scenario":"expiration_compression"}
+{"type":"options_volume_tick","strike":5925,"option_type":"C","volume":820,"iv":0.121,"expiry":"0DTE","timestamp":"2026-07-16T18:30:04Z","session_phase":"late","scenario":"expiration_compression"}
+{"type":"options_volume_tick","strike":5925,"option_type":"P","volume":960,"iv":0.121,"expiry":"0DTE","timestamp":"2026-07-16T18:30:05Z","session_phase":"late","scenario":"expiration_compression"}
+{"type":"options_volume_tick","strike":5950,"option_type":"C","volume":4180,"iv":0.105,"expiry":"0DTE","timestamp":"2026-07-16T18:45:04Z","session_phase":"late","scenario":"expiration_compression"}
+{"type":"options_volume_tick","strike":5950,"option_type":"P","volume":3960,"iv":0.105,"expiry":"0DTE","timestamp":"2026-07-16T18:45:05Z","session_phase":"late","scenario":"expiration_compression"}
+{"type":"underlying_tick","symbol":"ES","price":5951.25,"timestamp":"2026-07-16T19:20:00Z","session_phase":"late","scenario":"expiration_compression"}
+{"type":"options_volume_tick","strike":5975,"option_type":"C","volume":1180,"iv":0.114,"expiry":"0DTE","timestamp":"2026-07-16T19:20:04Z","session_phase":"late","scenario":"expiration_compression"}
+{"type":"options_volume_tick","strike":5975,"option_type":"P","volume":1020,"iv":0.114,"expiry":"0DTE","timestamp":"2026-07-16T19:20:05Z","session_phase":"late","scenario":"expiration_compression"}
+{"type":"underlying_tick","symbol":"ES","price":5949.50,"timestamp":"2026-07-16T19:55:00Z","session_phase":"close","scenario":"expiration_compression"}
+{"type":"options_volume_tick","strike":5950,"option_type":"C","volume":2420,"iv":0.092,"expiry":"0DTE","timestamp":"2026-07-16T19:55:04Z","session_phase":"close","scenario":"expiration_compression"}
+{"type":"options_volume_tick","strike":5950,"option_type":"P","volume":2260,"iv":0.092,"expiry":"0DTE","timestamp":"2026-07-16T19:55:05Z","session_phase":"close","scenario":"expiration_compression"}

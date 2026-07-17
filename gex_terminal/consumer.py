@@ -38,6 +38,8 @@ class StatefulGexConsumer:
         self.malformed_message_count: int = 0
         self.dropped_message_count: int = 0
         self.entitlement_error_count: int = 0
+        self.quality_notes: tuple[str, ...] = ()
+        self.simulated_latency_ms: float | None = None
         
         # Lock to ensure thread-safe state mutations during high-frequency bursts
         self.state_lock = asyncio.Lock()
@@ -80,7 +82,13 @@ class StatefulGexConsumer:
         if self.last_snapshot_at is not None:
             last_snapshot_age = max(0.0, now - self.last_snapshot_at)
 
-        return build_feed_quality_snapshot(
+        latency_value = latency_ms
+        p95_value = p95_latency_ms
+        if self.simulated_latency_ms is not None:
+            latency_value = max(latency_ms, self.simulated_latency_ms)
+            p95_value = max(p95_latency_ms, self.simulated_latency_ms)
+
+        snapshot = build_feed_quality_snapshot(
             status=self.runtime_status,
             data_mode=self.data_mode,
             connection_state=self.connection_state,
@@ -91,9 +99,12 @@ class StatefulGexConsumer:
             last_message_age_seconds=last_message_age,
             last_snapshot_age_seconds=last_snapshot_age,
             stale_after_seconds=self.stale_after_seconds,
-            latency_ms=latency_ms,
-            p95_latency_ms=p95_latency_ms,
+            latency_ms=latency_value,
+            p95_latency_ms=p95_value,
         ).to_dict()
+        if self.quality_notes:
+            snapshot["notes"] = list(dict.fromkeys((*snapshot["notes"], *self.quality_notes)))
+        return snapshot
 
     async def update_market_state(self, raw_message: str):
         """

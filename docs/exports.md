@@ -7,10 +7,14 @@ payloads.
 ## Snapshot JSON
 
 The base snapshot export contains the computed metrics, strike matrix, expiry
-breakdown, model inputs, and session metadata:
+breakdown, model inputs, and session metadata. It can be written as JSON, CSV,
+or Markdown:
 
 ```bash
 gex-terminal --demo --export gex_snapshot.json
+gex-terminal --demo --export gex_snapshot.csv
+gex-terminal --demo --export gex_snapshot.md
+gex-terminal --replay-session zero-gamma-flip --export gex_snapshot.md
 ```
 
 The snapshot is the best format for reproducible research because it keeps the
@@ -52,6 +56,20 @@ The CSV columns are:
 ```text
 record_type,name,label,price,low,high,color,line_style,notes
 ```
+
+## Sensitivity Reports
+
+Sensitivity reports are separate from snapshots because they recompute the model
+under alternate assumptions:
+
+```bash
+gex-terminal --demo --sensitivity sensitivity.json
+gex-terminal --demo --sensitivity sensitivity.csv
+gex-terminal --demo --sensitivity sensitivity.md
+```
+
+Default scenarios compare changes to contract multiplier, expiry, risk-free
+rate, implied volatility, and the volume/open-interest proxy.
 
 ## Manual TradingView Workflow
 

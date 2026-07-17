@@ -16,15 +16,36 @@ from gex_terminal.adapters.registry import (
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.fixture_validator import (
+    format_fixture_validation_report,
+    validate_fixture,
+)
 from gex_terminal.market_data_adapter import AdapterConfigurationError
+from gex_terminal.offline_quality import apply_quality_scenario, quality_scenario_names
 from gex_terminal.overlays import write_tradingview_overlay
-from gex_terminal.snapshot import build_snapshot, write_snapshot
+from gex_terminal.replay_catalog import (
+    bundled_replay_sessions,
+    replay_session_for_name,
+    replay_session_names,
+)
+from gex_terminal.sensitivity import build_sensitivity_report, write_sensitivity_report
+from gex_terminal.snapshot import build_snapshot
+from gex_terminal.snapshot_formats import write_snapshot_export
 from gex_terminal.tui import GexTerminalApp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 async def main():
     args = parse_args()
+
+    if args.command == "validate-fixture":
+        validate_fixture_command(args.command_path)
+        return
+
+    if args.command == "list-replays":
+        print_replay_sessions()
+        return
+
     config = apply_cli_overrides(GexConfig.from_env(), args)
     validate_data_mode(config.data_mode)
 
@@ -44,11 +65,27 @@ async def main():
         return
 
     if args.export:
-        await export_demo_snapshot(config=config, output_path=args.export)
+        await export_snapshot(
+            config=config,
+            output_path=args.export,
+            quality_scenario=args.quality_scenario,
+        )
         return
 
     if args.tradingview_overlay:
-        await export_demo_tradingview_overlay(config=config, output_path=args.tradingview_overlay)
+        await export_tradingview_overlay(
+            config=config,
+            output_path=args.tradingview_overlay,
+            quality_scenario=args.quality_scenario,
+        )
+        return
+
+    if args.sensitivity:
+        await export_sensitivity(
+            config=config,
+            output_path=args.sensitivity,
+            quality_scenario=args.quality_scenario,
+        )
         return
 
     math_engine = IntradayGexEngine(multiplier=config.contract_multiplier)
@@ -66,6 +103,8 @@ async def main():
     
     if config.data_mode == "demo":
         await seed_demo_session(state_consumer)
+        if args.quality_scenario:
+            await apply_quality_scenario(state_consumer, args.quality_scenario)
     else:
         try:
             data_adapter = build_market_data_adapter(state_consumer, config)
@@ -173,16 +212,27 @@ async def export_demo_screenshot(
     print(f"Saved screenshot to {target}")
 
 
-async def export_demo_snapshot(config: GexConfig, output_path: str) -> None:
-    """Compute one snapshot from seeded demo data and write it to JSON, then exit."""
-    snapshot = await compute_demo_snapshot(config)
-    target = write_snapshot(snapshot, output_path)
+async def export_snapshot(
+    config: GexConfig,
+    output_path: str,
+    quality_scenario: str | None = None,
+) -> None:
+    """Compute one snapshot and write it to JSON, CSV, or Markdown."""
+    snapshot, _, _ = await compute_snapshot(config, quality_scenario=quality_scenario)
+    try:
+        target = write_snapshot_export(snapshot, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     print(f"Saved snapshot to {target}")
 
 
-async def export_demo_tradingview_overlay(config: GexConfig, output_path: str) -> None:
-    """Compute one demo snapshot and write chart-overlay levels to JSON or CSV."""
-    snapshot = await compute_demo_snapshot(config)
+async def export_tradingview_overlay(
+    config: GexConfig,
+    output_path: str,
+    quality_scenario: str | None = None,
+) -> None:
+    """Compute one snapshot and write chart-overlay levels to JSON or CSV."""
+    snapshot, _, _ = await compute_snapshot(config, quality_scenario=quality_scenario)
     try:
         target = write_tradingview_overlay(snapshot, output_path)
     except ValueError as exc:
@@ -190,21 +240,62 @@ async def export_demo_tradingview_overlay(config: GexConfig, output_path: str) -
     print(f"Saved TradingView overlay to {target}")
 
 
+async def export_sensitivity(
+    config: GexConfig,
+    output_path: str,
+    quality_scenario: str | None = None,
+) -> None:
+    """Compute model-sensitivity scenarios and write JSON, CSV, or Markdown."""
+    _, consumer, _ = await compute_snapshot(config, quality_scenario=quality_scenario)
+    report = build_sensitivity_report(
+        spot=consumer.current_spot,
+        chain_state=consumer.chain_state,
+        days_to_expiry=config.days_to_expiry,
+        risk_free_rate=config.risk_free_rate,
+        contract_multiplier=config.contract_multiplier,
+    )
+    try:
+        target = write_sensitivity_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(f"Saved sensitivity report to {target}")
+
+
 async def compute_demo_snapshot(config: GexConfig) -> dict:
+    snapshot, _, _ = await compute_snapshot(config)
+    return snapshot
+
+
+async def compute_snapshot(
+    config: GexConfig,
+    quality_scenario: str | None = None,
+) -> tuple[dict, StatefulGexConsumer, dict]:
     math_engine = IntradayGexEngine(multiplier=config.contract_multiplier)
     consumer = StatefulGexConsumer(
         math_engine,
         target_underlying=config.symbol,
         risk_free_rate=config.risk_free_rate,
-        data_mode="demo",
+        data_mode=config.data_mode,
         stale_after_seconds=config.stale_after_seconds,
     )
-    await seed_demo_session(consumer)
+
+    if config.data_mode == "replay":
+        replay_config = replace(config, replay_delay_seconds=0.0)
+        adapter = build_market_data_adapter(consumer, replay_config)
+        await adapter.stream_market_data()
+    elif config.data_mode == "demo":
+        await seed_demo_session(consumer)
+    else:
+        raise SystemExit("Non-interactive exports currently support demo or replay mode only.")
+
+    if quality_scenario:
+        await apply_quality_scenario(consumer, quality_scenario)
+
     data = await consumer.process_latest_snapshot(days_to_expiry=config.days_to_expiry)
     if "error" in data:
         raise SystemExit(f"Cannot export snapshot: {data['error']}")
     breakdown = await consumer.process_expiry_breakdown(days_to_expiry=config.days_to_expiry)
-    return build_snapshot(
+    snapshot = build_snapshot(
         symbol=consumer.target_underlying,
         spot=consumer.current_spot,
         session_open=consumer.session_open,
@@ -215,11 +306,23 @@ async def compute_demo_snapshot(config: GexConfig) -> dict:
         chain_state=consumer.chain_state,
         expiry_breakdown=breakdown,
     )
+    return snapshot, consumer, data
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Intraday GEX imbalance terminal",
+    )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=("validate-fixture", "list-replays"),
+        help="Optional utility command.",
+    )
+    parser.add_argument(
+        "command_path",
+        nargs="?",
+        help="Path argument for utility commands such as validate-fixture.",
     )
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
@@ -262,6 +365,16 @@ def parse_args() -> argparse.Namespace:
         help="Replay normalized JSONL market data from PATH. Sets mode to replay.",
     )
     parser.add_argument(
+        "--replay-session",
+        choices=replay_session_names(),
+        help="Replay one bundled synthetic research session by name.",
+    )
+    parser.add_argument(
+        "--quality-scenario",
+        choices=quality_scenario_names(),
+        help="Apply an offline provider-health simulation to demo/export workflows.",
+    )
+    parser.add_argument(
         "--replay-delay",
         type=float,
         help="Delay between replay messages in seconds. Overrides GEX_REPLAY_DELAY_SECONDS.",
@@ -274,12 +387,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--export",
         metavar="PATH",
-        help="Compute one GEX snapshot from seeded demo data, write it to PATH as JSON, then exit.",
+        help="Compute one GEX snapshot and write .json, .csv, or .md, then exit.",
     )
     parser.add_argument(
         "--tradingview-overlay",
         metavar="PATH",
-        help="Compute one demo GEX snapshot and write TradingView overlay levels to .json or .csv.",
+        help="Compute one GEX snapshot and write TradingView overlay levels to .json or .csv.",
+    )
+    parser.add_argument(
+        "--sensitivity",
+        metavar="PATH",
+        help="Compute a model-sensitivity report and write .json, .csv, or .md, then exit.",
     )
     parser.add_argument(
         "--screenshot-width",
@@ -322,6 +440,11 @@ def apply_cli_overrides(config: GexConfig, args: argparse.Namespace) -> GexConfi
         updates["data_mode"] = "replay"
         updates["replay_path"] = args.replay
 
+    if args.replay_session:
+        session = replay_session_for_name(args.replay_session)
+        updates["data_mode"] = "replay"
+        updates["replay_path"] = session.path
+
     if args.replay_delay is not None:
         updates["replay_delay_seconds"] = args.replay_delay
 
@@ -353,6 +476,20 @@ def print_provider_summary() -> None:
     for provider in available_provider_names():
         info = adapter_info(provider)
         print(f"{info.name:10} {info.status:9} {info.label} - {info.notes}")
+
+
+def print_replay_sessions() -> None:
+    for session in bundled_replay_sessions():
+        print(f"{session.name:24} {session.path:48} {session.description}")
+
+
+def validate_fixture_command(path: str | None) -> None:
+    if not path:
+        raise SystemExit("Usage: gex-terminal validate-fixture PATH")
+    report = validate_fixture(path)
+    print(format_fixture_validation_report(report))
+    if not report.ok:
+        raise SystemExit(1)
 
 
 def main_sync() -> None:

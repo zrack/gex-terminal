@@ -1,0 +1,15 @@
+{"type":"underlying_tick","symbol":"ES","price":5928.25,"timestamp":"2026-07-16T13:30:00Z","session_phase":"open","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":5900,"option_type":"C","volume":420,"iv":0.151,"expiry":"0DTE","timestamp":"2026-07-16T13:30:04Z","session_phase":"open","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":5900,"option_type":"P","volume":760,"iv":0.151,"expiry":"0DTE","timestamp":"2026-07-16T13:30:05Z","session_phase":"open","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":5925,"option_type":"C","volume":940,"iv":0.146,"expiry":"0DTE","timestamp":"2026-07-16T13:31:00Z","session_phase":"open","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":5925,"option_type":"P","volume":520,"iv":0.146,"expiry":"0DTE","timestamp":"2026-07-16T13:31:01Z","session_phase":"open","scenario":"trend_day"}
+{"type":"underlying_tick","symbol":"ES","price":5948.50,"timestamp":"2026-07-16T15:00:00Z","session_phase":"mid","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":5950,"option_type":"C","volume":2240,"iv":0.139,"expiry":"0DTE","timestamp":"2026-07-16T15:00:05Z","session_phase":"mid","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":5950,"option_type":"P","volume":380,"iv":0.139,"expiry":"0DTE","timestamp":"2026-07-16T15:00:06Z","session_phase":"mid","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":5975,"option_type":"C","volume":2680,"iv":0.137,"expiry":"0DTE","timestamp":"2026-07-16T15:30:05Z","session_phase":"mid","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":5975,"option_type":"P","volume":260,"iv":0.137,"expiry":"0DTE","timestamp":"2026-07-16T15:30:06Z","session_phase":"mid","scenario":"trend_day"}
+{"type":"underlying_tick","symbol":"ES","price":5988.75,"timestamp":"2026-07-16T19:00:00Z","session_phase":"late","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":6000,"option_type":"C","volume":3180,"iv":0.135,"expiry":"0DTE","timestamp":"2026-07-16T19:00:05Z","session_phase":"late","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":6000,"option_type":"P","volume":210,"iv":0.135,"expiry":"0DTE","timestamp":"2026-07-16T19:00:06Z","session_phase":"late","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":6025,"option_type":"C","volume":1840,"iv":0.142,"expiry":"0DTE","timestamp":"2026-07-16T19:15:05Z","session_phase":"late","scenario":"trend_day"}
+{"type":"options_volume_tick","strike":6025,"option_type":"P","volume":160,"iv":0.142,"expiry":"0DTE","timestamp":"2026-07-16T19:15:06Z","session_phase":"late","scenario":"trend_day"}

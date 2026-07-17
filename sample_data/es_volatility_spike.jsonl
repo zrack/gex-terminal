@@ -1,0 +1,13 @@
+{"type":"underlying_tick","symbol":"ES","price":5966.00,"timestamp":"2026-07-16T13:30:00Z","session_phase":"open","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5975,"option_type":"C","volume":1140,"iv":0.142,"expiry":"0DTE","timestamp":"2026-07-16T13:30:04Z","session_phase":"open","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5975,"option_type":"P","volume":720,"iv":0.142,"expiry":"0DTE","timestamp":"2026-07-16T13:30:05Z","session_phase":"open","scenario":"volatility_spike"}
+{"type":"underlying_tick","symbol":"ES","price":5944.25,"timestamp":"2026-07-16T15:10:00Z","session_phase":"mid","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5950,"option_type":"C","volume":760,"iv":0.176,"expiry":"0DTE","timestamp":"2026-07-16T15:10:04Z","session_phase":"mid","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5950,"option_type":"P","volume":2840,"iv":0.176,"expiry":"0DTE","timestamp":"2026-07-16T15:10:05Z","session_phase":"mid","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5925,"option_type":"C","volume":430,"iv":0.192,"expiry":"0DTE","timestamp":"2026-07-16T15:25:04Z","session_phase":"mid","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5925,"option_type":"P","volume":3620,"iv":0.192,"expiry":"0DTE","timestamp":"2026-07-16T15:25:05Z","session_phase":"mid","scenario":"volatility_spike"}
+{"type":"underlying_tick","symbol":"ES","price":5908.75,"timestamp":"2026-07-16T17:45:00Z","session_phase":"late","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5900,"option_type":"C","volume":280,"iv":0.224,"expiry":"0DTE","timestamp":"2026-07-16T17:45:04Z","session_phase":"late","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5900,"option_type":"P","volume":4240,"iv":0.224,"expiry":"0DTE","timestamp":"2026-07-16T17:45:05Z","session_phase":"late","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5875,"option_type":"C","volume":190,"iv":0.248,"expiry":"0DTE","timestamp":"2026-07-16T18:15:04Z","session_phase":"late","scenario":"volatility_spike"}
+{"type":"options_volume_tick","strike":5875,"option_type":"P","volume":3180,"iv":0.248,"expiry":"0DTE","timestamp":"2026-07-16T18:15:05Z","session_phase":"late","scenario":"volatility_spike"}

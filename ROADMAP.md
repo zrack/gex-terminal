@@ -106,7 +106,9 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Add a security policy for credential-handling issues.
 - [x] Publish sample replay datasets so new users can evaluate the app without
   paid data.
-- [ ] Add contribution notes for normalized provider payload fixtures.
+- [x] Add contribution notes for normalized provider payload fixtures. The
+  `validate-fixture` command checks normalized JSONL before submission, and
+  replay research docs describe the fixture workflow.
 - [ ] Add a small set of labeled good-first issues after the first public push.
 
 ## Phase 6: Packaging and Distribution
@@ -119,13 +121,20 @@ dashboard and more like a focused market-structure workstation. See
 
 ## Phase 7: Research Workflow
 
-- [ ] Add a historical session store for replaying prior market days.
+- [x] Add a starter replay research catalog for replaying synthetic market days:
+  trend day, chop day, volatility spike, zero-gamma flip, expiration
+  compression, full-session, compact demo, and quality-stress fixtures.
+- [ ] Add a historical session store for replaying prior live market days.
 - [ ] Add day-over-day level comparison for gamma wall, zero-gamma, expiry
   exposure, and total net GEX.
+- [x] Add a fixture validation workflow for normalized replay/provider JSONL.
 - [ ] Add a validation workflow that compares generated levels against saved
   price action and replay fixtures.
 - [ ] Add a multi-symbol scanner for ES, MES, NQ, MNQ, SPX, SPY, QQQ, and IWM.
 - [ ] Add an options P/L scenario tool with Greeks, volatility, and time controls.
+- [x] Add model sensitivity reports for multiplier, expiry, risk-free rate,
+  implied volatility, and volume/open-interest proxy assumptions.
+- [x] Add a delayed yfinance path for SPY/QQQ-style ETF options research.
 
 ## Good First Contributions
 

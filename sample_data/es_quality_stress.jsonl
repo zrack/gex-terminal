@@ -1,0 +1,7 @@
+{"type":"underlying_tick","symbol":"ES","price":5943.25,"timestamp":"2026-07-16T13:30:00Z","session_phase":"quality","scenario":"quality_stress"}
+{"type":"underlying_tick","symbol":"NQ","price":18442.50,"timestamp":"2026-07-16T13:30:01Z","session_phase":"quality","scenario":"quality_stress","quality_case":"off_symbol_drop"}
+{"type":"options_volume_tick","strike":5900,"option_type":"C","volume":460,"iv":0.162,"expiry":"0DTE","timestamp":"2026-07-16T13:30:04Z","session_phase":"quality","scenario":"quality_stress"}
+{"type":"options_volume_tick","strike":5900,"option_type":"P","volume":1180,"iv":0.162,"expiry":"0DTE","timestamp":"2026-07-16T13:30:05Z","session_phase":"quality","scenario":"quality_stress"}
+{"type":"options_volume_tick","strike":5950,"option_type":"C","volume":1980,"iv":0.141,"expiry":"0DTE","timestamp":"2026-07-16T13:31:04Z","session_phase":"quality","scenario":"quality_stress","quality_case":"partial_chain"}
+{"type":"options_volume_tick","strike":5950,"option_type":"P","volume":1640,"iv":0.141,"expiry":"0DTE","timestamp":"2026-07-16T13:31:05Z","session_phase":"quality","scenario":"quality_stress","quality_case":"partial_chain"}
+{"type":"underlying_tick","symbol":"ES","price":5941.75,"timestamp":"2026-07-16T13:32:00Z","session_phase":"quality","scenario":"quality_stress","quality_case":"latency_probe"}

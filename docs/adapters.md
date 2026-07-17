@@ -118,7 +118,7 @@ pip install -e ".[ibkr]"
 
 ## yfinance Adapter
 
-The yfinance adapter is scaffolded behind `--provider yfinance`. It is intended
+The yfinance adapter is available behind `--provider yfinance`. It is intended
 only for delayed equity/ETF options snapshots such as SPY or QQQ, not ES/NQ
 futures options.
 
@@ -126,7 +126,14 @@ Optional dependency:
 
 ```bash
 pip install -e ".[yfinance]"
+gex-terminal --mode live --provider yfinance --symbol SPY
 ```
+
+The adapter requests the nearest option expiration, publishes one delayed quote
+and option-chain snapshot, then normalizes rows into the shared adapter contract.
+It uses yfinance `volume` first and falls back to `openInterest` when volume is
+missing. This is useful for no/low-cost ETF research, but it should not be
+presented as a substitute for licensed futures options data.
 
 ## Adding a Provider
 
