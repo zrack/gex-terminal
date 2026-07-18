@@ -35,6 +35,25 @@ class TradovateAdapterTests(unittest.TestCase):
 
         self.assertEqual(contracts, payload["items"])
 
+    def test_routes_contract_discovery_fixture_to_option_metadata(self):
+        fixture_path = Path(__file__).parent / "fixtures" / "tradovate_contract_discovery.json"
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+        contracts = TradovateAdapter._extract_contract_list(payload)
+        option_metadata = {
+            TradovateAdapter._contract_symbol(contract): TradovateAdapter._option_metadata(contract)
+            for contract in contracts
+            if TradovateAdapter._looks_like_option_contract(contract)
+        }
+
+        self.assertEqual(
+            option_metadata,
+            {
+                "ESM6 C5950": {"strike": 5950, "option_type": "C", "iv": 0.16},
+                "ESM6 P5900": {"strike": 5900, "option_type": "P", "iv": 0.18},
+            },
+        )
+
     def test_normalizes_underlying_quote(self):
         adapter = TradovateAdapter(consumer=None, target_underlying="ES")
 

@@ -1,0 +1,15 @@
+{"type":"underlying_tick","symbol":"ES","price":5932.25,"timestamp":"2026-07-16T13:30:00Z","session_phase":"open","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":5925,"option_type":"C","volume":620,"iv":0.151,"expiry":"0DTE","timestamp":"2026-07-16T13:30:04Z","session_phase":"open","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":5925,"option_type":"P","volume":840,"iv":0.151,"expiry":"0DTE","timestamp":"2026-07-16T13:30:05Z","session_phase":"open","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":5950,"option_type":"C","volume":1860,"iv":0.143,"expiry":"0DTE","timestamp":"2026-07-16T14:00:04Z","session_phase":"open","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":5950,"option_type":"P","volume":560,"iv":0.143,"expiry":"0DTE","timestamp":"2026-07-16T14:00:05Z","session_phase":"open","scenario":"call_wall_breakout"}
+{"type":"underlying_tick","symbol":"ES","price":5982.50,"timestamp":"2026-07-16T16:00:00Z","session_phase":"mid","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":5975,"option_type":"C","volume":2940,"iv":0.138,"expiry":"0DTE","timestamp":"2026-07-16T16:00:04Z","session_phase":"mid","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":5975,"option_type":"P","volume":420,"iv":0.138,"expiry":"0DTE","timestamp":"2026-07-16T16:00:05Z","session_phase":"mid","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":6000,"option_type":"C","volume":3360,"iv":0.136,"expiry":"0DTE","timestamp":"2026-07-16T16:30:04Z","session_phase":"mid","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":6000,"option_type":"P","volume":340,"iv":0.136,"expiry":"0DTE","timestamp":"2026-07-16T16:30:05Z","session_phase":"mid","scenario":"call_wall_breakout"}
+{"type":"underlying_tick","symbol":"ES","price":6032.75,"timestamp":"2026-07-16T19:00:00Z","session_phase":"late","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":6025,"option_type":"C","volume":4180,"iv":0.141,"expiry":"0DTE","timestamp":"2026-07-16T19:00:04Z","session_phase":"late","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":6025,"option_type":"P","volume":290,"iv":0.141,"expiry":"0DTE","timestamp":"2026-07-16T19:00:05Z","session_phase":"late","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":6050,"option_type":"C","volume":2120,"iv":0.148,"expiry":"0DTE","timestamp":"2026-07-16T19:15:04Z","session_phase":"late","scenario":"call_wall_breakout"}
+{"type":"options_volume_tick","strike":6050,"option_type":"P","volume":220,"iv":0.148,"expiry":"0DTE","timestamp":"2026-07-16T19:15:05Z","session_phase":"late","scenario":"call_wall_breakout"}

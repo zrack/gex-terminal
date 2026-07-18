@@ -81,6 +81,7 @@ Good starting points:
 |   |-- config.py       # Environment-driven runtime configuration
 |   |-- engine.py       # Vectorized Black-Scholes and GEX calculation matrix
 |   |-- consumer.py     # Stateful asynchronous market-data aggregator
+|   |-- replay_lab.py   # Offline replay reports, alerts, and session comparisons
 |   |-- tui.py          # Textual reactive terminal user interface
 |   |-- gex_terminal.tcss # Terminal dashboard theme and layout styles
 |   |-- market_data_adapter.py # Shared provider adapter contract
@@ -101,6 +102,8 @@ Good starting points:
   active positioning input when official open interest is stale or delayed.
 - **Strike-level structural mapping**: identifies the gamma wall, zero-gamma
   node, net exposure bands, and call/put imbalance zones.
+- **Replay Research Lab**: runs bundled synthetic sessions offline, then exports
+  session comparisons, replay alerts, and saved snapshot baselines.
 - **Credential isolation**: keeps API keys and production market-data credentials
   outside the execution logic through environment variables.
 
@@ -343,6 +346,8 @@ gex-terminal --replay sample_data/demo_replay.jsonl
 gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
 gex-terminal list-replays
 gex-terminal --replay-session trend-day
+gex-terminal --replay-session gap-fade
+gex-terminal --replay-session call-wall-breakout
 gex-terminal --replay-session zero-gamma-flip
 ```
 
@@ -350,7 +355,15 @@ gex-terminal --replay-session zero-gamma-flip
 is a synthetic ES 0DTE replay that walks through open, mid-session, and
 late-session activity without requiring live credentials. Additional bundled
 sessions cover trend, chop, volatility-spike, zero-gamma-flip, expiration
-compression, and provider-quality stress cases.
+compression, gap-fade, call-wall-breakout, and provider-quality stress cases.
+
+Run the offline Replay Research Lab across bundled sessions:
+
+```bash
+gex-terminal replay-lab replay_lab.md
+gex-terminal replay-lab replay_lab.json
+gex-terminal replay-lab gap_fade_lab.csv --replay-session gap-fade
+```
 
 Override `.env` settings from the command line:
 
@@ -368,6 +381,7 @@ Export an actual Textual screenshot for GitHub:
 
 ```bash
 gex-terminal --demo --screenshot assets/gex-terminal-actual.svg
+gex-terminal --replay-session zero-gamma-flip --screenshot assets/gex-terminal-actual.svg
 ```
 
 Export a JSON snapshot of the current GEX state (metrics, call/put walls,
@@ -464,6 +478,8 @@ pip install -e .
   assumptions and limitations.
 - See [docs/product-vision.md](docs/product-vision.md) for signature capability
   concepts and mockups.
+- See [docs/replay-lab.md](docs/replay-lab.md) for offline replay reports,
+  alerts, saved snapshot comparisons, and screenshot workflow.
 - See [docs/replay-research.md](docs/replay-research.md) for bundled replay
   sessions, fixture validation, quality simulations, and sensitivity reports.
 - See [ROADMAP.md](ROADMAP.md) for planned phases and future work.
@@ -483,6 +499,8 @@ Recommended early test coverage:
 - TradingView overlay export rows for levels and exposure bands.
 - Live Gamma Regime Map classification for positive, negative, transition, and
   pinned states.
+- Replay Lab reports for alerts, session comparison, and saved snapshot
+  baselines.
 - Fixture validation for replay/provider JSONL submissions.
 - Databento fixture mapping for definitions, trades, underlying quotes, and
   statistics-style open interest.

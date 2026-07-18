@@ -17,6 +17,8 @@ Run a bundled session:
 gex-terminal --replay-session trend-day
 gex-terminal --replay-session chop-day
 gex-terminal --replay-session volatility-spike
+gex-terminal --replay-session gap-fade
+gex-terminal --replay-session call-wall-breakout
 gex-terminal --replay-session zero-gamma-flip
 gex-terminal --replay-session expiration-compression
 ```
@@ -26,10 +28,26 @@ The current research fixtures are:
 - `trend-day`: rising spot with call-side accumulation.
 - `chop-day`: range-bound balanced call/put flow.
 - `volatility-spike`: downside move with higher IV and put-heavy flow.
+- `gap-fade`: gap-up open that rejects higher call walls and rotates lower.
+- `call-wall-breakout`: upside breakout that walks the call wall higher.
 - `zero-gamma-flip`: flow rotation across the zero-gamma boundary.
 - `expiration-compression`: late 0DTE pinning around the gamma wall.
 - `quality-stress`: valid fixture with off-symbol drops and partial chain
   coverage for Provider Health testing.
+
+## Replay Research Lab
+
+Run every bundled replay session through the offline lab:
+
+```bash
+gex-terminal replay-lab replay_lab.md
+gex-terminal replay-lab replay_lab.json
+gex-terminal replay-lab replay_lab.csv
+```
+
+The lab report includes a session dashboard, replay alerts, session-to-session
+comparisons, and saved final snapshots for reproducible baseline review. See
+[docs/replay-lab.md](replay-lab.md) for the full workflow.
 
 ## Fixture Validation
 

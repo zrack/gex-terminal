@@ -1,0 +1,31 @@
+{
+  "symbol": "SPY",
+  "expiry": "2026-07-17",
+  "quote": {
+    "last_price": 512.34
+  },
+  "calls": [
+    {
+      "strike": 510.0,
+      "volume": 120,
+      "impliedVolatility": 0.18
+    },
+    {
+      "strike": 515.0,
+      "volume": 80,
+      "impliedVolatility": 0.17
+    }
+  ],
+  "puts": [
+    {
+      "strike": 510.0,
+      "openInterest": 95,
+      "impliedVolatility": 0.19
+    },
+    {
+      "strike": 505.0,
+      "volume": 60,
+      "impliedVolatility": 0.21
+    }
+  ]
+}

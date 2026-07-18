@@ -44,6 +44,18 @@ REPLAY_SESSIONS: tuple[ReplaySession, ...] = (
         description="Fast downside move with higher IV and put-heavy flow.",
     ),
     ReplaySession(
+        name="gap-fade",
+        path="sample_data/es_gap_fade.jsonl",
+        label="Gap And Fade",
+        description="Gap-up open that rejects higher call walls and rotates into put-heavy fade flow.",
+    ),
+    ReplaySession(
+        name="call-wall-breakout",
+        path="sample_data/es_call_wall_breakout.jsonl",
+        label="Call Wall Breakout",
+        description="Upside breakout that walks the call wall higher across the session.",
+    ),
+    ReplaySession(
         name="zero-gamma-flip",
         path="sample_data/es_zero_gamma_flip.jsonl",
         label="Zero-Gamma Flip",

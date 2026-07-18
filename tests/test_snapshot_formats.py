@@ -33,6 +33,22 @@ def _snapshot():
             "concentration_band": [5950.0, 6000.0],
         },
         "expiry_breakdown": {"0DTE": 2_850_000_000.0},
+        "feed_quality": {
+            "health": "simulated",
+            "status": "REPLAY",
+            "message_count": 42,
+            "dropped_count": 1,
+            "malformed_count": 0,
+            "notes": ["Replay fixture"],
+        },
+        "alerts": [
+            {
+                "type": "gamma_wall_shift",
+                "severity": "medium",
+                "spot": 5943.25,
+                "message": "Gamma wall shifted 5900.0 -> 5950.0.",
+            }
+        ],
         "strikes": [
             {
                 "strike": 5950.0,
@@ -53,6 +69,8 @@ class SnapshotFormatsTests(unittest.TestCase):
 
         self.assertIn("metric", {row["record_type"] for row in rows})
         self.assertIn("strike", {row["record_type"] for row in rows})
+        self.assertIn("alert", {row["record_type"] for row in rows})
+        self.assertIn("feed_quality", {row["record_type"] for row in rows})
 
     def test_snapshot_markdown_contains_core_levels(self):
         markdown = snapshot_to_markdown(_snapshot())
@@ -60,6 +78,8 @@ class SnapshotFormatsTests(unittest.TestCase):
         self.assertIn("# ES GEX Snapshot", markdown)
         self.assertIn("Gamma wall", markdown)
         self.assertIn("Zero gamma", markdown)
+        self.assertIn("Replay Alerts", markdown)
+        self.assertIn("Feed Quality", markdown)
 
     def test_write_snapshot_export_by_extension(self):
         with tempfile.TemporaryDirectory() as tmp:

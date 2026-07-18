@@ -121,6 +121,8 @@ class StatefulGexConsumer:
                     return
                 async with self.state_lock:
                     self.current_spot = float(data["price"])
+                    if self.session_open == 0.0:
+                        self.session_open = self.current_spot
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
                 return

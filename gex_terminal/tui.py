@@ -127,7 +127,7 @@ class GexTerminalApp(App):
     def on_mount(self) -> None:
         self.title = "Intraday GEX Imbalance Terminal"
         self.sub_title = (
-            f"{self.config.symbol} · OPTIONS CHAIN · CUMULATIVE SESSION VOLUME"
+            f"{self.config.symbol} · {self._workflow_label()} · CUMULATIVE SESSION VOLUME"
         )
         table = self.query_one("#gex-table", DataTable)
         table.cursor_type = "row"
@@ -176,6 +176,7 @@ class GexTerminalApp(App):
         bar = Text(" ", style="#94a3b8")
         segments = (
             f"provider {self.config.data_provider}",
+            self._workflow_label().lower(),
             f"{self.config.symbol} ×{self.config.contract_multiplier}",
             f"refresh {self.config.refresh_interval_seconds:g}s",
             f"last {self._last_refresh_at}",
@@ -477,7 +478,7 @@ class GexTerminalApp(App):
             self._last_runtime_status = status
 
         self.sub_title = (
-            f"{self.config.symbol} · OPTIONS CHAIN · CUMULATIVE SESSION VOLUME · {status}"
+            f"{self.config.symbol} · {self._workflow_label()} · CUMULATIVE SESSION VOLUME · {status}"
         )
 
         self.query_one("#feed-websocket", Static).update(
@@ -695,6 +696,13 @@ class GexTerminalApp(App):
             "CONNECTED": "#38bdf8",
             "STALE": "#fbbf24",
         }.get(status, "#fb7185")
+
+    def _workflow_label(self) -> str:
+        if self.config.data_mode.upper() == "REPLAY":
+            return "REPLAY RESEARCH LAB"
+        if self.config.data_mode.upper() == "DEMO":
+            return "DEMO RESEARCH"
+        return "OPTIONS CHAIN"
 
     @staticmethod
     def _arrange_rows(rows, sort_mode, filter_mode, spot, max_volume):

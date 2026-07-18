@@ -1,6 +1,8 @@
 import sys
 import types
 import unittest
+import json
+from pathlib import Path
 from unittest.mock import patch
 
 from gex_terminal.adapters.yfinance_adapter import YfinanceAdapter
@@ -66,6 +68,19 @@ class YfinanceAdapterTests(unittest.IsolatedAsyncioTestCase):
 
             with self.assertRaises(AdapterConfigurationError):
                 adapter.validate()
+
+    async def test_normalizes_sanitized_option_chain_fixture(self):
+        fixture_path = Path(__file__).parent / "fixtures" / "yfinance_option_chain_records.json"
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        adapter = YfinanceAdapter(consumer=None, target_underlying=payload["symbol"])
+
+        calls = adapter._normalized_option_rows(payload["calls"], "C", payload["expiry"])
+        puts = adapter._normalized_option_rows(payload["puts"], "P", payload["expiry"])
+
+        self.assertEqual(calls[0]["strike"], 510.0)
+        self.assertEqual(calls[0]["volume"], 120)
+        self.assertEqual(puts[0]["volume"], 95)
+        self.assertEqual(puts[0]["expiry"], "2026-07-17")
 
 
 if __name__ == "__main__":

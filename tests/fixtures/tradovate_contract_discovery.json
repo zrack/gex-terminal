@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "name": "ESM6 C5950",
+      "description": "Synthetic ES option call fixture",
+      "contractType": "Option",
+      "strikePrice": 5950,
+      "callPut": "Call",
+      "impliedVol": 0.16
+    },
+    {
+      "name": "ESM6 P5900",
+      "description": "Synthetic ES option put fixture",
+      "contractType": "Option",
+      "strikePrice": 5900,
+      "callPut": "Put",
+      "impliedVol": 0.18
+    },
+    {
+      "name": "ESM6",
+      "description": "Synthetic ES futures fixture",
+      "contractType": "Future"
+    }
+  ]
+}

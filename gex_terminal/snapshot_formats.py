@@ -56,6 +56,23 @@ def snapshot_to_csv(snapshot: Dict[str, Any]) -> str:
             "label": expiry,
             "value": value,
         })
+    feed_quality = snapshot.get("feed_quality")
+    if isinstance(feed_quality, dict):
+        writer.writerow({
+            "record_type": "feed_quality",
+            "name": "health",
+            "label": "Feed Health",
+            "value": feed_quality.get("health"),
+            "notes": "; ".join(feed_quality.get("notes", ())),
+        })
+    for alert in snapshot.get("alerts", ()):
+        writer.writerow({
+            "record_type": "alert",
+            "name": alert.get("type"),
+            "label": alert.get("severity", "").title(),
+            "value": alert.get("spot"),
+            "notes": alert.get("message"),
+        })
     for row in snapshot["strikes"]:
         writer.writerow({
             "record_type": "strike",
@@ -107,6 +124,34 @@ def snapshot_to_markdown(snapshot: Dict[str, Any]) -> str:
         lines.extend(["", "## Expiry Breakdown", ""])
         for expiry, value in snapshot["expiry_breakdown"].items():
             lines.append(f"- `{expiry}`: `{_money(value)}`")
+    if snapshot.get("feed_quality"):
+        quality = snapshot["feed_quality"]
+        lines.extend([
+            "",
+            "## Feed Quality",
+            "",
+            f"- Health: `{quality.get('health', '--')}`",
+            f"- Status: `{quality.get('status', '--')}`",
+            f"- Payloads: `{quality.get('message_count', 0)}` ok, "
+            f"`{quality.get('dropped_count', 0)}` dropped, "
+            f"`{quality.get('malformed_count', 0)}` malformed",
+        ])
+        notes = quality.get("notes") or ()
+        if notes:
+            lines.append(f"- Notes: `{'; '.join(notes)}`")
+    if snapshot.get("alerts"):
+        lines.extend([
+            "",
+            "## Replay Alerts",
+            "",
+            "| Severity | Type | Message |",
+            "| --- | --- | --- |",
+        ])
+        for alert in snapshot["alerts"][:12]:
+            lines.append(
+                f"| {alert.get('severity', '--')} | {alert.get('type', '--')} | "
+                f"{alert.get('message', '')} |"
+            )
     return "\n".join(lines) + "\n"
 
 

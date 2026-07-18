@@ -89,7 +89,8 @@ The Tradovate adapter currently includes:
 
 The remaining production task is validating exact option-chain and quote payload
 shapes against live or demo Tradovate API access. Sanitized payload fixtures are
-welcome.
+welcome. Current sanitized fixtures include `tests/fixtures/tradovate_md_quotes.json`
+and `tests/fixtures/tradovate_contract_discovery.json`.
 
 ## Databento Adapter
 
@@ -139,7 +140,8 @@ The adapter requests the nearest option expiration, publishes one delayed quote
 and option-chain snapshot, then normalizes rows into the shared adapter contract.
 It uses yfinance `volume` first and falls back to `openInterest` when volume is
 missing. This is useful for no/low-cost ETF research, but it should not be
-presented as a substitute for licensed futures options data.
+presented as a substitute for licensed futures options data. A sanitized example
+chain lives at `tests/fixtures/yfinance_option_chain_records.json`.
 
 ## Adding a Provider
 

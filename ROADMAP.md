@@ -11,7 +11,7 @@ dashboard and more like a focused market-structure workstation. See
 [docs/product-vision.md](docs/product-vision.md) for concept notes and mockups.
 
 - Live Gamma Regime Map.
-- Replayable Market Days.
+- Replay Research Lab and Replayable Market Days.
 - TradingView Overlay Export.
 - GEX Alert Engine.
 - Multi-Symbol Market Structure Scanner.
@@ -90,8 +90,9 @@ dashboard and more like a focused market-structure workstation. See
   The prototype renders current state, spot, zero-gamma, gamma wall, next
   trigger, and state legend from demo/replay data. Mockup:
   [assets/live-gamma-regime-map-mockup.svg](assets/live-gamma-regime-map-mockup.svg).
-- [ ] Add alerts for gamma wall shifts, zero-gamma crosses, stale data, and major
-  exposure changes.
+- [x] Add local replay/export alerts for gamma wall shifts, zero-gamma crosses,
+  data-quality cases, and major exposure changes. Live notification delivery
+  remains future work.
 - [x] Add an initial TradingView overlay export format with JSON and CSV levels
   for gamma wall, zero-gamma, call wall, put wall, major exposure levels, and
   the 70% concentration band. Discord/webhook formats remain future work.
@@ -126,10 +127,13 @@ dashboard and more like a focused market-structure workstation. See
 
 - [x] Add a starter replay research catalog for replaying synthetic market days:
   trend day, chop day, volatility spike, zero-gamma flip, expiration
-  compression, full-session, compact demo, and quality-stress fixtures.
+  compression, gap-fade, call-wall-breakout, full-session, compact demo, and
+  quality-stress fixtures.
 - [ ] Add a historical session store for replaying prior live market days.
 - [ ] Add day-over-day level comparison for gamma wall, zero-gamma, expiry
   exposure, and total net GEX.
+- [x] Add Replay Lab reports that compare saved final snapshots across bundled
+  synthetic sessions.
 - [x] Add a fixture validation workflow for normalized replay/provider JSONL.
 - [ ] Add a validation workflow that compares generated levels against saved
   price action and replay fixtures.
@@ -144,6 +148,7 @@ dashboard and more like a focused market-structure workstation. See
 - Add tests for `IntradayGexEngine.calculate_gamma`.
 - Add tests for malformed JSON and missing fields in `StatefulGexConsumer`.
 - Add additional replay datasets for different symbols, expirations, or regimes.
+- Add Replay Lab alert expectations for newly submitted fixtures.
 - Improve terminal empty states before live data arrives.
 - Document a known Tradovate options-chain payload shape.
 - Add README screenshots once replay mode exists.

@@ -28,6 +28,7 @@ from gex_terminal.replay_catalog import (
     replay_session_for_name,
     replay_session_names,
 )
+from gex_terminal.replay_lab import build_replay_lab_report, write_replay_lab_report
 from gex_terminal.sensitivity import build_sensitivity_report, write_sensitivity_report
 from gex_terminal.snapshot import build_snapshot
 from gex_terminal.snapshot_formats import write_snapshot_export
@@ -46,6 +47,15 @@ async def main():
         print_replay_sessions()
         return
 
+    if args.command == "replay-lab":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await export_replay_lab(
+            config=config,
+            output_path=args.command_path or "replay_lab.md",
+            session_names=(args.replay_session,) if args.replay_session else None,
+        )
+        return
+
     config = apply_cli_overrides(GexConfig.from_env(), args)
     validate_data_mode(config.data_mode)
 
@@ -61,6 +71,7 @@ async def main():
             output_path=args.screenshot,
             width=args.screenshot_width,
             height=args.screenshot_height,
+            quality_scenario=args.quality_scenario,
         )
         return
 
@@ -174,11 +185,13 @@ async def export_demo_screenshot(
     output_path: str,
     width: int,
     height: int,
+    quality_scenario: str | None = None,
 ) -> None:
-    demo_config = GexConfig(
+    render_mode = "replay" if config.data_mode == "replay" else "demo"
+    render_config = GexConfig(
         symbol=config.symbol,
         symbols=config.symbols,
-        data_mode="demo",
+        data_mode=render_mode,
         data_provider=config.data_provider,
         contract_multiplier=config.contract_multiplier,
         risk_free_rate=config.risk_free_rate,
@@ -186,30 +199,52 @@ async def export_demo_screenshot(
         refresh_interval_seconds=config.refresh_interval_seconds,
         stale_after_seconds=config.stale_after_seconds,
         replay_path=config.replay_path,
-        replay_delay_seconds=config.replay_delay_seconds,
+        replay_delay_seconds=0.0,
         tradovate_environment=config.tradovate_environment,
     )
-    math_engine = IntradayGexEngine(multiplier=demo_config.contract_multiplier)
+    math_engine = IntradayGexEngine(multiplier=render_config.contract_multiplier)
     consumer = StatefulGexConsumer(
         math_engine,
-        target_underlying=demo_config.symbol,
-        risk_free_rate=demo_config.risk_free_rate,
-        data_mode=demo_config.data_mode,
-        stale_after_seconds=demo_config.stale_after_seconds,
+        target_underlying=render_config.symbol,
+        risk_free_rate=render_config.risk_free_rate,
+        data_mode=render_config.data_mode,
+        stale_after_seconds=render_config.stale_after_seconds,
     )
-    await seed_demo_session(consumer)
+    if render_config.data_mode == "replay":
+        adapter = build_market_data_adapter(consumer, render_config)
+        await adapter.stream_market_data()
+    else:
+        await seed_demo_session(consumer)
 
-    app = GexTerminalApp(consumer=consumer, config=demo_config)
+    if quality_scenario:
+        await apply_quality_scenario(consumer, quality_scenario)
+
+    app = GexTerminalApp(consumer=consumer, config=render_config)
     async with app.run_test(size=(width, height)) as pilot:
         await pilot.pause(0.2)
         await app.refresh_terminal_data()
         await pilot.pause(0.2)
-        svg = app.export_screenshot(title="GEX Terminal Actual")
+        title = "GEX Terminal Replay Lab" if render_mode == "replay" else "GEX Terminal Actual"
+        svg = app.export_screenshot(title=title)
 
     target = Path(output_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(svg, encoding="utf-8")
     print(f"Saved screenshot to {target}")
+
+
+async def export_replay_lab(
+    config: GexConfig,
+    output_path: str,
+    session_names: Iterable[str] | None = None,
+) -> None:
+    """Run the offline replay research lab and write .json, .csv, or .md."""
+    report = await build_replay_lab_report(config, session_names=session_names)
+    try:
+        target = write_replay_lab_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(f"Saved replay lab report to {target}")
 
 
 async def export_snapshot(
@@ -316,13 +351,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("validate-fixture", "list-replays"),
+        choices=("validate-fixture", "list-replays", "replay-lab"),
         help="Optional utility command.",
     )
     parser.add_argument(
         "command_path",
         nargs="?",
-        help="Path argument for utility commands such as validate-fixture.",
+        help="Path argument for utility commands such as validate-fixture or replay-lab.",
     )
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(

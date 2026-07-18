@@ -1,0 +1,17 @@
+{"type":"underlying_tick","symbol":"ES","price":6008.25,"timestamp":"2026-07-16T13:30:00Z","session_phase":"open","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5975,"option_type":"C","volume":620,"iv":0.158,"expiry":"0DTE","timestamp":"2026-07-16T13:30:04Z","session_phase":"open","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5975,"option_type":"P","volume":420,"iv":0.158,"expiry":"0DTE","timestamp":"2026-07-16T13:30:05Z","session_phase":"open","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":6000,"option_type":"C","volume":1380,"iv":0.151,"expiry":"0DTE","timestamp":"2026-07-16T13:31:04Z","session_phase":"open","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":6000,"option_type":"P","volume":520,"iv":0.151,"expiry":"0DTE","timestamp":"2026-07-16T13:31:05Z","session_phase":"open","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":6025,"option_type":"C","volume":1710,"iv":0.147,"expiry":"0DTE","timestamp":"2026-07-16T13:45:04Z","session_phase":"open","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":6025,"option_type":"P","volume":360,"iv":0.147,"expiry":"0DTE","timestamp":"2026-07-16T13:45:05Z","session_phase":"open","scenario":"gap_fade"}
+{"type":"underlying_tick","symbol":"ES","price":5984.50,"timestamp":"2026-07-16T15:00:00Z","session_phase":"mid","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5975,"option_type":"C","volume":440,"iv":0.164,"expiry":"0DTE","timestamp":"2026-07-16T15:00:04Z","session_phase":"mid","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5975,"option_type":"P","volume":1920,"iv":0.164,"expiry":"0DTE","timestamp":"2026-07-16T15:00:05Z","session_phase":"mid","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5950,"option_type":"C","volume":260,"iv":0.171,"expiry":"0DTE","timestamp":"2026-07-16T15:30:04Z","session_phase":"mid","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5950,"option_type":"P","volume":2240,"iv":0.171,"expiry":"0DTE","timestamp":"2026-07-16T15:30:05Z","session_phase":"mid","scenario":"gap_fade"}
+{"type":"underlying_tick","symbol":"ES","price":5956.75,"timestamp":"2026-07-16T19:00:00Z","session_phase":"late","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5950,"option_type":"C","volume":380,"iv":0.183,"expiry":"0DTE","timestamp":"2026-07-16T19:00:04Z","session_phase":"late","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5950,"option_type":"P","volume":2680,"iv":0.183,"expiry":"0DTE","timestamp":"2026-07-16T19:00:05Z","session_phase":"late","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5925,"option_type":"C","volume":220,"iv":0.191,"expiry":"0DTE","timestamp":"2026-07-16T19:15:04Z","session_phase":"late","scenario":"gap_fade"}
+{"type":"options_volume_tick","strike":5925,"option_type":"P","volume":1460,"iv":0.191,"expiry":"0DTE","timestamp":"2026-07-16T19:15:05Z","session_phase":"late","scenario":"gap_fade"}

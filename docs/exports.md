@@ -21,6 +21,25 @@ The snapshot is the best format for reproducible research because it keeps the
 strike-level values that produced the displayed gamma wall, zero-gamma node,
 call wall, put wall, and concentration band.
 
+When a snapshot carries replay alerts or feed-quality metadata, Markdown and CSV
+exports include those sections as shareable rows.
+
+## Replay Lab Reports
+
+Replay Lab reports run one or more bundled synthetic sessions and export a
+research artifact:
+
+```bash
+gex-terminal replay-lab replay_lab.md
+gex-terminal replay-lab replay_lab.json
+gex-terminal replay-lab replay_lab.csv
+```
+
+Markdown is best for issues and discussion. JSON keeps the saved final snapshot
+for every replay session so future model or fixture changes can be compared
+against a baseline. CSV gives spreadsheet-friendly session, alert, and
+comparison rows.
+
 ## TradingView Overlay
 
 The TradingView overlay export is a lightweight chart-annotation format derived
