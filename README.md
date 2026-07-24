@@ -365,6 +365,21 @@ gex-terminal replay-lab replay_lab.json
 gex-terminal replay-lab gap_fade_lab.csv --replay-session gap-fade
 ```
 
+Inject raw provider-shaped sample data without live credentials:
+
+```bash
+gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl --provider tradovate --symbol ES
+gex-terminal inject-provider tests/fixtures/databento_trade_records.json --provider databento --symbol ES --metadata tests/fixtures/databento_definition_records.json --underlying-fixture tests/fixtures/databento_underlying_mbp1_record.json
+gex-terminal inject-provider tests/fixtures/yfinance_option_chain_records.json --provider yfinance --symbol SPY
+gex-terminal inject-provider tests/fixtures/cboe_option_quotes_sample.csv --fixture-format cboe-option-quotes --symbol SPY
+```
+
+Provider injection replays raw or provider-shaped samples through adapter
+parsing, consumer state, GEX math, snapshot export, and Provider Health
+counters. It validates the software path offline; live auth, entitlements,
+field drift, and reconnect behavior still require a credentialed provider
+session.
+
 Override `.env` settings from the command line:
 
 ```bash
@@ -444,11 +459,18 @@ events arrive. During a live session, the matrix should surface:
 - positive and negative gamma zones
 - Live Gamma Regime Map state with spot, zero-gamma, gamma wall, and next trigger
 - Provider Health panel with connection state, stale checks, latency, dropped
-  payloads, malformed payloads, and entitlement placeholders
+  payloads, malformed payloads, provider frame counts, parse errors,
+  subscription status, reconnect counts, and entitlement placeholders
 
 The terminal surfaces runtime lifecycle state as `LIVE`, `SIM`, `STALE`,
 `CONNECTED`, or `DISCONNECTED` so the UI distinguishes real-time data from demo
 and stale sessions.
+
+Tradovate live-mode parsing is also covered by sanitized fixtures. The
+`tests/fixtures/tradovate_live_sample.jsonl` sample feeds captured-style frames
+through the same adapter, consumer, and engine path used by live data, then
+asserts spot, option volumes, IV handling, gamma wall, zero-gamma output, and
+provider health counters.
 
 If live mode is missing credentials or market-data dependencies, the app exits
 with an install/configuration hint instead of a Python traceback:
@@ -476,6 +498,8 @@ pip install -e .
   export formats.
 - See [docs/model-assumptions.md](docs/model-assumptions.md) for GEX model
   assumptions and limitations.
+- See [docs/provider-injection.md](docs/provider-injection.md) for raw
+  provider-shaped fixture injection without live credentials.
 - See [docs/product-vision.md](docs/product-vision.md) for signature capability
   concepts and mockups.
 - See [docs/replay-lab.md](docs/replay-lab.md) for offline replay reports,

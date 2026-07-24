@@ -84,13 +84,24 @@ The Tradovate adapter currently includes:
 - Local credential validation before network calls.
 - REST authentication.
 - Initial contract discovery through `contract/find`.
-- WebSocket quote subscription scaffolding.
-- Underlying and option quote normalization hooks.
+- WebSocket quote subscription and reconnect accounting.
+- Underlying and option quote normalization hooks with strict schema
+  validation.
+- Provider diagnostics for frame count, parse errors, dropped quotes,
+  subscription status, subscribed symbol count, and reconnect count.
+- Malformed quote quarantine so one bad option tick does not block other valid
+  quotes in the same frame.
 
-The remaining production task is validating exact option-chain and quote payload
-shapes against live or demo Tradovate API access. Sanitized payload fixtures are
-welcome. Current sanitized fixtures include `tests/fixtures/tradovate_md_quotes.json`
-and `tests/fixtures/tradovate_contract_discovery.json`.
+Current sanitized fixtures include `tests/fixtures/tradovate_md_quotes.json`,
+`tests/fixtures/tradovate_contract_discovery.json`, and
+`tests/fixtures/tradovate_live_sample.jsonl`. The live sample runs through the
+same adapter-to-consumer-to-engine path as a live session, asserting spot,
+strike volumes, IVs, gamma wall, zero-gamma output, and degraded provider health
+when malformed frames are quarantined.
+
+The remaining production task is validating larger ES/NQ option-chain payload
+coverage against live or demo Tradovate access over real reconnect and market
+conditions.
 
 ## Databento Adapter
 

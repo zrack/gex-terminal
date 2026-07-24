@@ -15,6 +15,11 @@ class FeedQualitySnapshot:
     malformed_count: int
     dropped_count: int
     entitlement_error_count: int
+    frame_count: int
+    parse_error_count: int
+    reconnect_count: int
+    subscribed_symbol_count: int
+    subscription_status: str
     last_message_age_seconds: float | None
     last_snapshot_age_seconds: float | None
     stale_after_seconds: float
@@ -41,6 +46,11 @@ def build_feed_quality_snapshot(
     last_message_age_seconds: float | None,
     last_snapshot_age_seconds: float | None,
     stale_after_seconds: float,
+    frame_count: int = 0,
+    parse_error_count: int = 0,
+    reconnect_count: int = 0,
+    subscribed_symbol_count: int = 0,
+    subscription_status: str = "unknown",
     latency_ms: float = 0.0,
     p95_latency_ms: float = 0.0,
 ) -> FeedQualitySnapshot:
@@ -60,10 +70,16 @@ def build_feed_quality_snapshot(
         notes.append("provider connection is down")
     if entitlement_error_count:
         notes.append("provider entitlement errors recorded")
+    if parse_error_count:
+        notes.append("provider frame parse errors recorded")
     if malformed_count:
         notes.append("malformed payloads recorded")
     if dropped_count:
         notes.append("unsupported or off-symbol payloads dropped")
+    if reconnect_count:
+        notes.append("provider reconnects recorded")
+    if subscription_status not in {"unknown", "subscribed"}:
+        notes.append(f"subscription status: {subscription_status}")
     if not notes:
         notes.append("feed checks clean")
 
@@ -73,7 +89,7 @@ def build_feed_quality_snapshot(
         health = "entitlement"
     elif stale:
         health = "stale"
-    elif malformed_count or dropped_count:
+    elif parse_error_count or malformed_count or dropped_count:
         health = "degraded"
     elif data_mode in {"DEMO", "REPLAY"}:
         health = "simulated"
@@ -89,6 +105,11 @@ def build_feed_quality_snapshot(
         malformed_count=int(malformed_count),
         dropped_count=int(dropped_count),
         entitlement_error_count=int(entitlement_error_count),
+        frame_count=int(frame_count),
+        parse_error_count=int(parse_error_count),
+        reconnect_count=int(reconnect_count),
+        subscribed_symbol_count=int(subscribed_symbol_count),
+        subscription_status=subscription_status,
         last_message_age_seconds=last_message_age_seconds,
         last_snapshot_age_seconds=last_snapshot_age_seconds,
         stale_after_seconds=float(stale_after_seconds),

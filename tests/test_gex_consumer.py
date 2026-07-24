@@ -30,6 +30,17 @@ class StatefulGexConsumerLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(consumer.runtime_status, "STALE")
 
+    def test_live_mode_reports_disconnected_after_connection_loss(self):
+        consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="live")
+
+        consumer.mark_connected()
+        consumer.mark_disconnected()
+        quality = consumer.feed_quality_snapshot()
+
+        self.assertEqual(consumer.runtime_status, "DISCONNECTED")
+        self.assertEqual(quality["connection_state"], "DISCONNECTED")
+        self.assertEqual(quality["health"], "down")
+
     async def test_first_underlying_tick_sets_session_open(self):
         consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="replay")
 
@@ -46,6 +57,19 @@ class StatefulGexConsumerLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(consumer.session_open, 5943.25)
         self.assertEqual(consumer.current_spot, 5960.0)
+
+    def test_records_live_adapter_subscription_and_reconnect_diagnostics(self):
+        consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="live")
+
+        consumer.mark_connected()
+        consumer.mark_reconnected()
+        consumer.mark_subscribed(12)
+
+        quality = consumer.feed_quality_snapshot()
+
+        self.assertEqual(quality["reconnect_count"], 1)
+        self.assertEqual(quality["subscribed_symbol_count"], 12)
+        self.assertEqual(quality["subscription_status"], "subscribed")
 
 
 if __name__ == "__main__":

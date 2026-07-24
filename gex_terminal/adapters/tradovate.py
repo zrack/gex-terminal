@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from typing import Any
 
 from gex_terminal.market_data_adapter import AdapterInfo, MarketDataAdapter, dumps_normalized_message
@@ -62,6 +63,7 @@ class TradovateAdapter(MarketDataAdapter):
             "sec": os.getenv("TRADOVATE_SEC")
         }
         self.token = None
+        self._connected_once = False
 
     async def authenticate(self) -> bool:
         """Retrieves a session token via REST API."""
@@ -149,7 +151,11 @@ class TradovateAdapter(MarketDataAdapter):
 
         async for websocket in websockets.connect(self.ws_url):
             logging.info("Connected to Tradovate Market Data WebSocket.")
-            self.consumer.mark_connected()
+            if self._connected_once:
+                self.consumer.mark_reconnected()
+            else:
+                self.consumer.mark_connected()
+                self._connected_once = True
             
             # Start the background heartbeat
             heartbeat_task = asyncio.create_task(self.keep_alive(websocket))
@@ -163,12 +169,15 @@ class TradovateAdapter(MarketDataAdapter):
                 request_id = 2
                 await self._subscribe_quote(websocket, request_id, self.target_underlying)
                 request_id += 1
+                subscribed_count = 1
                 for contract in option_contracts:
                     symbol = self._contract_symbol(contract)
                     if not symbol:
                         continue
                     await self._subscribe_quote(websocket, request_id, symbol)
                     request_id += 1
+                    subscribed_count += 1
+                self.consumer.mark_subscribed(subscribed_count)
 
                 # 3. Listen and Route
                 async for message in websocket:
@@ -183,6 +192,7 @@ class TradovateAdapter(MarketDataAdapter):
                 continue
             except Exception as e:
                 logging.error(f"WebSocket Error: {e}")
+                self.consumer.mark_subscription_error()
                 self.consumer.mark_disconnected()
                 heartbeat_task.cancel()
                 break
@@ -192,11 +202,16 @@ class TradovateAdapter(MarketDataAdapter):
         Normalizes Tradovate's specific JSON schema into the standard format 
         required by the StatefulGexConsumer.
         """
+        self._record_consumer("record_provider_frame")
         try:
             # Tradovate arrays look like: a[{"e":"md","d":{"quotes":[{...}]}}]
             payloads = json.loads(raw_message[1:]) 
             
             for event in payloads:
+                event_name = event.get("e")
+                if event_name in {"error", "md/error"}:
+                    self._record_consumer("record_entitlement_error")
+                    continue
                 if event.get("e") == "md": # Market Data Event
                     data = event.get("d", {})
                     
@@ -204,21 +219,36 @@ class TradovateAdapter(MarketDataAdapter):
                     # Actual schema mapping depends on exactly how you query their options chain
                     if "quotes" in data:
                         for quote in data["quotes"]:
-                            underlying_msg = self._normalize_underlying_quote(quote)
-                            if underlying_msg:
-                                await self.consumer.update_market_state(
-                                    dumps_normalized_message(underlying_msg)
-                                )
-                                continue
-
-                            option_msg = self._normalize_option_quote(quote)
-                            if option_msg:
-                                await self.consumer.update_market_state(
-                                    dumps_normalized_message(option_msg)
-                                )
+                            await self._route_quote(quote)
                             
         except json.JSONDecodeError:
-            pass # Ignore malformed frames or acks
+            self._record_consumer("record_provider_parse_error")
+
+    async def _route_quote(self, quote: dict[str, Any]) -> None:
+        try:
+            underlying_msg = self._normalize_underlying_quote(quote)
+            if underlying_msg:
+                await self.consumer.update_market_state(
+                    dumps_normalized_message(underlying_msg)
+                )
+                return
+
+            option_msg = self._normalize_option_quote(quote)
+            if option_msg:
+                await self.consumer.update_market_state(
+                    dumps_normalized_message(option_msg)
+                )
+                return
+
+            self._record_consumer("record_dropped_message")
+        except (TypeError, ValueError) as error:
+            logging.warning("Rejected malformed Tradovate quote: %s", error)
+            self._record_consumer("record_provider_parse_error")
+
+    def _record_consumer(self, method_name: str, *args) -> None:
+        method = getattr(self.consumer, method_name, None)
+        if method:
+            method(*args)
 
     async def _subscribe_quote(self, websocket, request_id: int, symbol: str) -> None:
         sub_frame = f'md/subscribeQuote\n{request_id}\n\n{{"symbol":"{symbol}"}}'
@@ -242,6 +272,8 @@ class TradovateAdapter(MarketDataAdapter):
     def _normalize_option_quote(self, quote: dict[str, Any]) -> dict[str, Any] | None:
         symbol = self._quote_symbol(quote)
         metadata = self.contract_metadata.get(symbol or "", {})
+        if not metadata and symbol:
+            metadata = self._option_metadata_from_symbol(symbol) or {}
 
         strike = quote.get("strikePrice", metadata.get("strike"))
         option_type = quote.get("callPut", metadata.get("option_type"))
@@ -251,13 +283,16 @@ class TradovateAdapter(MarketDataAdapter):
         if strike in (None, "") or option_type in (None, "") or volume in (None, ""):
             return None
 
-        return {
+        normalized = {
             "type": "options_volume_tick",
             "strike": float(strike),
             "option_type": str(option_type).upper()[0],
             "volume": int(volume),
             "iv": float(iv),
         }
+        if normalized["option_type"] not in {"C", "P"}:
+            raise ValueError(f"unsupported option type for {symbol}: {option_type}")
+        return normalized
 
     @staticmethod
     def _extract_contract_list(payload: Any) -> list[dict[str, Any]]:
@@ -298,6 +333,17 @@ class TradovateAdapter(MarketDataAdapter):
             "strike": contract.get("strikePrice") or contract.get("strike"),
             "option_type": option_type,
             "iv": contract.get("impliedVol", 0.15),
+        }
+
+    @staticmethod
+    def _option_metadata_from_symbol(symbol: str) -> dict[str, Any] | None:
+        match = re.search(r"(?:^|\s)([CP])\s*(\d+(?:\.\d+)?)$", symbol.strip(), re.IGNORECASE)
+        if not match:
+            return None
+        return {
+            "strike": float(match.group(2)),
+            "option_type": match.group(1).upper(),
+            "iv": 0.15,
         }
 
     @staticmethod

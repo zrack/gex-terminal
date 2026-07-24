@@ -49,6 +49,23 @@ The lab report includes a session dashboard, replay alerts, session-to-session
 comparisons, and saved final snapshots for reproducible baseline review. See
 [docs/replay-lab.md](replay-lab.md) for the full workflow.
 
+## Provider Injection
+
+Provider injection exercises raw or provider-shaped samples through adapter
+parsing, consumer state, GEX math, snapshot export, and Provider Health
+counters without opening a live connection:
+
+```bash
+gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl --provider tradovate --symbol ES
+gex-terminal inject-provider tests/fixtures/databento_trade_records.json --provider databento --symbol ES --metadata tests/fixtures/databento_definition_records.json --underlying-fixture tests/fixtures/databento_underlying_mbp1_record.json
+gex-terminal inject-provider tests/fixtures/yfinance_option_chain_records.json --provider yfinance --symbol SPY
+gex-terminal inject-provider tests/fixtures/cboe_option_quotes_sample.csv --fixture-format cboe-option-quotes --symbol SPY
+```
+
+Use this for captured/demo provider samples and converter work. Use normalized
+replay fixtures when you want to test the engine contract directly. See
+[docs/provider-injection.md](provider-injection.md) for details.
+
 ## Fixture Validation
 
 Validate normalized JSONL before submitting fixtures:

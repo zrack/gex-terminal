@@ -33,6 +33,11 @@ by date and public-prep milestone.
   statistics-style open interest.
 - Additional sanitized Tradovate contract-discovery and yfinance option-chain
   fixture examples.
+- Tradovate live-frame diagnostics, malformed quote quarantine, stricter
+  normalized schema validation, and a sanitized live-sample fixture that drives
+  the adapter, consumer, and engine path in regression tests.
+- Offline provider injection command for Tradovate raw frames, Databento fixture
+  joins, yfinance option-chain samples, and Cboe-style option quote CSV samples.
 - Live Gamma Regime Map prototype showing current regime, spot, zero-gamma,
   gamma wall, next trigger, and positive/negative/transition/pinned states.
 - Code of Conduct for community participation expectations.

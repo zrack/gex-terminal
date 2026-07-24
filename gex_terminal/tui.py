@@ -466,6 +466,13 @@ class GexTerminalApp(App):
             f"{quality['entitlement_error_count']} entitlement\n",
             style="#64748b",
         )
+        text.append("Provider    ", style="bold #8a97a6")
+        text.append(f"{quality['frame_count']:,} frames", style="#cbd5e1")
+        text.append(
+            f" · {quality['parse_error_count']} parse · {quality['reconnect_count']} reconnect · "
+            f"{quality['subscribed_symbol_count']} subs {quality['subscription_status']}\n",
+            style="#64748b",
+        )
         text.append("Note        ", style="bold #8a97a6")
         text.append("; ".join(quality["notes"][:2]), style=status_color)
         self.query_one("#quality-summary", Static).update(text)

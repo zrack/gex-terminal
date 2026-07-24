@@ -38,6 +38,11 @@ class StatefulGexConsumer:
         self.malformed_message_count: int = 0
         self.dropped_message_count: int = 0
         self.entitlement_error_count: int = 0
+        self.provider_frame_count: int = 0
+        self.provider_parse_error_count: int = 0
+        self.reconnect_count: int = 0
+        self.subscribed_symbol_count: int = 0
+        self.subscription_status: str = "not_subscribed"
         self.quality_notes: tuple[str, ...] = ()
         self.simulated_latency_ms: float | None = None
         
@@ -64,8 +69,29 @@ class StatefulGexConsumer:
     def mark_disconnected(self) -> None:
         self.connection_state = "DISCONNECTED"
 
+    def mark_reconnected(self) -> None:
+        self.reconnect_count += 1
+        self.connection_state = "CONNECTED"
+
+    def mark_subscribed(self, symbol_count: int) -> None:
+        self.subscribed_symbol_count = max(0, int(symbol_count))
+        self.subscription_status = "subscribed" if symbol_count else "empty"
+
+    def mark_subscription_error(self) -> None:
+        self.subscription_status = "error"
+
     def record_entitlement_error(self) -> None:
         self.entitlement_error_count += 1
+
+    def record_provider_frame(self) -> None:
+        self.provider_frame_count += 1
+
+    def record_provider_parse_error(self) -> None:
+        self.provider_parse_error_count += 1
+        self.malformed_message_count += 1
+
+    def record_dropped_message(self) -> None:
+        self.dropped_message_count += 1
 
     def feed_quality_snapshot(
         self,
@@ -96,6 +122,11 @@ class StatefulGexConsumer:
             malformed_count=self.malformed_message_count,
             dropped_count=self.dropped_message_count,
             entitlement_error_count=self.entitlement_error_count,
+            frame_count=self.provider_frame_count,
+            parse_error_count=self.provider_parse_error_count,
+            reconnect_count=self.reconnect_count,
+            subscribed_symbol_count=self.subscribed_symbol_count,
+            subscription_status=self.subscription_status,
             last_message_age_seconds=last_message_age,
             last_snapshot_age_seconds=last_snapshot_age,
             stale_after_seconds=self.stale_after_seconds,

@@ -24,6 +24,16 @@ call wall, put wall, and concentration band.
 When a snapshot carries replay alerts or feed-quality metadata, Markdown and CSV
 exports include those sections as shareable rows.
 
+Provider injection snapshots include `provider_injection` metadata and
+`feed_quality` counters:
+
+```bash
+gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl \
+  --provider tradovate \
+  --symbol ES \
+  --export injected_tradovate.json
+```
+
 ## Replay Lab Reports
 
 Replay Lab reports run one or more bundled synthetic sessions and export a

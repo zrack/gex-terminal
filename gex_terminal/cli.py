@@ -23,6 +23,11 @@ from gex_terminal.fixture_validator import (
 from gex_terminal.market_data_adapter import AdapterConfigurationError
 from gex_terminal.offline_quality import apply_quality_scenario, quality_scenario_names
 from gex_terminal.overlays import write_tradingview_overlay
+from gex_terminal.provider_injector import (
+    INJECTION_FORMATS,
+    inject_provider_fixture,
+    provider_injection_summary,
+)
 from gex_terminal.replay_catalog import (
     bundled_replay_sessions,
     replay_session_for_name,
@@ -54,6 +59,11 @@ async def main():
             output_path=args.command_path or "replay_lab.md",
             session_names=(args.replay_session,) if args.replay_session else None,
         )
+        return
+
+    if args.command == "inject-provider":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await inject_provider_command(config, args)
         return
 
     config = apply_cli_overrides(GexConfig.from_env(), args)
@@ -296,6 +306,37 @@ async def export_sensitivity(
     print(f"Saved sensitivity report to {target}")
 
 
+async def inject_provider_command(config: GexConfig, args: argparse.Namespace) -> None:
+    """Inject raw provider sample data without opening a live market-data connection."""
+    if not args.command_path:
+        raise SystemExit("Usage: gex-terminal inject-provider PATH [--provider NAME]")
+    provider = args.provider or config.data_provider
+    if not args.provider and (
+        args.fixture_format == "cboe-option-quotes"
+        or Path(args.command_path).suffix.lower() == ".csv"
+    ):
+        provider = "cboe"
+    try:
+        snapshot = await inject_provider_fixture(
+            provider=provider,
+            fixture_path=args.command_path,
+            config=config,
+            fixture_format=args.fixture_format,
+            metadata_path=args.metadata,
+            underlying_path=args.underlying_fixture,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+
+    print(provider_injection_summary(snapshot))
+    if args.export:
+        try:
+            target = write_snapshot_export(snapshot, args.export)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(f"Saved injected provider snapshot to {target}")
+
+
 async def compute_demo_snapshot(config: GexConfig) -> dict:
     snapshot, _, _ = await compute_snapshot(config)
     return snapshot
@@ -351,13 +392,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("validate-fixture", "list-replays", "replay-lab"),
+        choices=("validate-fixture", "list-replays", "replay-lab", "inject-provider"),
         help="Optional utility command.",
     )
     parser.add_argument(
         "command_path",
         nargs="?",
-        help="Path argument for utility commands such as validate-fixture or replay-lab.",
+        help="Path argument for utility commands such as validate-fixture, replay-lab, or inject-provider.",
     )
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
@@ -408,6 +449,22 @@ def parse_args() -> argparse.Namespace:
         "--quality-scenario",
         choices=quality_scenario_names(),
         help="Apply an offline provider-health simulation to demo/export workflows.",
+    )
+    parser.add_argument(
+        "--fixture-format",
+        choices=INJECTION_FORMATS,
+        default="auto",
+        help="Raw fixture format for inject-provider. Default: auto.",
+    )
+    parser.add_argument(
+        "--metadata",
+        metavar="PATH",
+        help="Provider metadata fixture for inject-provider, such as contract definitions.",
+    )
+    parser.add_argument(
+        "--underlying-fixture",
+        metavar="PATH",
+        help="Underlying quote fixture for inject-provider formats that separate option and underlying data.",
     )
     parser.add_argument(
         "--replay-delay",

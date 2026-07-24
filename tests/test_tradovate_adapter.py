@@ -9,14 +9,28 @@ from gex_terminal.adapters.tradovate import (
     missing_tradovate_credentials,
     validate_tradovate_credentials,
 )
+from gex_terminal.consumer import StatefulGexConsumer
+from gex_terminal.engine import IntradayGexEngine
 
 
 class RecordingConsumer:
     def __init__(self):
         self.messages = []
+        self.provider_frame_count = 0
+        self.provider_parse_error_count = 0
+        self.dropped_message_count = 0
 
     async def update_market_state(self, raw_message: str):
         self.messages.append(json.loads(raw_message))
+
+    def record_provider_frame(self):
+        self.provider_frame_count += 1
+
+    def record_provider_parse_error(self):
+        self.provider_parse_error_count += 1
+
+    def record_dropped_message(self):
+        self.dropped_message_count += 1
 
 
 class TradovateAdapterTests(unittest.TestCase):
@@ -103,6 +117,66 @@ class TradovatePayloadFixtureTests(unittest.IsolatedAsyncioTestCase):
                 {"type": "options_volume_tick", "strike": 5900.0, "option_type": "P", "volume": 80, "iv": 0.18},
             ],
         )
+        self.assertEqual(consumer.provider_frame_count, 1)
+
+    async def test_quarantines_bad_quotes_without_blocking_good_quotes(self):
+        consumer = RecordingConsumer()
+        adapter = TradovateAdapter(consumer=consumer, target_underlying="ES")
+        adapter.contract_metadata = {
+            "ESM6 C5950": {"strike": 5950, "option_type": "C", "iv": 0.16},
+        }
+        payload = [{
+            "e": "md",
+            "d": {
+                "quotes": [
+                    {"symbol": "ESM6 C5950", "tradeVol": "bad", "impliedVol": 0.16},
+                    {"symbol": "ESM6 C5950", "tradeVol": 20, "impliedVol": 0.16},
+                    {"symbol": "UNKNOWN", "tradeVol": 1},
+                ]
+            },
+        }]
+
+        await adapter._parse_and_route("a" + json.dumps(payload))
+
+        self.assertEqual(
+            consumer.messages,
+            [{"type": "options_volume_tick", "strike": 5950.0, "option_type": "C", "volume": 20, "iv": 0.16}],
+        )
+        self.assertEqual(consumer.provider_parse_error_count, 1)
+        self.assertEqual(consumer.dropped_message_count, 1)
+
+    async def test_live_sample_fixture_drives_consumer_and_engine(self):
+        fixture_path = Path(__file__).parent / "fixtures" / "tradovate_live_sample.jsonl"
+        consumer = StatefulGexConsumer(
+            IntradayGexEngine(multiplier=50),
+            target_underlying="ES",
+            data_mode="live",
+        )
+        consumer.mark_connected()
+        adapter = TradovateAdapter(consumer=consumer, target_underlying="ES")
+        adapter.contract_metadata = {
+            "ESM6 C5950": {"strike": 5950, "option_type": "C", "iv": 0.16},
+            "ESM6 P5900": {"strike": 5900, "option_type": "P", "iv": 0.18},
+            "ESM6 C5975": {"strike": 5975, "option_type": "C", "iv": 0.15},
+        }
+
+        for line in fixture_path.read_text(encoding="utf-8").splitlines():
+            await adapter._parse_and_route(line)
+
+        snapshot = await consumer.process_latest_snapshot(days_to_expiry=0.01)
+        quality = consumer.feed_quality_snapshot()
+
+        self.assertEqual(consumer.current_spot, 5943.25)
+        self.assertEqual(consumer.chain_state[5950.0]["C"], 150)
+        self.assertEqual(consumer.chain_state[5900.0]["P"], 115)
+        self.assertEqual(consumer.chain_state[5975.0]["C"], 40)
+        self.assertEqual(snapshot["strikes"], [5900.0, 5950.0, 5975.0])
+        self.assertIn("gamma_wall_strike", snapshot)
+        self.assertIn("zero_gamma_strike", snapshot)
+        self.assertEqual(quality["frame_count"], 3)
+        self.assertEqual(quality["parse_error_count"], 1)
+        self.assertEqual(quality["dropped_count"], 1)
+        self.assertEqual(quality["health"], "degraded")
 
 
 if __name__ == "__main__":

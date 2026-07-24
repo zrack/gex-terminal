@@ -20,6 +20,22 @@ class MarketDataAdapterContractTests(unittest.TestCase):
                 "volume": 100,
             })
 
+    def test_rejects_non_positive_numeric_fields(self):
+        with self.assertRaises(ValueError):
+            validate_normalized_message({
+                "type": "underlying_tick",
+                "symbol": "ES",
+                "price": 0,
+            })
+
+        with self.assertRaises(ValueError):
+            validate_normalized_message({
+                "type": "options_volume_tick",
+                "strike": 5950,
+                "option_type": "C",
+                "volume": 0,
+            })
+
     def test_dumps_validated_message(self):
         payload = dumps_normalized_message({
             "type": "options_volume_tick",

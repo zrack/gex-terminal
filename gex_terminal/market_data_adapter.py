@@ -34,13 +34,18 @@ def validate_normalized_message(message: NormalizedMessage) -> None:
 
     if message_type == "underlying_tick":
         _require_fields(message, ("symbol", "price"))
+        _require_positive_number(message, "price")
         return
 
     if message_type == "options_volume_tick":
         _require_fields(message, ("strike", "option_type", "volume"))
+        _require_positive_number(message, "strike")
+        _require_positive_int(message, "volume")
         option_type = str(message["option_type"]).upper()
         if option_type not in OPTION_TYPES:
             raise ValueError(f"Unsupported option_type: {message['option_type']}")
+        if "iv" in message and message["iv"] not in (None, ""):
+            _require_positive_number(message, "iv")
         return
 
     raise ValueError(f"Unsupported normalized message type: {message_type}")
@@ -57,3 +62,21 @@ def _require_fields(message: NormalizedMessage, fields: tuple[str, ...]) -> None
         raise ValueError(
             f"Missing required field(s) for {message.get('type')}: {', '.join(missing)}"
         )
+
+
+def _require_positive_number(message: NormalizedMessage, field: str) -> None:
+    try:
+        value = float(message[field])
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be numeric") from exc
+    if value <= 0:
+        raise ValueError(f"{field} must be positive")
+
+
+def _require_positive_int(message: NormalizedMessage, field: str) -> None:
+    try:
+        value = int(message[field])
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be an integer") from exc
+    if value <= 0:
+        raise ValueError(f"{field} must be positive")
