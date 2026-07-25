@@ -8,6 +8,25 @@ This does not prove live entitlements, current provider field drift, or real
 network reconnect behavior. It does prove that captured or documented samples
 can become inspectable GEX state.
 
+## Provider Fixture Workbench
+
+Run every bundled provider-shaped fixture through the offline workbench:
+
+```bash
+gex-terminal fixture-lab provider_fixture_lab.md
+gex-terminal fixture-lab provider_fixture_lab.json
+gex-terminal fixture-lab provider_fixture_lab.csv
+```
+
+The workbench currently covers sanitized Tradovate live frames, a Tradovate
+metadata join, Databento GLBX-style fixtures, a yfinance ETF option-chain sample,
+and a Cboe-style option quote CSV. Use it before and after adapter changes to
+produce one shareable pass/fail scorecard with health counters, computed gamma
+wall, zero-gamma level, and saved snapshot baselines.
+
+The checked-in example output is available at
+[docs/examples/provider_fixture_lab.md](examples/provider_fixture_lab.md).
+
 ## Tradovate Frames
 
 Inject sanitized Tradovate-style WebSocket frames:
@@ -100,3 +119,15 @@ The command prints a compact operator summary with:
 
 Use `--export .json`, `--export .csv`, or `--export .md` to save the full
 snapshot, including `provider_injection` metadata and `feed_quality` counters.
+
+## Adding A Provider Fixture Case
+
+Good provider fixture cases should include:
+
+- Sanitized payloads with no account IDs, tokens, usernames, or session secrets.
+- Enough underlying and option data to produce at least one computable snapshot.
+- Metadata fixtures when the provider separates option definitions from prices
+  or trades.
+- An expected health state, especially when malformed or dropped messages are
+  intentionally included.
+- A short description of what parser behavior the fixture protects.

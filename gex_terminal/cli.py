@@ -28,6 +28,10 @@ from gex_terminal.provider_injector import (
     inject_provider_fixture,
     provider_injection_summary,
 )
+from gex_terminal.provider_fixture_lab import (
+    build_provider_fixture_lab_report,
+    write_provider_fixture_lab_report,
+)
 from gex_terminal.replay_catalog import (
     bundled_replay_sessions,
     replay_session_for_name,
@@ -58,6 +62,14 @@ async def main():
             config=config,
             output_path=args.command_path or "replay_lab.md",
             session_names=(args.replay_session,) if args.replay_session else None,
+        )
+        return
+
+    if args.command == "fixture-lab":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await export_provider_fixture_lab(
+            config=config,
+            output_path=args.command_path or "provider_fixture_lab.md",
         )
         return
 
@@ -257,6 +269,21 @@ async def export_replay_lab(
     print(f"Saved replay lab report to {target}")
 
 
+async def export_provider_fixture_lab(config: GexConfig, output_path: str) -> None:
+    """Run bundled provider-shaped fixtures and write .json, .csv, or .md."""
+    report = await build_provider_fixture_lab_report(config)
+    try:
+        target = write_provider_fixture_lab_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    scorecard = report["scorecard"]
+    print(
+        "Saved provider fixture lab report to "
+        f"{target} ({scorecard['passed']}/{scorecard['total']} passed, "
+        f"{scorecard['degraded']} degraded)"
+    )
+
+
 async def export_snapshot(
     config: GexConfig,
     output_path: str,
@@ -392,13 +419,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("validate-fixture", "list-replays", "replay-lab", "inject-provider"),
+        choices=(
+            "validate-fixture",
+            "list-replays",
+            "replay-lab",
+            "fixture-lab",
+            "inject-provider",
+        ),
         help="Optional utility command.",
     )
     parser.add_argument(
         "command_path",
         nargs="?",
-        help="Path argument for utility commands such as validate-fixture, replay-lab, or inject-provider.",
+        help=(
+            "Path argument for utility commands such as validate-fixture, replay-lab, "
+            "fixture-lab, or inject-provider."
+        ),
     )
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(

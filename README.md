@@ -82,6 +82,7 @@ Good starting points:
 |   |-- engine.py       # Vectorized Black-Scholes and GEX calculation matrix
 |   |-- consumer.py     # Stateful asynchronous market-data aggregator
 |   |-- replay_lab.py   # Offline replay reports, alerts, and session comparisons
+|   |-- provider_fixture_lab.py # Offline provider fixture scorecards
 |   |-- tui.py          # Textual reactive terminal user interface
 |   |-- gex_terminal.tcss # Terminal dashboard theme and layout styles
 |   |-- market_data_adapter.py # Shared provider adapter contract
@@ -104,6 +105,8 @@ Good starting points:
   node, net exposure bands, and call/put imbalance zones.
 - **Replay Research Lab**: runs bundled synthetic sessions offline, then exports
   session comparisons, replay alerts, and saved snapshot baselines.
+- **Provider Fixture Workbench**: runs bundled provider-shaped fixtures offline,
+  then exports health scorecards and adapter snapshots for contributor review.
 - **Credential isolation**: keeps API keys and production market-data credentials
   outside the execution logic through environment variables.
 
@@ -380,6 +383,19 @@ counters. It validates the software path offline; live auth, entitlements,
 field drift, and reconnect behavior still require a credentialed provider
 session.
 
+Run every bundled provider-shaped fixture as an offline workbench report:
+
+```bash
+gex-terminal fixture-lab provider_fixture_lab.md
+gex-terminal fixture-lab provider_fixture_lab.json
+gex-terminal fixture-lab provider_fixture_lab.csv
+```
+
+The workbench currently covers sanitized Tradovate, Databento, yfinance, and
+Cboe-style samples. It is useful before opening provider-adapter issues because
+it captures pass/fail state, feed-health counters, computed walls, and the
+snapshot baseline without using live credentials.
+
 Override `.env` settings from the command line:
 
 ```bash
@@ -528,6 +544,7 @@ Recommended early test coverage:
 - Fixture validation for replay/provider JSONL submissions.
 - Databento fixture mapping for definitions, trades, underlying quotes, and
   statistics-style open interest.
+- Provider Fixture Workbench reports for bundled provider-shaped samples.
 - Model sensitivity reports across multiplier, expiry, rate, IV, and volume/OI
   assumptions.
 - Delayed yfinance ETF option-chain normalization with mocked adapter tests.

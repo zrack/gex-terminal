@@ -113,6 +113,9 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Add Databento synthetic fixture mapping notes for `GLBX.MDP3`
   definitions, option trades, underlying `mbp-1` quotes, and statistics-style
   open interest.
+- [x] Add an Offline Provider Fixture Workbench that runs bundled provider-shaped
+  samples into pass/fail scorecards, feed-health counters, and snapshot
+  baselines.
 - [ ] Add a small set of labeled good-first issues after the first public push.
 
 ## Phase 6: Packaging and Distribution

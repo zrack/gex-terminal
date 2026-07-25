@@ -38,6 +38,8 @@ by date and public-prep milestone.
   the adapter, consumer, and engine path in regression tests.
 - Offline provider injection command for Tradovate raw frames, Databento fixture
   joins, yfinance option-chain samples, and Cboe-style option quote CSV samples.
+- Offline Provider Fixture Workbench command for bundled provider-shaped fixture
+  scorecards, feed-health counters, and Markdown/JSON/CSV report exports.
 - Live Gamma Regime Map prototype showing current regime, spot, zero-gamma,
   gamma wall, next trigger, and positive/negative/transition/pinned states.
 - Code of Conduct for community participation expectations.

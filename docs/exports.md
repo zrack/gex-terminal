@@ -34,6 +34,22 @@ gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl \
   --export injected_tradovate.json
 ```
 
+## Provider Fixture Lab Reports
+
+Provider Fixture Lab reports run the bundled provider-shaped samples and export
+a contributor-friendly scorecard:
+
+```bash
+gex-terminal fixture-lab provider_fixture_lab.md
+gex-terminal fixture-lab provider_fixture_lab.json
+gex-terminal fixture-lab provider_fixture_lab.csv
+```
+
+Markdown is best for GitHub issues and pull requests. JSON keeps the full
+snapshot baseline for every provider case. CSV gives spreadsheet-friendly rows
+for fixture health, parser counters, gamma wall, zero-gamma level, and message
+counts.
+
 ## Replay Lab Reports
 
 Replay Lab reports run one or more bundled synthetic sessions and export a

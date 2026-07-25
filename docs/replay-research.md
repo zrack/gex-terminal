@@ -66,6 +66,17 @@ Use this for captured/demo provider samples and converter work. Use normalized
 replay fixtures when you want to test the engine contract directly. See
 [docs/provider-injection.md](provider-injection.md) for details.
 
+Run the Provider Fixture Workbench when you want a single scorecard across all
+bundled provider-shaped samples:
+
+```bash
+gex-terminal fixture-lab provider_fixture_lab.md
+```
+
+That report is useful for adapter pull requests because it includes pass/fail
+state, feed-health counters, computed levels, and saved snapshots without using
+live credentials.
+
 ## Fixture Validation
 
 Validate normalized JSONL before submitting fixtures:
