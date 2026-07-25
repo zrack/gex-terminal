@@ -1,0 +1,134 @@
+<svg width="1400" height="860" viewBox="0 0 1400 860" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">gex-terminal offline demo lab preview</title>
+  <desc id="desc">Color preview generated from the Zero-Gamma Flip replay session.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#06111a"/>
+      <stop offset="0.55" stop-color="#0b141d"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="lane" x1="0" x2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="0.45" stop-color="#fbbf24"/>
+      <stop offset="0.62" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#4ade80"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .mono { font-family: "Fira Code", "SFMono-Regular", Consolas, monospace; }
+      .small { fill: #94a3b8; font-size: 18px; }
+      .label { fill: #64748b; font-size: 17px; font-weight: 700; }
+      .value { fill: #f8fafc; font-size: 30px; font-weight: 800; }
+      .panel-title { fill: #e2e8f0; font-size: 20px; font-weight: 800; }
+      .table { fill: #dbeafe; font-size: 18px; }
+      .muted { fill: #94a3b8; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="860" fill="url(#bg)"/>
+  <rect x="44" y="36" width="1312" height="776" rx="16" fill="#080d13" stroke="#263445" stroke-width="2"/>
+  <rect x="44" y="36" width="1312" height="54" rx="16" fill="#101827"/>
+  <circle cx="76" cy="64" r="8" fill="#fb7185"/>
+  <circle cx="104" cy="64" r="8" fill="#fbbf24"/>
+  <circle cx="132" cy="64" r="8" fill="#4ade80"/>
+  <text x="166" y="71" class="mono small">gex-terminal // demo-lab // zero-gamma-flip</text>
+
+  <text x="78" y="132" class="mono label">OFFLINE REPLAY</text>
+  <text x="78" y="174" class="mono" fill="#f8fafc" font-size="38" font-weight="900">Intraday GEX Research Terminal</text>
+  <text x="78" y="210" class="mono small">Flow rotates across the zero-gamma boundary.</text>
+
+
+  <rect x="78" y="244" width="180" height="66" rx="8" fill="#0d141c" stroke="#263445"/>
+  <text x="94" y="268" class="mono label">SPOT</text>
+  <text x="94" y="296" class="mono value" fill="#38bdf8">5,968.25</text>
+
+
+  <rect x="286" y="244" width="180" height="66" rx="8" fill="#0d141c" stroke="#263445"/>
+  <text x="302" y="268" class="mono label">NET GEX</text>
+  <text x="302" y="296" class="mono value" fill="#4ade80">+1.24B</text>
+
+
+  <rect x="494" y="244" width="180" height="66" rx="8" fill="#0d141c" stroke="#263445"/>
+  <text x="510" y="268" class="mono label">GAMMA WALL</text>
+  <text x="510" y="296" class="mono value" fill="#fbbf24">5,975</text>
+
+
+  <rect x="702" y="244" width="180" height="66" rx="8" fill="#0d141c" stroke="#263445"/>
+  <text x="718" y="268" class="mono label">ZERO GAMMA</text>
+  <text x="718" y="296" class="mono value" fill="#38bdf8">5,927.3</text>
+
+
+  <rect x="910" y="244" width="180" height="66" rx="8" fill="#0d141c" stroke="#263445"/>
+  <text x="926" y="268" class="mono label">PROVIDER CASES</text>
+  <text x="926" y="296" class="mono value" fill="#4ade80">5/5</text>
+
+
+  <rect x="1118" y="244" width="180" height="66" rx="8" fill="#0d141c" stroke="#263445"/>
+  <text x="1134" y="268" class="mono label">FEED</text>
+  <text x="1134" y="296" class="mono value" fill="#38bdf8">SIMULATED</text>
+
+
+  <text x="78" y="334" class="mono panel-title">Strike Gamma Exposure Matrix</text>
+  <text x="98" y="361" class="mono label">STRIKE</text>
+  <text x="238" y="361" class="mono label">CALL VOL</text>
+  <text x="368" y="361" class="mono label">PUT VOL</text>
+  <text x="500" y="361" class="mono label">NET GEX</text>
+  <text x="646" y="361" class="mono label">EXPOSURE</text>
+
+  <rect x="78" y="349" width="748" height="34" rx="5" fill="#111820" stroke="#1e293b"/>
+  <text x="98" y="374" class="mono table">5,975</text>
+  <text x="238" y="374" class="mono table muted">2,360</text>
+  <text x="368" y="374" class="mono table muted">430</text>
+  <text x="500" y="374" class="mono table" fill="#4ade80">+588.33M</text>
+  <rect x="646" y="357" width="150" height="12" rx="3" fill="#4ade80" opacity="0.75"/>
+
+  <rect x="78" y="391" width="748" height="34" rx="5" fill="#0d141c" stroke="#1e293b"/>
+  <text x="98" y="416" class="mono table">5,950</text>
+  <text x="238" y="416" class="mono table muted">2,880</text>
+  <text x="368" y="416" class="mono table muted">620</text>
+  <text x="500" y="416" class="mono table" fill="#4ade80">+512.31M</text>
+  <rect x="646" y="399" width="130" height="12" rx="3" fill="#4ade80" opacity="0.75"/>
+
+  <rect x="78" y="433" width="748" height="34" rx="5" fill="#111820" stroke="#1e293b"/>
+  <text x="98" y="458" class="mono table">6,000</text>
+  <text x="238" y="458" class="mono table muted">2,080</text>
+  <text x="368" y="458" class="mono table muted">360</text>
+  <text x="500" y="458" class="mono table" fill="#4ade80">+210.89M</text>
+  <rect x="646" y="441" width="53" height="12" rx="3" fill="#4ade80" opacity="0.75"/>
+
+  <rect x="78" y="475" width="748" height="34" rx="5" fill="#0d141c" stroke="#1e293b"/>
+  <text x="98" y="500" class="mono table">5,925</text>
+  <text x="238" y="500" class="mono table muted">860</text>
+  <text x="368" y="500" class="mono table muted">1,760</text>
+  <text x="500" y="500" class="mono table" fill="#fb7185">-51.27M</text>
+  <rect x="646" y="483" width="13" height="12" rx="3" fill="#fb7185" opacity="0.75"/>
+
+  <rect x="78" y="517" width="748" height="34" rx="5" fill="#111820" stroke="#1e293b"/>
+  <text x="98" y="542" class="mono table">5,900</text>
+  <text x="238" y="542" class="mono table muted">420</text>
+  <text x="368" y="542" class="mono table muted">2,380</text>
+  <text x="500" y="542" class="mono table" fill="#fb7185">-15.76M</text>
+  <rect x="646" y="525" width="4" height="12" rx="3" fill="#fb7185" opacity="0.75"/>
+
+
+  <rect x="874" y="336" width="434" height="184" rx="10" fill="#0d141c" stroke="#263445"/>
+  <text x="902" y="374" class="mono panel-title">Live Gamma Regime Map</text>
+  <rect x="902" y="402" width="348" height="26" rx="7" fill="url(#lane)" opacity="0.88"/>
+  <line x1="1044" y1="391" x2="1044" y2="443" stroke="#38bdf8" stroke-width="4"/>
+  <line x1="1176" y1="391" x2="1176" y2="443" stroke="#fbbf24" stroke-width="4" stroke-dasharray="7 6"/>
+  <circle cx="1128" cy="415" r="7" fill="#f8fafc" filter="url(#glow)"/>
+  <text x="902" y="470" class="mono small">Replay alerts: 17  |  Regime: PINNED</text>
+  <text x="902" y="500" class="mono small">Session change: +46.00  |  Imbalance: 3.86x</text>
+
+  <rect x="874" y="548" width="434" height="180" rx="10" fill="#0d141c" stroke="#263445"/>
+  <text x="902" y="586" class="mono panel-title">Demo Pack Outputs</text>
+  <text x="902" y="624" class="mono small">color SVG preview</text>
+  <text x="902" y="654" class="mono small">Textual terminal capture</text>
+  <text x="902" y="684" class="mono small">snapshot JSON/Markdown</text>
+  <text x="902" y="714" class="mono small">Replay Lab + Provider Fixture Lab</text>
+
+  <text x="78" y="764" class="mono small">Local-first, credential-safe, replayable market-structure research for contributors.</text>
+</svg>

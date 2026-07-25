@@ -4,6 +4,22 @@
 review levels outside the terminal without exposing credentials or live feed
 payloads.
 
+## Demo Lab Pack
+
+Demo Lab writes the most useful offline artifacts into one folder:
+
+```bash
+gex-terminal demo-lab demo_lab
+gex-terminal demo-lab demo_lab --replay-session zero-gamma-flip
+```
+
+The pack includes a color SVG preview, actual Textual terminal screenshot,
+snapshot JSON/Markdown, TradingView overlay JSON/CSV, Replay Lab Markdown/JSON,
+Provider Fixture Lab Markdown/JSON, a local README, and `manifest.json`.
+
+Use this when preparing GitHub screenshots, attaching reproducible evidence to
+issues, or onboarding contributors who do not have live market-data access yet.
+
 ## Snapshot JSON
 
 The base snapshot export contains the computed metrics, strike matrix, expiry

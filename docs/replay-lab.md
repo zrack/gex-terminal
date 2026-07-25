@@ -64,6 +64,15 @@ gex-terminal --replay-session zero-gamma-flip --screenshot assets/gex-terminal-a
 That makes the public README screenshot reproducible from a no-credential
 replay scenario.
 
+For a fuller GitHub-ready bundle, use Demo Lab:
+
+```bash
+gex-terminal demo-lab demo_lab --replay-session zero-gamma-flip
+```
+
+It writes a color preview, actual terminal capture, snapshot exports, overlays,
+Replay Lab reports, Provider Fixture Lab reports, and a manifest in one folder.
+
 ## Contributor Workflow
 
 1. Add or edit a normalized JSONL fixture in `sample_data/`.

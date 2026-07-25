@@ -11,7 +11,7 @@ exposure, imbalance, and structural market zones.
 The goal is to isolate hidden institutional support, resistance, and volatility
 acceleration boundaries at terminal speed, without the overhead of a browser UI.
 
-![Actual GEX terminal export](assets/gex-terminal-actual.svg)
+![Color replay demo lab preview](assets/gex-terminal-demo-lab.svg)
 
 Design target:
 
@@ -81,6 +81,7 @@ Good starting points:
 |   |-- config.py       # Environment-driven runtime configuration
 |   |-- engine.py       # Vectorized Black-Scholes and GEX calculation matrix
 |   |-- consumer.py     # Stateful asynchronous market-data aggregator
+|   |-- demo_lab.py     # Offline demo pack generator for screenshots and reports
 |   |-- replay_lab.py   # Offline replay reports, alerts, and session comparisons
 |   |-- provider_fixture_lab.py # Offline provider fixture scorecards
 |   |-- tui.py          # Textual reactive terminal user interface
@@ -105,6 +106,8 @@ Good starting points:
   node, net exposure bands, and call/put imbalance zones.
 - **Replay Research Lab**: runs bundled synthetic sessions offline, then exports
   session comparisons, replay alerts, and saved snapshot baselines.
+- **Demo Lab pack**: generates a GitHub-ready offline preview folder with color
+  SVG visuals, a Textual terminal capture, snapshots, overlays, and lab reports.
 - **Provider Fixture Workbench**: runs bundled provider-shaped fixtures offline,
   then exports health scorecards and adapter snapshots for contributor review.
 - **Credential isolation**: keeps API keys and production market-data credentials
@@ -368,6 +371,19 @@ gex-terminal replay-lab replay_lab.json
 gex-terminal replay-lab gap_fade_lab.csv --replay-session gap-fade
 ```
 
+Generate a complete offline demo pack for screenshots, GitHub issues, or
+contributor onboarding:
+
+```bash
+gex-terminal demo-lab demo_lab
+gex-terminal demo-lab demo_lab --replay-session gap-fade
+```
+
+The demo pack writes a color preview SVG, actual Textual screenshot, snapshot
+exports, TradingView overlay exports, Replay Lab reports, Provider Fixture Lab
+reports, and a local manifest. See [docs/demo-lab.md](docs/demo-lab.md) for the
+artifact list.
+
 Inject raw provider-shaped sample data without live credentials:
 
 ```bash
@@ -510,6 +526,8 @@ pip install -e .
 - See [docs/adapters.md](docs/adapters.md) for the provider adapter contract.
 - See [docs/databento-fixtures.md](docs/databento-fixtures.md) for Databento
   fixture mapping and GLBX.MDP3 schema notes.
+- See [docs/demo-lab.md](docs/demo-lab.md) for the no-credential demo pack,
+  color preview, screenshots, snapshots, overlays, and lab report bundle.
 - See [docs/exports.md](docs/exports.md) for snapshot and TradingView overlay
   export formats.
 - See [docs/model-assumptions.md](docs/model-assumptions.md) for GEX model
@@ -541,6 +559,8 @@ Recommended early test coverage:
   pinned states.
 - Replay Lab reports for alerts, session comparison, and saved snapshot
   baselines.
+- Demo Lab packs for color previews, terminal screenshots, snapshots, overlays,
+  and offline lab reports.
 - Fixture validation for replay/provider JSONL submissions.
 - Databento fixture mapping for definitions, trades, underlying quotes, and
   statistics-style open interest.

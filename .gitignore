@@ -27,6 +27,8 @@ dist/
 # Logs and local runtime output
 *.log
 logs/
+/demo_lab/
+/demo_pack/
 
 # OS and editor metadata
 .DS_Store

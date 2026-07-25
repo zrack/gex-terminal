@@ -49,6 +49,20 @@ The lab report includes a session dashboard, replay alerts, session-to-session
 comparisons, and saved final snapshots for reproducible baseline review. See
 [docs/replay-lab.md](replay-lab.md) for the full workflow.
 
+## Demo Lab Pack
+
+Generate a no-credential demo pack from a replay session:
+
+```bash
+gex-terminal demo-lab demo_lab
+gex-terminal demo-lab demo_lab --replay-session gap-fade
+```
+
+The pack bundles the color preview, actual terminal screenshot, snapshot
+exports, TradingView overlay exports, Replay Lab reports, Provider Fixture Lab
+reports, and a manifest. It is the easiest path for GitHub screenshots and
+contributor issue attachments.
+
 ## Provider Injection
 
 Provider injection exercises raw or provider-shaped samples through adapter

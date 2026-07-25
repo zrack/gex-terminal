@@ -18,6 +18,9 @@ by date and public-prep milestone.
   zero-gamma-flip, expiration-compression, and quality-stress JSONL fixtures.
 - Replay Research Lab reports with offline replay alerts, session comparisons,
   leaderboards, saved snapshot baselines, and Markdown/JSON/CSV output.
+- Demo Lab command that generates a no-credential demo pack with a color SVG
+  preview, actual Textual screenshot, snapshot exports, TradingView overlays,
+  Replay Lab reports, Provider Fixture Lab reports, and a manifest.
 - Gap-fade and call-wall-breakout synthetic ES replay sessions.
 - Fixture validation command for normalized JSONL submissions.
 - Model sensitivity reports for multiplier, expiry, rate, IV, and volume/OI

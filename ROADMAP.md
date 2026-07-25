@@ -137,6 +137,9 @@ dashboard and more like a focused market-structure workstation. See
   exposure, and total net GEX.
 - [x] Add Replay Lab reports that compare saved final snapshots across bundled
   synthetic sessions.
+- [x] Add a Demo Lab pack that produces a color preview, actual terminal
+  screenshot, snapshot exports, overlays, replay reports, provider fixture
+  reports, and a manifest from offline data.
 - [x] Add a fixture validation workflow for normalized replay/provider JSONL.
 - [ ] Add a validation workflow that compares generated levels against saved
   price action and replay fixtures.

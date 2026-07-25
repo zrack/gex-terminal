@@ -15,6 +15,10 @@ from gex_terminal.adapters.registry import (
 )
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
+from gex_terminal.demo_lab import (
+    DEFAULT_DEMO_SESSION,
+    build_demo_lab,
+)
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.fixture_validator import (
     format_fixture_validation_report,
@@ -63,6 +67,11 @@ async def main():
             output_path=args.command_path or "replay_lab.md",
             session_names=(args.replay_session,) if args.replay_session else None,
         )
+        return
+
+    if args.command == "demo-lab":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await export_demo_lab(config, args)
         return
 
     if args.command == "fixture-lab":
@@ -284,6 +293,26 @@ async def export_provider_fixture_lab(config: GexConfig, output_path: str) -> No
     )
 
 
+async def export_demo_lab(config: GexConfig, args: argparse.Namespace) -> None:
+    """Generate the offline demo pack for GitHub and contributor onboarding."""
+    output_dir = args.command_path or "demo_lab"
+    session_name = args.replay_session or DEFAULT_DEMO_SESSION
+    try:
+        manifest = await build_demo_lab(
+            config,
+            output_dir,
+            replay_session_name=session_name,
+            screenshot_width=args.screenshot_width,
+            screenshot_height=args.screenshot_height,
+        )
+    except (FileNotFoundError, KeyError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved demo lab pack to {output_dir} "
+        f"({len(manifest['artifacts'])} artifacts, replay {manifest['replay_session']['name']})"
+    )
+
+
 async def export_snapshot(
     config: GexConfig,
     output_path: str,
@@ -423,6 +452,7 @@ def parse_args() -> argparse.Namespace:
             "validate-fixture",
             "list-replays",
             "replay-lab",
+            "demo-lab",
             "fixture-lab",
             "inject-provider",
         ),
@@ -433,7 +463,7 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         help=(
             "Path argument for utility commands such as validate-fixture, replay-lab, "
-            "fixture-lab, or inject-provider."
+            "demo-lab, fixture-lab, or inject-provider."
         ),
     )
     mode_group = parser.add_mutually_exclusive_group()
