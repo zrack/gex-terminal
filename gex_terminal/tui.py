@@ -1,6 +1,8 @@
 import asyncio
+import json
 import time
 from collections import deque
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable
@@ -13,6 +15,7 @@ from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.replay_catalog import ReplaySession, bundled_replay_sessions
 from gex_terminal.regime import build_regime_map
 from gex_terminal.snapshot import build_snapshot, write_snapshot
 from gex_terminal.table_rows import arrange_rows, filter_rows, sort_rows
@@ -23,12 +26,14 @@ class GexTerminalApp(App):
 
     TITLE = "Intraday GEX Imbalance Terminal"
     CSS_PATH = str(Path(__file__).with_name("gex_terminal.tcss"))
+    FIRST_RUN_REPLAY = "zero-gamma-flip"
 
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("r", "refresh_terminal_data", "Refresh"),
         ("s", "cycle_sort", "Sort"),
         ("f", "cycle_filter", "Filter"),
+        ("p", "cycle_replay_session", "Replay"),
         ("e", "export_snapshot", "Export"),
     ]
 
@@ -56,6 +61,9 @@ class GexTerminalApp(App):
         self._last_data: dict | None = None
         self._last_breakdown: dict = {}
         self._last_refresh_at: str = "--:--:--"
+        self._replay_sessions = bundled_replay_sessions()
+        self._active_replay_session = self._session_for_path(self.config.replay_path)
+        self._replay_index = self._initial_replay_index()
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -141,6 +149,7 @@ class GexTerminalApp(App):
         table.add_column("Net GEX", width=18)
         self.query_one("#matrix-state", Static).display = False
         self._render_controls()
+        self._render_first_run_guide(self.consumer.runtime_status)
         self._render_status_bar(self.consumer.runtime_status)
         self.set_interval(self.config.refresh_interval_seconds, self.refresh_terminal_data)
         self.call_later(self.refresh_terminal_data)
@@ -164,11 +173,133 @@ class GexTerminalApp(App):
         if self._last_data is not None:
             self._render_table(self._last_data)
 
+    async def action_cycle_replay_session(self) -> None:
+        if self.config.data_mode.lower() not in {"demo", "replay"}:
+            self._event("replay selector is available in demo or replay mode")
+            self._render_events()
+            return
+        session = self._next_replay_session()
+        await self._load_replay_session(session)
+
+    async def _load_replay_session(self, session: ReplaySession) -> None:
+        try:
+            messages = list(self._load_replay_messages(session))
+        except (FileNotFoundError, ValueError) as error:
+            self._event(f"replay load failed -> {error}")
+            self._render_events()
+            return
+
+        symbol = "ES"
+        self.config = replace(
+            self.config,
+            symbol=symbol,
+            symbols=self._symbols_with_target(self.config.symbols, symbol),
+            data_mode="replay",
+            data_provider="replay",
+            contract_multiplier=50,
+            replay_path=session.path,
+            replay_delay_seconds=0.0,
+        )
+        self._symbols = self.config.symbols
+        self.consumer.engine.multiplier = self.config.contract_multiplier
+        await self.consumer.reset_state(
+            data_mode="replay",
+            target_underlying=symbol,
+            risk_free_rate=self.config.risk_free_rate,
+            stale_after_seconds=self.config.stale_after_seconds,
+        )
+        self.consumer.mark_connected()
+        self.consumer.mark_subscribed(1)
+        self._reset_terminal_session_state()
+        self._active_replay_session = session
+        self._replay_index = self._session_index(session)
+
+        for message in messages:
+            await self.consumer.update_market_state(json.dumps(message))
+        self.consumer.mark_disconnected()
+        self._event(f"replay loaded -> {session.name}")
+        self._render_controls()
+        await self.refresh_terminal_data()
+
+    def _reset_terminal_session_state(self) -> None:
+        self._gex_flow.clear()
+        self._latencies.clear()
+        self._events.clear()
+        self._last_wall = None
+        self._last_zero = None
+        self._last_imbalance = None
+        self._last_regime = None
+        self._last_runtime_status = None
+        self._last_latency_ms = 0.0
+        self._last_data = None
+        self._last_breakdown = {}
+        self._last_refresh_at = "--:--:--"
+
+    def _load_replay_messages(self, session: ReplaySession) -> Iterable[dict]:
+        path = Path(session.path)
+        if not path.exists():
+            raise FileNotFoundError(f"Replay file not found: {path}")
+        with path.open(encoding="utf-8") as replay_file:
+            for line_number, line in enumerate(replay_file, start=1):
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(
+                        f"Invalid JSON in replay file {path} at line {line_number}"
+                    ) from exc
+
+    def _next_replay_session(self) -> ReplaySession:
+        if not self._replay_sessions:
+            raise RuntimeError("No bundled replay sessions are available.")
+        next_index = (self._replay_index + 1) % len(self._replay_sessions)
+        return self._replay_sessions[next_index]
+
+    def _replay_label(self) -> str:
+        if self.config.data_mode.lower() not in {"demo", "replay"}:
+            return "offline only"
+        return f"next {self._next_replay_session().label}"
+
+    def _initial_replay_index(self) -> int:
+        if not self._replay_sessions:
+            return 0
+        if self.config.data_mode.lower() == "demo":
+            first_run = self._session_for_name(self.FIRST_RUN_REPLAY) or self._replay_sessions[0]
+            return self._session_index(first_run) - 1
+        if self._active_replay_session is not None:
+            return self._session_index(self._active_replay_session)
+        first_run = self._session_for_name(self.FIRST_RUN_REPLAY) or self._replay_sessions[0]
+        return self._session_index(first_run) - 1
+
+    def _session_for_name(self, name: str) -> ReplaySession | None:
+        for session in self._replay_sessions:
+            if session.name == name:
+                return session
+        return None
+
+    def _session_for_path(self, path: str) -> ReplaySession | None:
+        normalized = str(Path(path))
+        for session in self._replay_sessions:
+            if str(Path(session.path)) == normalized:
+                return session
+        return None
+
+    def _session_index(self, session: ReplaySession | None) -> int:
+        if session is None:
+            return -1
+        for index, candidate in enumerate(self._replay_sessions):
+            if candidate.name == session.name:
+                return index
+        return -1
+
     def _render_controls(self) -> None:
         self.query_one("#matrix-controls", Static).update(
             f"sort: [#cbd5e1]{self.SORT_LABELS[self._sort_mode]}[/]  ·  "
             f"filter: [#cbd5e1]{self.FILTER_LABELS[self._filter_mode]}[/]   "
-            f"[#5b6675]([b]s[/] sort  [b]f[/] filter  [b]r[/] refresh)[/]"
+            f"replay: [#cbd5e1]{self._replay_label()}[/]   "
+            f"[#5b6675]([b]s[/] sort  [b]f[/] filter  [b]p[/] replay  [b]e[/] export)[/]"
         )
 
     def _render_status_bar(self, status: str) -> None:
@@ -278,8 +409,29 @@ class GexTerminalApp(App):
         else:
             banner.update(f"[amber]■ WAITING[/]  {reason}")
             self.query_one("#feed-chain", Static).update("[amber]*[/] Option chain\n  no contracts")
+        self._render_first_run_guide(status, reason)
+
+    def _render_first_run_guide(self, status: str, reason: str = "waiting for market state") -> None:
+        replay = self._next_replay_session()
         self.query_one("#dealer-regime", Static).update(
-            f"[b]Dealer Regime[/]   [#64748b]--[/]\nNo snapshot to model yet."
+            "[b]First Run[/]   [cyan]offline research ready[/]\n"
+            f"{reason}\n"
+            f"[#94a3b8]Next replay:[/] [#cbd5e1]{replay.label}[/]"
+        )
+        self.query_one("#balance-pressure", Static).update(
+            "[b]Start Without Data[/]   [cyan]press p[/]\n"
+            "Load a bundled replay into the live terminal.\n"
+            "[#94a3b8]Try:[/] zero-gamma-flip, trend-day, gap-fade."
+        )
+        self.query_one("#vol-boundary", Static).update(
+            "[b]Review Output[/]   [green]press e[/]\n"
+            "Export the current snapshot once a replay is loaded.\n"
+            "[#94a3b8]Docs:[/] docs/replay-research.md"
+        )
+        self.query_one("#regime-map", Static).update(
+            "[b]Workflow[/]\n"
+            f"Mode {status} · symbol {self.config.symbol} · multiplier {self.config.contract_multiplier}\n"
+            "Use replay, exports, and journal reports before live feeds."
         )
 
     def _render_metrics(self, data: dict) -> None:
@@ -724,6 +876,11 @@ class GexTerminalApp(App):
     @staticmethod
     def _sort_rows(rows, sort_mode):
         return sort_rows(rows, sort_mode)
+
+    @staticmethod
+    def _symbols_with_target(symbols: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:
+        cleaned = tuple(symbol for symbol in symbols if symbol != target_symbol)
+        return (target_symbol, *cleaned)[:4]
 
 
 async def run_mock_session():

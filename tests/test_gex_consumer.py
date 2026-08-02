@@ -58,6 +58,35 @@ class StatefulGexConsumerLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(consumer.session_open, 5943.25)
         self.assertEqual(consumer.current_spot, 5960.0)
 
+    async def test_reset_state_clears_market_and_quality_counters(self):
+        consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="live")
+        consumer.mark_connected()
+        consumer.mark_subscribed(4)
+        consumer.record_dropped_message()
+        await consumer.update_market_state(json.dumps({
+            "type": "underlying_tick",
+            "symbol": "ES",
+            "price": 5943.25,
+        }))
+        await consumer.update_market_state(json.dumps({
+            "type": "options_volume_tick",
+            "strike": 5950,
+            "option_type": "C",
+            "volume": 100,
+            "iv": 0.15,
+        }))
+
+        await consumer.reset_state(data_mode="replay", target_underlying="NQ")
+
+        self.assertEqual(consumer.data_mode, "REPLAY")
+        self.assertEqual(consumer.target_underlying, "NQ")
+        self.assertEqual(consumer.runtime_status, "CONNECTED")
+        self.assertEqual(consumer.current_spot, 0.0)
+        self.assertEqual(consumer.chain_state, {})
+        self.assertEqual(consumer.message_count, 0)
+        self.assertEqual(consumer.dropped_message_count, 0)
+        self.assertEqual(consumer.subscription_status, "not_subscribed")
+
     def test_records_live_adapter_subscription_and_reconnect_diagnostics(self):
         consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="live")
 

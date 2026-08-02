@@ -77,6 +77,11 @@ live credentials. `demo_replay.jsonl` is a compact screenshot/demo fixture, whil
 `es_synthetic_full_session.jsonl` simulates open, mid-session, and late-session
 ES 0DTE activity for contributor testing.
 
+The in-terminal replay selector uses the same normalized JSONL contract. In
+demo or replay mode, pressing `p` resets the consumer state and loads the next
+bundled replay session through the consumer and engine path. It does not run in
+live mode.
+
 ## Tradovate Adapter
 
 The Tradovate adapter currently includes:

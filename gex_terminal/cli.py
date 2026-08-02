@@ -607,7 +607,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--screenshot",
         metavar="PATH",
-        help="Export a real Textual SVG screenshot using seeded demo data, then exit.",
+        help="Export a color-themed Textual SVG screenshot using demo or replay data, then exit.",
     )
     parser.add_argument(
         "--export",

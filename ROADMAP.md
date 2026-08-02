@@ -80,6 +80,8 @@ dashboard and more like a focused market-structure workstation. See
 
 - [x] Add color-coded positive and negative GEX rows.
 - [x] Improve empty, loading, disconnected, and error states.
+- [x] Add first-run terminal guidance and an in-app replay selector for
+  no-credential demo/replay workflows.
 - [x] Add sorting or filtering for strikes, expirations, and high-concentration
   levels.
 - [x] Add a compact status bar for provider, symbol, update cadence, and last refresh
@@ -161,7 +163,7 @@ dashboard and more like a focused market-structure workstation. See
 - Add additional replay datasets for different symbols, expirations, or regimes.
 - Add Replay Lab alert expectations for newly submitted fixtures.
 - Add journal comparison fields or example journal report fixtures.
-- Improve terminal empty states before live data arrives.
+- Add a terminal onboarding screenshot or short GIF showing the replay selector.
 - Document a known Tradovate options-chain payload shape.
 - Add README screenshots once replay mode exists.
 

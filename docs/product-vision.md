@@ -47,5 +47,5 @@ own every part of the stack:
 - Improve the math model and document assumptions.
 - Add provider adapters and normalized payload fixtures.
 - Build replay datasets for reproducible research.
-- Improve terminal panels, exports, alerts, and data-quality views.
+- Improve first-run terminal UX, panels, exports, alerts, and data-quality views.
 - Compare generated levels against saved price action.

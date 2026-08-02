@@ -21,6 +21,10 @@ gex-terminal demo-lab demo_lab --replay-session zero-gamma-flip
 The default session is `zero-gamma-flip` because it shows the market-structure
 boundary behavior more clearly than the compact demo fixture.
 
+The interactive terminal uses the same preference for first-run polish:
+`gex-terminal --demo` offers `zero-gamma-flip` as the first in-app replay when
+the user presses `p`.
+
 ## Output Folder
 
 The command writes:

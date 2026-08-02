@@ -25,6 +25,8 @@ by date and public-prep milestone.
   entry-to-entry comparisons, and Markdown/CSV/JSON report exports.
 - Color-aware Textual SVG screenshot export helper so actual terminal captures
   match the public README preview palette more closely.
+- First-run terminal guide with in-app replay session cycling for demo/replay
+  workflows, plus consumer state reset support for clean offline session loads.
 - Gap-fade and call-wall-breakout synthetic ES replay sessions.
 - Fixture validation command for normalized JSONL submissions.
 - Model sensitivity reports for multiplier, expiry, rate, IV, and volume/OI

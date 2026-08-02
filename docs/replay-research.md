@@ -35,6 +35,23 @@ The current research fixtures are:
 - `quality-stress`: valid fixture with off-symbol drops and partial chain
   coverage for Provider Health testing.
 
+## In-Terminal Replay Selector
+
+Start the terminal without live credentials:
+
+```bash
+gex-terminal --demo
+```
+
+Press `p` inside the terminal to load the next bundled replay session into the
+same matrix, structure panels, feed-health panel, and event log. Demo mode
+offers `zero-gamma-flip` first because it shows a useful regime transition for
+new users and screenshots.
+
+The selector is available in demo and replay mode. Live mode keeps replay
+loading disabled so background provider tasks cannot be mixed with local replay
+state.
+
 ## Replay Research Lab
 
 Run every bundled replay session through the offline lab:

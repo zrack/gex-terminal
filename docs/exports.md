@@ -20,6 +20,10 @@ Provider Fixture Lab Markdown/JSON, a local README, and `manifest.json`.
 Use this when preparing GitHub screenshots, attaching reproducible evidence to
 issues, or onboarding contributors who do not have live market-data access yet.
 
+For interactive first-run review, start `gex-terminal --demo`, press `p` to load
+a bundled replay session, then press `e` to write a timestamped snapshot JSON
+from the terminal.
+
 ## Snapshot JSON
 
 The base snapshot export contains the computed metrics, strike matrix, expiry

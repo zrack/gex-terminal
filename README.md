@@ -102,6 +102,9 @@ Good starting points:
   updates to ingest high-frequency WebSocket ticks without race conditions.
 - **Low-overhead terminal interface**: renders a live matrix in a Textual UI,
   keeping the workflow fast and local.
+- **First-run offline workflow**: starts with useful demo state, explains how
+  to proceed without credentials, and lets users cycle bundled replay sessions
+  from inside the terminal with `p`.
 - **Intraday open-interest proxy**: treats cumulative session volume as the
   active positioning input when official open interest is stale or delayed.
 - **Strike-level structural mapping**: identifies the gamma wall, zero-gamma
@@ -220,34 +223,53 @@ The terminal derives key market zones from the strike-level GEX matrix:
 ## Runtime Architecture
 
 ```text
-Market Data WebSocket
-        |
-        v
-gex_terminal/consumer.py
-  - Receives ticks
-  - Normalizes option-chain payloads
-  - Updates cumulative intraday volume
-  - Publishes state snapshots
-        |
-        v
-gex_terminal/engine.py
-  - Vectorizes Black-Scholes inputs
-  - Calculates gamma
-  - Converts gamma to dollar GEX
-  - Computes wall, node, and imbalance metrics
-        |
-        v
-gex_terminal/tui.py
-  - Renders live strike matrix
-  - Displays aggregate exposure
-  - Highlights structural zones
-        |
-        v
 gex_terminal/cli.py
-  - Starts async tasks
-  - Coordinates shutdown
-  - Handles application lifecycle
+  - loads environment configuration
+  - selects demo, replay, live, or export workflow
+  - starts adapter and calculation tasks
+
+        |
+        v
+
+gex_terminal/adapters/*
+  - translates provider or replay payloads
+  - emits normalized underlying and option-volume messages
+
+        |
+        v
+
+gex_terminal/consumer.py
+  - owns async state mutation behind a lock
+  - tracks spot, option volumes, expiries, and feed quality
+  - exposes reset_state for clean offline session switching
+
+        |
+        v
+
+gex_terminal/engine.py
+  - vectorizes Black-Scholes gamma inputs
+  - converts volume proxy into dollar GEX
+  - computes gamma wall, zero gamma, call/put walls, and concentration
+
+        |
+        v
+
+gex_terminal/tui.py
+  - renders the terminal matrix, structure panels, and feed health
+  - guides first-run users toward offline replay and export workflows
+  - cycles bundled replay sessions in-app with the same consumer/engine path
+
+        |
+        v
+
+exports and reports
+  - snapshot JSON/CSV/Markdown
+  - TradingView overlay JSON/CSV
+  - Replay Lab, Provider Fixture Lab, Demo Lab, and Research Journal artifacts
 ```
+
+See [docs/architecture.md](docs/architecture.md) for the fuller component map,
+runtime paths, and contributor boundaries.
 
 ## Installation
 
@@ -271,6 +293,10 @@ Run the terminal with seeded demo data:
 ```bash
 gex-terminal --demo
 ```
+
+Inside the terminal, press `p` to load the next bundled replay session without
+leaving the app. Demo mode starts by offering `zero-gamma-flip` because it shows
+the most useful market-structure transition.
 
 Run live mode for ES:
 
@@ -496,6 +522,7 @@ While the terminal is running, these keys are available:
 | `r` | Refresh the snapshot now |
 | `s` | Cycle strike sort (strike / \|net\| / volume) |
 | `f` | Cycle strike filter (all / near-money / active) |
+| `p` | Load the next bundled replay session in demo/replay mode |
 | `e` | Export the current snapshot to a timestamped JSON file |
 | `q` | Quit |
 
@@ -545,6 +572,8 @@ pip install -e .
 - See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
 - See [CHANGELOG.md](CHANGELOG.md) for notable project changes.
 - See [docs/adapters.md](docs/adapters.md) for the provider adapter contract.
+- See [docs/architecture.md](docs/architecture.md) for runtime architecture,
+  first-run flow, state ownership, and contributor boundaries.
 - See [docs/databento-fixtures.md](docs/databento-fixtures.md) for Databento
   fixture mapping and GLBX.MDP3 schema notes.
 - See [docs/demo-lab.md](docs/demo-lab.md) for the no-credential demo pack,
@@ -577,6 +606,8 @@ Recommended early test coverage:
 - Runtime lifecycle states for demo, live, stale, and disconnected sessions.
 - Provider health summaries for simulated, stale, degraded, disconnected, and
   entitlement-error states.
+- First-run terminal guidance, in-app replay selection, and consumer reset
+  behavior for offline session switching.
 - TradingView overlay export rows for levels and exposure bands.
 - Live Gamma Regime Map classification for positive, negative, transition, and
   pinned states.

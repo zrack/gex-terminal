@@ -66,6 +66,43 @@ class StatefulGexConsumer:
     def mark_connected(self) -> None:
         self.connection_state = "CONNECTED"
 
+    async def reset_state(
+        self,
+        *,
+        data_mode: str | None = None,
+        target_underlying: str | None = None,
+        risk_free_rate: float | None = None,
+        stale_after_seconds: float | None = None,
+    ) -> None:
+        """Clear market state before loading a fresh offline or provider session."""
+        next_mode = (data_mode or self.data_mode).upper()
+        async with self.state_lock:
+            self.data_mode = next_mode
+            if target_underlying:
+                self.target_underlying = target_underlying
+            if risk_free_rate is not None:
+                self.risk_free_rate = float(risk_free_rate)
+            if stale_after_seconds is not None:
+                self.stale_after_seconds = float(stale_after_seconds)
+            self.chain_state.clear()
+            self.expiry_state.clear()
+            self.current_spot = 0.0
+            self.session_open = 0.0
+            self.last_message_at = None
+            self.last_snapshot_at = None
+            self.connection_state = "SIM" if next_mode == "DEMO" else "DISCONNECTED"
+            self.message_count = 0
+            self.malformed_message_count = 0
+            self.dropped_message_count = 0
+            self.entitlement_error_count = 0
+            self.provider_frame_count = 0
+            self.provider_parse_error_count = 0
+            self.reconnect_count = 0
+            self.subscribed_symbol_count = 0
+            self.subscription_status = "not_subscribed"
+            self.quality_notes = ()
+            self.simulated_latency_ms = None
+
     def mark_disconnected(self) -> None:
         self.connection_state = "DISCONNECTED"
 
