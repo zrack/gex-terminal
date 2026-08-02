@@ -13,6 +13,10 @@ acceleration boundaries at terminal speed, without the overhead of a browser UI.
 
 ![Color replay demo lab preview](assets/gex-terminal-demo-lab.svg)
 
+First-run replay browser:
+
+![Replay browser onboarding preview](assets/gex-terminal-onboarding.svg)
+
 Design target:
 
 ![GEX Imbalance Terminal mockup](assets/gex-terminal-mockup.png)
@@ -51,7 +55,8 @@ checks, and docs that make GEX research easier to understand.
 
 Good starting points:
 
-- Pick an issue labeled `good first issue` or `help wanted`.
+- Pick an issue labeled `good first issue` or `help wanted`, or start from
+  [docs/good-first-issues.md](docs/good-first-issues.md).
 - Submit sanitized replay or provider payload fixtures.
 - Improve the assumptions documentation around GEX calculations.
 - Prototype one of the signature capabilities in the roadmap.
@@ -64,6 +69,7 @@ Good starting points:
 |-- .env.example        # Template for local provider credentials
 |-- .gitignore          # Keeps secrets, virtualenvs, and caches out of Git
 |-- .github/workflows/  # GitHub Actions smoke-test workflow
+|-- .github/ISSUE_TEMPLATE/ # Bug, feature, adapter, and good-first issue templates
 |-- CHANGELOG.md        # Notable project changes and public-prep milestones
 |-- CODE_OF_CONDUCT.md  # Community participation expectations
 |-- LICENSE             # MIT License
@@ -84,6 +90,7 @@ Good starting points:
 |   |-- demo_lab.py     # Offline demo pack generator for screenshots and reports
 |   |-- replay_lab.py   # Offline replay reports, alerts, and session comparisons
 |   |-- research_journal.py # Local replay-session journal and comparisons
+|   |-- session_store.py # Local historical snapshot records and reports
 |   |-- screenshot.py   # Color-aware Textual SVG screenshot exports
 |   |-- provider_fixture_lab.py # Offline provider fixture scorecards
 |   |-- tui.py          # Textual reactive terminal user interface
@@ -103,8 +110,10 @@ Good starting points:
 - **Low-overhead terminal interface**: renders a live matrix in a Textual UI,
   keeping the workflow fast and local.
 - **First-run offline workflow**: starts with useful demo state, explains how
-  to proceed without credentials, and lets users cycle bundled replay sessions
+  to proceed without credentials, and lets users browse bundled replay sessions
   from inside the terminal with `p`.
+- **Terminal assumption controls**: cycle expiry, risk-free rate, and contract
+  multiplier from the running terminal to see model sensitivity immediately.
 - **Intraday open-interest proxy**: treats cumulative session volume as the
   active positioning input when official open interest is stale or delayed.
 - **Strike-level structural mapping**: identifies the gamma wall, zero-gamma
@@ -113,6 +122,8 @@ Good starting points:
   session comparisons, replay alerts, and saved snapshot baselines.
 - **Historical Research Journal**: saves local replay-session studies, lists
   prior entries, compares level changes, and exports Markdown/CSV/JSON reports.
+- **Historical Session Store**: saves computed snapshot records locally, lists
+  prior records, and exports Markdown/CSV/JSON summaries for later review.
 - **Demo Lab pack**: generates a GitHub-ready offline preview folder with color
   SVG visuals, a theme-matched Textual terminal capture, snapshots, overlays,
   and lab reports.
@@ -257,7 +268,8 @@ gex_terminal/engine.py
 gex_terminal/tui.py
   - renders the terminal matrix, structure panels, and feed health
   - guides first-run users toward offline replay and export workflows
-  - cycles bundled replay sessions in-app with the same consumer/engine path
+  - browses bundled replay sessions in-app with the same consumer/engine path
+  - lets users cycle DTE, rate, and multiplier assumptions while studying output
 
         |
         v
@@ -265,7 +277,8 @@ gex_terminal/tui.py
 exports and reports
   - snapshot JSON/CSV/Markdown
   - TradingView overlay JSON/CSV
-  - Replay Lab, Provider Fixture Lab, Demo Lab, and Research Journal artifacts
+  - Replay Lab, Provider Fixture Lab, Demo Lab, Research Journal, and Session
+    Store artifacts
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the fuller component map,
@@ -294,9 +307,10 @@ Run the terminal with seeded demo data:
 gex-terminal --demo
 ```
 
-Inside the terminal, press `p` to load the next bundled replay session without
+Inside the terminal, press `p` to open the bundled replay browser without
 leaving the app. Demo mode starts by offering `zero-gamma-flip` because it shows
-the most useful market-structure transition.
+the most useful market-structure transition. Use Up/Down to choose a replay,
+Enter to load it, and Escape to close the browser.
 
 Run live mode for ES:
 
@@ -314,6 +328,7 @@ Export a color-themed Textual terminal screenshot for GitHub:
 
 ```bash
 gex-terminal --demo --screenshot assets/gex-terminal-actual.svg
+gex-terminal --demo --screenshot assets/gex-terminal-onboarding.svg --screenshot-view replay-browser
 ```
 
 ## Configuration
@@ -417,6 +432,19 @@ Git. Use the journal to compare gamma wall, zero-gamma, call/put wall, net-GEX,
 and alert changes while keeping live credentials and generated research output
 local. See [docs/research-journal.md](docs/research-journal.md) for the
 workflow.
+
+Save computed snapshots in the Historical Session Store:
+
+```bash
+gex-terminal session-store save --replay-session zero-gamma-flip
+gex-terminal session-store list
+gex-terminal session-store report historical_sessions/session_store.md
+```
+
+Session records are written to `historical_sessions/sessions/`, which is ignored
+by Git. Use the store for snapshot archives, later day-over-day review, and
+issue-friendly Markdown/CSV summaries. See
+[docs/historical-sessions.md](docs/historical-sessions.md) for details.
 
 Generate a complete offline demo pack for screenshots, GitHub issues, or
 contributor onboarding:
@@ -522,7 +550,13 @@ While the terminal is running, these keys are available:
 | `r` | Refresh the snapshot now |
 | `s` | Cycle strike sort (strike / \|net\| / volume) |
 | `f` | Cycle strike filter (all / near-money / active) |
-| `p` | Load the next bundled replay session in demo/replay mode |
+| `p` | Open or close the bundled replay browser in demo/replay mode |
+| `up` / `down` | Move through replay sessions while the browser is open |
+| `enter` | Load the selected replay session |
+| `escape` | Close the replay browser |
+| `d` | Cycle DTE assumptions |
+| `m` | Cycle contract multiplier assumptions |
+| `i` | Cycle risk-free rate assumptions |
 | `e` | Export the current snapshot to a timestamped JSON file |
 | `q` | Quit |
 

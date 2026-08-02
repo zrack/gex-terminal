@@ -30,6 +30,7 @@ logs/
 /demo_lab/
 /demo_pack/
 /research_journal/
+/historical_sessions/
 
 # OS and editor metadata
 .DS_Store

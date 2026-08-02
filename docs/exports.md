@@ -20,9 +20,9 @@ Provider Fixture Lab Markdown/JSON, a local README, and `manifest.json`.
 Use this when preparing GitHub screenshots, attaching reproducible evidence to
 issues, or onboarding contributors who do not have live market-data access yet.
 
-For interactive first-run review, start `gex-terminal --demo`, press `p` to load
-a bundled replay session, then press `e` to write a timestamped snapshot JSON
-from the terminal.
+For interactive first-run review, start `gex-terminal --demo`, press `p` to
+open the replay browser, choose a bundled replay session, then press `e` to
+write a timestamped snapshot JSON from the terminal.
 
 ## Snapshot JSON
 
@@ -69,6 +69,18 @@ Markdown is best for GitHub issues and pull requests. JSON keeps the full
 snapshot baseline for every provider case. CSV gives spreadsheet-friendly rows
 for fixture health, parser counters, gamma wall, zero-gamma level, and message
 counts.
+
+## Historical Session Store Reports
+
+The session store keeps generated snapshot records local by default:
+
+```bash
+gex-terminal session-store save --replay-session zero-gamma-flip
+gex-terminal session-store report historical_sessions/session_store.md
+```
+
+Use Markdown or CSV reports when you want to discuss historical snapshot changes
+without attaching raw local store records.
 
 ## Replay Lab Reports
 

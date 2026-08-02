@@ -34,6 +34,13 @@ class GexTerminalApp(App):
         ("s", "cycle_sort", "Sort"),
         ("f", "cycle_filter", "Filter"),
         ("p", "cycle_replay_session", "Replay"),
+        ("up", "replay_browser_up", "Up"),
+        ("down", "replay_browser_down", "Down"),
+        ("enter", "select_replay_session", "Load"),
+        ("escape", "close_replay_browser", "Close"),
+        ("d", "cycle_expiry_assumption", "DTE"),
+        ("m", "cycle_multiplier_assumption", "Mult"),
+        ("i", "cycle_rate_assumption", "Rate"),
         ("e", "export_snapshot", "Export"),
     ]
 
@@ -41,6 +48,9 @@ class GexTerminalApp(App):
     FILTER_MODES = ("all", "near", "active")
     SORT_LABELS = {"strike": "strike ↑", "net": "|net| ↓", "volume": "volume ↓"}
     FILTER_LABELS = {"all": "all strikes", "near": "near-money", "active": "active only"}
+    EXPIRY_PRESETS = (0.01, 0.05, 0.25, 1.0, 7.0)
+    RATE_PRESETS = (0.0, 0.02, 0.045, 0.05, 0.06)
+    MULTIPLIER_PRESETS = (50, 20, 5, 2, 100)
 
     def __init__(self, consumer: StatefulGexConsumer, config: GexConfig | None = None):
         super().__init__()
@@ -64,6 +74,8 @@ class GexTerminalApp(App):
         self._replay_sessions = bundled_replay_sessions()
         self._active_replay_session = self._session_for_path(self.config.replay_path)
         self._replay_index = self._initial_replay_index()
+        self._replay_browser_open = False
+        self._replay_browser_index = self._initial_browser_index()
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -178,8 +190,63 @@ class GexTerminalApp(App):
             self._event("replay selector is available in demo or replay mode")
             self._render_events()
             return
-        session = self._next_replay_session()
+        self._replay_browser_open = not self._replay_browser_open
+        if self._replay_browser_open:
+            self._replay_browser_index = self._initial_browser_index()
+            self._event("replay browser opened")
+            self._render_replay_browser()
+        else:
+            self._event("replay browser closed")
+            self._render_structure_or_first_run()
+        self._render_controls()
+        self._render_events()
+
+    def action_replay_browser_down(self) -> None:
+        if not self._replay_browser_open or not self._replay_sessions:
+            return
+        self._replay_browser_index = (self._replay_browser_index + 1) % len(self._replay_sessions)
+        self._event(f"replay selected -> {self._selected_replay_session().name}")
+        self._render_replay_browser()
+        self._render_controls()
+        self._render_events()
+
+    def action_replay_browser_up(self) -> None:
+        if not self._replay_browser_open or not self._replay_sessions:
+            return
+        self._replay_browser_index = (self._replay_browser_index - 1) % len(self._replay_sessions)
+        self._event(f"replay selected -> {self._selected_replay_session().name}")
+        self._render_replay_browser()
+        self._render_controls()
+        self._render_events()
+
+    async def action_select_replay_session(self) -> None:
+        if self.config.data_mode.lower() not in {"demo", "replay"}:
+            self._event("replay selector is available in demo or replay mode")
+            self._render_events()
+            return
+        session = self._selected_replay_session() if self._replay_browser_open else self._next_replay_session()
         await self._load_replay_session(session)
+
+    async def action_cycle_expiry_assumption(self) -> None:
+        next_value = self._next_float_preset(self.config.days_to_expiry, self.EXPIRY_PRESETS)
+        await self._apply_terminal_assumptions(days_to_expiry=next_value)
+
+    async def action_cycle_rate_assumption(self) -> None:
+        next_value = self._next_float_preset(self.config.risk_free_rate, self.RATE_PRESETS)
+        await self._apply_terminal_assumptions(risk_free_rate=next_value)
+
+    async def action_cycle_multiplier_assumption(self) -> None:
+        next_value = self._next_int_preset(self.config.contract_multiplier, self.MULTIPLIER_PRESETS)
+        await self._apply_terminal_assumptions(contract_multiplier=next_value)
+
+    def action_close_replay_browser(self) -> None:
+        if not self._replay_browser_open:
+            return
+        self._replay_browser_open = False
+        self._event("replay browser closed")
+        self._render_structure_or_first_run()
+        self._render_controls()
+        self._render_events()
 
     async def _load_replay_session(self, session: ReplaySession) -> None:
         try:
@@ -213,6 +280,8 @@ class GexTerminalApp(App):
         self._reset_terminal_session_state()
         self._active_replay_session = session
         self._replay_index = self._session_index(session)
+        self._replay_browser_index = self._replay_index
+        self._replay_browser_open = False
 
         for message in messages:
             await self.consumer.update_market_state(json.dumps(message))
@@ -257,9 +326,25 @@ class GexTerminalApp(App):
         next_index = (self._replay_index + 1) % len(self._replay_sessions)
         return self._replay_sessions[next_index]
 
+    def _selected_replay_session(self) -> ReplaySession:
+        if not self._replay_sessions:
+            raise RuntimeError("No bundled replay sessions are available.")
+        return self._replay_sessions[self._replay_browser_index % len(self._replay_sessions)]
+
+    def _initial_browser_index(self) -> int:
+        if not self._replay_sessions:
+            return 0
+        if self.config.data_mode.lower() == "demo":
+            return (self._replay_index + 1) % len(self._replay_sessions)
+        if self._active_replay_session is not None:
+            return self._session_index(self._active_replay_session)
+        return (self._replay_index + 1) % len(self._replay_sessions)
+
     def _replay_label(self) -> str:
         if self.config.data_mode.lower() not in {"demo", "replay"}:
             return "offline only"
+        if self._replay_browser_open:
+            return f"select {self._selected_replay_session().label}"
         return f"next {self._next_replay_session().label}"
 
     def _initial_replay_index(self) -> int:
@@ -299,8 +384,94 @@ class GexTerminalApp(App):
             f"sort: [#cbd5e1]{self.SORT_LABELS[self._sort_mode]}[/]  ·  "
             f"filter: [#cbd5e1]{self.FILTER_LABELS[self._filter_mode]}[/]   "
             f"replay: [#cbd5e1]{self._replay_label()}[/]   "
-            f"[#5b6675]([b]s[/] sort  [b]f[/] filter  [b]p[/] replay  [b]e[/] export)[/]"
+            f"model: [#cbd5e1]{self.config.days_to_expiry:g}DTE · "
+            f"{self.config.risk_free_rate:.2%} · ×{self.config.contract_multiplier}[/]   "
+            f"[#5b6675]([b]s[/] sort  [b]f[/] filter  [b]p[/] replay  "
+            f"[b]d[/] dte  [b]m[/] mult  [b]i[/] rate  [b]e[/] export)[/]"
         )
+
+    async def _apply_terminal_assumptions(
+        self,
+        *,
+        days_to_expiry: float | None = None,
+        risk_free_rate: float | None = None,
+        contract_multiplier: int | None = None,
+    ) -> None:
+        updates: dict[str, float | int] = {}
+        if days_to_expiry is not None:
+            updates["days_to_expiry"] = float(days_to_expiry)
+        if risk_free_rate is not None:
+            updates["risk_free_rate"] = float(risk_free_rate)
+            self.consumer.risk_free_rate = float(risk_free_rate)
+        if contract_multiplier is not None:
+            updates["contract_multiplier"] = int(contract_multiplier)
+            self.consumer.engine.multiplier = int(contract_multiplier)
+
+        if not updates:
+            return
+
+        self.config = replace(self.config, **updates)
+        self._event(
+            "assumptions -> "
+            f"{self.config.days_to_expiry:g}DTE, "
+            f"{self.config.risk_free_rate:.2%}, "
+            f"×{self.config.contract_multiplier}"
+        )
+        self._render_controls()
+        if self.consumer.chain_state and self.consumer.current_spot:
+            await self.refresh_terminal_data()
+        else:
+            status = self.consumer.runtime_status
+            self._render_lifecycle()
+            self._render_status_bar(status)
+            self._render_structure_or_first_run()
+            self._render_events()
+
+    def _render_structure_or_first_run(self) -> None:
+        if self._last_data is not None:
+            self._render_structure(self._last_data)
+            self._render_expiry(self._last_breakdown)
+            return
+        self._render_first_run_guide(self.consumer.runtime_status)
+
+    def _render_replay_browser(self) -> None:
+        if not self._replay_sessions:
+            self.query_one("#dealer-regime", Static).update("[b]Replay Browser[/]\nNo bundled sessions found.")
+            return
+
+        selected = self._selected_replay_session()
+        active_label = self._active_replay_session.label if self._active_replay_session else "Demo seed"
+        self.query_one("#dealer-regime", Static).update(
+            "[b]Replay Browser[/]   [cyan]offline sessions[/]\n"
+            f"Selected [#cbd5e1]{selected.label}[/]\n"
+            f"[#94a3b8]Active:[/] {active_label}"
+        )
+        self.query_one("#balance-pressure", Static).update(
+            "[b]Session Notes[/]\n"
+            f"{selected.description}\n"
+            f"[#94a3b8]Path:[/] {selected.path}"
+        )
+        self.query_one("#vol-boundary", Static).update(
+            "[b]Controls[/]\n"
+            "Up/Down browse · Enter load · Escape close\n"
+            "Use exports and journal reports after loading."
+        )
+        self.query_one("#regime-map", Static).update(self._replay_browser_rows(selected))
+
+    def _replay_browser_rows(self, selected: ReplaySession) -> Text:
+        text = Text("Bundled Replay Sessions\n", style="bold #8a97a6")
+        for index, session in enumerate(self._replay_sessions, start=1):
+            is_selected = session.name == selected.name
+            is_active = (
+                self._active_replay_session is not None
+                and session.name == self._active_replay_session.name
+            )
+            marker = ">" if is_selected else " "
+            active = "*" if is_active else " "
+            style = "bold #38bdf8" if is_selected else "#94a3b8"
+            text.append(f"{marker} {index:02d} {active} {session.label:<24} {session.name}\n", style=style)
+        text.append("\n* active session", style="#64748b")
+        return text
 
     def _render_status_bar(self, status: str) -> None:
         color = self._status_color(status)
@@ -393,6 +564,8 @@ class GexTerminalApp(App):
         self._render_flow()
         self._render_events()
         self._render_state_banner(status)
+        if self._replay_browser_open:
+            self._render_replay_browser()
 
     def _render_empty_state(self, reason: str, status: str) -> None:
         self.query_one("#gex-table", DataTable).clear()
@@ -410,6 +583,8 @@ class GexTerminalApp(App):
             banner.update(f"[amber]■ WAITING[/]  {reason}")
             self.query_one("#feed-chain", Static).update("[amber]*[/] Option chain\n  no contracts")
         self._render_first_run_guide(status, reason)
+        if self._replay_browser_open:
+            self._render_replay_browser()
 
     def _render_first_run_guide(self, status: str, reason: str = "waiting for market state") -> None:
         replay = self._next_replay_session()
@@ -420,7 +595,7 @@ class GexTerminalApp(App):
         )
         self.query_one("#balance-pressure", Static).update(
             "[b]Start Without Data[/]   [cyan]press p[/]\n"
-            "Load a bundled replay into the live terminal.\n"
+            "Open the bundled replay browser, then press Enter to load.\n"
             "[#94a3b8]Try:[/] zero-gamma-flip, trend-day, gap-fade."
         )
         self.query_one("#vol-boundary", Static).update(
@@ -831,6 +1006,20 @@ class GexTerminalApp(App):
     def _crossed_imbalance_threshold(previous: float, current: float) -> bool:
         thresholds = (0.75, 1.0, 1.25, 1.5, 2.0)
         return any((previous < threshold <= current) or (previous > threshold >= current) for threshold in thresholds)
+
+    @staticmethod
+    def _next_float_preset(current: float, presets: tuple[float, ...]) -> float:
+        for index, value in enumerate(presets):
+            if abs(float(current) - value) < 1e-9:
+                return presets[(index + 1) % len(presets)]
+        return presets[0]
+
+    @staticmethod
+    def _next_int_preset(current: int, presets: tuple[int, ...]) -> int:
+        for index, value in enumerate(presets):
+            if int(current) == value:
+                return presets[(index + 1) % len(presets)]
+        return presets[0]
 
     @staticmethod
     def _status_color(status: str) -> str:

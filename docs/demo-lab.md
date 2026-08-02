@@ -23,7 +23,12 @@ boundary behavior more clearly than the compact demo fixture.
 
 The interactive terminal uses the same preference for first-run polish:
 `gex-terminal --demo` offers `zero-gamma-flip` as the first in-app replay when
-the user presses `p`.
+the user presses `p`. The replay browser can be captured for README or issue
+screenshots with:
+
+```bash
+gex-terminal --demo --screenshot assets/gex-terminal-onboarding.svg --screenshot-view replay-browser
+```
 
 ## Output Folder
 
@@ -55,6 +60,7 @@ code path:
 ```bash
 gex-terminal demo-lab /tmp/gex_terminal_demo_lab --replay-session zero-gamma-flip
 cp /tmp/gex_terminal_demo_lab/gex-terminal-color.svg assets/gex-terminal-demo-lab.svg
+gex-terminal --demo --screenshot assets/gex-terminal-onboarding.svg --screenshot-view replay-browser
 ```
 
 The asset uses offline replay data only. It should not contain live provider

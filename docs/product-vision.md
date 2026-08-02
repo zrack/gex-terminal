@@ -23,6 +23,11 @@ volatility expansion zone.
 Save full intraday sessions and replay them later with synchronized GEX, price,
 wall shifts, zero-gamma moves, and event markers.
 
+The offline foundation is now in place: bundled replay sessions can be browsed
+from the terminal, session snapshots can be archived locally, and reports can be
+exported without live credentials. The next step is turning live provider output
+into date-tagged replayable market days.
+
 ### TradingView Overlay Export
 
 Export gamma wall, zero-gamma, call wall, put wall, and major exposure bands into
@@ -47,5 +52,6 @@ own every part of the stack:
 - Improve the math model and document assumptions.
 - Add provider adapters and normalized payload fixtures.
 - Build replay datasets for reproducible research.
+- Add good-first issues and small docs/tests that help new contributors start.
 - Improve first-run terminal UX, panels, exports, alerts, and data-quality views.
 - Compare generated levels against saved price action.

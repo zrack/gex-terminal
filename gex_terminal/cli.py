@@ -54,6 +54,15 @@ from gex_terminal.research_journal import (
     write_journal_report,
 )
 from gex_terminal.screenshot import export_app_screenshot_svg
+from gex_terminal.session_store import (
+    DEFAULT_SESSION_STORE_DIR,
+    build_session_store_report,
+    format_session_record_list,
+    format_session_save_summary,
+    load_session_records,
+    save_session_snapshot,
+    write_session_store_report,
+)
 from gex_terminal.sensitivity import build_sensitivity_report, write_sensitivity_report
 from gex_terminal.snapshot import build_snapshot
 from gex_terminal.snapshot_formats import write_snapshot_export
@@ -91,6 +100,11 @@ async def main():
         await journal_command(config, args)
         return
 
+    if args.command == "session-store":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await session_store_command(config, args)
+        return
+
     if args.command == "fixture-lab":
         config = apply_cli_overrides(GexConfig.from_env(), args)
         await export_provider_fixture_lab(
@@ -120,6 +134,7 @@ async def main():
             width=args.screenshot_width,
             height=args.screenshot_height,
             quality_scenario=args.quality_scenario,
+            screenshot_view=args.screenshot_view,
         )
         return
 
@@ -234,6 +249,7 @@ async def export_demo_screenshot(
     width: int,
     height: int,
     quality_scenario: str | None = None,
+    screenshot_view: str = "terminal",
 ) -> None:
     render_mode = "replay" if config.data_mode == "replay" else "demo"
     render_config = GexConfig(
@@ -271,8 +287,13 @@ async def export_demo_screenshot(
     async with app.run_test(size=(width, height)) as pilot:
         await pilot.pause(0.2)
         await app.refresh_terminal_data()
+        if screenshot_view == "replay-browser":
+            await app.action_cycle_replay_session()
         await pilot.pause(0.2)
-        title = "GEX Terminal Replay Lab" if render_mode == "replay" else "GEX Terminal Actual"
+        if screenshot_view == "replay-browser":
+            title = "GEX Terminal Replay Browser"
+        else:
+            title = "GEX Terminal Replay Lab" if render_mode == "replay" else "GEX Terminal Actual"
         svg = export_app_screenshot_svg(app, title=title)
 
     target = Path(output_path)
@@ -371,6 +392,44 @@ async def journal_command(config: GexConfig, args: argparse.Namespace) -> None:
     raise SystemExit(
         "Usage: gex-terminal journal {add,list,compare,report} "
         "[OUTPUT_OR_ENTRY_REF] [--journal-dir PATH]"
+    )
+
+
+async def session_store_command(config: GexConfig, args: argparse.Namespace) -> None:
+    """Handle local historical session snapshot-store commands."""
+    action = args.command_path or "list"
+    store_dir = args.session_store_dir
+
+    if action == "save":
+        snapshot, consumer, _ = await compute_snapshot(config)
+        snapshot["feed_quality"] = consumer.feed_quality_snapshot()
+        record = save_session_snapshot(
+            snapshot,
+            store_dir,
+            source_name=_session_store_source_name(config, args),
+            label=args.session_label,
+        )
+        print(format_session_save_summary(record))
+        return
+
+    records = load_session_records(store_dir)
+    if action == "list":
+        print(format_session_record_list(records))
+        return
+
+    if action == "report":
+        output_path = args.command_args[0] if args.command_args else Path(store_dir) / "session_store.md"
+        report = build_session_store_report(records)
+        try:
+            target = write_session_store_report(report, output_path)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(f"Saved session store report to {target}")
+        return
+
+    raise SystemExit(
+        "Usage: gex-terminal session-store {save,list,report} "
+        "[OUTPUT] [--session-store-dir PATH] [--session-label TEXT]"
     )
 
 
@@ -515,6 +574,7 @@ def parse_args() -> argparse.Namespace:
             "replay-lab",
             "demo-lab",
             "journal",
+            "session-store",
             "fixture-lab",
             "inject-provider",
         ),
@@ -525,7 +585,7 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         help=(
             "Path argument for utility commands such as validate-fixture, replay-lab, "
-            "demo-lab, journal, fixture-lab, or inject-provider."
+            "demo-lab, journal, session-store, fixture-lab, or inject-provider."
         ),
     )
     parser.add_argument(
@@ -610,6 +670,12 @@ def parse_args() -> argparse.Namespace:
         help="Export a color-themed Textual SVG screenshot using demo or replay data, then exit.",
     )
     parser.add_argument(
+        "--screenshot-view",
+        choices=("terminal", "replay-browser"),
+        default="terminal",
+        help="Terminal view to capture with --screenshot. Default: terminal.",
+    )
+    parser.add_argument(
         "--export",
         metavar="PATH",
         help="Compute one GEX snapshot and write .json, .csv, or .md, then exit.",
@@ -628,6 +694,15 @@ def parse_args() -> argparse.Namespace:
         "--journal-dir",
         default=DEFAULT_JOURNAL_DIR,
         help=f"Local research journal directory. Default: {DEFAULT_JOURNAL_DIR}.",
+    )
+    parser.add_argument(
+        "--session-store-dir",
+        default=DEFAULT_SESSION_STORE_DIR,
+        help=f"Local historical session store directory. Default: {DEFAULT_SESSION_STORE_DIR}.",
+    )
+    parser.add_argument(
+        "--session-label",
+        help="Human label for session-store save records.",
     )
     parser.add_argument(
         "--screenshot-width",
@@ -720,6 +795,14 @@ def validate_fixture_command(path: str | None) -> None:
     print(format_fixture_validation_report(report))
     if not report.ok:
         raise SystemExit(1)
+
+
+def _session_store_source_name(config: GexConfig, args: argparse.Namespace) -> str:
+    if args.replay_session:
+        return args.replay_session
+    if config.data_mode == "replay":
+        return Path(config.replay_path).stem
+    return config.data_mode
 
 
 def main_sync() -> None:

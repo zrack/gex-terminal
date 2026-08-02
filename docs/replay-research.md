@@ -43,14 +43,20 @@ Start the terminal without live credentials:
 gex-terminal --demo
 ```
 
-Press `p` inside the terminal to load the next bundled replay session into the
-same matrix, structure panels, feed-health panel, and event log. Demo mode
+Press `p` inside the terminal to open the bundled replay browser. Use Up/Down to
+choose a session, Enter to load it into the same matrix, structure panels,
+feed-health panel, and event log, and Escape to close the browser. Demo mode
 offers `zero-gamma-flip` first because it shows a useful regime transition for
 new users and screenshots.
 
 The selector is available in demo and replay mode. Live mode keeps replay
 loading disabled so background provider tasks cannot be mixed with local replay
 state.
+
+While a replay is loaded, use `d`, `m`, and `i` to cycle days-to-expiry,
+contract multiplier, and risk-free rate assumptions from inside the terminal.
+These controls recompute the current snapshot, which makes quick sensitivity
+checks possible before exporting a report.
 
 ## Replay Research Lab
 
@@ -82,6 +88,21 @@ The journal stores generated entries in `research_journal/entries/`, which is
 ignored by Git. It is useful for comparing level changes and replay alerts while
 iterating on fixtures, model assumptions, or terminal output. See
 [docs/research-journal.md](research-journal.md) for details.
+
+## Historical Session Store
+
+Save computed snapshots into a local store:
+
+```bash
+gex-terminal session-store save --replay-session zero-gamma-flip
+gex-terminal session-store list
+gex-terminal session-store report historical_sessions/session_store.md
+```
+
+The store writes records under `historical_sessions/sessions/`, which is ignored
+by Git. It is useful when you want a lightweight archive of final snapshots
+without the fuller narrative entry shape used by the journal. See
+[docs/historical-sessions.md](historical-sessions.md) for details.
 
 ## Demo Lab Pack
 

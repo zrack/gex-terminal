@@ -10,6 +10,7 @@ is not financial advice.
 ## Ways to Contribute
 
 - Review the project roadmap and pick a focused item from `ROADMAP.md`.
+- Pick a scoped starter from `docs/good-first-issues.md`.
 - Add deterministic tests for the GEX engine and consumer state handling.
 - Improve the Textual terminal interface and empty/error states.
 - Add mock data and replay mode so the app can run without live credentials.
@@ -62,6 +63,15 @@ gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
 
 Demo and replay modes are useful for UI and engine work that should not require
 live market-data credentials.
+
+For offline research workflow work, you can also exercise the local session
+store:
+
+```bash
+gex-terminal session-store save --replay-session zero-gamma-flip --session-store-dir /tmp/gex-store
+gex-terminal session-store list --session-store-dir /tmp/gex-store
+gex-terminal session-store report /tmp/gex-store/session_store.md --session-store-dir /tmp/gex-store
+```
 
 ## Verification
 
@@ -128,6 +138,8 @@ Before opening a pull request, please confirm:
 - No secrets or local-only files are included.
 - New behavior is documented in the README or comments where appropriate.
 - Calculation changes include tests or clearly described manual verification.
+- Generated local output such as `demo_lab/`, `research_journal/`, and
+  `historical_sessions/` is not included.
 - UI changes can be exercised with mock data or documented sample input.
 
 ## Reporting Issues

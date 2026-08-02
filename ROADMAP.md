@@ -80,8 +80,9 @@ dashboard and more like a focused market-structure workstation. See
 
 - [x] Add color-coded positive and negative GEX rows.
 - [x] Improve empty, loading, disconnected, and error states.
-- [x] Add first-run terminal guidance and an in-app replay selector for
-  no-credential demo/replay workflows.
+- [x] Add first-run terminal guidance and an in-app replay browser for
+  no-credential demo/replay workflows. The browser opens with `p`, supports
+  Up/Down selection, and loads the selected session with Enter.
 - [x] Add sorting or filtering for strikes, expirations, and high-concentration
   levels.
 - [x] Add a compact status bar for provider, symbol, update cadence, and last refresh
@@ -90,6 +91,9 @@ dashboard and more like a focused market-structure workstation. See
   demo.
 - [x] Color-match actual Textual SVG screenshot exports to the public README
   preview palette.
+- [x] Add in-terminal model assumption controls for DTE, contract multiplier,
+  and risk-free rate so offline researchers can recompute snapshots without
+  restarting the app.
 - [x] Add a Live Gamma Regime Map panel that summarizes positive/negative gamma,
   zero-gamma proximity, wall-pinning risk, and volatility expansion zones.
   The prototype renders current state, spot, zero-gamma, gamma wall, next
@@ -121,7 +125,8 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Add an Offline Provider Fixture Workbench that runs bundled provider-shaped
   samples into pass/fail scorecards, feed-health counters, and snapshot
   baselines.
-- [ ] Add a small set of labeled good-first issues after the first public push.
+- [x] Add a small set of labeled good-first issue templates and issue-ready
+  starter scopes for contributors.
 
 ## Phase 6: Packaging and Distribution
 
@@ -139,7 +144,10 @@ dashboard and more like a focused market-structure workstation. See
   quality-stress fixtures.
 - [x] Add a local Historical Research Journal for saved replay-session studies,
   entry lists, comparisons, and Markdown/CSV/JSON reports.
-- [ ] Add a historical session store for replaying prior live market days.
+- [x] Add a historical session store for local snapshot records, record lists,
+  latest-record comparisons, and Markdown/CSV/JSON reports.
+- [ ] Extend the historical session store from snapshot records into replayable
+  captured live market days.
 - [ ] Extend journal comparisons to live captured market days, expiry exposure,
   and date-tagged day-over-day reviews.
 - [x] Add Replay Lab reports that compare saved final snapshots across bundled
@@ -163,11 +171,11 @@ dashboard and more like a focused market-structure workstation. See
 - Add additional replay datasets for different symbols, expirations, or regimes.
 - Add Replay Lab alert expectations for newly submitted fixtures.
 - Add journal comparison fields or example journal report fixtures.
-- Add a terminal onboarding screenshot or short GIF showing the replay selector.
+- Add a terminal onboarding screenshot or short GIF showing the replay browser.
 - Document a known Tradovate options-chain payload shape.
 - Add README screenshots once replay mode exists.
 
 ## Future Ideas
 
-- Configurable risk-free rate and expiry selection from the terminal.
+- Date-tagged captured live-day replay once a provider path is stable.
 - Provider adapters for additional broker or market-data APIs.
