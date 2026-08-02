@@ -49,6 +49,23 @@ The lab report includes a session dashboard, replay alerts, session-to-session
 comparisons, and saved final snapshots for reproducible baseline review. See
 [docs/replay-lab.md](replay-lab.md) for the full workflow.
 
+## Historical Research Journal
+
+Save replay-session studies into a local journal:
+
+```bash
+gex-terminal journal add --replay-session trend-day
+gex-terminal journal add --replay-session zero-gamma-flip
+gex-terminal journal list
+gex-terminal journal compare
+gex-terminal journal report research_journal/journal.md
+```
+
+The journal stores generated entries in `research_journal/entries/`, which is
+ignored by Git. It is useful for comparing level changes and replay alerts while
+iterating on fixtures, model assumptions, or terminal output. See
+[docs/research-journal.md](research-journal.md) for details.
+
 ## Demo Lab Pack
 
 Generate a no-credential demo pack from a replay session:
@@ -58,7 +75,7 @@ gex-terminal demo-lab demo_lab
 gex-terminal demo-lab demo_lab --replay-session gap-fade
 ```
 
-The pack bundles the color preview, actual terminal screenshot, snapshot
+The pack bundles the color preview, color-themed terminal screenshot, snapshot
 exports, TradingView overlay exports, Replay Lab reports, Provider Fixture Lab
 reports, and a manifest. It is the easiest path for GitHub screenshots and
 contributor issue attachments.

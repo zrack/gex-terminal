@@ -83,6 +83,8 @@ Good starting points:
 |   |-- consumer.py     # Stateful asynchronous market-data aggregator
 |   |-- demo_lab.py     # Offline demo pack generator for screenshots and reports
 |   |-- replay_lab.py   # Offline replay reports, alerts, and session comparisons
+|   |-- research_journal.py # Local replay-session journal and comparisons
+|   |-- screenshot.py   # Color-aware Textual SVG screenshot exports
 |   |-- provider_fixture_lab.py # Offline provider fixture scorecards
 |   |-- tui.py          # Textual reactive terminal user interface
 |   |-- gex_terminal.tcss # Terminal dashboard theme and layout styles
@@ -106,8 +108,11 @@ Good starting points:
   node, net exposure bands, and call/put imbalance zones.
 - **Replay Research Lab**: runs bundled synthetic sessions offline, then exports
   session comparisons, replay alerts, and saved snapshot baselines.
+- **Historical Research Journal**: saves local replay-session studies, lists
+  prior entries, compares level changes, and exports Markdown/CSV/JSON reports.
 - **Demo Lab pack**: generates a GitHub-ready offline preview folder with color
-  SVG visuals, a Textual terminal capture, snapshots, overlays, and lab reports.
+  SVG visuals, a theme-matched Textual terminal capture, snapshots, overlays,
+  and lab reports.
 - **Provider Fixture Workbench**: runs bundled provider-shaped fixtures offline,
   then exports health scorecards and adapter snapshots for contributor review.
 - **Credential isolation**: keeps API keys and production market-data credentials
@@ -279,7 +284,7 @@ Run NQ with its futures multiplier:
 gex-terminal --demo --symbol NQ --multiplier 20
 ```
 
-Export the actual Textual terminal screenshot used by GitHub:
+Export a color-themed Textual terminal screenshot for GitHub:
 
 ```bash
 gex-terminal --demo --screenshot assets/gex-terminal-actual.svg
@@ -371,6 +376,22 @@ gex-terminal replay-lab replay_lab.json
 gex-terminal replay-lab gap_fade_lab.csv --replay-session gap-fade
 ```
 
+Create a local Historical Research Journal from replay sessions:
+
+```bash
+gex-terminal journal add --replay-session trend-day
+gex-terminal journal add --replay-session zero-gamma-flip
+gex-terminal journal list
+gex-terminal journal compare
+gex-terminal journal report research_journal/journal.md
+```
+
+Journal entries are written to `research_journal/entries/`, which is ignored by
+Git. Use the journal to compare gamma wall, zero-gamma, call/put wall, net-GEX,
+and alert changes while keeping live credentials and generated research output
+local. See [docs/research-journal.md](docs/research-journal.md) for the
+workflow.
+
 Generate a complete offline demo pack for screenshots, GitHub issues, or
 contributor onboarding:
 
@@ -379,10 +400,10 @@ gex-terminal demo-lab demo_lab
 gex-terminal demo-lab demo_lab --replay-session gap-fade
 ```
 
-The demo pack writes a color preview SVG, actual Textual screenshot, snapshot
-exports, TradingView overlay exports, Replay Lab reports, Provider Fixture Lab
-reports, and a local manifest. See [docs/demo-lab.md](docs/demo-lab.md) for the
-artifact list.
+The demo pack writes a color preview SVG, theme-matched Textual screenshot,
+snapshot exports, TradingView overlay exports, Replay Lab reports, Provider
+Fixture Lab reports, and a local manifest. See [docs/demo-lab.md](docs/demo-lab.md)
+for the artifact list.
 
 Inject raw provider-shaped sample data without live credentials:
 
@@ -424,7 +445,7 @@ gex-terminal --demo --symbol NQ --multiplier 20
 gex-terminal --demo --refresh 0.5
 ```
 
-Export an actual Textual screenshot for GitHub:
+Export a color-themed Textual screenshot for GitHub:
 
 ```bash
 gex-terminal --demo --screenshot assets/gex-terminal-actual.svg
@@ -540,6 +561,8 @@ pip install -e .
   alerts, saved snapshot comparisons, and screenshot workflow.
 - See [docs/replay-research.md](docs/replay-research.md) for bundled replay
   sessions, fixture validation, quality simulations, and sensitivity reports.
+- See [docs/research-journal.md](docs/research-journal.md) for local historical
+  replay journals, entry comparisons, and report exports.
 - See [ROADMAP.md](ROADMAP.md) for planned phases and future work.
 - See [SECURITY.md](SECURITY.md) for credential-handling guidance.
 
@@ -559,8 +582,10 @@ Recommended early test coverage:
   pinned states.
 - Replay Lab reports for alerts, session comparison, and saved snapshot
   baselines.
-- Demo Lab packs for color previews, terminal screenshots, snapshots, overlays,
-  and offline lab reports.
+- Historical Research Journal entries, entry comparisons, and Markdown/CSV/JSON
+  report exports.
+- Demo Lab packs for color previews, color-themed terminal screenshots,
+  snapshots, overlays, and offline lab reports.
 - Fixture validation for replay/provider JSONL submissions.
 - Databento fixture mapping for definitions, trades, underlying quotes, and
   statistics-style open interest.

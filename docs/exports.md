@@ -13,7 +13,7 @@ gex-terminal demo-lab demo_lab
 gex-terminal demo-lab demo_lab --replay-session zero-gamma-flip
 ```
 
-The pack includes a color SVG preview, actual Textual terminal screenshot,
+The pack includes a color SVG preview, color-themed Textual terminal screenshot,
 snapshot JSON/Markdown, TradingView overlay JSON/CSV, Replay Lab Markdown/JSON,
 Provider Fixture Lab Markdown/JSON, a local README, and `manifest.json`.
 
@@ -81,6 +81,23 @@ Markdown is best for issues and discussion. JSON keeps the saved final snapshot
 for every replay session so future model or fixture changes can be compared
 against a baseline. CSV gives spreadsheet-friendly session, alert, and
 comparison rows.
+
+## Historical Journal Reports
+
+Historical Research Journal reports export selected replay-session studies saved
+under the local `research_journal/entries/` directory:
+
+```bash
+gex-terminal journal add --replay-session trend-day
+gex-terminal journal add --replay-session zero-gamma-flip
+gex-terminal journal report research_journal/journal.md
+gex-terminal journal report research_journal/journal.csv
+gex-terminal journal report research_journal/journal.json
+```
+
+The Markdown report is useful for issues and research notes. CSV captures
+entry rows plus the latest comparison row. JSON preserves the entries, final
+snapshots, alerts, timeline events, and generated comparison metadata.
 
 ## TradingView Overlay
 

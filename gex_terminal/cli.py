@@ -42,6 +42,18 @@ from gex_terminal.replay_catalog import (
     replay_session_names,
 )
 from gex_terminal.replay_lab import build_replay_lab_report, write_replay_lab_report
+from gex_terminal.research_journal import (
+    DEFAULT_JOURNAL_DIR,
+    add_journal_entry,
+    build_journal_report,
+    compare_journal_entries,
+    format_journal_add_summary,
+    format_journal_comparison,
+    format_journal_list,
+    load_journal_entries,
+    write_journal_report,
+)
+from gex_terminal.screenshot import export_app_screenshot_svg
 from gex_terminal.sensitivity import build_sensitivity_report, write_sensitivity_report
 from gex_terminal.snapshot import build_snapshot
 from gex_terminal.snapshot_formats import write_snapshot_export
@@ -72,6 +84,11 @@ async def main():
     if args.command == "demo-lab":
         config = apply_cli_overrides(GexConfig.from_env(), args)
         await export_demo_lab(config, args)
+        return
+
+    if args.command == "journal":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await journal_command(config, args)
         return
 
     if args.command == "fixture-lab":
@@ -256,7 +273,7 @@ async def export_demo_screenshot(
         await app.refresh_terminal_data()
         await pilot.pause(0.2)
         title = "GEX Terminal Replay Lab" if render_mode == "replay" else "GEX Terminal Actual"
-        svg = app.export_screenshot(title=title)
+        svg = export_app_screenshot_svg(app, title=title)
 
     target = Path(output_path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -310,6 +327,50 @@ async def export_demo_lab(config: GexConfig, args: argparse.Namespace) -> None:
     print(
         f"Saved demo lab pack to {output_dir} "
         f"({len(manifest['artifacts'])} artifacts, replay {manifest['replay_session']['name']})"
+    )
+
+
+async def journal_command(config: GexConfig, args: argparse.Namespace) -> None:
+    """Handle local historical research journal commands."""
+    action = args.command_path or "list"
+    journal_dir = args.journal_dir
+    if action == "add":
+        entry = await add_journal_entry(
+            config,
+            journal_dir,
+            replay_session_name=args.replay_session or DEFAULT_DEMO_SESSION,
+        )
+        print(format_journal_add_summary(entry))
+        return
+
+    entries = load_journal_entries(journal_dir)
+    if action == "list":
+        print(format_journal_list(entries))
+        return
+
+    if action == "compare":
+        from_ref = args.command_args[0] if len(args.command_args) >= 1 else "previous"
+        to_ref = args.command_args[1] if len(args.command_args) >= 2 else "latest"
+        try:
+            comparison = compare_journal_entries(entries, from_ref, to_ref)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(format_journal_comparison(comparison))
+        return
+
+    if action == "report":
+        output_path = args.command_args[0] if args.command_args else Path(journal_dir) / "journal.md"
+        report = build_journal_report(entries)
+        try:
+            target = write_journal_report(report, output_path)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(f"Saved journal report to {target}")
+        return
+
+    raise SystemExit(
+        "Usage: gex-terminal journal {add,list,compare,report} "
+        "[OUTPUT_OR_ENTRY_REF] [--journal-dir PATH]"
     )
 
 
@@ -453,6 +514,7 @@ def parse_args() -> argparse.Namespace:
             "list-replays",
             "replay-lab",
             "demo-lab",
+            "journal",
             "fixture-lab",
             "inject-provider",
         ),
@@ -463,8 +525,13 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         help=(
             "Path argument for utility commands such as validate-fixture, replay-lab, "
-            "demo-lab, fixture-lab, or inject-provider."
+            "demo-lab, journal, fixture-lab, or inject-provider."
         ),
+    )
+    parser.add_argument(
+        "command_args",
+        nargs="*",
+        help="Additional positional arguments for commands such as journal compare/report.",
     )
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
@@ -556,6 +623,11 @@ def parse_args() -> argparse.Namespace:
         "--sensitivity",
         metavar="PATH",
         help="Compute a model-sensitivity report and write .json, .csv, or .md, then exit.",
+    )
+    parser.add_argument(
+        "--journal-dir",
+        default=DEFAULT_JOURNAL_DIR,
+        help=f"Local research journal directory. Default: {DEFAULT_JOURNAL_DIR}.",
     )
     parser.add_argument(
         "--screenshot-width",

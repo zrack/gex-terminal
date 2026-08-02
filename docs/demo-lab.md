@@ -30,7 +30,7 @@ The command writes:
 | `README.md` | Human-readable guide to the generated pack. |
 | `manifest.json` | Machine-readable artifact index and top-line metrics. |
 | `gex-terminal-color.svg` | Color preview generated from real replay snapshot values. |
-| `terminal-screenshot.svg` | Actual Textual terminal capture after replaying the session. |
+| `terminal-screenshot.svg` | Color-themed Textual terminal capture after replaying the session. |
 | `snapshot.json` | Full snapshot with metrics, strikes, expiries, and feed quality. |
 | `snapshot.md` | Human-readable snapshot summary. |
 | `tradingview-overlay.json` | Portable chart levels and bands. |
@@ -63,7 +63,7 @@ fast way to understand the workflow without installing a live feed. Demo Lab
 packages the most important offline proof points in one place:
 
 - Visual preview for the repository page.
-- Actual terminal capture for UI review.
+- Color-themed terminal capture for UI review.
 - Snapshot and overlay exports for trader review.
 - Replay Lab report for model behavior.
 - Provider Fixture Lab report for adapter-path confidence.

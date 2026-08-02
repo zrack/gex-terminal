@@ -21,6 +21,7 @@ from gex_terminal.provider_fixture_lab import (
 )
 from gex_terminal.replay_catalog import ReplaySession, replay_session_for_name
 from gex_terminal.replay_lab import build_replay_lab_report, write_replay_lab_report
+from gex_terminal.screenshot import export_app_screenshot_svg
 from gex_terminal.snapshot import build_snapshot
 from gex_terminal.snapshot_formats import write_snapshot_export
 from gex_terminal.tui import GexTerminalApp
@@ -207,7 +208,7 @@ async def write_terminal_screenshot(
         await pilot.pause(0.2)
         await app.refresh_terminal_data()
         await pilot.pause(0.2)
-        svg = app.export_screenshot(title="GEX Terminal Demo Lab")
+        svg = export_app_screenshot_svg(app, title="GEX Terminal Demo Lab")
 
     target = Path(output_path)
     target.parent.mkdir(parents=True, exist_ok=True)

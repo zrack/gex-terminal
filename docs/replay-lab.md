@@ -70,8 +70,25 @@ For a fuller GitHub-ready bundle, use Demo Lab:
 gex-terminal demo-lab demo_lab --replay-session zero-gamma-flip
 ```
 
-It writes a color preview, actual terminal capture, snapshot exports, overlays,
-Replay Lab reports, Provider Fixture Lab reports, and a manifest in one folder.
+It writes a color preview, color-themed terminal capture, snapshot exports,
+overlays, Replay Lab reports, Provider Fixture Lab reports, and a manifest in
+one folder.
+
+## Historical Journal Workflow
+
+Use the Historical Research Journal when you want to keep a local trail of
+selected replay studies instead of regenerating the full lab every time:
+
+```bash
+gex-terminal journal add --replay-session trend-day
+gex-terminal journal add --replay-session zero-gamma-flip
+gex-terminal journal compare
+gex-terminal journal report research_journal/journal.md
+```
+
+The journal compares saved entries by gamma wall, zero-gamma, call/put wall,
+net-GEX, imbalance, session change, and replay-alert count. See
+[docs/research-journal.md](research-journal.md) for the full command reference.
 
 ## Contributor Workflow
 

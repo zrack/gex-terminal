@@ -29,6 +29,7 @@ dist/
 logs/
 /demo_lab/
 /demo_pack/
+/research_journal/
 
 # OS and editor metadata
 .DS_Store

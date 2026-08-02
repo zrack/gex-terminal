@@ -12,6 +12,7 @@ dashboard and more like a focused market-structure workstation. See
 
 - Live Gamma Regime Map.
 - Replay Research Lab and Replayable Market Days.
+- Historical Research Journal.
 - TradingView Overlay Export.
 - GEX Alert Engine.
 - Multi-Symbol Market Structure Scanner.
@@ -85,6 +86,8 @@ dashboard and more like a focused market-structure workstation. See
   time.
 - [x] Include a README screenshot or GIF once mock replay mode can render a stable
   demo.
+- [x] Color-match actual Textual SVG screenshot exports to the public README
+  preview palette.
 - [x] Add a Live Gamma Regime Map panel that summarizes positive/negative gamma,
   zero-gamma proximity, wall-pinning risk, and volatility expansion zones.
   The prototype renders current state, spot, zero-gamma, gamma wall, next
@@ -132,12 +135,14 @@ dashboard and more like a focused market-structure workstation. See
   trend day, chop day, volatility spike, zero-gamma flip, expiration
   compression, gap-fade, call-wall-breakout, full-session, compact demo, and
   quality-stress fixtures.
+- [x] Add a local Historical Research Journal for saved replay-session studies,
+  entry lists, comparisons, and Markdown/CSV/JSON reports.
 - [ ] Add a historical session store for replaying prior live market days.
-- [ ] Add day-over-day level comparison for gamma wall, zero-gamma, expiry
-  exposure, and total net GEX.
+- [ ] Extend journal comparisons to live captured market days, expiry exposure,
+  and date-tagged day-over-day reviews.
 - [x] Add Replay Lab reports that compare saved final snapshots across bundled
   synthetic sessions.
-- [x] Add a Demo Lab pack that produces a color preview, actual terminal
+- [x] Add a Demo Lab pack that produces a color preview, color-themed terminal
   screenshot, snapshot exports, overlays, replay reports, provider fixture
   reports, and a manifest from offline data.
 - [x] Add a fixture validation workflow for normalized replay/provider JSONL.
@@ -155,6 +160,7 @@ dashboard and more like a focused market-structure workstation. See
 - Add tests for malformed JSON and missing fields in `StatefulGexConsumer`.
 - Add additional replay datasets for different symbols, expirations, or regimes.
 - Add Replay Lab alert expectations for newly submitted fixtures.
+- Add journal comparison fields or example journal report fixtures.
 - Improve terminal empty states before live data arrives.
 - Document a known Tradovate options-chain payload shape.
 - Add README screenshots once replay mode exists.
