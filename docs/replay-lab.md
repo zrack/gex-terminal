@@ -64,8 +64,8 @@ gex-terminal --replay-session zero-gamma-flip --screenshot assets/gex-terminal-a
 That makes the public README screenshot reproducible from a no-credential
 replay scenario.
 
-For interactive review, run `gex-terminal --demo` and press `p` to load bundled
-replay sessions directly inside the terminal.
+For interactive review, run `gex-terminal --demo`, press `p` to open the replay
+browser, and load bundled replay sessions directly inside the terminal.
 
 For a fuller GitHub-ready bundle, use Demo Lab:
 

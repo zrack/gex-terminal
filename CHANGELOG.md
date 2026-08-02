@@ -25,8 +25,15 @@ by date and public-prep milestone.
   entry-to-entry comparisons, and Markdown/CSV/JSON report exports.
 - Color-aware Textual SVG screenshot export helper so actual terminal captures
   match the public README preview palette more closely.
-- First-run terminal guide with in-app replay session cycling for demo/replay
+- First-run terminal guide with an in-app replay session browser for demo/replay
   workflows, plus consumer state reset support for clean offline session loads.
+- Terminal-side DTE, contract multiplier, and risk-free rate controls for quick
+  model-assumption checks while studying offline sessions.
+- Historical Session Store command for local snapshot records, record lists, and
+  Markdown/CSV/JSON report exports.
+- Good-first issue template and issue-ready contributor starter list.
+- Replay-browser README onboarding screenshot generated from the actual Textual
+  terminal.
 - Gap-fade and call-wall-breakout synthetic ES replay sessions.
 - Fixture validation command for normalized JSONL submissions.
 - Model sensitivity reports for multiplier, expiry, rate, IV, and volume/OI

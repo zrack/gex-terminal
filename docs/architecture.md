@@ -13,9 +13,9 @@ workflows stay separated.
 | Provider adapters | `gex_terminal/adapters/`, `gex_terminal/market_data_adapter.py` | Convert live, delayed, provider-shaped, or replay payloads into normalized messages. |
 | State consumer | `gex_terminal/consumer.py` | Own spot, chain, expiry, lifecycle, and feed-quality state behind an async lock. |
 | GEX model | `gex_terminal/engine.py`, `gex_terminal/regime.py` | Compute gamma, dollar GEX, walls, zero-gamma, concentration, and regime state. |
-| Terminal UI | `gex_terminal/tui.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows, first-run guidance, replay selection, feed quality, event log, and exports. |
+| Terminal UI | `gex_terminal/tui.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows, first-run guidance, replay browser, model-assumption controls, feed quality, event log, and exports. |
 | Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py` | Produce replay, demo, and provider-fixture reports without live credentials. |
-| Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py` | Save snapshots, overlays, model-sensitivity reports, and local research history. |
+| Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, and historical session records. |
 
 ## Data Contract
 
@@ -61,13 +61,13 @@ seeded demo state -> terminal renders immediately
 press p
         |
         v
-TUI resets consumer state -> loads bundled replay JSONL -> renders replay matrix
+TUI opens replay browser -> Up/Down choose session -> Enter loads JSONL
         |
         v
-press e or use CLI exports/labs/journal for shareable artifacts
+press d/m/i to adjust assumptions, press e to export, or use CLI reports
 ```
 
-In demo mode, the in-terminal replay selector starts with `zero-gamma-flip`
+In demo mode, the in-terminal replay browser starts with `zero-gamma-flip`
 because that session shows a clear regime transition. The selector uses the
 same normalized message contract as the replay adapter, so UI polish remains
 covered by the same consumer and engine path as offline regression tests.
@@ -115,10 +115,11 @@ Offline tools reuse the same consumer and engine boundaries:
 - `fixture-lab` runs provider-shaped fixtures through adapter mapping and model
   output.
 - `journal` saves local replay-session entries and compares level changes.
+- `session-store` saves local snapshot records and exports historical summaries.
 - `--sensitivity` recomputes the same snapshot under alternate assumptions.
 
 Generated output stays local by default under ignored folders such as
-`demo_lab/`, `demo_pack/`, and `research_journal/`.
+`demo_lab/`, `demo_pack/`, `research_journal/`, and `historical_sessions/`.
 
 ## State Ownership
 
@@ -154,6 +155,6 @@ used by live updates.
 | Consumer lifecycle or feed quality | `tests/test_gex_consumer.py`, `tests/test_feed_quality.py` |
 | Model math or structural levels | `tests/test_gex_engine.py`, `tests/test_engine_structure.py`, `tests/test_regime.py` |
 | TUI table or first-run behavior | `tests/test_tui_table.py`, `tests/test_tui_first_run.py`, `tests/test_demo_lab.py` |
-| Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py` |
+| Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py`, `tests/test_session_store.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
 | Snapshot/overlay exports | `tests/test_snapshot_formats.py`, `tests/test_overlays.py` |
