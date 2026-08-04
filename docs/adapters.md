@@ -97,6 +97,33 @@ The Tradovate adapter currently includes:
 - Malformed quote quarantine so one bad option tick does not block other valid
   quotes in the same frame.
 
+### Option-Chain Field Mappings
+
+The Tradovate option-chain API returns per-contract rows. The adapter maps
+these fields into the shared normalized message contract:
+
+| Normalized field | Tradovate source | Notes |
+| --- | --- | --- |
+| `strike` | `strike` | Strike price as a number |
+| `option_type` | `optionType` or `callPut` | `"C"` for call, `"P"` for put |
+| `volume` | `volume` | Day trading volume |
+| `iv` | `impliedVolatility` | Implied volatility as a decimal (optional) |
+| `expiry` | `expiration` | Expiration date string |
+| `price` | `lastPrice` | Last traded option price (diagnostic) |
+| `underlying_price` | `underlyingPrice` | Underlying futures price (diagnostic) |
+
+### Required Market-Data Entitlements
+
+Using Tradovate option-chain data requires:
+
+- A Tradovate account with market-data access for the underlying futures
+  symbol (e.g., `ES`, `NQ`).
+- An option-data entitlement or subscription for the specific root symbol.
+- For full chain coverage (all strikes/expirations), a full-market-data
+  or Level 2 entitlement may be required depending on your Tradovate plan.
+- Demo environment access can be used for development and testing without
+  live entitlements; see `TRADOVATE_ENV=demo` in the configuration.
+
 Current sanitized fixtures include `tests/fixtures/tradovate_md_quotes.json`,
 `tests/fixtures/tradovate_contract_discovery.json`, and
 `tests/fixtures/tradovate_live_sample.jsonl`. The live sample runs through the
@@ -104,9 +131,9 @@ same adapter-to-consumer-to-engine path as a live session, asserting spot,
 strike volumes, IVs, gamma wall, zero-gamma output, and degraded provider health
 when malformed frames are quarantined.
 
-The remaining production task is validating larger ES/NQ option-chain payload
-coverage against live or demo Tradovate access over real reconnect and market
-conditions.
+Sanitized option-chain fixture examples for ES and NQ are provided at
+`tests/fixtures/tradovate_option_chain.json` and validated in
+`tests/test_tradovate_option_chain.py`.
 
 ## Databento Adapter
 

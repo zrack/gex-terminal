@@ -1,0 +1,85 @@
+{
+  "provider": "tradovate",
+  "schema": "option_chain",
+  "source": "sanitized fixture for payload-shape validation; no credentials or private data",
+  "records": [
+    {
+      "symbol": "ES",
+      "strike": 5900,
+      "expiration": "2026-06-19",
+      "optionType": "C",
+      "volume": 150,
+      "impliedVolatility": 0.142,
+      "lastPrice": 10.25,
+      "bid": 10.0,
+      "ask": 10.5,
+      "openInterest": 3200,
+      "underlyingPrice": 5943.25
+    },
+    {
+      "symbol": "ES",
+      "strike": 5900,
+      "expiration": "2026-06-19",
+      "optionType": "P",
+      "volume": 90,
+      "impliedVolatility": 0.148,
+      "lastPrice": 8.75,
+      "bid": 8.5,
+      "ask": 9.0,
+      "openInterest": 2100,
+      "underlyingPrice": 5943.25
+    },
+    {
+      "symbol": "ES",
+      "strike": 5950,
+      "expiration": "2026-06-19",
+      "optionType": "C",
+      "volume": 200,
+      "impliedVolatility": 0.138,
+      "lastPrice": 7.5,
+      "bid": 7.25,
+      "ask": 7.75,
+      "openInterest": 4100,
+      "underlyingPrice": 5943.25
+    },
+    {
+      "symbol": "ES",
+      "strike": 5950,
+      "expiration": "2026-06-19",
+      "optionType": "P",
+      "volume": 110,
+      "impliedVolatility": 0.145,
+      "lastPrice": 9.8,
+      "bid": 9.5,
+      "ask": 10.0,
+      "openInterest": 2800,
+      "underlyingPrice": 5943.25
+    },
+    {
+      "symbol": "NQ",
+      "strike": 19500,
+      "expiration": "2026-06-19",
+      "optionType": "C",
+      "volume": 120,
+      "impliedVolatility": 0.155,
+      "lastPrice": 145.0,
+      "bid": 144.5,
+      "ask": 145.5,
+      "openInterest": 1800,
+      "underlyingPrice": 19450.75
+    },
+    {
+      "symbol": "NQ",
+      "strike": 19500,
+      "expiration": "2026-06-19",
+      "optionType": "P",
+      "volume": 85,
+      "impliedVolatility": 0.160,
+      "lastPrice": 132.25,
+      "bid": 131.75,
+      "ask": 132.75,
+      "openInterest": 1400,
+      "underlyingPrice": 19450.75
+    }
+  ]
+}
