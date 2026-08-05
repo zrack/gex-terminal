@@ -39,6 +39,7 @@ class GexTerminalApp(App):
         ("enter", "select_replay_session", "Load"),
         ("escape", "close_replay_browser", "Close"),
         ("d", "cycle_expiry_assumption", "DTE"),
+        ("x", "cycle_expiry_filter", "Expiry"),
         ("m", "cycle_multiplier_assumption", "Mult"),
         ("i", "cycle_rate_assumption", "Rate"),
         ("e", "export_snapshot", "Export"),
@@ -52,10 +53,17 @@ class GexTerminalApp(App):
     RATE_PRESETS = (0.0, 0.02, 0.045, 0.05, 0.06)
     MULTIPLIER_PRESETS = (50, 20, 5, 2, 100)
 
-    def __init__(self, consumer: StatefulGexConsumer, config: GexConfig | None = None):
+    def __init__(
+        self,
+        consumer: StatefulGexConsumer,
+        config: GexConfig | None = None,
+        *,
+        allow_replay_switching: bool = True,
+    ):
         super().__init__()
         self.consumer = consumer
         self.config = config or GexConfig.from_env()
+        self.allow_replay_switching = bool(allow_replay_switching)
         self._gex_flow: deque[float] = deque(maxlen=36)
         self._latencies: deque[float] = deque(maxlen=36)
         self._events: deque[str] = deque(maxlen=7)
@@ -186,6 +194,10 @@ class GexTerminalApp(App):
             self._render_table(self._last_data)
 
     async def action_cycle_replay_session(self) -> None:
+        if not self.allow_replay_switching:
+            self._event("replay switching is disabled while session capture is active")
+            self._render_events()
+            return
         if self.config.data_mode.lower() not in {"demo", "replay"}:
             self._event("replay selector is available in demo or replay mode")
             self._render_events()
@@ -220,6 +232,10 @@ class GexTerminalApp(App):
         self._render_events()
 
     async def action_select_replay_session(self) -> None:
+        if not self.allow_replay_switching:
+            self._event("replay switching is disabled while session capture is active")
+            self._render_events()
+            return
         if self.config.data_mode.lower() not in {"demo", "replay"}:
             self._event("replay selector is available in demo or replay mode")
             self._render_events()
@@ -230,6 +246,24 @@ class GexTerminalApp(App):
     async def action_cycle_expiry_assumption(self) -> None:
         next_value = self._next_float_preset(self.config.days_to_expiry, self.EXPIRY_PRESETS)
         await self._apply_terminal_assumptions(days_to_expiry=next_value)
+
+    async def action_cycle_expiry_filter(self) -> None:
+        choices = self._expiry_filter_choices()
+        if len(choices) <= 1:
+            self._event("expiry filter -> no tagged expiries available")
+            self._render_events()
+            return
+        current = self.config.expiry_filter.lower()
+        try:
+            index = [choice.lower() for choice in choices].index(current)
+        except ValueError:
+            index = -1
+        selected = choices[(index + 1) % len(choices)]
+        self.config = replace(self.config, expiry_filter=selected)
+        self.consumer.set_expiry_filter(selected)
+        self._event(f"expiry filter -> {selected}")
+        self._render_controls()
+        await self.refresh_terminal_data()
 
     async def action_cycle_rate_assumption(self) -> None:
         next_value = self._next_float_preset(self.config.risk_free_rate, self.RATE_PRESETS)
@@ -249,6 +283,10 @@ class GexTerminalApp(App):
         self._render_events()
 
     async def _load_replay_session(self, session: ReplaySession) -> None:
+        if not self.allow_replay_switching:
+            self._event("replay load blocked -> active session capture")
+            self._render_events()
+            return
         try:
             messages = list(self._load_replay_messages(session))
         except (FileNotFoundError, ValueError) as error:
@@ -266,6 +304,7 @@ class GexTerminalApp(App):
             contract_multiplier=50,
             replay_path=session.path,
             replay_delay_seconds=0.0,
+            expiry_filter="all",
         )
         self._symbols = self.config.symbols
         self.consumer.engine.multiplier = self.config.contract_multiplier
@@ -275,6 +314,7 @@ class GexTerminalApp(App):
             risk_free_rate=self.config.risk_free_rate,
             stale_after_seconds=self.config.stale_after_seconds,
         )
+        self.consumer.set_expiry_filter(self.config.expiry_filter)
         self.consumer.mark_connected()
         self.consumer.mark_subscribed(1)
         self._reset_terminal_session_state()
@@ -384,10 +424,11 @@ class GexTerminalApp(App):
             f"sort: [#cbd5e1]{self.SORT_LABELS[self._sort_mode]}[/]  ·  "
             f"filter: [#cbd5e1]{self.FILTER_LABELS[self._filter_mode]}[/]   "
             f"replay: [#cbd5e1]{self._replay_label()}[/]   "
+            f"expiry: [#cbd5e1]{self.config.expiry_filter}[/]   "
             f"model: [#cbd5e1]{self.config.days_to_expiry:g}DTE · "
             f"{self.config.risk_free_rate:.2%} · ×{self.config.contract_multiplier}[/]   "
             f"[#5b6675]([b]s[/] sort  [b]f[/] filter  [b]p[/] replay  "
-            f"[b]d[/] dte  [b]m[/] mult  [b]i[/] rate  [b]e[/] export)[/]"
+            f"[b]x[/] expiry  [b]d[/] dte  [b]m[/] mult  [b]i[/] rate  [b]e[/] export)[/]"
         )
 
     async def _apply_terminal_assumptions(
@@ -480,6 +521,7 @@ class GexTerminalApp(App):
             f"provider {self.config.data_provider}",
             self._workflow_label().lower(),
             f"{self.config.symbol} ×{self.config.contract_multiplier}",
+            f"expiry {self.config.expiry_filter}",
             f"refresh {self.config.refresh_interval_seconds:g}s",
             f"last {self._last_refresh_at}",
         )
@@ -536,7 +578,10 @@ class GexTerminalApp(App):
     async def refresh_terminal_data(self) -> None:
         """Poll the consumer and render the latest GEX matrix."""
         started = time.perf_counter()
-        data = await self.consumer.process_latest_snapshot(days_to_expiry=self.config.days_to_expiry)
+        data = await self.consumer.process_latest_snapshot(
+            days_to_expiry=self.config.days_to_expiry,
+            expiry_filter=self.config.expiry_filter,
+        )
         self._last_latency_ms = (time.perf_counter() - started) * 1000
         self._latencies.append(self._last_latency_ms)
         self._last_refresh_at = self._timestamp()
@@ -639,27 +684,34 @@ class GexTerminalApp(App):
         table = self.query_one("#gex-table", DataTable)
         table.clear()
 
+        call_volumes = data.get("call_volume", ())
+        put_volumes = data.get("put_volume", ())
         max_volume = max(
-            (int(value["C"]) + int(value["P"]) for value in self.consumer.chain_state.values()),
+            (
+                int(call_volume) + int(put_volume)
+                for call_volume, put_volume in zip(call_volumes, put_volumes)
+            ),
             default=0,
         )
         max_abs_net = max((abs(float(value)) for value in data["net_gex"]), default=0)
         nearest_zero = float(data.get("nearest_zero_strike", data["zero_gamma_strike"]))
 
         rows = []
-        for strike, gamma, call_gex, put_gex, net_gex in zip(
+        for index, (strike, gamma, call_gex, put_gex, net_gex) in enumerate(zip(
             data["strikes"], data["gammas"], data["call_gex"], data["put_gex"], data["net_gex"]
-        ):
+        )):
             state = self.consumer.chain_state.get(float(strike), {"C": 0, "P": 0})
+            call_volume = int(call_volumes[index]) if index < len(call_volumes) else int(state["C"])
+            put_volume = int(put_volumes[index]) if index < len(put_volumes) else int(state["P"])
             rows.append({
                 "strike": float(strike),
                 "gamma": float(gamma),
                 "call_gex": float(call_gex),
                 "put_gex": float(put_gex),
                 "net_gex": float(net_gex),
-                "call_vol": int(state["C"]),
-                "put_vol": int(state["P"]),
-                "volume": int(state["C"]) + int(state["P"]),
+                "call_vol": call_volume,
+                "put_vol": put_volume,
+                "volume": call_volume + put_volume,
             })
 
         rows = self._arrange_rows(
@@ -752,10 +804,8 @@ class GexTerminalApp(App):
         self.query_one("#regime-map", Static).update(text)
 
     def _render_sidebar(self, data: dict) -> None:
-        contract_count = len(data["strikes"])
-        volume = sum(
-            int(value["C"]) + int(value["P"]) for value in self.consumer.chain_state.values()
-        )
+        contract_count = int(data.get("selected_contract_count", len(data["strikes"])))
+        volume = int(sum(data.get("call_volume", ())) + sum(data.get("put_volume", ())))
         self.query_one("#feed-chain", Static).update(f"[green]*[/] Option chain\n  {contract_count:,} contracts")
         self.query_one("#feed-proxy", Static).update(f"[amber]*[/] OI proxy\n  {volume:,} volume")
         self.query_one("#feed-lock", Static).update("[green]*[/] State lock\n  clean")
@@ -820,7 +870,8 @@ class GexTerminalApp(App):
         )
         self.query_one("#matrix-meta", Static).update(
             f"mode: {status} | expiry: {self.config.days_to_expiry:g}d | "
-            f"multiplier: {self.config.contract_multiplier} | rate: {self.config.risk_free_rate:.2%}"
+            f"selection: {self.config.expiry_filter} | multiplier: {self.config.contract_multiplier} | "
+            f"rate: {self.config.risk_free_rate:.2%}"
         )
         self.query_one("#stat-latency-foot", Static).update(
             f"{status.lower()} | refresh {self.config.refresh_interval_seconds:g}s"
@@ -1052,6 +1103,16 @@ class GexTerminalApp(App):
             return "DEMO RESEARCH"
         return "OPTIONS CHAIN"
 
+    def _expiry_filter_choices(self) -> tuple[str, ...]:
+        labels = self.consumer.available_expiries()
+        choices = ["all"]
+        if labels:
+            choices.append("0dte")
+        choices.extend(
+            label for label in labels if label.lower() not in {"all", "0dte"}
+        )
+        return tuple(dict.fromkeys(choices))
+
     @staticmethod
     def _arrange_rows(rows, sort_mode, filter_mode, spot, max_volume):
         """Filter then sort the matrix rows. Pure function for easy testing."""
@@ -1088,6 +1149,7 @@ async def run_mock_session():
         replay_path=config.replay_path,
         replay_delay_seconds=config.replay_delay_seconds,
         tradovate_environment=config.tradovate_environment,
+        expiry_filter=config.expiry_filter,
     )
     math_engine = IntradayGexEngine(multiplier=demo_config.contract_multiplier)
     state_consumer = StatefulGexConsumer(
@@ -1096,6 +1158,7 @@ async def run_mock_session():
         risk_free_rate=demo_config.risk_free_rate,
         data_mode=demo_config.data_mode,
         stale_after_seconds=demo_config.stale_after_seconds,
+        expiry_filter=demo_config.expiry_filter,
     )
     state_consumer.current_spot = 5943.25
     state_consumer.session_open = 5904.50

@@ -49,7 +49,7 @@ async def build_demo_lab(
     snapshot["feed_quality"] = consumer.feed_quality_snapshot()
     snapshot["demo_lab"] = {
         "replay_session": session.name,
-        "replay_path": session.path,
+        "replay_path": session.source_ref,
         "description": session.description,
     }
 
@@ -168,6 +168,7 @@ async def compute_replay_snapshot(
         risk_free_rate=config.risk_free_rate,
         data_mode="replay",
         stale_after_seconds=config.stale_after_seconds,
+        expiry_filter=config.expiry_filter,
     )
     adapter = ReplayAdapter(consumer, config.replay_path, delay_seconds=0.0)
     consumer.mark_connected()
@@ -176,7 +177,10 @@ async def compute_replay_snapshot(
         await consumer.update_market_state(dumps_normalized_message(message))
     consumer.mark_subscribed(len(consumer.chain_state))
 
-    data = await consumer.process_latest_snapshot(days_to_expiry=config.days_to_expiry)
+    data = await consumer.process_latest_snapshot(
+        days_to_expiry=config.days_to_expiry,
+        expiry_filter=config.expiry_filter,
+    )
     if "error" in data:
         raise ValueError(f"Replay session did not produce a snapshot: {data['error']}")
     breakdown = await consumer.process_expiry_breakdown(days_to_expiry=config.days_to_expiry)
@@ -386,7 +390,7 @@ def _demo_lab_manifest(
         "replay_session": {
             "name": session.name,
             "label": session.label,
-            "path": session.path,
+            "path": session.source_ref,
             "description": session.description,
         },
         "summary": {

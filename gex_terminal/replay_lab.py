@@ -54,6 +54,8 @@ async def build_replay_lab_report(
 async def analyze_replay_session(
     session: ReplaySession,
     config: GexConfig,
+    *,
+    messages: Iterable[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Replay one bundled fixture and collect snapshots, alerts, and quality notes."""
     replay_config = replace(
@@ -68,8 +70,8 @@ async def analyze_replay_session(
         risk_free_rate=replay_config.risk_free_rate,
         data_mode="replay",
         stale_after_seconds=replay_config.stale_after_seconds,
+        expiry_filter=replay_config.expiry_filter,
     )
-    adapter = ReplayAdapter(consumer, replay_config.replay_path, delay_seconds=0.0)
     alerts: list[dict[str, Any]] = []
     timeline: list[dict[str, Any]] = []
     phases: set[str] = set()
@@ -78,8 +80,12 @@ async def analyze_replay_session(
     previous_point: dict[str, Any] | None = None
 
     consumer.mark_connected()
-    messages = list(adapter._load_messages())
-    for index, message in enumerate(messages, start=1):
+    if messages is None:
+        adapter = ReplayAdapter(consumer, replay_config.replay_path, delay_seconds=0.0)
+        loaded_messages = list(adapter._load_messages())
+    else:
+        loaded_messages = [dict(message) for message in messages]
+    for index, message in enumerate(loaded_messages, start=1):
         _record_message_metadata(message, phases, timestamps)
         quality_case = str(message.get("quality_case", "")).strip()
         if quality_case and quality_case not in quality_cases:
@@ -91,7 +97,8 @@ async def analyze_replay_session(
             continue
 
         data = await consumer.process_latest_snapshot(
-            days_to_expiry=replay_config.days_to_expiry
+            days_to_expiry=replay_config.days_to_expiry,
+            expiry_filter=replay_config.expiry_filter,
         )
         if "error" in data:
             continue
@@ -115,7 +122,10 @@ async def analyze_replay_session(
     if not timeline:
         raise ValueError(f"Replay session {session.name} did not produce a snapshot")
 
-    data = await consumer.process_latest_snapshot(days_to_expiry=replay_config.days_to_expiry)
+    data = await consumer.process_latest_snapshot(
+        days_to_expiry=replay_config.days_to_expiry,
+        expiry_filter=replay_config.expiry_filter,
+    )
     breakdown = await consumer.process_expiry_breakdown(
         days_to_expiry=replay_config.days_to_expiry
     )
@@ -129,11 +139,12 @@ async def analyze_replay_session(
         data=data,
         chain_state=consumer.chain_state,
         expiry_breakdown=breakdown,
+        timestamp=timestamps[-1] if timestamps else None,
     )
     snapshot["replay_session"] = {
         "name": session.name,
         "label": session.label,
-        "path": session.path,
+        "path": session.source_ref,
         "description": session.description,
         "phases": sorted(phases),
         "first_timestamp": timestamps[0] if timestamps else "",
@@ -146,9 +157,9 @@ async def analyze_replay_session(
     summary = {
         "name": session.name,
         "label": session.label,
-        "path": session.path,
+        "path": session.source_ref,
         "description": session.description,
-        "message_count": len(messages),
+        "message_count": len(loaded_messages),
         "snapshot_count": len(timeline),
         "phase_count": len(phases),
         "phases": sorted(phases),
@@ -170,7 +181,7 @@ async def analyze_replay_session(
     return {
         "name": session.name,
         "label": session.label,
-        "path": session.path,
+        "path": session.source_ref,
         "description": session.description,
         "summary": summary,
         "alerts": alerts,
@@ -382,6 +393,10 @@ def _selected_sessions(session_names: Iterable[str] | None) -> tuple[ReplaySessi
     return tuple(replay_session_for_name(name) for name in session_names)
 
 
+def _message_time(message: dict[str, Any]) -> str:
+    return str(message.get("event_time") or message.get("timestamp") or "").strip()
+
+
 def _record_message_metadata(
     message: dict[str, Any],
     phases: set[str],
@@ -390,7 +405,7 @@ def _record_message_metadata(
     phase = str(message.get("session_phase", "")).strip()
     if phase:
         phases.add(phase)
-    timestamp = str(message.get("timestamp", "")).strip()
+    timestamp = _message_time(message)
     if timestamp:
         timestamps.append(timestamp)
 
@@ -410,7 +425,7 @@ def _timeline_point(
     return {
         "session": session_name,
         "message_index": message_index,
-        "timestamp": message.get("timestamp", ""),
+        "timestamp": _message_time(message),
         "phase": message.get("session_phase", ""),
         "spot": float(consumer.current_spot),
         "total_net_gex": float(data["total_net_gex"]),
@@ -516,7 +531,7 @@ def _quality_alert(session_name: str, message: dict[str, Any], quality_case: str
         "session": session_name,
         "type": "data_quality",
         "severity": "low",
-        "timestamp": message.get("timestamp", ""),
+        "timestamp": _message_time(message),
         "phase": message.get("session_phase", ""),
         "spot": message.get("price"),
         "gamma_wall": None,

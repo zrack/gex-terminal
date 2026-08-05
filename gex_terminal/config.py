@@ -1,11 +1,13 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+from gex_terminal.package_data import replay_data_path
 
 try:
-    from dotenv import load_dotenv
+    from dotenv import load_dotenv as _python_dotenv_load
 except ModuleNotFoundError:
-    def load_dotenv() -> bool:
-        return _load_dotenv_fallback()
+    _python_dotenv_load = None
 
 @dataclass(frozen=True)
 class GexConfig:
@@ -21,6 +23,11 @@ class GexConfig:
     replay_path: str
     replay_delay_seconds: float
     tradovate_environment: str
+    expiry_filter: str = "all"
+    replay_clock: str = "auto"
+    replay_speed: float = 1.0
+    replay_max_gap_seconds: float | None = None
+    strict_event_time: bool = False
 
     @classmethod
     def from_env(cls) -> "GexConfig":
@@ -36,9 +43,16 @@ class GexConfig:
             days_to_expiry=_env_float("GEX_DAYS_TO_EXPIRY", 0.25),
             refresh_interval_seconds=_env_float("GEX_REFRESH_INTERVAL_SECONDS", 1.0),
             stale_after_seconds=_env_float("GEX_STALE_AFTER_SECONDS", 10.0),
-            replay_path=_env_str("GEX_REPLAY_PATH", "sample_data/demo_replay.jsonl"),
+            replay_path=_env_str(
+                "GEX_REPLAY_PATH", str(replay_data_path("demo_replay.jsonl"))
+            ),
             replay_delay_seconds=_env_float("GEX_REPLAY_DELAY_SECONDS", 0.05),
             tradovate_environment=_env_str("TRADOVATE_ENV", "demo").lower(),
+            expiry_filter=_env_str("GEX_EXPIRY_FILTER", "all"),
+            replay_clock=_env_str("GEX_REPLAY_CLOCK", "auto").lower(),
+            replay_speed=_env_float("GEX_REPLAY_SPEED", 1.0),
+            replay_max_gap_seconds=_env_optional_float("GEX_REPLAY_MAX_GAP_SECONDS"),
+            strict_event_time=_env_bool("GEX_STRICT_EVENT_TIME", False),
         )
 
 
@@ -61,6 +75,28 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
+def _env_optional_float(name: str) -> float | None:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
 def _env_symbols(name: str, default: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:
     raw_symbols = os.getenv(name)
     symbols = tuple(
@@ -73,7 +109,7 @@ def _env_symbols(name: str, default: tuple[str, ...], target_symbol: str) -> tup
     return symbols[:4]
 
 
-def _load_dotenv_fallback(path: str = ".env") -> bool:
+def _load_dotenv_fallback(path: str | os.PathLike[str] = ".env") -> bool:
     if not os.path.exists(path):
         return False
 
@@ -92,4 +128,12 @@ def _load_dotenv_fallback(path: str = ".env") -> bool:
     return loaded
 
 
-load_dotenv()
+def _load_working_directory_dotenv() -> bool:
+    """Load only the caller's current-working-directory ``.env`` file."""
+    dotenv_path = Path.cwd() / ".env"
+    if _python_dotenv_load is not None:
+        return bool(_python_dotenv_load(dotenv_path=dotenv_path, override=False))
+    return _load_dotenv_fallback(dotenv_path)
+
+
+_load_working_directory_dotenv()

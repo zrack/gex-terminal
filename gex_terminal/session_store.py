@@ -9,10 +9,57 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
+from gex_terminal.session_capture import CaptureIntegrityError, inspect_captured_session
+
 
 SESSION_RECORD_SCHEMA = "gex-terminal.session-record.v1"
 SESSION_STORE_REPORT_SCHEMA = "gex-terminal.session-store.v1"
 DEFAULT_SESSION_STORE_DIR = "historical_sessions"
+
+
+def load_captured_sessions(store_dir: str | Path) -> list[dict[str, Any]]:
+    """Inventory complete, integrity-verified captured sessions."""
+    captures_dir = Path(store_dir) / "captures"
+    if not captures_dir.exists():
+        return []
+    captures = []
+    for path in sorted(captures_dir.glob("*.gex-session.jsonl")):
+        try:
+            captures.append(inspect_captured_session(path))
+        except (CaptureIntegrityError, OSError, json.JSONDecodeError):
+            continue
+    return sorted(
+        captures,
+        key=lambda item: (
+            item.get("first_event_time") or "",
+            item.get("session_id") or "",
+        ),
+    )
+
+
+def format_captured_session_list(captures: Iterable[dict[str, Any]]) -> str:
+    loaded = list(captures)
+    if not loaded:
+        return "No complete captured sessions found."
+    lines = [
+        "Captured Sessions",
+        "",
+        "ID                                      Events  First Event                 Source",
+        "--------------------------------------  ------  --------------------------  ----------------",
+    ]
+    for capture in loaded:
+        source = capture.get("source", {})
+        source_name = (
+            source.get("provider")
+            or source.get("name")
+            or source.get("mode")
+            or "unknown"
+        )
+        lines.append(
+            f"{capture['session_id']:<38.38}  {capture['event_count']:>6}  "
+            f"{str(capture.get('first_event_time') or '--'):<26.26}  {source_name}"
+        )
+    return "\n".join(lines)
 
 
 def save_session_snapshot(

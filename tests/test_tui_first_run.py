@@ -1,9 +1,11 @@
 import unittest
+import json
 
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.tui import GexTerminalApp
+from gex_terminal.replay_catalog import replay_session_for_name
 
 
 def _config(data_mode="demo"):
@@ -54,7 +56,10 @@ class FirstRunTerminalTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertNotIn("error", data)
         self.assertEqual(app.config.data_mode, "replay")
-        self.assertEqual(app.config.replay_path, "sample_data/es_zero_gamma_flip.jsonl")
+        self.assertEqual(
+            app.config.replay_path,
+            replay_session_for_name("zero-gamma-flip").path,
+        )
         self.assertEqual(consumer.runtime_status, "REPLAY")
         self.assertEqual(consumer.target_underlying, "ES")
 
@@ -84,6 +89,33 @@ class FirstRunTerminalTests(unittest.IsolatedAsyncioTestCase):
 
             self.assertFalse(app._replay_browser_open)
             self.assertEqual(app.config.data_mode, "demo")
+
+    async def test_replay_switch_is_blocked_during_session_capture(self):
+        config = _config(data_mode="replay")
+        consumer = StatefulGexConsumer(
+            IntradayGexEngine(multiplier=config.contract_multiplier),
+            target_underlying=config.symbol,
+            data_mode=config.data_mode,
+        )
+        app = GexTerminalApp(
+            consumer=consumer,
+            config=config,
+            allow_replay_switching=False,
+        )
+        original_path = app.config.replay_path
+
+        async with app.run_test(size=(140, 42)) as pilot:
+            await pilot.pause(0.1)
+            await app.action_cycle_replay_session()
+            await app._load_replay_session(replay_session_for_name("trend-day"))
+
+        self.assertFalse(app._replay_browser_open)
+        self.assertEqual(app.config.replay_path, original_path)
+        self.assertEqual(consumer.message_count, 0)
+        self.assertTrue(
+            any("active session capture" in event for event in app._events),
+            app._events,
+        )
 
     async def test_terminal_assumption_controls_recompute_loaded_replay(self):
         config = _config()
@@ -122,6 +154,37 @@ class FirstRunTerminalTests(unittest.IsolatedAsyncioTestCase):
             0.4,
             places=6,
         )
+
+    async def test_terminal_cycles_first_class_expiry_filter(self):
+        config = _config()
+        consumer = StatefulGexConsumer(
+            IntradayGexEngine(multiplier=50),
+            target_underlying="ES",
+            data_mode="demo",
+            expiry_filter="all",
+        )
+        consumer.current_spot = 100.0
+        for expiry, strike in (("0DTE", 100), ("2026-07-24", 105)):
+            await consumer.update_market_state(json.dumps({
+                "type": "options_volume_tick",
+                "strike": strike,
+                "option_type": "C",
+                "volume": 100,
+                "iv": 0.2,
+                "expiry": expiry,
+                "timestamp": "2026-07-17T15:00:00Z",
+            }))
+        app = GexTerminalApp(consumer=consumer, config=config)
+
+        async with app.run_test(size=(160, 48)) as pilot:
+            await pilot.pause(0.1)
+            await app.action_cycle_expiry_filter()
+            await pilot.pause(0.1)
+
+        self.assertEqual(app.config.expiry_filter, "0dte")
+        self.assertEqual(consumer.expiry_filter, "0dte")
+        self.assertEqual(app._last_data["expiry_filter"], "0dte")
+        self.assertEqual(app._last_data["strikes"], [100.0])
 
 
 if __name__ == "__main__":

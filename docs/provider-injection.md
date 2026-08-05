@@ -22,7 +22,7 @@ The workbench currently covers sanitized Tradovate live frames, a Tradovate
 metadata join, Databento GLBX-style fixtures, a yfinance ETF option-chain sample,
 and a Cboe-style option quote CSV. Use it before and after adapter changes to
 produce one shareable pass/fail scorecard with health counters, computed gamma
-wall, zero-gamma level, and saved snapshot baselines.
+wall, strike-profile flip/compatibility level, and saved snapshot baselines.
 
 The checked-in example output is available at
 [docs/examples/provider_fixture_lab.md](examples/provider_fixture_lab.md).
@@ -32,17 +32,13 @@ The checked-in example output is available at
 Inject sanitized Tradovate-style WebSocket frames:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl \
-  --provider tradovate \
-  --symbol ES
+gex-terminal inject-provider bundled:tradovate-live-sample
 ```
 
 Export the resulting snapshot:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl \
-  --provider tradovate \
-  --symbol ES \
+gex-terminal inject-provider bundled:tradovate-live-sample \
   --export injected_tradovate.md
 ```
 
@@ -50,10 +46,7 @@ If a raw sample does not carry strike/type fields directly, pass a sanitized
 contract-discovery fixture:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/tradovate_md_quotes.json \
-  --provider tradovate \
-  --symbol ES \
-  --metadata tests/fixtures/tradovate_contract_discovery.json
+gex-terminal inject-provider bundled:tradovate-md-quotes
 ```
 
 The Tradovate injector accepts JSON files containing an `a[...]` payload body
@@ -65,11 +58,7 @@ Databento sample injection joins definition metadata to trade records, then
 optionally injects an underlying quote fixture:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/databento_trade_records.json \
-  --provider databento \
-  --symbol ES \
-  --metadata tests/fixtures/databento_definition_records.json \
-  --underlying-fixture tests/fixtures/databento_underlying_mbp1_record.json
+gex-terminal inject-provider bundled:databento-glbx
 ```
 
 This exercises the documented `GLBX.MDP3` fixture mapping without requiring a
@@ -81,9 +70,7 @@ yfinance samples are useful for delayed SPY/QQQ-style equity/ETF option-chain
 research:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/yfinance_option_chain_records.json \
-  --provider yfinance \
-  --symbol SPY
+gex-terminal inject-provider bundled:yfinance-etf-options
 ```
 
 This path is not a futures-options substitute for ES/NQ.
@@ -94,9 +81,7 @@ Cboe-style option quote CSV samples can be injected with an explicit fixture
 format:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/cboe_option_quotes_sample.csv \
-  --fixture-format cboe-option-quotes \
-  --symbol SPY
+gex-terminal inject-provider bundled:cboe-option-quotes-csv
 ```
 
 The CSV parser accepts common header names for underlying symbol/price, strike,
@@ -108,7 +93,7 @@ The command prints a compact operator summary with:
 
 - spot
 - gamma wall
-- zero-gamma level
+- strike-profile/zero-gamma compatibility level
 - normalized message count
 - provider frame count
 - parse error count
@@ -119,6 +104,12 @@ The command prints a compact operator summary with:
 
 Use `--export .json`, `--export .csv`, or `--export .md` to save the full
 snapshot, including `provider_injection` metadata and `feed_quality` counters.
+
+The `bundled:NAME` selector resolves resources inside either the source package
+or installed wheel. Pass a filesystem path, `--metadata`, and
+`--underlying-fixture` when teaching or testing a custom local payload. The
+`fixture-lab` command runs every bundled case and exits nonzero if any case
+fails.
 
 ## Adding A Provider Fixture Case
 

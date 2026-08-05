@@ -29,7 +29,7 @@ gex-terminal replay-lab gap_fade_lab.md --replay-session gap-fade
 ## What The Report Includes
 
 - A session dashboard with final spot, session change, net GEX, gamma wall,
-  zero-gamma, regime, and alert count.
+  strike-profile/zero-gamma compatibility level, regime, and alert count.
 - A leaderboard for largest absolute net GEX, most alerts, tightest gamma
   concentration, and largest spot move.
 - Session-to-session comparisons using saved final replay snapshots.
@@ -95,9 +95,11 @@ net-GEX, imbalance, session change, and replay-alert count. See
 
 ## Contributor Workflow
 
-1. Add or edit a normalized JSONL fixture in `sample_data/`.
+1. Add or edit a normalized JSONL fixture in `gex_terminal/data/replays/` so it
+   is included in source and wheel workflows.
 2. Register it in `gex_terminal/replay_catalog.py`.
 3. Validate it with `gex-terminal validate-fixture PATH`.
 4. Run `gex-terminal replay-lab replay_lab.md`.
-5. Review changed alerts, walls, zero-gamma levels, and comparison deltas.
+5. Review changed alerts, walls, strike-profile levels, model provenance, and
+   comparison deltas.
 6. Add or update tests for any intended fixture, alert, or export behavior.

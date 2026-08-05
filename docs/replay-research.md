@@ -53,10 +53,10 @@ The selector is available in demo and replay mode. Live mode keeps replay
 loading disabled so background provider tasks cannot be mixed with local replay
 state.
 
-While a replay is loaded, use `d`, `m`, and `i` to cycle days-to-expiry,
-contract multiplier, and risk-free rate assumptions from inside the terminal.
-These controls recompute the current snapshot, which makes quick sensitivity
-checks possible before exporting a report.
+While a replay is loaded, use `x`, `d`, `m`, and `i` to cycle expiry selection,
+fallback days-to-expiry, contract multiplier, and risk-free rate from inside the
+terminal. These controls recompute the current snapshot, which makes quick
+sensitivity checks possible before exporting a report.
 
 ## Replay Research Lab
 
@@ -104,6 +104,23 @@ by Git. It is useful when you want a lightweight archive of final snapshots
 without the fuller narrative entry shape used by the journal. See
 [docs/historical-sessions.md](historical-sessions.md) for details.
 
+Record or replay a normalized event session when a final snapshot is not enough:
+
+```bash
+gex-terminal --replay-session trend-day --record-session \
+  --capture-path /tmp/trend-day.gex-session.jsonl
+gex-terminal --captured-session /tmp/trend-day.gex-session.jsonl \
+  --replay-clock event --replay-speed 20
+gex-terminal session-store captures
+```
+
+See [docs/captured-sessions.md](captured-sessions.md) for integrity, event-time,
+and journal workflows.
+
+The replay browser intentionally disables session switching during an active
+capture. Finish the capture and start a new run so each file has one unambiguous
+event stream.
+
 ## Demo Lab Pack
 
 Generate a no-credential demo pack from a replay session:
@@ -125,10 +142,10 @@ parsing, consumer state, GEX math, snapshot export, and Provider Health
 counters without opening a live connection:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl --provider tradovate --symbol ES
-gex-terminal inject-provider tests/fixtures/databento_trade_records.json --provider databento --symbol ES --metadata tests/fixtures/databento_definition_records.json --underlying-fixture tests/fixtures/databento_underlying_mbp1_record.json
-gex-terminal inject-provider tests/fixtures/yfinance_option_chain_records.json --provider yfinance --symbol SPY
-gex-terminal inject-provider tests/fixtures/cboe_option_quotes_sample.csv --fixture-format cboe-option-quotes --symbol SPY
+gex-terminal inject-provider bundled:tradovate-live-sample
+gex-terminal inject-provider bundled:databento-glbx
+gex-terminal inject-provider bundled:yfinance-etf-options
+gex-terminal inject-provider bundled:cboe-option-quotes-csv
 ```
 
 Use this for captured/demo provider samples and converter work. Use normalized
@@ -151,8 +168,12 @@ live credentials.
 Validate normalized JSONL before submitting fixtures:
 
 ```bash
-gex-terminal validate-fixture sample_data/es_trend_day.jsonl
+gex-terminal validate-fixture gex_terminal/data/replays/es_trend_day.jsonl
 ```
+
+Named `--replay-session`, `bundled:NAME`, and `fixture-lab` workflows resolve
+package resources when installed from a wheel. The explicit validation path
+above is for contributors editing the source fixture itself.
 
 The validator checks JSON syntax, required normalized fields, option type,
 positive prices/strikes, non-negative volume, IV shape, and basic fixture
@@ -186,4 +207,14 @@ gex-terminal --replay-session trend-day --sensitivity sensitivity.csv
 
 The report compares base GEX output against assumption shifts for contract
 multiplier, expiry, risk-free rate, implied volatility, and volume/open-interest
-proxy scaling.
+proxy scaling. For schema-v2 state, the base scenario uses the same contract rows,
+pricing models, authoritative expiry timestamps, and multipliers as the snapshot.
+
+Run the independent numerical/deterministic gate separately:
+
+```bash
+gex-terminal model-evidence model_evidence.md
+```
+
+That gate does not establish predictive market validity. See
+[docs/model-validation.md](model-validation.md).

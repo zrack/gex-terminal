@@ -3,12 +3,62 @@
 All notable project changes should be recorded here so the README and roadmap
 can stay focused on current usage and future direction.
 
-This project does not have tagged releases yet. Until then, entries are grouped
-by date and public-prep milestone.
+The source/package version is `0.2.0`. This changelog describes that release
+baseline, but it does not claim that a Git tag or PyPI artifact has been
+published.
 
 ## Unreleased
 
+No entries yet.
+
+## 0.2.0 - 2026-08-04
+
 ### Added
+
+- Normalized message schema v2 with provider-scoped contract identity, strict
+  timezone-bearing event time, expiry and instrument class, incremental versus
+  cumulative volume semantics, position source, and optional per-contract
+  multiplier; schema v1 remains supported.
+- First-class `all`, `0dte`, and exact-expiry filtering in configuration, CLI,
+  consumer state, exports, and the terminal `x` control.
+- Black-76 gamma for futures options, Black-Scholes with carry support for
+  equity/index options, and per-contract DTE/multiplier pricing before
+  same-strike aggregation.
+- Separate strike-profile flip and nearest-neutral outputs, with the historical
+  `zero_gamma` field retained as a documented compatibility alias/fallback.
+- Append-only captured-session schema with header/event/footer records,
+  per-message and aggregate unkeyed SHA-256 consistency checks, crash-visible
+  `.partial` files, atomic finalization, event-time replay, speed/gap controls,
+  session-store inventory, and journal ingestion.
+- Bounded `model-evidence` JSON/Markdown reports with independent
+  Black-Scholes/Black-76 oracles, ES dollar-GEX scaling, deterministic checks,
+  and predictive market validity explicitly reported as `unmeasured`.
+- Explicit `tradovate-certify` read-only network probe with mandatory user
+  acknowledgement, redacted evidence, failed-closed exit status, and separate
+  transport versus quantitative-GEX results.
+- Package-resource helpers and installed-wheel tests for bundled replay sessions
+  and provider fixtures from an arbitrary working directory, with stable public
+  resource identities instead of installation-specific absolute paths.
+- Python 3.11/3.12 CI coverage with build, metadata validation, wheel install,
+  CWD `.env` loading, `--version`, named replay, demo-lab, provider injection,
+  and fixture-lab smoke tests.
+
+### Changed
+
+- Tradovate transport now uses raw-token WebSocket authorization, waits for
+  authorization/subscription acknowledgements, maps nested official quote
+  entries, handles cumulative total-volume/open-interest values, renews tokens,
+  backs off on retryable failures, and unsubscribes during shutdown. Registry
+  status remains `scaffold` pending a successful credentialed certification.
+- Model sensitivity keeps its base scenario aligned with the contract-aware
+  snapshot instead of silently falling back to scalar legacy assumptions.
+- Snapshot schema v2 records model version, normalized schema versions, pricing
+  models, position sources/conflicts, contract counts, expiry filter, units,
+  day count, aggregation, as-of time, and strike-profile semantics.
+- Bundled data moved from the former repository-root replay/fixture directories
+  into `gex_terminal/data/` so offline workflows survive wheel installation.
+
+### Earlier baseline additions
 
 - Provider Health panel with simulated/demo-ready feed-quality summaries,
   stale checks, latency, malformed/dropped payload counters, and entitlement
@@ -60,8 +110,8 @@ by date and public-prep milestone.
   gamma wall, next trigger, and positive/negative/transition/pinned states.
 - Code of Conduct for community participation expectations.
 - GitHub social-preview source asset for sharing the project.
-- Model assumptions documentation covering volume-as-open-interest proxy, sign
-  convention, zero-gamma behavior, and known limitations.
+- Model assumptions documentation covering position proxies, sign convention,
+  strike-profile compatibility behavior, and known limitations.
 - Product vision notes for signature capabilities and contributor-facing ideas.
 - Synthetic ES 0DTE full-session replay dataset for no-credential testing.
 - Zero-gamma interpolation edge-case tests.

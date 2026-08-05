@@ -21,6 +21,19 @@ def _data():
         "concentration_ratio": 0.65,
         "concentration_band_low": 5950.0,
         "concentration_band_high": 6000.0,
+        "schema_version": 2,
+        "model_version": "gex-terminal.gex-model.v2",
+        "normalized_schema_versions": [2],
+        "calculation_mode": "contract_v2",
+        "pricing_models": ["black_76"],
+        "gamma_aggregation": "quantity_weighted_mean",
+        "zero_gamma_semantics": "strike_profile_exposure_crossing",
+        "contract_count": 6,
+        "selected_contract_count": 6,
+        "position_sources": ["open_interest", "trade_volume"],
+        "expiry_filter": "0dte",
+        "units": "USD gamma exposure per 1% underlying move",
+        "day_count_convention": "ACT/365",
     }
 
 
@@ -44,8 +57,36 @@ class SnapshotTests(unittest.TestCase):
 
     def test_snapshot_has_expected_top_level_keys(self):
         snap = self._snapshot()
-        for key in ("timestamp", "symbol", "spot", "metrics", "expiry_breakdown", "strikes"):
+        for key in (
+            "timestamp",
+            "symbol",
+            "spot",
+            "metrics",
+            "model",
+            "expiry_breakdown",
+            "strikes",
+        ):
             self.assertIn(key, snap)
+
+    def test_snapshot_carries_complete_model_provenance(self):
+        model = self._snapshot()["model"]
+
+        self.assertEqual(model["schema_version"], 2)
+        self.assertEqual(model["model_version"], "gex-terminal.gex-model.v2")
+        self.assertEqual(model["normalized_schema_versions"], [2])
+        self.assertEqual(model["calculation_mode"], "contract_v2")
+        self.assertEqual(model["pricing_models"], ["black_76"])
+        self.assertEqual(model["position_sources"], ["open_interest", "trade_volume"])
+        self.assertEqual(model["contract_count"], 6)
+        self.assertEqual(model["expiry_filter"], "0dte")
+        self.assertEqual(
+            model["units"], "USD gamma exposure per 1% underlying move"
+        )
+        self.assertEqual(model["day_count_convention"], "ACT/365")
+        self.assertEqual(model["gamma_aggregation"], "quantity_weighted_mean")
+        self.assertEqual(
+            model["zero_gamma_semantics"], "strike_profile_exposure_crossing"
+        )
 
     def test_metrics_carry_walls_and_concentration(self):
         metrics = self._snapshot()["metrics"]

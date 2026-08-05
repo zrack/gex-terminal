@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gex-terminal"
-version = "0.1.0"
+version = "0.2.0"
 description = "Terminal UI for intraday gamma exposure and options market structure."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "M. Scott Zeitner" }
 ]
@@ -26,7 +27,6 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Financial and Insurance Industry",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -36,7 +36,6 @@ dependencies = [
     "aiohttp>=3.9.0",
     "numpy==2.4.6",
     "python-dotenv>=1.0.0",
-    "scipy==1.17.1",
     "textual==8.2.7",
     "websockets>=12.0",
 ]
@@ -60,7 +59,17 @@ Issues = "https://github.com/zrack/gex-terminal/issues"
 gex-terminal = "gex_terminal.cli:main_sync"
 
 [tool.setuptools]
-packages = ["gex_terminal", "gex_terminal.adapters"]
+packages = [
+    "gex_terminal",
+    "gex_terminal.adapters",
+    "gex_terminal.data",
+    "gex_terminal.data.replays",
+    "gex_terminal.data.provider_fixtures",
+]
 
 [tool.setuptools.package-data]
-gex_terminal = ["*.tcss"]
+gex_terminal = [
+    "*.tcss",
+    "data/replays/*.jsonl",
+    "data/provider_fixtures/*",
+]

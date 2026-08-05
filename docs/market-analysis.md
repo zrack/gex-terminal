@@ -20,17 +20,21 @@ Current strengths:
 - Local demo/replay mode for no-credential testing.
 - Provider adapter architecture for Tradovate, Databento, IBKR, yfinance, and
   replay data.
-- Strike-level GEX matrix, gamma wall, zero-gamma node, call/put imbalance, and
-  market-structure metrics.
+- Contract-aware Black-76/Black-Scholes GEX matrix, gamma wall,
+  strike-profile/nearest-neutral levels, call/put imbalance, expiry selection,
+  and model provenance.
+- Integrity-checked captured sessions, packaged replay/fixture workflows, and a
+  bounded numerical model-evidence gate.
 
 Current constraints:
 
 - Live provider integrations are still early.
-- Uses cumulative intraday volume as a practical open-interest proxy until
-  stronger live/open-interest data is wired in.
+- Uses explicitly labeled trade volume or open interest as a positioning proxy;
+  neither establishes dealer inventory or opening/closing flow.
 - Does not yet model dealer/customer trade direction.
-- Does not include options flow, dark-pool prints, mobile apps, alerts,
-  TradingView overlays, execution, or broad equity scanning.
+- Does not include options flow, dark-pool prints, mobile apps, execution, or
+  broad equity scanning. Alerts and TradingView exports are local artifacts,
+  not hosted integrations.
 
 ## Similar Products
 
@@ -106,22 +110,24 @@ for non-professional users, in addition to any TradingView subscription.
 
 Features competitors commonly have that `gex-terminal` does not yet have:
 
-- Production-grade live option-chain discovery for ES/NQ and robust reconnects.
-- Official open-interest ingestion instead of relying on intraday volume proxy.
-- Multi-expiry views with explicit 0DTE filtering and expiration selection.
+- Credentialed certification and market-coverage proof for production-grade
+  live ES/NQ option-chain discovery. Transport hardening exists, but Tradovate
+  remains a scaffold until that gate passes.
+- Entitlement-backed live open-interest ingestion and source-quality comparison.
 - Dealer/customer direction inference to avoid naive call-positive/put-negative
   assumptions.
 - Vanna, charm, delta exposure, vega exposure, and theta exposure.
 - Options-flow feed: sweeps, blocks, splits, premium, side, size, and filters.
-- Historical session storage, backtesting, and day-over-day level comparison.
+- Governed live-day capture datasets, backtesting labels, and dedicated
+  expiry/day-over-day comparisons. Capture integrity alone is not validation.
 - Chart overlays and integrations for TradingView, NinjaTrader, Sierra Chart, or
   Discord.
 - Alerts, webhooks, and level-crossing notifications.
 - Multi-symbol scanner for ES, NQ, SPX, SPY, QQQ, IWM, and single names.
 - Options P/L calculator with Greeks and volatility/time scenario controls.
 - Mobile/web dashboard for users who do not live in a terminal.
-- Data-quality panel showing provider latency, dropped messages, stale fields,
-  and entitlement failures.
+- Predictive validation against independently specified price-action outcomes;
+  current predictive validity is explicitly unmeasured.
 
 ## Product Opportunity
 
@@ -141,18 +147,15 @@ That makes `gex-terminal` interesting for contributors because they can improve
 the model, add providers, submit normalized payload fixtures, and build export or
 visualization tools without needing to join a closed commercial platform.
 
-## Recommended Roadmap Additions
+## Recommended Roadmap Focus
 
-- Add a `GEX_MODEL_NOTES.md` or docs section explaining the current assumptions,
-  especially volume-as-open-interest proxy, call/put sign convention, and
-  limitations versus proprietary dealer-positioning models.
-- Make one provider truly production-ready before widening the provider list.
-- Add a historical session store so users can replay, compare, and validate
-  levels against price action.
-- Add 0DTE and expiry selection as a first-class UI workflow.
-- Add vanna/charm/DEX metrics after the live option-chain model stabilizes.
-- Add alerting for gamma wall shifts, zero-gamma crosses, stale data, and major
-  exposure changes.
-- Add export formats designed for TradingView overlays or Discord posts.
-- Publish sample replay datasets so new users can evaluate the app without paid
-  data.
+- Make one provider pass the explicit, redacted credentialed certification gate
+  before widening live integrations.
+- Collect governed captured sessions with native IV and known coverage, then
+  define out-of-sample outcome labels before making predictive claims.
+- Add dealer/customer and opening/closing evidence when a licensed source can
+  support it.
+- Extend journal comparisons with expiry exposure and date-tagged day-over-day
+  fields.
+- Add vanna/charm/DEX metrics only after their data and validation contracts are
+  equally explicit.

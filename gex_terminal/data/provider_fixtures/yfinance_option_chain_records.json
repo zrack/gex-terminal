@@ -1,6 +1,7 @@
 {
   "symbol": "SPY",
   "expiry": "2026-07-17",
+  "observed_at": "2026-07-16T20:00:00Z",
   "quote": {
     "last_price": 512.34
   },

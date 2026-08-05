@@ -31,6 +31,9 @@ logs/
 /demo_pack/
 /research_journal/
 /historical_sessions/
+*.gex-session.jsonl
+*.gex-session.jsonl.partial
+graphify-out/
 
 # OS and editor metadata
 .DS_Store

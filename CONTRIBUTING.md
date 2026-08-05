@@ -13,9 +13,9 @@ is not financial advice.
 - Pick a scoped starter from `docs/good-first-issues.md`.
 - Add deterministic tests for the GEX engine and consumer state handling.
 - Improve the Textual terminal interface and empty/error states.
-- Add mock data and replay mode so the app can run without live credentials.
-- Harden the Tradovate adapter and document required market-data permissions.
-- Help design a provider adapter interface for future data sources.
+- Add replay or captured-session evidence that runs without live credentials.
+- Validate the Tradovate scaffold with redacted, explicit certification evidence.
+- Extend provider adapters without weakening the normalized schema-v2 contract.
 - Improve documentation around assumptions, formulas, and limitations.
 - Report bugs with reproducible inputs and expected behavior.
 
@@ -48,7 +48,7 @@ please check your changes before opening a pull request.
 
 ## Running the App
 
-Launch the live terminal:
+Launch the configured terminal (the example environment defaults to demo):
 
 ```bash
 gex-terminal
@@ -57,8 +57,9 @@ gex-terminal
 You can also run the terminal with normalized replay data:
 
 ```bash
-gex-terminal --replay sample_data/demo_replay.jsonl
-gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
+gex-terminal list-replays
+gex-terminal --replay-session demo
+gex-terminal --replay-session full-session
 ```
 
 Demo and replay modes are useful for UI and engine work that should not require
@@ -79,17 +80,37 @@ Run a source compile smoke check before opening a pull request:
 
 ```bash
 python -m compileall main.py gex_terminal tests
+python -m unittest discover -s tests -v
 ```
 
-Once a test suite is established, contributors will be expected to run `pytest`.
-Until then, please include the manual verification you performed in your pull
-request description.
+For model changes, also run the bounded evidence gate:
+
+```bash
+gex-terminal model-evidence /tmp/model_evidence.json
+```
+
+For package/resource changes, reproduce the CI release contract:
+
+```bash
+python -m pip install build twine
+python -m build --outdir /tmp/gex-terminal-dist
+python -m twine check /tmp/gex-terminal-dist/*
+```
+
+Install the wheel into a temporary virtual environment, change to a directory
+outside the checkout, and exercise `gex-terminal --version`, a named replay,
+and `fixture-lab`. Bundled data must resolve from package resources rather than
+the repository working directory.
 
 ## Development Guidelines
 
 - Keep market-data adapters separate from calculation logic.
 - Keep GEX math deterministic and covered by focused tests where possible.
 - Prefer vectorized NumPy operations in `gex_terminal/engine.py`.
+- Price schema-v2 rows with their contract-specific model, DTE, and multiplier
+  before aggregating equal strikes.
+- Preserve the historical schema-v1 behavior unless a documented migration
+  explicitly replaces it.
 - Avoid committing generated files, local virtual environments, logs, or caches.
 - Keep credentials and user-specific settings in environment variables.
 - Use small, focused pull requests when changing calculation behavior.
@@ -98,18 +119,30 @@ request description.
 ## Market-Data Adapter Guidelines
 
 Provider adapters should normalize incoming data before it reaches
-`StatefulGexConsumer`. The consumer expects JSON messages shaped like:
+`StatefulGexConsumer`. New option adapters should emit schema v2:
 
 See [docs/adapters.md](docs/adapters.md) for the current adapter contract and
 provider implementation notes.
 
 ```json
 {
+  "schema_version": 2,
   "type": "options_volume_tick",
+  "provider": "example",
+  "contract_id": "provider-contract-123",
+  "symbol": "ES",
   "strike": 5000,
   "option_type": "C",
   "volume": 100,
-  "iv": 0.15
+  "iv": 0.15,
+  "iv_source": "provider",
+  "expiry": "2026-08-07",
+  "expiry_timestamp": "2026-08-07T20:00:00Z",
+  "instrument_class": "futures_option",
+  "volume_semantics": "cumulative",
+  "position_source": "trade_volume",
+  "contract_multiplier": 50,
+  "event_time": "2026-08-04T17:30:00Z"
 }
 ```
 
@@ -117,18 +150,37 @@ Underlying ticks should be shaped like:
 
 ```json
 {
+  "schema_version": 2,
   "type": "underlying_tick",
+  "provider": "example",
   "symbol": "ES",
-  "price": 5000.25
+  "price": 5000.25,
+  "event_time": "2026-08-04T17:30:00Z"
 }
 ```
+
+Schema-v2 contract identity is provider scoped. Declare whether `volume` is
+`incremental` or `cumulative`, and whether it represents `trade_volume` or
+`open_interest`; do not add both sources together. Supply a positive `iv` and
+label `iv_source` as `provider` or `configured_default`; fallback IV must remain
+visible as degraded feed quality. Futures options map to
+Black-76, while equity and index options map to Black-Scholes. Date-only expiry
+labels are useful for selection, but a timezone-bearing expiry timestamp is the
+authoritative fractional-DTE source and overrides explicit contract DTE. Without
+that timestamp, use explicit contract DTE and then the configured fallback.
 
 If you add a provider, please document:
 
 - Required credentials and permissions.
 - Whether data is live, delayed, demo, or replayed.
 - How option symbols map to strike, expiration, and call/put fields.
+- Contract ID stability, event-time timezone, quantity semantics, position
+  source, multiplier, and instrument class.
 - Known limitations or provider-specific assumptions.
+
+If adding captured-session fixtures, never include raw authentication frames,
+tokens, account identifiers, or data that cannot be redistributed. See
+[docs/captured-sessions.md](docs/captured-sessions.md).
 
 ## Pull Request Checklist
 
@@ -138,6 +190,8 @@ Before opening a pull request, please confirm:
 - No secrets or local-only files are included.
 - New behavior is documented in the README or comments where appropriate.
 - Calculation changes include tests or clearly described manual verification.
+- Model evidence still reports predictive market validity as `unmeasured`
+  unless a separate, reviewable validation design proves a narrower claim.
 - Generated local output such as `demo_lab/`, `research_journal/`, and
   `historical_sessions/` is not included.
 - UI changes can be exercised with mock data or documented sample input.

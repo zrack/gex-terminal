@@ -7,9 +7,10 @@ from gex_terminal.provider_injector import (
     inject_provider_fixture,
     provider_injection_summary,
 )
+from gex_terminal.package_data import provider_fixture_dir
 
 
-FIXTURE_DIR = Path(__file__).parent / "fixtures"
+FIXTURE_DIR = provider_fixture_dir()
 
 
 def _config(symbol: str = "ES", provider: str = "tradovate") -> GexConfig:
