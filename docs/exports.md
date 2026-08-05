@@ -38,8 +38,11 @@ gex-terminal --replay-session zero-gamma-flip --export gex_snapshot.md
 ```
 
 The snapshot is the best format for reproducible research because it keeps the
-strike-level values that produced the displayed gamma wall, zero-gamma node,
-call wall, put wall, and concentration band.
+strike-level values that produced the displayed gamma wall, strike-profile
+flip/nearest-neutral values, call wall, put wall, and concentration band. Schema
+v2 also records model version, normalized schemas, pricing models, position
+sources, selected/expired contract counts, expiry filter, units, day count,
+aggregation, as-of time, and compatibility-field semantics.
 
 When a snapshot carries replay alerts or feed-quality metadata, Markdown and CSV
 exports include those sections as shareable rows.
@@ -48,9 +51,7 @@ Provider injection snapshots include `provider_injection` metadata and
 `feed_quality` counters:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl \
-  --provider tradovate \
-  --symbol ES \
+gex-terminal inject-provider bundled:tradovate-live-sample \
   --export injected_tradovate.json
 ```
 
@@ -67,8 +68,11 @@ gex-terminal fixture-lab provider_fixture_lab.csv
 
 Markdown is best for GitHub issues and pull requests. JSON keeps the full
 snapshot baseline for every provider case. CSV gives spreadsheet-friendly rows
-for fixture health, parser counters, gamma wall, zero-gamma level, and message
-counts.
+for fixture health, parser counters, gamma wall, the zero-gamma compatibility
+level, and message counts.
+
+Both `bundled:NAME` and `fixture-lab` resolve installed package resources;
+`fixture-lab` exits nonzero if a case fails.
 
 ## Historical Session Store Reports
 
@@ -81,6 +85,15 @@ gex-terminal session-store report historical_sessions/session_store.md
 
 Use Markdown or CSV reports when you want to discuss historical snapshot changes
 without attaching raw local store records.
+
+List complete, internally consistent normalized event captures separately:
+
+```bash
+gex-terminal session-store captures
+```
+
+Captured-session JSONL is an event artifact rather than a snapshot report. See
+[captured-sessions.md](captured-sessions.md).
 
 ## Replay Lab Reports
 
@@ -163,7 +176,36 @@ gex-terminal --demo --sensitivity sensitivity.md
 ```
 
 Default scenarios compare changes to contract multiplier, expiry, risk-free
-rate, implied volatility, and the volume/open-interest proxy.
+rate, implied volatility, and the volume/open-interest proxy. Schema-v2 reports
+preserve contract pricing models, authoritative expiry times, and per-contract
+multipliers in the base scenario.
+
+## Model Evidence Reports
+
+Model-evidence reports are available as JSON or Markdown:
+
+```bash
+gex-terminal model-evidence model_evidence.json
+gex-terminal model-evidence model_evidence.md
+```
+
+They contain analytical Black-Scholes/Black-76 oracles, dollar-GEX scaling,
+deterministic checks, and an explicit predictive-validity status of
+`unmeasured`. The command exits nonzero if the bounded gate fails. See
+[model-validation.md](model-validation.md).
+
+## Tradovate Certification Reports
+
+The explicit read-only probe writes redacted JSON or Markdown:
+
+```bash
+gex-terminal tradovate-certify /tmp/tradovate-certification.json \
+  --ack-live-network --tradovate-environment demo --symbol ES
+```
+
+It records one credential/environment/run window and exits nonzero when
+transport is not certified. It does not contain tokens and does not promote the
+adapter beyond `scaffold`. No successful live certification is claimed here.
 
 ## Manual TradingView Workflow
 

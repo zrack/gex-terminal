@@ -11,6 +11,7 @@ from gex_terminal.adapters.tradovate import (
 )
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.package_data import provider_fixture_path
 
 
 class RecordingConsumer:
@@ -50,7 +51,7 @@ class TradovateAdapterTests(unittest.TestCase):
         self.assertEqual(contracts, payload["items"])
 
     def test_routes_contract_discovery_fixture_to_option_metadata(self):
-        fixture_path = Path(__file__).parent / "fixtures" / "tradovate_contract_discovery.json"
+        fixture_path = provider_fixture_path("tradovate_contract_discovery.json")
         payload = json.loads(fixture_path.read_text(encoding="utf-8"))
 
         contracts = TradovateAdapter._extract_contract_list(payload)
@@ -98,7 +99,7 @@ class TradovateAdapterTests(unittest.TestCase):
 
 class TradovatePayloadFixtureTests(unittest.IsolatedAsyncioTestCase):
     async def test_routes_sanitized_md_quote_fixture(self):
-        fixture_path = Path(__file__).parent / "fixtures" / "tradovate_md_quotes.json"
+        fixture_path = provider_fixture_path("tradovate_md_quotes.json")
         payload = json.loads(fixture_path.read_text(encoding="utf-8"))
         consumer = RecordingConsumer()
         adapter = TradovateAdapter(consumer=consumer, target_underlying="ES")
@@ -146,7 +147,7 @@ class TradovatePayloadFixtureTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(consumer.dropped_message_count, 1)
 
     async def test_live_sample_fixture_drives_consumer_and_engine(self):
-        fixture_path = Path(__file__).parent / "fixtures" / "tradovate_live_sample.jsonl"
+        fixture_path = provider_fixture_path("tradovate_live_sample.jsonl")
         consumer = StatefulGexConsumer(
             IntradayGexEngine(multiplier=50),
             target_underlying="ES",

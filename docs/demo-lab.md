@@ -5,6 +5,9 @@ provider fixture data. It is meant for GitHub screenshots, issue attachments,
 contributor onboarding, and quick offline verification before live data is
 available.
 
+Both datasets are installed package resources, so the named workflow works from
+outside a source checkout.
+
 ## Run It
 
 ```bash
@@ -40,7 +43,7 @@ The command writes:
 | `manifest.json` | Machine-readable artifact index and top-line metrics. |
 | `gex-terminal-color.svg` | Color preview generated from real replay snapshot values. |
 | `terminal-screenshot.svg` | Color-themed Textual terminal capture after replaying the session. |
-| `snapshot.json` | Full snapshot with metrics, strikes, expiries, and feed quality. |
+| `snapshot.json` | Snapshot schema v2 with metrics, strikes, expiries, model provenance, and feed quality. |
 | `snapshot.md` | Human-readable snapshot summary. |
 | `tradingview-overlay.json` | Portable chart levels and bands. |
 | `tradingview-overlay.csv` | Spreadsheet-friendly chart levels and bands. |
@@ -77,3 +80,6 @@ packages the most important offline proof points in one place:
 - Snapshot and overlay exports for trader review.
 - Replay Lab report for model behavior.
 - Provider Fixture Lab report for adapter-path confidence.
+
+These are deterministic software-path artifacts. They do not certify live
+provider transport or predictive market validity.

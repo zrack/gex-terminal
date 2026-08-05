@@ -2,14 +2,15 @@
 
 Intraday Gamma Exposure (GEX) imbalance tracking in a terminal UI.
 
-An asynchronous, high-performance command-line dashboard for tracking real-time
-dealer options hedging pressure in index futures such as **ES** and **NQ**. The
-terminal uses cumulative intraday session volume as a proxy for changing open
-interest, then translates live option-chain activity into strike-level gamma
-exposure, imbalance, and structural market zones.
+An asynchronous, high-performance command-line dashboard for estimating
+real-time gamma-exposure proxies in index futures such as **ES** and **NQ**. The
+terminal uses explicitly labeled trade-volume or open-interest quantities as
+positioning proxies, then translates option-chain activity into strike-level
+gamma exposure, imbalance, and candidate market-structure zones.
 
-The goal is to isolate hidden institutional support, resistance, and volatility
-acceleration boundaries at terminal speed, without the overhead of a browser UI.
+The goal is to surface inspectable strike concentrations and volatility-regime
+hypotheses at terminal speed, without the overhead of a browser UI. The inputs
+do not observe dealer inventory, institutional intent, or predictive validity.
 
 ![Color replay demo lab preview](assets/gex-terminal-demo-lab.svg)
 
@@ -35,7 +36,8 @@ dashboard. The project is designed around:
 - **Local-first credential handling**: API keys and market-data credentials stay
   in local environment files, not in source code or hosted dashboards.
 - **Transparent calculations**: the current model documents its practical
-  assumptions, including intraday volume as an open-interest proxy.
+  assumptions, including trade-volume/open-interest source selection and the
+  call-positive/put-negative sign convention.
 - **Provider-agnostic ingestion**: market data flows through adapters so the app
   can grow beyond any single broker or feed.
 - **Replayable research datasets**: normalized fixtures make it possible to
@@ -85,8 +87,11 @@ Good starting points:
 |-- gex_terminal/       # Application package
 |   |-- cli.py          # Console command and orchestration
 |   |-- config.py       # Environment-driven runtime configuration
-|   |-- engine.py       # Vectorized Black-Scholes and GEX calculation matrix
+|   |-- contracts.py    # Versioned contract identity, timing, and position semantics
+|   |-- engine.py       # Vectorized Black-Scholes/Black-76 GEX calculation matrix
 |   |-- consumer.py     # Stateful asynchronous market-data aggregator
+|   |-- session_capture.py # Integrity-checked normalized event capture
+|   |-- model_evidence.py # Bounded numerical model-evidence gate
 |   |-- demo_lab.py     # Offline demo pack generator for screenshots and reports
 |   |-- replay_lab.py   # Offline replay reports, alerts, and session comparisons
 |   |-- research_journal.py # Local replay-session journal and comparisons
@@ -96,15 +101,19 @@ Good starting points:
 |   |-- tui.py          # Textual reactive terminal user interface
 |   |-- gex_terminal.tcss # Terminal dashboard theme and layout styles
 |   |-- market_data_adapter.py # Shared provider adapter contract
+|   |-- data/           # Replays and sanitized fixtures shipped in the wheel
 |   `-- adapters/       # Replay, Tradovate, Databento, IBKR, and yfinance adapters
-|-- sample_data/        # Normalized replay data for local demos
-|-- tests/              # Regression tests and sanitized provider fixtures
+|-- tests/              # Regression and installed-release contract tests
 ```
 
 ## Core Features
 
-- **Vectorized mathematical engine**: calculates Black-Scholes Greeks across the
-  option chain with NumPy, avoiding slow per-contract Python loops.
+- **Contract-aware mathematical engine**: prices futures options with Black-76
+  and equity/index options with Black-Scholes, using per-contract DTE and
+  multipliers before strike aggregation.
+- **Versioned normalized contract**: schema v2 preserves provider-scoped
+  contract identity, event time, expiry, instrument class, volume semantics,
+  position source, and IV provenance while retaining the schema-v1 replay path.
 - **Thread-safe state architecture**: uses asynchronous queues and guarded state
   updates to ingest high-frequency WebSocket ticks without race conditions.
 - **Low-overhead terminal interface**: renders a live matrix in a Textual UI,
@@ -112,12 +121,19 @@ Good starting points:
 - **First-run offline workflow**: starts with useful demo state, explains how
   to proceed without credentials, and lets users browse bundled replay sessions
   from inside the terminal with `p`.
-- **Terminal assumption controls**: cycle expiry, risk-free rate, and contract
-  multiplier from the running terminal to see model sensitivity immediately.
-- **Intraday open-interest proxy**: treats cumulative session volume as the
-  active positioning input when official open interest is stale or delayed.
-- **Strike-level structural mapping**: identifies the gamma wall, zero-gamma
-  node, net exposure bands, and call/put imbalance zones.
+- **Terminal assumption controls**: cycle expiry filter, scalar DTE fallback,
+  risk-free rate, and contract multiplier from the running terminal.
+- **Explicit position semantics**: incremental trade updates accumulate;
+  cumulative trade-volume or open-interest snapshots replace prior values for
+  the same provider contract and are never silently added together.
+- **Truthful strike-level mapping**: identifies the gamma wall, adjacent
+  strike-profile sign flip, nearest-neutral strike, net exposure bands, and
+  call/put imbalance zones.
+- **Captured market sessions**: records normalized replay/live events to an
+  append-only, internally hash-checked format and replays them on an event-time
+  clock.
+- **Bounded model evidence**: exports independent analytical oracles and
+  deterministic checks while declaring predictive market validity unmeasured.
 - **Replay Research Lab**: runs bundled synthetic sessions offline, then exports
   session comparisons, replay alerts, and saved snapshot baselines.
 - **Historical Research Journal**: saves local replay-session studies, lists
@@ -134,20 +150,24 @@ Good starting points:
 
 ## Mathematical Foundation
 
-The engine estimates dealer hedging pressure by calculating option gamma and
-scaling it into **net intraday dollar gamma exposure per 1% underlying move**.
+The engine calculates option gamma and scales the selected volume or
+open-interest proxy into **net intraday dollar gamma exposure per 1% underlying
+move**.
+Schema-v2 futures options use Black-76; schema-v2 equity and index options use
+Black-Scholes. Legacy schema-v1 fixtures retain their original Black-Scholes
+path.
 
-For each option contract, the Black-Scholes gamma is:
+For Black-Scholes with continuous carry $q$, gamma is:
 
 $$
-\Gamma = \frac{N'(d_1)}{S \cdot \sigma \sqrt{t}}
+\Gamma = \frac{e^{-qt}N'(d_1)}{S \cdot \sigma \sqrt{t}}
 $$
 
 where:
 
 $$
 d_1 =
-\frac{\ln(\frac{S}{K}) + (r + \frac{1}{2}\sigma^2)t}
+\frac{\ln(\frac{S}{K}) + (r-q + \frac{1}{2}\sigma^2)t}
 {\sigma\sqrt{t}}
 $$
 
@@ -166,11 +186,24 @@ $$
 | $\sigma$ | Implied volatility |
 | $t$ | Time to expiration, expressed as a fraction of a 365-day year |
 | $r$ | Risk-free rate |
+| $q$ | Continuous carry/dividend yield; zero unless supplied |
+
+For futures options, Black-76 gamma with futures price $F$ is:
+
+$$
+\Gamma_{76} =
+\frac{e^{-rt}N'(d_1)}{F \cdot \sigma \sqrt{t}}
+$$
+
+The engine uses `ACT/365`. Each schema-v2 row is priced with its own expiry and
+contract multiplier before rows at the same strike are aggregated.
 
 ## Intraday Dollar GEX
 
-Raw gamma is converted into dollar gamma exposure by scaling it with cumulative
-transaction volume and contract multiplier.
+Raw gamma is converted into dollar gamma exposure by scaling it with the
+selected contract quantity and multiplier. That quantity is identified as
+`trade_volume`, `open_interest`, or the legacy volume proxy in snapshot
+provenance.
 
 Call exposure is treated as positive:
 
@@ -217,13 +250,17 @@ indicate put-side gamma dominance.
 
 The terminal derives key market zones from the strike-level GEX matrix:
 
-- **Gamma Wall**: the strike with the largest absolute concentration of net
-  dealer exposure. This level often behaves like a price magnet or overhead
-  resistance/support zone.
-- **Zero-Gamma Node**: the strike or interpolated price where net positioning
-  flips sign from positive to negative. This marks the transition between a
-  lower-volatility, mean-reverting regime and a higher-volatility, trend-prone
-  regime.
+- **Gamma Wall**: the strike with the largest absolute concentration of the
+  modeled net-exposure proxy. It is a candidate level for replay or market
+  study, not a demonstrated price magnet or support/resistance forecast.
+- **Strike-Profile Flip**: a linear interpolation between adjacent strike
+  buckets whose net-GEX values change sign. It is absent when no crossing
+  exists.
+- **Nearest-Neutral Strike**: the observed strike bucket with the smallest
+  absolute net GEX.
+- **Zero-Gamma Compatibility Field**: the historical `zero_gamma` field uses the
+  strike-profile flip when available and otherwise the nearest-neutral strike.
+  It is not a portfolio root found by repricing the entire book across spot.
 - **Positive Gamma Zone**: a region where dealer hedging may dampen volatility as
   hedging flows lean against price movement.
 - **Negative Gamma Zone**: a region where dealer hedging may amplify volatility
@@ -251,16 +288,16 @@ gex_terminal/adapters/*
 
 gex_terminal/consumer.py
   - owns async state mutation behind a lock
-  - tracks spot, option volumes, expiries, and feed quality
+  - tracks provider-scoped contracts, position semantics, expiries, and quality
   - exposes reset_state for clean offline session switching
 
         |
         v
 
 gex_terminal/engine.py
-  - vectorizes Black-Scholes gamma inputs
+  - vectorizes Black-Scholes and Black-76 contract rows
   - converts volume proxy into dollar GEX
-  - computes gamma wall, zero gamma, call/put walls, and concentration
+  - computes gamma wall, strike-profile flip, call/put walls, and concentration
 
         |
         v
@@ -269,7 +306,7 @@ gex_terminal/tui.py
   - renders the terminal matrix, structure panels, and feed health
   - guides first-run users toward offline replay and export workflows
   - browses bundled replay sessions in-app with the same consumer/engine path
-  - lets users cycle DTE, rate, and multiplier assumptions while studying output
+  - lets users cycle expiry, DTE, rate, and multiplier controls
 
         |
         v
@@ -277,8 +314,8 @@ gex_terminal/tui.py
 exports and reports
   - snapshot JSON/CSV/Markdown
   - TradingView overlay JSON/CSV
-  - Replay Lab, Provider Fixture Lab, Demo Lab, Research Journal, and Session
-    Store artifacts
+  - Replay Lab, Provider Fixture Lab, Demo Lab, Research Journal, Session Store,
+    captured sessions, Tradovate certification, and model-evidence artifacts
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the fuller component map,
@@ -297,7 +334,13 @@ Install dependencies:
 
 ```bash
 pip install -e .
+gex-terminal --version
 ```
+
+The source/package version is `0.2.0`. Bundled replay sessions and sanitized
+provider fixtures are package resources, so the installed wheel supports the
+same named offline workflows from any working directory. This repository does
+not claim a PyPI publication or release tag.
 
 ## Quick Start
 
@@ -339,6 +382,9 @@ Copy the example environment file and fill in your local Tradovate credentials:
 cp .env.example .env
 ```
 
+At startup, `gex-terminal` reads `.env` from the directory where you invoke the
+command; existing process environment variables take precedence.
+
 ```bash
 GEX_SYMBOL=ES
 GEX_SYMBOLS=ES,NQ,SPX,QQQ
@@ -347,10 +393,16 @@ GEX_DATA_PROVIDER=tradovate
 GEX_CONTRACT_MULTIPLIER=50
 GEX_RISK_FREE_RATE=0.045
 GEX_DAYS_TO_EXPIRY=0.25
+GEX_EXPIRY_FILTER=all
 GEX_REFRESH_INTERVAL_SECONDS=1.0
 GEX_STALE_AFTER_SECONDS=10.0
-GEX_REPLAY_PATH=sample_data/demo_replay.jsonl
+# Leave blank to use the demo replay bundled in the installed package.
+GEX_REPLAY_PATH=
 GEX_REPLAY_DELAY_SECONDS=0.05
+GEX_REPLAY_CLOCK=auto
+GEX_REPLAY_SPEED=1.0
+GEX_REPLAY_MAX_GAP_SECONDS=
+GEX_STRICT_EVENT_TIME=false
 
 TRADOVATE_ENV=demo
 TRADOVATE_NAME=your_username
@@ -391,23 +443,27 @@ Run with seeded demo data:
 gex-terminal --demo
 ```
 
-Run with normalized replay data:
+Run bundled normalized replay data by name:
 
 ```bash
-gex-terminal --replay sample_data/demo_replay.jsonl
-gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
 gex-terminal list-replays
+gex-terminal --replay-session demo
+gex-terminal --replay-session full-session
 gex-terminal --replay-session trend-day
 gex-terminal --replay-session gap-fade
 gex-terminal --replay-session call-wall-breakout
 gex-terminal --replay-session zero-gamma-flip
 ```
 
-`demo_replay.jsonl` is the shortest local fixture. `es_synthetic_full_session.jsonl`
-is a synthetic ES 0DTE replay that walks through open, mid-session, and
-late-session activity without requiring live credentials. Additional bundled
-sessions cover trend, chop, volatility-spike, zero-gamma-flip, expiration
+`demo` is the shortest packaged fixture. `full-session` is a synthetic ES 0DTE
+replay that walks through open, mid-session, and late-session activity without
+requiring live credentials. Additional bundled sessions cover trend, chop,
+volatility-spike, zero-gamma-flip, expiration
 compression, gap-fade, call-wall-breakout, and provider-quality stress cases.
+
+Use `--replay PATH` for a user-supplied normalized JSONL file. Named sessions are
+preferred for bundled data because they work from both a source checkout and an
+installed wheel.
 
 Run the offline Replay Research Lab across bundled sessions:
 
@@ -462,11 +518,15 @@ for the artifact list.
 Inject raw provider-shaped sample data without live credentials:
 
 ```bash
-gex-terminal inject-provider tests/fixtures/tradovate_live_sample.jsonl --provider tradovate --symbol ES
-gex-terminal inject-provider tests/fixtures/databento_trade_records.json --provider databento --symbol ES --metadata tests/fixtures/databento_definition_records.json --underlying-fixture tests/fixtures/databento_underlying_mbp1_record.json
-gex-terminal inject-provider tests/fixtures/yfinance_option_chain_records.json --provider yfinance --symbol SPY
-gex-terminal inject-provider tests/fixtures/cboe_option_quotes_sample.csv --fixture-format cboe-option-quotes --symbol SPY
+gex-terminal inject-provider bundled:tradovate-live-sample
+gex-terminal inject-provider bundled:databento-glbx
+gex-terminal inject-provider bundled:yfinance-etf-options
+gex-terminal inject-provider bundled:cboe-option-quotes-csv
 ```
+
+The stable `bundled:NAME` selector resolves package resources from a source
+checkout or installed wheel. Use a filesystem path instead for your own local
+fixture.
 
 Provider injection replays raw or provider-shaped samples through adapter
 parsing, consumer state, GEX math, snapshot export, and Provider Health
@@ -487,6 +547,46 @@ Cboe-style samples. It is useful before opening provider-adapter issues because
 it captures pass/fail state, feed-health counters, computed walls, and the
 snapshot baseline without using live credentials.
 
+Record and replay an integrity-checked normalized session:
+
+```bash
+gex-terminal --replay-session trend-day --record-session --capture-path /tmp/trend-day.gex-session.jsonl
+gex-terminal --captured-session /tmp/trend-day.gex-session.jsonl --replay-speed 20
+gex-terminal session-store captures
+```
+
+See [docs/captured-sessions.md](docs/captured-sessions.md) for the header/event/footer
+format, internally consistent hashes, atomic finalization, event-time clock,
+replay-switch boundary, and journal workflow. In-file unkeyed hashes detect
+corruption or unreconciled edits; they do not prove authenticity or historical
+immutability without an external digest/signature.
+
+Run the bounded numerical model-evidence gate:
+
+```bash
+gex-terminal model-evidence model_evidence.json
+gex-terminal model-evidence model_evidence.md
+```
+
+The gate fails closed on numerical or deterministic regressions and explicitly
+reports predictive market validity as `unmeasured`. See
+[docs/model-validation.md](docs/model-validation.md).
+
+Run an explicit, read-only Tradovate network certification probe:
+
+```bash
+gex-terminal tradovate-certify tradovate_certification.json \
+  --ack-live-network \
+  --tradovate-environment demo \
+  --symbol ES
+```
+
+The redacted report separates authentication, WebSocket authorization,
+subscription acknowledgement, normalized messages, native/fallback IV, and its
+evidence ceiling. The command exits nonzero when transport is not certified.
+The adapter remains registry status `scaffold`; no live certification pass is
+claimed by this repository.
+
 Override `.env` settings from the command line:
 
 ```bash
@@ -497,6 +597,7 @@ gex-terminal --mode live --provider ibkr --symbol ES
 gex-terminal --mode live --provider yfinance --symbol SPY
 gex-terminal --demo --symbol NQ --multiplier 20
 gex-terminal --demo --refresh 0.5
+gex-terminal --replay-session full-session --expiry-filter 0dte
 ```
 
 Export a color-themed Textual screenshot for GitHub:
@@ -526,8 +627,11 @@ gex-terminal --demo --tradingview-overlay gex_levels.csv
 Validate a normalized replay or provider fixture before submitting it:
 
 ```bash
-gex-terminal validate-fixture sample_data/es_trend_day.jsonl
+gex-terminal validate-fixture gex_terminal/data/replays/es_trend_day.jsonl
 ```
+
+The direct validation path above is a source-checkout contributor workflow;
+ordinary users should select packaged replays with `--replay-session`.
 
 Compare model sensitivity to multiplier, expiry, rate, IV, and volume/OI proxy
 assumptions:
@@ -554,6 +658,7 @@ While the terminal is running, these keys are available:
 | `up` / `down` | Move through replay sessions while the browser is open |
 | `enter` | Load the selected replay session |
 | `escape` | Close the replay browser |
+| `x` | Cycle expiry filter (all / 0DTE / exact expiry) |
 | `d` | Cycle DTE assumptions |
 | `m` | Cycle contract multiplier assumptions |
 | `i` | Cycle risk-free rate assumptions |
@@ -568,23 +673,27 @@ events arrive. During a live session, the matrix should surface:
 - net GEX by strike
 - aggregate session GEX
 - gamma wall
-- zero-gamma node
+- strike-profile flip and nearest-neutral strike (`zero_gamma` compatibility field)
 - call/put imbalance
 - positive and negative gamma zones
-- Live Gamma Regime Map state with spot, zero-gamma, gamma wall, and next trigger
+- Live Gamma Regime Map state with spot, the zero-gamma compatibility level,
+  gamma wall, and next trigger
 - Provider Health panel with connection state, stale checks, latency, dropped
   payloads, malformed payloads, provider frame counts, parse errors,
   subscription status, reconnect counts, and entitlement placeholders
 
-The terminal surfaces runtime lifecycle state as `LIVE`, `SIM`, `STALE`,
-`CONNECTED`, or `DISCONNECTED` so the UI distinguishes real-time data from demo
-and stale sessions.
+The terminal surfaces runtime lifecycle state as `LIVE`, `SIM`, `REPLAY`,
+`STALE`, `CONNECTED`, or `DISCONNECTED` so the UI distinguishes real-time data
+from demo, replay, and stale sessions.
 
-Tradovate live-mode parsing is also covered by sanitized fixtures. The
-`tests/fixtures/tradovate_live_sample.jsonl` sample feeds captured-style frames
-through the same adapter, consumer, and engine path used by live data, then
-asserts spot, option volumes, IV handling, gamma wall, zero-gamma output, and
-provider health counters.
+Tradovate protocol parsing is covered by sanitized package fixtures and mocked
+transport tests. The adapter uses the official raw-token WebSocket authorization
+frame, waits for authorization and subscription acknowledgements, maps nested
+quote entries, treats `TotalTradeVolume` and `OpenInterest` as cumulative, and
+cleans up subscriptions on shutdown. Official quote frames do not establish
+native implied volatility, so fallback-IV use is surfaced as degraded model
+input. Only an explicit credentialed `tradovate-certify` run can certify one
+environment and time window; fixture success is not a live-data claim.
 
 If live mode is missing credentials or market-data dependencies, the app exits
 with an install/configuration hint instead of a Python traceback:
@@ -616,6 +725,10 @@ pip install -e .
   export formats.
 - See [docs/model-assumptions.md](docs/model-assumptions.md) for GEX model
   assumptions and limitations.
+- See [docs/model-validation.md](docs/model-validation.md) for numerical oracles,
+  deterministic checks, snapshot provenance, and the predictive evidence ceiling.
+- See [docs/captured-sessions.md](docs/captured-sessions.md) for normalized event
+  capture, integrity verification, event-time replay, and local inventory.
 - See [docs/provider-injection.md](docs/provider-injection.md) for raw
   provider-shaped fixture injection without live credentials.
 - See [docs/product-vision.md](docs/product-vision.md) for signature capability
@@ -633,7 +746,10 @@ pip install -e .
 
 Recommended early test coverage:
 
-- Black-Scholes gamma values against known reference cases.
+- Black-Scholes and Black-76 gamma values against independent reference cases
+  and finite-difference checks.
+- Contract-specific DTE/multiplier pricing, mixed model rows, invalid inputs,
+  position semantics, expiry filtering, and same-strike aggregation.
 - Dollar GEX conversion for calls and puts.
 - Net GEX aggregation by strike.
 - Zero-gamma interpolation across sign changes.
@@ -656,7 +772,13 @@ Recommended early test coverage:
   statistics-style open interest.
 - Provider Fixture Workbench reports for bundled provider-shaped samples.
 - Model sensitivity reports across multiplier, expiry, rate, IV, and volume/OI
-  assumptions.
+  assumptions, including base-scenario parity with contract-aware snapshots.
+- Captured-session round trips, hashes, sequence integrity, `.partial` rejection,
+  and strict/non-strict event-time replay.
+- Model-evidence exports and the explicit `unmeasured` predictive-validity ceiling.
+- Wheel contents, package-resource access from another working directory,
+  CWD `.env` loading, portable serialized resource identities, console
+  `--version`, and installed offline workflows.
 - Delayed yfinance ETF option-chain normalization with mocked adapter tests.
 - Async consumer state updates under bursty tick delivery.
 - Terminal rendering with empty, partial, and live-like snapshots.

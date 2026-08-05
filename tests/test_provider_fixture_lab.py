@@ -9,6 +9,8 @@ from gex_terminal.config import GexConfig
 from gex_terminal.provider_fixture_lab import (
     build_provider_fixture_lab_report,
     bundled_provider_fixture_cases,
+    provider_fixture_case_command,
+    provider_fixture_case_for_name,
     provider_fixture_lab_to_csv,
     provider_fixture_lab_to_markdown,
     write_provider_fixture_lab_report,
@@ -33,6 +35,14 @@ def _config():
 
 
 class ProviderFixtureLabTests(unittest.IsolatedAsyncioTestCase):
+    def test_bundled_case_commands_use_installed_package_selector(self):
+        for case in bundled_provider_fixture_cases():
+            self.assertEqual(
+                provider_fixture_case_command(case),
+                f"gex-terminal inject-provider bundled:{case.name}",
+            )
+            self.assertEqual(provider_fixture_case_for_name(case.name), case)
+
     async def test_builds_provider_fixture_lab_report_across_bundled_cases(self):
         report = await build_provider_fixture_lab_report(_config())
 
@@ -59,6 +69,8 @@ class ProviderFixtureLabTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("# Offline Provider Fixture Workbench", markdown)
         self.assertIn("Tradovate Live Frames", markdown)
+        self.assertIn("historical compatibility field", markdown)
+        self.assertIn("not a portfolio root", markdown)
         self.assertIn("databento-glbx", {row["case"] for row in csv_rows})
 
         with tempfile.TemporaryDirectory() as tmp:

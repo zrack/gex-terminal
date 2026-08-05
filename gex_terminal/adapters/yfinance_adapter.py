@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from gex_terminal.market_data_adapter import (
     AdapterConfigurationError,
     AdapterInfo,
@@ -12,6 +14,8 @@ ADAPTER_INFO = AdapterInfo(
     status="delayed",
     notes="Delayed equity/ETF options snapshot adapter for SPY/QQQ-style research. Not suitable for ES/NQ futures options.",
 )
+
+DEFAULT_YFINANCE_IV = 0.20
 
 
 class YfinanceAdapter(MarketDataAdapter):
@@ -40,17 +44,31 @@ class YfinanceAdapter(MarketDataAdapter):
         try:
             ticker = self._yfinance.Ticker(self.target_underlying)
             price = self._quote_price(ticker)
+            observed_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             await self.consumer.update_market_state(dumps_normalized_message({
+                "schema_version": 2,
                 "type": "underlying_tick",
+                "provider": "yfinance",
                 "symbol": self.target_underlying,
                 "price": price,
+                "event_time": observed_at,
             }))
 
             expiry = self._select_expiry(ticker)
             chain = ticker.option_chain(expiry)
-            for row in self._normalized_option_rows(chain.calls, "C", expiry):
+            for row in self._normalized_option_rows(
+                chain.calls,
+                "C",
+                expiry,
+                observed_at=observed_at,
+            ):
                 await self.consumer.update_market_state(dumps_normalized_message(row))
-            for row in self._normalized_option_rows(chain.puts, "P", expiry):
+            for row in self._normalized_option_rows(
+                chain.puts,
+                "P",
+                expiry,
+                observed_at=observed_at,
+            ):
                 await self.consumer.update_market_state(dumps_normalized_message(row))
         finally:
             self.consumer.mark_disconnected()
@@ -61,25 +79,57 @@ class YfinanceAdapter(MarketDataAdapter):
             return list(table.to_dict("records"))
         return list(table)
 
-    def _normalized_option_rows(self, table, option_type: str, expiry: str) -> list[dict]:
+    def _normalized_option_rows(
+        self,
+        table,
+        option_type: str,
+        expiry: str,
+        *,
+        observed_at: str | None = None,
+    ) -> list[dict]:
         rows = []
+        event_time = observed_at or datetime.now(timezone.utc).isoformat().replace(
+            "+00:00", "Z"
+        )
         for row in self._records(table):
             strike = _safe_float(row.get("strike"))
             if strike is None:
                 continue
             volume = _safe_int(row.get("volume"))
+            position_source = "trade_volume"
             if volume <= 0:
                 volume = _safe_int(row.get("openInterest"))
+                position_source = "open_interest"
             if volume <= 0:
                 continue
-            iv = _safe_float(row.get("impliedVolatility")) or 0.20
+            iv = _safe_float(row.get("impliedVolatility"))
+            if iv is None or iv <= 0:
+                iv = DEFAULT_YFINANCE_IV
+                iv_source = "configured_default"
+            else:
+                iv_source = "provider"
+            contract_symbol = str(row.get("contractSymbol") or "").strip()
+            contract_id = contract_symbol or (
+                f"{self.target_underlying}|{expiry}|{option_type}|{strike:g}"
+            )
             rows.append({
+                "schema_version": 2,
                 "type": "options_volume_tick",
+                "provider": "yfinance",
+                "contract_id": contract_id,
+                "contract_symbol": contract_symbol or None,
+                "symbol": self.target_underlying,
                 "strike": strike,
                 "option_type": option_type,
                 "volume": volume,
                 "iv": iv,
+                "iv_source": iv_source,
                 "expiry": expiry,
+                "instrument_class": "equity_option",
+                "volume_semantics": "cumulative",
+                "position_source": position_source,
+                "contract_multiplier": 100,
+                "event_time": event_time,
             })
         return rows
 

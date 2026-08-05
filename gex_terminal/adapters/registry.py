@@ -26,6 +26,10 @@ def _build_replay(consumer, config: GexConfig) -> MarketDataAdapter:
         consumer,
         replay_path=config.replay_path,
         delay_seconds=config.replay_delay_seconds,
+        replay_clock=config.replay_clock,
+        replay_speed=config.replay_speed,
+        max_gap_seconds=config.replay_max_gap_seconds,
+        strict_event_time=config.strict_event_time,
     )
 
 
@@ -35,6 +39,7 @@ def _build_tradovate(consumer, config: GexConfig) -> MarketDataAdapter:
         consumer,
         target_underlying=config.symbol,
         environment=config.tradovate_environment,
+        contract_multiplier=config.contract_multiplier,
     )
 
 

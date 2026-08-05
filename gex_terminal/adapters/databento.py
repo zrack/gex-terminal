@@ -11,6 +11,7 @@ from gex_terminal.market_data_adapter import (
 
 
 DEFAULT_DATABENTO_DATASET = "GLBX.MDP3"
+DEFAULT_DATABENTO_IV = 0.15
 DATABENTO_SCHEMAS = {
     "definitions": "definition",
     "option_trades": "trades",
@@ -98,9 +99,14 @@ class DatabentoAdapter(MarketDataAdapter):
             return None
 
         return {
+            "schema_version": 2,
             "type": "underlying_tick",
+            "provider": "databento",
             "symbol": self.target_underlying,
             "price": price,
+            "event_time": _text(
+                _lookup(record, "ts_event", "tsEvent", "event_time", "timestamp")
+            ),
         }
 
     @staticmethod
@@ -124,16 +130,32 @@ class DatabentoAdapter(MarketDataAdapter):
             return None
 
         message = {
+            "schema_version": 2,
             "type": "options_volume_tick",
+            "provider": "databento",
+            "contract_id": str(instrument_id),
+            "contract_symbol": _text(metadata.get("raw_symbol")),
+            "symbol": _text(metadata.get("underlying")).upper(),
             "strike": strike,
             "option_type": option_type,
             "volume": volume,
+            "instrument_class": "futures_option",
+            "volume_semantics": "incremental",
+            "position_source": "trade_volume",
+            "event_time": _text(
+                _lookup(record, "ts_event", "tsEvent", "event_time", "timestamp")
+            ),
         }
         iv = _safe_float(_lookup(record, "iv", "implied_volatility", "impliedVolatility"))
         if iv is None:
             iv = _safe_float(metadata.get("iv"))
-        if iv is not None:
-            message["iv"] = iv
+        if iv is None:
+            iv = DEFAULT_DATABENTO_IV
+            iv_source = "configured_default"
+        else:
+            iv_source = "provider"
+        message["iv"] = iv
+        message["iv_source"] = iv_source
         expiry = _text(metadata.get("expiry"))
         if expiry:
             message["expiry"] = expiry

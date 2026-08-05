@@ -17,8 +17,9 @@ from gex_terminal.fixture_validator import (
     format_fixture_validation_report,
     validate_fixture,
 )
+from gex_terminal.package_data import provider_fixture_dir
 
-FIXTURE_DIR = Path(__file__).parent / "fixtures"
+FIXTURE_DIR = provider_fixture_dir()
 
 
 def _load_fixture(name: str):
@@ -75,32 +76,21 @@ class DatabentoMappingTests(unittest.TestCase):
         for message in messages:
             validate_normalized_message(message)
 
-        self.assertEqual(
-            messages,
-            [
-                {
-                    "type": "options_volume_tick",
-                    "strike": 5950.0,
-                    "option_type": "C",
-                    "volume": 42,
-                    "expiry": "2026-06-19",
-                },
-                {
-                    "type": "options_volume_tick",
-                    "strike": 5900.0,
-                    "option_type": "P",
-                    "volume": 31,
-                    "expiry": "2026-06-19",
-                },
-                {
-                    "type": "options_volume_tick",
-                    "strike": 6000.0,
-                    "option_type": "C",
-                    "volume": 24,
-                    "expiry": "2026-06-19",
-                },
-            ],
-        )
+        self.assertEqual([message["contract_id"] for message in messages], [
+            "9001001",
+            "9001002",
+            "9001004",
+        ])
+        self.assertEqual([message["volume"] for message in messages], [42, 31, 24])
+        self.assertTrue(all(message["schema_version"] == 2 for message in messages))
+        self.assertTrue(all(message["provider"] == "databento" for message in messages))
+        self.assertTrue(all(message["symbol"] == "ES" for message in messages))
+        self.assertTrue(all(message["instrument_class"] == "futures_option" for message in messages))
+        self.assertTrue(all(message["volume_semantics"] == "incremental" for message in messages))
+        self.assertTrue(all(message["iv"] == 0.15 for message in messages))
+        self.assertTrue(all(message["iv_source"] == "configured_default" for message in messages))
+        self.assertEqual(messages[0]["contract_symbol"], "ESM6 C5950")
+        self.assertEqual(messages[0]["event_time"], "2026-06-18T14:30:00.000000000Z")
 
     def test_expected_normalized_jsonl_fixture_is_valid(self):
         path = FIXTURE_DIR / "databento_normalized_expected.jsonl"
@@ -122,9 +112,12 @@ class DatabentoMappingTests(unittest.TestCase):
         self.assertEqual(
             message,
             {
+                "schema_version": 2,
                 "type": "underlying_tick",
+                "provider": "databento",
                 "symbol": "ES",
                 "price": 5943.25,
+                "event_time": "2026-06-18T14:30:00.000000000Z",
             },
         )
 

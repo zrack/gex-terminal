@@ -19,7 +19,8 @@ parser change altered expected behavior.
 Suggested scope:
 - Add or extend a focused test in `tests/test_replay_lab.py`.
 - Pick one session from `gex-terminal list-replays`.
-- Assert one expected alert, gamma wall, zero-gamma, or regime property.
+- Assert one expected alert, gamma wall, strike-profile flip/nearest-neutral, or
+  regime property.
 
 Verification:
 
@@ -63,8 +64,7 @@ New contributors can practice the historical research workflow without a live
 provider.
 
 Suggested scope:
-- Extend `tests/test_session_store.py` or add a small fixture under
-  `tests/fixtures/`.
+- Extend `tests/test_session_store.py` with a small inline/sanitized record.
 - Use `/tmp` or another ignored folder for generated output.
 - Explain that `historical_sessions/` is ignored by Git.
 
@@ -89,7 +89,7 @@ Provider adapters get easier when contributors can compare raw fields against
 the normalized JSONL contract.
 
 Suggested scope:
-- Pick one fixture in `tests/fixtures/`.
+- Pick one fixture in `gex_terminal/data/provider_fixtures/`.
 - Update the matching provider doc in `docs/`.
 - Do not include credentials, account IDs, or private market-data payloads.
 

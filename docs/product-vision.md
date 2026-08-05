@@ -13,20 +13,22 @@ contributors.
 ### Live Gamma Regime Map
 
 Build a real-time regime panel showing whether price is in positive gamma,
-negative gamma, near zero-gamma, pinned near a gamma wall, or entering a
-volatility expansion zone.
+negative gamma, near the documented strike-profile compatibility level, pinned
+near a gamma wall, or entering a volatility expansion zone.
 
 ![Live Gamma Regime Map mockup](../assets/live-gamma-regime-map-mockup.svg)
 
 ### Replayable Market Days
 
 Save full intraday sessions and replay them later with synchronized GEX, price,
-wall shifts, zero-gamma moves, and event markers.
+wall shifts, strike-profile moves, and event markers.
 
-The offline foundation is now in place: bundled replay sessions can be browsed
-from the terminal, session snapshots can be archived locally, and reports can be
-exported without live credentials. The next step is turning live provider output
-into date-tagged replayable market days.
+The event foundation is now in place: normalized replay/live streams can be
+captured with internal sequence/hash checks, replayed on their event-time clock,
+inventoried in the session store, and added to the research journal. These
+in-file checks are not an authenticity signature. The next
+step is collecting governed live-day evidence from a provider that has passed
+its explicit credentialed certification gate.
 
 ### TradingView Overlay Export
 

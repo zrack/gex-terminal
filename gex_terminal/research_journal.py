@@ -13,6 +13,7 @@ from typing import Any, Iterable
 from gex_terminal.config import GexConfig
 from gex_terminal.replay_catalog import ReplaySession, replay_session_for_name
 from gex_terminal.replay_lab import analyze_replay_session
+from gex_terminal.session_capture import load_captured_session
 
 
 ENTRY_SCHEMA = "gex-terminal.research-journal-entry.v1"
@@ -24,13 +25,61 @@ async def add_journal_entry(
     config: GexConfig,
     journal_dir: str | Path,
     *,
-    replay_session_name: str,
+    replay_session_name: str | None = None,
+    captured_session_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Replay one bundled session and save it as a durable journal entry."""
-    session = replay_session_for_name(replay_session_name)
-    replay_config = _journal_config(config, session)
-    report = await analyze_replay_session(session, replay_config)
+    """Replay one bundled or integrity-verified captured session into the journal."""
+    capture = None
+    captured_messages = None
+    if captured_session_path is not None:
+        capture, captured_messages = load_captured_session(captured_session_path)
+        source = capture.get("source", {})
+        session = ReplaySession(
+            name=str(capture["session_id"]),
+            path=str(captured_session_path),
+            label=str(capture.get("label") or capture["session_id"]),
+            description="Integrity-verified normalized captured session.",
+            public_ref=f"captured:{capture['session_id']}",
+        )
+        model_inputs = capture.get("model_inputs", {})
+        symbol = str(source.get("symbol") or config.symbol).upper()
+        replay_config = replace(
+            config,
+            symbol=symbol,
+            symbols=_symbols_with_target(config.symbols, symbol),
+            data_mode="replay",
+            data_provider="replay",
+            replay_path=session.path,
+            replay_delay_seconds=0.0,
+            replay_clock="none",
+            days_to_expiry=float(model_inputs.get("days_to_expiry", config.days_to_expiry)),
+            risk_free_rate=float(model_inputs.get("risk_free_rate", config.risk_free_rate)),
+            contract_multiplier=int(
+                model_inputs.get("contract_multiplier", config.contract_multiplier)
+            ),
+            expiry_filter=str(model_inputs.get("expiry_filter", config.expiry_filter)),
+        )
+    else:
+        if replay_session_name is None:
+            raise ValueError("replay_session_name or captured_session_path is required")
+        session = replay_session_for_name(replay_session_name)
+        replay_config = _journal_config(config, session)
+    report = await analyze_replay_session(
+        session,
+        replay_config,
+        messages=captured_messages,
+    )
     entry = build_journal_entry(report, config=replay_config)
+    if capture is not None:
+        entry["source"] = {
+            "type": "captured_session",
+            "name": capture["session_id"],
+            "label": capture.get("label") or capture["session_id"],
+            "path": session.source_ref,
+            "description": "Integrity-verified normalized captured session.",
+            "event_count": capture["event_count"],
+            "content_sha256": capture["content_sha256"],
+        }
     target = _entry_path(journal_dir, entry["id"])
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(entry, indent=2), encoding="utf-8")
@@ -360,6 +409,7 @@ def _journal_config(config: GexConfig, session: ReplaySession) -> GexConfig:
         contract_multiplier=50,
         replay_path=session.path,
         replay_delay_seconds=0.0,
+        replay_clock="none",
     )
 
 

@@ -7,6 +7,9 @@ on:
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
 
     steps:
       - name: Check out repository
@@ -15,11 +18,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install build twine
           python -m pip install -e .
 
       - name: Compile source
@@ -29,9 +33,41 @@ jobs:
         run: python -m unittest discover -s tests
 
       - name: Check CLI help
-        run: gex-terminal --help
+        run: |
+          gex-terminal --version
+          gex-terminal --help
 
       - name: Export screenshot smoke test
         run: |
           gex-terminal --demo --screenshot /tmp/gex-terminal-ci.svg
           test -s /tmp/gex-terminal-ci.svg
+
+      - name: Build and validate distributions
+        run: |
+          python -m build --outdir /tmp/gex-terminal-dist
+          python -m twine check /tmp/gex-terminal-dist/*
+
+      - name: Smoke-test installed wheel outside checkout
+        run: |
+          python -m venv /tmp/gex-terminal-wheel-smoke
+          /tmp/gex-terminal-wheel-smoke/bin/pip install /tmp/gex-terminal-dist/*.whl
+          mkdir -p /tmp/gex-wheel-config
+          printf 'GEX_SYMBOL=NQ\nGEX_DATA_MODE=replay\n' > /tmp/gex-wheel-config/.env
+          cd /tmp/gex-wheel-config
+          test "$(/tmp/gex-terminal-wheel-smoke/bin/python -c 'from gex_terminal.config import GexConfig; c = GexConfig.from_env(); print(c.symbol + ":" + c.data_mode)')" = "NQ:replay"
+          cd /tmp
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal --version
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal --replay-session trend-day --export /tmp/gex-wheel-snapshot.json
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal fixture-lab /tmp/gex-wheel-fixtures.json
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal inject-provider bundled:yfinance-etf-options --export /tmp/gex-wheel-injection.json
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab /tmp/gex-wheel-demo --replay-session gap-fade
+          test -s /tmp/gex-wheel-snapshot.json
+          test -s /tmp/gex-wheel-fixtures.json
+          test -s /tmp/gex-wheel-injection.json
+          test -s /tmp/gex-wheel-demo/manifest.json
+          ! grep -R -E 'site-packages|/home/runner/work/' /tmp/gex-wheel-snapshot.json /tmp/gex-wheel-fixtures.json /tmp/gex-wheel-injection.json /tmp/gex-wheel-demo
+
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          test "${GITHUB_REF_NAME#v}" = "$(python -c 'from importlib.metadata import version; print(version("gex-terminal"))')"

@@ -27,22 +27,30 @@ dashboard and more like a focused market-structure workstation. See
   risk-free rate, expiry target, provider, and update interval.
 - [x] Improve startup validation so missing credentials or unsupported provider
   settings fail with clear messages.
-- [x] Document the current model assumptions, including the
-  volume-as-open-interest proxy, call/put sign convention, and limitations versus
-  proprietary dealer-positioning models.
+- [x] Document the current model assumptions, including explicit trade-volume
+  and open-interest position sources, call/put sign convention, and limitations
+  versus proprietary dealer-positioning models.
 
 ## Phase 2: Live Data Reliability
 
 - [ ] Complete real options-chain discovery for active ES/NQ contracts.
-  Initial Tradovate discovery scaffolding exists; the next step is validating
-  the exact option-chain payload shape against live/demo API access.
+  The scaffold now uses product, contract-maturity, contract dependency, and
+  bounded suggestion endpoints instead of treating exact `contract/find` as a
+  chain query. The remaining gate is successful, redacted validation against
+  credentialed live/demo access and entitlements.
 - [ ] Make one live provider production-ready end to end before expanding the
   provider list beyond scaffolds.
-- [ ] Harden Tradovate reconnect, backoff, heartbeat, and shutdown behavior.
+- [x] Harden the Tradovate protocol path with raw-token WebSocket
+  authorization, acknowledgement-gated subscriptions, bounded reconnect/backoff,
+  heartbeat, token renewal, rate-limit handling, and subscription cleanup.
+  Fixture and mocked-transport tests are complete; the adapter stays a
+  `scaffold` until an explicit credentialed certification run passes.
 - [ ] Add official open-interest ingestion when provider entitlements support it
   so the terminal can move beyond the intraday volume proxy.
 - [x] Normalize provider payloads through a stable adapter contract before they
-  reach the state consumer.
+  reach the state consumer. Schema v2 adds provider-scoped contract identity,
+  event time, instrument class, volume semantics, position source, expiry, and
+  optional per-contract multiplier while preserving schema v1.
 - [x] Track provider connection status, last message time, and data freshness in
   the terminal UI (runtime status LIVE/SIM/STALE/DISCONNECTED, feed-health rail,
   status bar with last-refresh time, and stale/disconnected matrix banners).
@@ -58,16 +66,20 @@ dashboard and more like a focused market-structure workstation. See
   reports call/put walls, a top-strike concentration ratio, and the 70% net-gamma
   band; all surface in the Market Structure panel alongside the gamma wall and
   regime read.
-- [x] Improve zero-gamma detection with interpolation across strike-level sign
-  changes.
-- [x] Track intraday changes in total net GEX, gamma wall, and zero-gamma levels
-  (event log records wall shifts, zero-node moves, regime flips, and imbalance
+- [x] Add an interpolated adjacent strike-profile sign flip and preserve the
+  historical zero-gamma field as a documented compatibility output.
+- [x] Track intraday changes in total net GEX, gamma wall, and the compatibility
+  level (event log records wall/level moves, regime flips, and imbalance
   threshold crossings; Session GEX Flow sparkline trends net GEX).
 - [x] Support exposure breakdowns by expiry. Ticks may carry an `expiry` tag and
   the consumer reports net GEX per expiry (single session bucket otherwise);
   populating multiple live expiries still depends on Phase 2 chain discovery.
-- [ ] Add first-class 0DTE filtering and expiration selection in the runtime
-  configuration and terminal UI.
+- [x] Add first-class `all`, `0dte`, and exact-expiry filtering in runtime
+  configuration, CLI, and terminal UI.
+- [x] Price futures-option contract rows with Black-76 and equity/index rows with
+  Black-Scholes using per-contract DTE and multiplier before strike aggregation.
+- [x] Expose the adjacent strike-profile sign flip and nearest-neutral strike
+  separately, while retaining `zero_gamma` as a documented compatibility field.
 - [ ] Add dealer/customer direction inference so GEX sign handling can move
   beyond a naive call-positive/put-negative convention when data supports it.
 - [ ] Add Delta Exposure (DEX), vanna, charm, vega, and theta exposure metrics
@@ -91,9 +103,9 @@ dashboard and more like a focused market-structure workstation. See
   demo.
 - [x] Color-match actual Textual SVG screenshot exports to the public README
   preview palette.
-- [x] Add in-terminal model assumption controls for DTE, contract multiplier,
-  and risk-free rate so offline researchers can recompute snapshots without
-  restarting the app.
+- [x] Add in-terminal controls for expiry filter, fallback DTE, contract
+  multiplier, and risk-free rate so offline researchers can recompute snapshots
+  without restarting the app.
 - [x] Add a Live Gamma Regime Map panel that summarizes positive/negative gamma,
   zero-gamma proximity, wall-pinning risk, and volatility expansion zones.
   The prototype renders current state, spot, zero-gamma, gamma wall, next
@@ -132,7 +144,12 @@ dashboard and more like a focused market-structure workstation. See
 
 - [x] Add `pyproject.toml` project metadata and tool configuration.
 - [x] Make the app installable with a console command such as `gex-terminal`.
-- [ ] Add release notes and versioning once the data model stabilizes.
+- [x] Establish the `0.2.0` source/package version, changelog, `--version`, and
+  version consistency tests. This does not claim a release tag or PyPI publish.
+- [x] Ship bundled replays and sanitized provider fixtures as package resources,
+  with wheel tests that run named replay and fixture-lab workflows outside the
+  source checkout.
+- [x] Validate source and wheel distributions in CI on Python 3.11 and 3.12.
 - [ ] Consider `pipx` installation support for users who want the terminal as a
   standalone tool.
 
@@ -146,10 +163,14 @@ dashboard and more like a focused market-structure workstation. See
   entry lists, comparisons, and Markdown/CSV/JSON reports.
 - [x] Add a historical session store for local snapshot records, record lists,
   latest-record comparisons, and Markdown/CSV/JSON reports.
-- [ ] Extend the historical session store from snapshot records into replayable
-  captured live market days.
-- [ ] Extend journal comparisons to live captured market days, expiry exposure,
-  and date-tagged day-over-day reviews.
+- [x] Extend the historical session store with an inventory of complete,
+  internally consistent captured sessions.
+- [x] Add append-only normalized session capture with header/event/footer
+  records, internal sequence/hash consistency checks, crash-visible `.partial`
+  files, atomic finalization, and event-time replay controls.
+- [ ] Extend journal comparisons with dedicated expiry-exposure and date-tagged
+  day-over-day fields. Captured sessions can already be replayed into journal
+  entries, but these comparison dimensions remain future work.
 - [x] Add Replay Lab reports that compare saved final snapshots across bundled
   synthetic sessions.
 - [x] Add a Demo Lab pack that produces a color preview, color-themed terminal
@@ -161,21 +182,25 @@ dashboard and more like a focused market-structure workstation. See
 - [ ] Add a multi-symbol scanner for ES, MES, NQ, MNQ, SPX, SPY, QQQ, and IWM.
 - [ ] Add an options P/L scenario tool with Greeks, volatility, and time controls.
 - [x] Add model sensitivity reports for multiplier, expiry, risk-free rate,
-  implied volatility, and volume/open-interest proxy assumptions.
+  implied volatility, and volume/open-interest proxy assumptions, with base
+  scenario parity for contract-aware snapshots.
+- [x] Add a fail-closed model-evidence report with analytical Black-Scholes and
+  Black-76 oracles, dollar-GEX scaling, deterministic checks, snapshot model
+  provenance, and an explicit `unmeasured` predictive-validity ceiling.
 - [x] Add a delayed yfinance path for SPY/QQQ-style ETF options research.
 
 ## Good First Contributions
 
-- Add tests for `IntradayGexEngine.calculate_gamma`.
-- Add tests for malformed JSON and missing fields in `StatefulGexConsumer`.
+- Add a finite-difference oracle for another supported instrument/model case.
+- Add malformed schema-v2 fixture cases without weakening strict validation.
 - Add additional replay datasets for different symbols, expirations, or regimes.
 - Add Replay Lab alert expectations for newly submitted fixtures.
 - Add journal comparison fields or example journal report fixtures.
 - Add a terminal onboarding screenshot or short GIF showing the replay browser.
-- Document a known Tradovate options-chain payload shape.
-- Add README screenshots once replay mode exists.
+- Validate a redacted Tradovate demo certification report without publishing
+  tokens, accounts, or licensed raw data.
 
 ## Future Ideas
 
-- Date-tagged captured live-day replay once a provider path is stable.
+- A separately governed dataset and protocol for predictive market validation.
 - Provider adapters for additional broker or market-data APIs.

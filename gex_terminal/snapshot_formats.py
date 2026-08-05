@@ -65,6 +65,13 @@ def snapshot_to_csv(snapshot: Dict[str, Any]) -> str:
             "value": feed_quality.get("health"),
             "notes": "; ".join(feed_quality.get("notes", ())),
         })
+    for name, value in snapshot.get("model", {}).items():
+        writer.writerow({
+            "record_type": "model",
+            "name": name,
+            "label": name.replace("_", " ").title(),
+            "value": json.dumps(value) if isinstance(value, (list, dict)) else value,
+        })
     for alert in snapshot.get("alerts", ()):
         writer.writerow({
             "record_type": "alert",
@@ -124,6 +131,22 @@ def snapshot_to_markdown(snapshot: Dict[str, Any]) -> str:
         lines.extend(["", "## Expiry Breakdown", ""])
         for expiry, value in snapshot["expiry_breakdown"].items():
             lines.append(f"- `{expiry}`: `{_money(value)}`")
+    if snapshot.get("model"):
+        model = snapshot["model"]
+        lines.extend([
+            "",
+            "## Model Provenance",
+            "",
+            f"- Model version: `{model.get('model_version', '--')}`",
+            f"- Normalized schemas: `{', '.join(str(value) for value in model.get('normalized_schema_versions', ())) or '--'}`",
+            f"- Pricing models: `{', '.join(model.get('pricing_models', ())) or '--'}`",
+            f"- Position sources: `{', '.join(model.get('position_sources', ())) or '--'}`",
+            f"- Expiry filter: `{model.get('expiry_filter', 'all')}`",
+            f"- Units: `{model.get('units', '--')}`",
+            f"- Day count: `{model.get('day_count_convention', '--')}`",
+            f"- Gamma aggregation: `{model.get('gamma_aggregation', '--')}`",
+            f"- Zero-gamma semantics: `{model.get('zero_gamma_semantics', '--')}`",
+        ])
     if snapshot.get("feed_quality"):
         quality = snapshot["feed_quality"]
         lines.extend([
