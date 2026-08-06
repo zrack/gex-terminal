@@ -18,6 +18,8 @@ PRICING_MODELS = {"black_scholes", "black_76"}
 VOLUME_SEMANTICS = {"incremental", "cumulative"}
 POSITION_SOURCES = {"trade_volume", "open_interest"}
 IV_SOURCES = {"provider", "configured_default"}
+AGGRESSOR_SIDES = {"buy", "sell", "unknown"}
+DIRECTION_SOURCES = {"provider", "quote_inference", "unknown"}
 
 FUTURES_OPTION_ROOTS = {"ES", "MES", "NQ", "MNQ"}
 INDEX_OPTION_ROOTS = {"SPX"}
@@ -86,6 +88,12 @@ def canonical_option_contract(
             message.get("volume_semantics") or "incremental"
         ).lower(),
         "position_source": position_source,
+        "aggressor_side": str(
+            message.get("aggressor_side") or "unknown"
+        ).lower(),
+        "direction_source": str(
+            message.get("direction_source") or "unknown"
+        ).lower(),
         "contract_multiplier": _optional_positive_float(
             message.get("contract_multiplier")
         ),

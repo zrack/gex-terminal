@@ -43,6 +43,9 @@ flip/nearest-neutral values, call wall, put wall, and concentration band. Schema
 v2 also records model version, normalized schemas, pricing models, position
 sources, selected/expired contract counts, expiry filter, units, day count,
 aggregation, as-of time, and compatibility-field semantics.
+When schema-v2 trade direction is present, snapshots also include the parallel
+`directionalized` matrix, known/unknown volume coverage, direction sources, and
+the explicit participant/open-close evidence limits.
 
 When a snapshot carries replay alerts or feed-quality metadata, Markdown and CSV
 exports include those sections as shareable rows.
@@ -193,6 +196,23 @@ They contain analytical Black-Scholes/Black-76 oracles, dollar-GEX scaling,
 deterministic checks, and an explicit predictive-validity status of
 `unmeasured`. The command exits nonzero if the bounded gate fails. See
 [model-validation.md](model-validation.md).
+
+## Model Comparison Reports
+
+Directionalized model comparisons are available as JSON, CSV, or Markdown:
+
+```bash
+gex-terminal --replay /path/to/side-aware-session.jsonl \
+  --model-comparison model_comparison.md
+gex-terminal inject-provider bundled:databento-glbx \
+  --model-comparison model_comparison.json
+```
+
+They compare the unchanged default proxy with the parallel aggressor-based
+model, including coverage, wall distances, sign agreement, strike rank
+correlation, and normalized profile distance. Missing side data returns an
+unscored `insufficient_directional_coverage` result. See
+[model-comparison.md](model-comparison.md).
 
 ## Tradovate Certification Reports
 

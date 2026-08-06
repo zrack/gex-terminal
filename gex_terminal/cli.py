@@ -30,6 +30,10 @@ from gex_terminal.model_evidence import (
     build_model_evidence_report,
     write_model_evidence_report,
 )
+from gex_terminal.model_comparison import (
+    build_model_comparison_report,
+    write_model_comparison_report,
+)
 from gex_terminal.offline_quality import apply_quality_scenario, quality_scenario_names
 from gex_terminal.overlays import write_tradingview_overlay
 from gex_terminal.provider_injector import (
@@ -184,6 +188,14 @@ async def main():
         await export_sensitivity(
             config=config,
             output_path=args.sensitivity,
+            quality_scenario=args.quality_scenario,
+        )
+        return
+
+    if args.model_comparison:
+        await export_model_comparison(
+            config=config,
+            output_path=args.model_comparison,
             quality_scenario=args.quality_scenario,
         )
         return
@@ -614,6 +626,25 @@ async def export_sensitivity(
     print(f"Saved sensitivity report to {target}")
 
 
+async def export_model_comparison(
+    config: GexConfig,
+    output_path: str,
+    quality_scenario: str | None = None,
+) -> None:
+    """Write a side-by-side default versus directionalized model report."""
+    snapshot, _, _ = await compute_snapshot(config, quality_scenario=quality_scenario)
+    report = build_model_comparison_report(snapshot)
+    try:
+        target = write_model_comparison_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved model comparison to {target} "
+        f"(directional_status={report['result']['status']}, "
+        "predictive_validity=unmeasured)"
+    )
+
+
 async def inject_provider_command(config: GexConfig, args: argparse.Namespace) -> None:
     """Inject raw provider sample data without opening a live market-data connection."""
     if not args.command_path:
@@ -676,6 +707,18 @@ async def inject_provider_command(config: GexConfig, args: argparse.Namespace) -
         except ValueError as exc:
             raise SystemExit(str(exc)) from exc
         print(f"Saved injected provider snapshot to {target}")
+    model_comparison_path = getattr(args, "model_comparison", None)
+    if model_comparison_path:
+        report = build_model_comparison_report(snapshot)
+        try:
+            target = write_model_comparison_report(report, model_comparison_path)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(
+            f"Saved injected provider model comparison to {target} "
+            f"(directional_status={report['result']['status']}, "
+            "predictive_validity=unmeasured)"
+        )
 
 
 async def tradovate_certification_command(
@@ -962,6 +1005,14 @@ def parse_args() -> argparse.Namespace:
         "--sensitivity",
         metavar="PATH",
         help="Compute a model-sensitivity report and write .json, .csv, or .md, then exit.",
+    )
+    parser.add_argument(
+        "--model-comparison",
+        metavar="PATH",
+        help=(
+            "Compare the unchanged default GEX proxy with the parallel "
+            "aggressor-directionalized model; write .json, .csv, or .md, then exit."
+        ),
     )
     parser.add_argument(
         "--journal-dir",

@@ -49,8 +49,10 @@ Options volume ticks:
   "expiry": "2026-08-07",
   "expiry_timestamp": "2026-08-07T20:00:00Z",
   "instrument_class": "futures_option",
-  "volume_semantics": "cumulative",
+  "volume_semantics": "incremental",
   "position_source": "trade_volume",
+  "aggressor_side": "buy",
+  "direction_source": "provider",
   "contract_multiplier": 50,
   "event_time": "2026-08-04T17:30:00Z"
 }
@@ -63,6 +65,12 @@ event time in addition to strike, option type, and volume. `incremental` volume 
 provider contract and position source. `position_source` is `trade_volume` or
 `open_interest`. If both exist, the consumer prefers positive trade volume and
 otherwise falls back to open interest rather than summing them.
+
+Schema v2 may also carry optional trade-direction provenance. `aggressor_side`
+is `buy` or `sell`; `direction_source` is `provider` or `quote_inference`.
+Known direction is valid only for incremental `trade_volume`. Missing direction,
+cumulative volume, and open interest remain explicitly unknown rather than being
+inferred. See [model-comparison.md](model-comparison.md).
 
 Futures options map to Black-76; equity and index options map to Black-Scholes.
 `iv_source` is `provider` or `configured_default`. Adapters that use a fallback

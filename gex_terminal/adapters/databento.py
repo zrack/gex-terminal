@@ -146,6 +146,11 @@ class DatabentoAdapter(MarketDataAdapter):
                 _lookup(record, "ts_event", "tsEvent", "event_time", "timestamp")
             ),
         }
+        aggressor_side = _aggressor_side(_lookup(record, "side", "aggressor_side"))
+        message["aggressor_side"] = aggressor_side
+        message["direction_source"] = (
+            "provider" if aggressor_side != "unknown" else "unknown"
+        )
         iv = _safe_float(_lookup(record, "iv", "implied_volatility", "impliedVolatility"))
         if iv is None:
             iv = _safe_float(metadata.get("iv"))
@@ -186,6 +191,16 @@ def _lookup(record: Mapping[str, Any], *fields: str) -> Any:
         if value not in (None, ""):
             return value
     return None
+
+
+def _aggressor_side(value: Any) -> str:
+    """Normalize Databento trade-side codes without inventing missing direction."""
+    text = _text(value).strip().lower()
+    if text in {"b", "bid", "buy"}:
+        return "buy"
+    if text in {"a", "ask", "s", "sell"}:
+        return "sell"
+    return "unknown"
 
 
 def _text(value: Any) -> str:

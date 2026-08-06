@@ -62,6 +62,7 @@ def build_snapshot(
     put_total_abs = abs(sum(float(value) for value in data["put_gex"]))
     imbalance = call_total / put_total_abs if put_total_abs else 0.0
 
+    directionalized = data.get("directionalized")
     return {
         "schema": "gex-terminal.snapshot.v2",
         "timestamp": timestamp or datetime.now().isoformat(timespec="seconds"),
@@ -127,7 +128,18 @@ def build_snapshot(
             ),
             "expiry_filter": data.get("expiry_filter", "all"),
             "as_of": data.get("as_of"),
+            "parallel_models": (
+                ["aggressor_directionalized_volume"]
+                if isinstance(directionalized, dict)
+                else []
+            ),
+            "direction_sources": list(
+                directionalized.get("direction_sources", ())
+                if isinstance(directionalized, dict)
+                else ()
+            ),
         },
+        "directionalized": directionalized,
         "expiry_breakdown": expiry_breakdown or {},
         "strikes": strikes,
     }

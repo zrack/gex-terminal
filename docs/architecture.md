@@ -52,8 +52,10 @@ Option-volume tick:
   "expiry": "2026-08-07",
   "expiry_timestamp": "2026-08-07T20:00:00Z",
   "instrument_class": "futures_option",
-  "volume_semantics": "cumulative",
+  "volume_semantics": "incremental",
   "position_source": "trade_volume",
+  "aggressor_side": "buy",
+  "direction_source": "provider",
   "contract_multiplier": 50,
   "event_time": "2026-08-04T17:30:00Z"
 }
@@ -69,6 +71,11 @@ options map to Black-76 and equity/index options to Black-Scholes. Contract rows
 use their own DTE and multiplier before equal strikes are aggregated. An
 authoritative timezone-bearing expiry timestamp takes precedence over explicit
 contract DTE, followed by the configured scalar fallback.
+Optional schema-v2 aggressor direction accumulates as buy, sell, or unknown
+volume inside the same selected contract state. The engine computes a parallel
+directionalized matrix from those buckets while the default call/put matrix
+remains unchanged. Cumulative quantities clear directional attribution because
+they cannot reconstruct the side composition of prior trades.
 
 Schema v1 remains accepted for the historical strike-level replay path. The
 consumer ignores off-symbol underlying ticks, tracks malformed or dropped

@@ -58,6 +58,12 @@ class ProviderInjectorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(volumes[6000.0]["call_volume"], 24)
         self.assertEqual(snapshot["feed_quality"]["subscribed_symbol_count"], 3)
         self.assertEqual(snapshot["feed_quality"]["frame_count"], 4)
+        directional = snapshot["directionalized"]
+        self.assertEqual(directional["status"], "available")
+        self.assertEqual(directional["known_direction_volume"], 73.0)
+        self.assertEqual(directional["unknown_direction_volume"], 24.0)
+        self.assertAlmostEqual(directional["directional_coverage"], 73 / 97)
+        self.assertEqual(directional["direction_sources"], ["provider"])
 
     async def test_yfinance_fixture_injection_supports_equity_etf_samples(self):
         snapshot = await inject_provider_fixture(

@@ -80,6 +80,8 @@ Option volume tick:
   "instrument_class": "futures_option",
   "volume_semantics": "incremental",
   "position_source": "trade_volume",
+  "aggressor_side": "buy",
+  "direction_source": "provider",
   "event_time": "2026-06-12T15:30:00Z"
 }
 ```
@@ -99,6 +101,8 @@ Option volume tick:
 | `event_time` | Timezone-bearing `ts_event` or equivalent provider event time |
 | `volume_semantics` | `incremental` for individual trade sizes |
 | `position_source` | `trade_volume` for trade messages; a future statistics mapping must use `open_interest` with `cumulative` semantics |
+| `aggressor_side` | Databento trade `side`: `B`/bid maps to `buy`, `A`/ask maps to `sell`, and absent/indeterminate side maps to `unknown` |
+| `direction_source` | `provider` when a known Databento side is preserved; otherwise `unknown` |
 | `iv_source` | `provider` when supplied by a record/definition; otherwise the labeled `configured_default` fallback degrades feed quality |
 | open interest | `statistics` rows with open-interest stat fields; extraction is fixture-tested but live ingestion remains unimplemented |
 
@@ -111,6 +115,8 @@ Option volume tick:
 - Include the Databento dataset and schema name in the fixture wrapper.
 - Include enough definition rows to join trade records by `instrument_id`.
 - Add tests for every new field shape before changing live adapter behavior.
+- Do not reinterpret aggressor side as observed customer/dealer identity or
+  opening/closing classification.
 
 ## Verification
 

@@ -253,6 +253,159 @@ class IntradayGexEngine:
             "day_count_convention": "ACT/365",
         }
 
+    def compute_directionalized_gex_matrix(
+        self,
+        spot_price: float,
+        strikes: np.ndarray,
+        days_to_expiry: float | np.ndarray,
+        risk_free_rate: float,
+        implied_vols: np.ndarray,
+        buy_aggressor_vol: np.ndarray,
+        sell_aggressor_vol: np.ndarray,
+        unknown_aggressor_vol: np.ndarray,
+        *,
+        pricing_model: str | np.ndarray = "black_scholes",
+        carry_rate: float | np.ndarray = 0.0,
+        contract_multipliers: float | np.ndarray | None = None,
+    ) -> dict:
+        """Compute an aggressor-directionalized dealer-gamma proxy.
+
+        The model assumes an aggressor buy leaves the passive counterparty short
+        one option's gamma and an aggressor sell leaves it long gamma. Participant
+        identity and opening/closing state remain unobserved, so this is emitted
+        beside—not in place of—the default call-positive/put-negative proxy.
+        """
+        strikes = np.asarray(strikes, dtype=float)
+        implied_vols = np.asarray(implied_vols, dtype=float)
+        buy_volume = np.asarray(buy_aggressor_vol, dtype=float)
+        sell_volume = np.asarray(sell_aggressor_vol, dtype=float)
+        unknown_volume = np.asarray(unknown_aggressor_vol, dtype=float)
+        arrays = (strikes, implied_vols, buy_volume, sell_volume, unknown_volume)
+        if any(values.ndim != 1 for values in arrays):
+            raise ValueError("Directionalized contract arrays must be one-dimensional")
+        if len(strikes) == 0:
+            raise ValueError("At least one option contract is required to compute GEX")
+        if any(values.shape != strikes.shape for values in arrays[1:]):
+            raise ValueError("Directionalized contract arrays must have identical shapes")
+        if any(
+            np.any(values < 0) or not np.all(np.isfinite(values))
+            for values in (buy_volume, sell_volume, unknown_volume)
+        ):
+            raise ValueError("Directionalized volumes must be finite and non-negative")
+
+        day_values = self._days_array(days_to_expiry, strikes.shape)
+        models = self._pricing_models(pricing_model, strikes.shape)
+        carries = self._aligned_values(carry_rate, strikes.shape, "carry_rate")
+        multiplier_values = self._aligned_values(
+            self.multiplier if contract_multipliers is None else contract_multipliers,
+            strikes.shape,
+            "contract_multipliers",
+        )
+        self._validate_gamma_inputs(
+            float(spot_price),
+            strikes,
+            day_values / 365.0,
+            float(risk_free_rate),
+            implied_vols,
+        )
+        if np.any(multiplier_values <= 0):
+            raise ValueError("contract_multipliers must be positive")
+
+        contract_gammas = self.calculate_gamma(
+            float(spot_price),
+            strikes,
+            day_values / 365.0,
+            float(risk_free_rate),
+            implied_vols,
+            pricing_model=models,
+            carry_rate=carries,
+        )
+        scaling = (
+            contract_gammas
+            * float(spot_price)
+            * (float(spot_price) * 0.01)
+            * multiplier_values
+        )
+        buy_gex = buy_volume * scaling * -1.0
+        sell_gex = sell_volume * scaling
+
+        unique_strikes, inverse = np.unique(strikes, return_inverse=True)
+        buy_gex_by_strike = np.zeros_like(unique_strikes, dtype=float)
+        sell_gex_by_strike = np.zeros_like(unique_strikes, dtype=float)
+        buy_by_strike = np.zeros_like(unique_strikes, dtype=float)
+        sell_by_strike = np.zeros_like(unique_strikes, dtype=float)
+        unknown_by_strike = np.zeros_like(unique_strikes, dtype=float)
+        gamma_weighted = np.zeros_like(unique_strikes, dtype=float)
+        gamma_weights = np.zeros_like(unique_strikes, dtype=float)
+        np.add.at(buy_gex_by_strike, inverse, buy_gex)
+        np.add.at(sell_gex_by_strike, inverse, sell_gex)
+        np.add.at(buy_by_strike, inverse, buy_volume)
+        np.add.at(sell_by_strike, inverse, sell_volume)
+        np.add.at(unknown_by_strike, inverse, unknown_volume)
+        row_weights = buy_volume + sell_volume + unknown_volume
+        np.add.at(gamma_weighted, inverse, contract_gammas * row_weights)
+        np.add.at(gamma_weights, inverse, row_weights)
+        gammas = np.divide(
+            gamma_weighted,
+            gamma_weights,
+            out=np.zeros_like(gamma_weighted),
+            where=gamma_weights > 0,
+        )
+
+        net_gex = buy_gex_by_strike + sell_gex_by_strike
+        total_abs = float(np.sum(np.abs(net_gex)))
+        gamma_wall = float(unique_strikes[int(np.argmax(np.abs(net_gex)))])
+        flip = self.strike_profile_flip(unique_strikes, net_gex)
+        nearest_neutral = float(unique_strikes[int(np.argmin(np.abs(net_gex)))])
+        zero_gamma = flip if flip is not None else nearest_neutral
+        band_low, band_high = self.concentration_band(
+            unique_strikes,
+            np.abs(net_gex),
+            threshold=0.70,
+        )
+        known_volume = float(np.sum(buy_volume + sell_volume))
+        unknown_total = float(np.sum(unknown_volume))
+        all_volume = known_volume + unknown_total
+
+        return {
+            "model": "aggressor_directionalized_volume",
+            "model_version": "gex-terminal.aggressor-directionalized.v1",
+            "status": "available" if known_volume > 0 else "insufficient_directional_coverage",
+            "strikes": unique_strikes.tolist(),
+            "gammas": gammas.tolist(),
+            "buy_aggressor_volume": buy_by_strike.tolist(),
+            "sell_aggressor_volume": sell_by_strike.tolist(),
+            "unknown_aggressor_volume": unknown_by_strike.tolist(),
+            "buy_aggressor_gex": buy_gex_by_strike.tolist(),
+            "sell_aggressor_gex": sell_gex_by_strike.tolist(),
+            "net_gex": net_gex.tolist(),
+            "total_net_gex": float(np.sum(net_gex)),
+            "gamma_wall_strike": gamma_wall,
+            "zero_gamma_strike": float(zero_gamma),
+            "strike_profile_flip": float(flip) if flip is not None else None,
+            "nearest_neutral_strike": nearest_neutral,
+            "concentration_ratio": (
+                float(np.max(np.abs(net_gex)) / total_abs) if total_abs else 0.0
+            ),
+            "concentration_band_low": float(band_low),
+            "concentration_band_high": float(band_high),
+            "known_direction_volume": known_volume,
+            "unknown_direction_volume": unknown_total,
+            "total_trade_volume": all_volume,
+            "directional_coverage": known_volume / all_volume if all_volume else 0.0,
+            "contract_count": int(len(strikes)),
+            "pricing_models": sorted(set(models.tolist())),
+            "units": "USD gamma exposure per 1% underlying move",
+            "day_count_convention": "ACT/365",
+            "directional_assumption": (
+                "aggressor_buy_passive_counterparty_short_gamma; "
+                "aggressor_sell_passive_counterparty_long_gamma"
+            ),
+            "participant_classification": "unobserved",
+            "opening_closing_classification": "unobserved",
+            "predictive_validity": "unmeasured",
+        }
+
     @staticmethod
     def _validate_gamma_inputs(
         spot: float,

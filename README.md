@@ -134,6 +134,10 @@ Good starting points:
   clock.
 - **Bounded model evidence**: exports independent analytical oracles and
   deterministic checks while declaring predictive market validity unmeasured.
+- **Parallel directionalized-volume research model**: preserves optional
+  provider/quote-inferred aggressor side, reports known-direction coverage, and
+  compares its signed profile with the unchanged default proxy without claiming
+  participant identity or predictive validity.
 - **Replay Research Lab**: runs bundled synthetic sessions offline, then exports
   session comparisons, replay alerts, and saved snapshot baselines.
 - **Historical Research Journal**: saves local replay-session studies, lists
@@ -572,6 +576,20 @@ The gate fails closed on numerical or deterministic regressions and explicitly
 reports predictive market validity as `unmeasured`. See
 [docs/model-validation.md](docs/model-validation.md).
 
+Compare the unchanged default proxy with the optional aggressor-directionalized
+model from a side-aware replay or the bundled Databento fixture path:
+
+```bash
+gex-terminal --replay /path/to/side-aware-session.jsonl \
+  --model-comparison model_comparison.md
+gex-terminal inject-provider bundled:databento-glbx \
+  --model-comparison model_comparison.md
+```
+
+The report measures model disagreement and directional coverage; it does not
+measure forecasting value. See
+[docs/model-comparison.md](docs/model-comparison.md).
+
 Run an explicit, read-only Tradovate network certification probe:
 
 ```bash
@@ -727,6 +745,8 @@ pip install -e .
   assumptions and limitations.
 - See [docs/model-validation.md](docs/model-validation.md) for numerical oracles,
   deterministic checks, snapshot provenance, and the predictive evidence ceiling.
+- See [docs/model-comparison.md](docs/model-comparison.md) for the parallel
+  directionalized-volume model, evidence limits, and comparison harness.
 - See [docs/captured-sessions.md](docs/captured-sessions.md) for normalized event
   capture, integrity verification, event-time replay, and local inventory.
 - See [docs/provider-injection.md](docs/provider-injection.md) for raw

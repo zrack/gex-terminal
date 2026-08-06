@@ -114,6 +114,43 @@ def build_model_evidence_report() -> dict[str, Any]:
         "passed": es_passed,
     })
 
+    directional = engine.compute_directionalized_gex_matrix(
+        spot_price=5000.0,
+        strikes=np.array([5000.0]),
+        days_to_expiry=np.array([1.0]),
+        risk_free_rate=0.045,
+        implied_vols=np.array([0.15]),
+        buy_aggressor_vol=np.array([100.0]),
+        sell_aggressor_vol=np.array([25.0]),
+        unknown_aggressor_vol=np.array([50.0]),
+        pricing_model=np.array(["black_76"]),
+        contract_multipliers=np.array([50.0]),
+    )
+    expected_directional_gex = expected_es_gex * -0.75
+    actual_directional_gex = float(directional["total_net_gex"])
+    directional_passed = bool(
+        np.isclose(
+            actual_directional_gex,
+            expected_directional_gex,
+            rtol=1e-12,
+            atol=1e-6,
+        )
+        and np.isclose(directional["directional_coverage"], 125 / 175)
+        and directional["participant_classification"] == "unobserved"
+    )
+    cases.append({
+        "name": "aggressor_directionalized_sign_scaling_and_coverage",
+        "pricing_model": "black_76",
+        "expected_gex": expected_directional_gex,
+        "actual_gex": actual_directional_gex,
+        "absolute_error": abs(actual_directional_gex - expected_directional_gex),
+        "expected_directional_coverage": 125 / 175,
+        "actual_directional_coverage": directional["directional_coverage"],
+        "rtol": 1e-12,
+        "atol": 1e-6,
+        "passed": directional_passed,
+    })
+
     deterministic_checks = _deterministic_checks(engine)
     numerical_passed = all(case["passed"] for case in cases)
     deterministic_passed = all(check["passed"] for check in deterministic_checks)
@@ -128,6 +165,7 @@ def build_model_evidence_report() -> dict[str, Any]:
             "pricing_models": ["black_scholes", "black_76"],
             "aggregation": "price each contract row, then aggregate by strike",
             "zero_gamma_semantics": "adjacent strike-profile crossing; not an underlying-price portfolio flip",
+            "parallel_models": ["gex-terminal.aggressor-directionalized.v1"],
         },
         "evidence": {
             "numerical_validity": {

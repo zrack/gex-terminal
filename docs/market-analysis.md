@@ -31,7 +31,8 @@ Current constraints:
 - Live provider integrations are still early.
 - Uses explicitly labeled trade volume or open interest as a positioning proxy;
   neither establishes dealer inventory or opening/closing flow.
-- Does not yet model dealer/customer trade direction.
+- Computes an optional aggressor-directionalized comparison when side data is
+  present, but does not observe dealer/customer identity or opening/closing flow.
 - Does not include options flow, dark-pool prints, mobile apps, execution, or
   broad equity scanning. Alerts and TradingView exports are local artifacts,
   not hosted integrations.
@@ -114,8 +115,8 @@ Features competitors commonly have that `gex-terminal` does not yet have:
   live ES/NQ option-chain discovery. Transport hardening exists, but Tradovate
   remains a scaffold until that gate passes.
 - Entitlement-backed live open-interest ingestion and source-quality comparison.
-- Dealer/customer direction inference to avoid naive call-positive/put-negative
-  assumptions.
+- Licensed dealer/customer participant and opening/closing evidence beyond the
+  current aggressor-directionalized passive-counterparty assumption.
 - Vanna, charm, delta exposure, vega exposure, and theta exposure.
 - Options-flow feed: sweeps, blocks, splits, premium, side, size, and filters.
 - Governed live-day capture datasets, backtesting labels, and dedicated

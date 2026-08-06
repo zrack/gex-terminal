@@ -64,6 +64,14 @@ gex-terminal inject-provider bundled:databento-glbx
 This exercises the documented `GLBX.MDP3` fixture mapping without requiring a
 live Databento key.
 
+The fixture includes known buy/sell and unknown trade-side examples. Generate a
+side-by-side model report through the same adapter and consumer path:
+
+```bash
+gex-terminal inject-provider bundled:databento-glbx \
+  --model-comparison model_comparison.md
+```
+
 ## yfinance Samples
 
 yfinance samples are useful for delayed SPY/QQQ-style equity/ETF option-chain

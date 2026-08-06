@@ -80,8 +80,11 @@ dashboard and more like a focused market-structure workstation. See
   Black-Scholes using per-contract DTE and multiplier before strike aggregation.
 - [x] Expose the adjacent strike-profile sign flip and nearest-neutral strike
   separately, while retaining `zero_gamma` as a documented compatibility field.
-- [ ] Add dealer/customer direction inference so GEX sign handling can move
-  beyond a naive call-positive/put-negative convention when data supports it.
+- [x] Add a parallel aggressor-directionalized volume model while preserving the
+  default call-positive/put-negative proxy. Schema v2 accepts optional provider
+  or quote-inferred aggressor side, exposes coverage and unknown volume, and the
+  comparison harness reports model disagreement. Dealer/customer identity and
+  opening/closing classification remain future licensed-data work.
 - [ ] Add Delta Exposure (DEX), vanna, charm, vega, and theta exposure metrics
   after the live option-chain model stabilizes.
 - [x] Add exportable snapshot summaries for later review (JSON via `--export PATH`

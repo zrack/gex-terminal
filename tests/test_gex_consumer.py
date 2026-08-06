@@ -19,8 +19,10 @@ class StatefulGexConsumerLifecycleTests(unittest.IsolatedAsyncioTestCase):
         volume=100,
         sequence=1,
         volume_semantics="incremental",
+        aggressor_side=None,
+        direction_source=None,
     ):
-        return {
+        message = {
             "schema_version": 2,
             "type": "options_volume_tick",
             "provider": "test",
@@ -39,6 +41,11 @@ class StatefulGexConsumerLifecycleTests(unittest.IsolatedAsyncioTestCase):
             "event_time": "2026-06-18T14:00:00Z",
             "sequence": sequence,
         }
+        if aggressor_side is not None:
+            message["aggressor_side"] = aggressor_side
+        if direction_source is not None:
+            message["direction_source"] = direction_source
+        return message
 
     def test_demo_mode_reports_sim(self):
         consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="demo")
@@ -278,6 +285,62 @@ class StatefulGexConsumerLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(consumer.chain_state[5950.0]["C"], 10)
         self.assertEqual(consumer.duplicate_message_count, 1)
         self.assertEqual(consumer.cumulative_reset_count, 1)
+
+    async def test_directionalized_volume_accumulates_beside_unchanged_default(self):
+        consumer = StatefulGexConsumer(
+            IntradayGexEngine(multiplier=50),
+            target_underlying="ES",
+        )
+        consumer.current_spot = 5950.0
+        buy = self._v2_option(
+            volume=100,
+            sequence=1,
+            aggressor_side="buy",
+            direction_source="provider",
+        )
+        sell = self._v2_option(
+            volume=40,
+            sequence=2,
+            aggressor_side="sell",
+            direction_source="provider",
+        )
+        await consumer.update_market_state(json.dumps(buy))
+        await consumer.update_market_state(json.dumps(sell))
+
+        data = await consumer.process_latest_snapshot(
+            days_to_expiry=0.25,
+            as_of=datetime(2026, 6, 18, 14, tzinfo=timezone.utc),
+        )
+
+        state = next(iter(consumer.contract_state.values()))
+        self.assertEqual(state["accumulated_volume"], 140)
+        self.assertEqual(state["directional_volume"], {
+            "buy": 100,
+            "sell": 40,
+            "unknown": 0,
+        })
+        self.assertEqual(data["call_volume"], [140.0])
+        self.assertGreater(data["total_net_gex"], 0.0)
+        directional = data["directionalized"]
+        self.assertEqual(directional["status"], "available")
+        self.assertEqual(directional["directional_coverage"], 1.0)
+        self.assertLess(directional["total_net_gex"], 0.0)
+        self.assertEqual(directional["direction_sources"], ["provider"])
+
+    async def test_missing_trade_side_is_reported_as_insufficient_coverage(self):
+        consumer = StatefulGexConsumer(IntradayGexEngine(), target_underlying="ES")
+        consumer.current_spot = 5950.0
+        await consumer.update_market_state(json.dumps(self._v2_option(volume=100)))
+
+        data = await consumer.process_latest_snapshot(
+            days_to_expiry=0.25,
+            as_of=datetime(2026, 6, 18, 14, tzinfo=timezone.utc),
+        )
+
+        directional = data["directionalized"]
+        self.assertEqual(directional["status"], "insufficient_directional_coverage")
+        self.assertEqual(directional["known_direction_volume"], 0.0)
+        self.assertEqual(directional["unknown_direction_volume"], 100.0)
 
     async def test_mixed_v1_v2_session_reports_legacy_fallback(self):
         consumer = StatefulGexConsumer(

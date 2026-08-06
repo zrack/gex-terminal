@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from gex_terminal.contracts import (
+    AGGRESSOR_SIDES,
+    DIRECTION_SOURCES,
     INSTRUMENT_CLASSES,
     IV_SOURCES,
     NORMALIZED_SCHEMA_VERSION,
@@ -169,6 +171,22 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
     position_source = str(message.get("position_source") or "trade_volume").lower()
     if position_source not in POSITION_SOURCES:
         raise ValueError(f"Unsupported position_source: {message['position_source']}")
+
+    aggressor_side = str(message.get("aggressor_side") or "unknown").lower()
+    direction_source = str(message.get("direction_source") or "unknown").lower()
+    if aggressor_side not in AGGRESSOR_SIDES:
+        raise ValueError(f"Unsupported aggressor_side: {message['aggressor_side']}")
+    if direction_source not in DIRECTION_SOURCES:
+        raise ValueError(f"Unsupported direction_source: {message['direction_source']}")
+    if aggressor_side != "unknown":
+        if position_source != "trade_volume":
+            raise ValueError("aggressor_side requires position_source=trade_volume")
+        if volume_semantics != "incremental":
+            raise ValueError("aggressor_side requires incremental volume semantics")
+        if direction_source == "unknown":
+            raise ValueError("known aggressor_side requires direction_source provenance")
+    elif direction_source != "unknown":
+        raise ValueError("direction_source requires a known aggressor_side")
 
     iv_source = str(message["iv_source"]).lower()
     if iv_source not in IV_SOURCES:

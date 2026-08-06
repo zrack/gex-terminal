@@ -358,12 +358,28 @@ class StatefulGexConsumer:
 
         volume = int(message["volume"])
         previous = int(existing.get("accumulated_volume", 0) if existing else 0)
+        previous_directional = dict(
+            existing.get("directional_volume", {}) if existing else {}
+        )
+        directional_volume = {
+            "buy": int(previous_directional.get("buy", 0)),
+            "sell": int(previous_directional.get("sell", 0)),
+            "unknown": int(previous_directional.get("unknown", 0)),
+        }
+        direction_sources = set(existing.get("direction_sources", ()) if existing else ())
         if contract["volume_semantics"] == "cumulative":
             accumulated = volume
+            directional_volume = {"buy": 0, "sell": 0, "unknown": volume}
+            direction_sources.clear()
             if existing is not None and volume < previous:
                 self.cumulative_reset_count += 1
         else:
             accumulated = previous + volume
+            side = str(contract.get("aggressor_side") or "unknown")
+            directional_volume[side] += volume
+            source = str(contract.get("direction_source") or "unknown")
+            if side != "unknown" and source != "unknown":
+                direction_sources.add(source)
 
         self._option_update_serial += 1
         state = dict(existing or {})
@@ -374,6 +390,8 @@ class StatefulGexConsumer:
             "last_reported_volume": volume,
             "last_sequence": sequence,
             "last_update_serial": self._option_update_serial,
+            "directional_volume": directional_volume,
+            "direction_sources": sorted(direction_sources),
         })
         self.contract_state[state_key] = state
         self._rebuild_public_projections_locked()
@@ -489,6 +507,21 @@ class StatefulGexConsumer:
                     "error": f"No option contracts match expiry filter '{selected_filter}'."
                 }
             data = self._legacy_matrix(selected_map, spot, days_to_expiry)
+            data["directionalized"] = {
+                "model": "aggressor_directionalized_volume",
+                "status": "unsupported_legacy_schema",
+                "directional_coverage": 0.0,
+                "known_direction_volume": 0.0,
+                "unknown_direction_volume": float(
+                    sum(
+                        int(row.get("C", 0)) + int(row.get("P", 0))
+                        for row in selected_map.values()
+                    )
+                ),
+                "participant_classification": "unobserved",
+                "opening_closing_classification": "unobserved",
+                "predictive_validity": "unmeasured",
+            }
             selected_count = len(selected_map)
 
         data["expiry_filter"] = selected_filter
@@ -778,7 +811,7 @@ class StatefulGexConsumer:
             for state in contracts
         ], dtype=float)
 
-        return self.engine.compute_intraday_gex_matrix(
+        matrix = self.engine.compute_intraday_gex_matrix(
             spot_price=spot,
             strikes=strikes,
             days_to_expiry=dtes,
@@ -789,6 +822,36 @@ class StatefulGexConsumer:
             pricing_model=pricing_models,
             contract_multipliers=multipliers,
         )
+        directional = self.engine.compute_directionalized_gex_matrix(
+            spot_price=spot,
+            strikes=strikes,
+            days_to_expiry=dtes,
+            risk_free_rate=self.risk_free_rate,
+            implied_vols=ivs,
+            buy_aggressor_vol=np.array([
+                state.get("directional_volume", {}).get("buy", 0)
+                for state in contracts
+            ], dtype=float),
+            sell_aggressor_vol=np.array([
+                state.get("directional_volume", {}).get("sell", 0)
+                for state in contracts
+            ], dtype=float),
+            unknown_aggressor_vol=np.array([
+                state.get("directional_volume", {}).get(
+                    "unknown", state.get("accumulated_volume", 0)
+                )
+                for state in contracts
+            ], dtype=float),
+            pricing_model=pricing_models,
+            contract_multipliers=multipliers,
+        )
+        directional["direction_sources"] = sorted({
+            source
+            for state in contracts
+            for source in state.get("direction_sources", ())
+        })
+        matrix["directionalized"] = directional
+        return matrix
 
     @staticmethod
     def _contract_days_to_expiry(

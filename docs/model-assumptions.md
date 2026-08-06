@@ -64,6 +64,14 @@ positions, can reflect churn, and does not identify customer/dealer direction.
 Open interest is often delayed and still does not establish who owns which side.
 Neither source is dealer inventory.
 
+When incremental trade records carry a known aggressor side, the terminal also
+computes a parallel directionalized-volume model. It treats aggressor buys as
+gamma sold by the passive counterparty and aggressor sells as gamma bought by
+the passive counterparty. Unknown-side volume is reported as uncovered and is
+not signed. This alternate model does not establish that the passive
+counterparty is a dealer, identify participants, classify opening/closing flow,
+or replace the default model. See [model-comparison.md](model-comparison.md).
+
 Schema v1 retains its historical accumulated-volume proxy for compatibility.
 Snapshot provenance identifies that path as `legacy_volume_proxy`.
 
@@ -120,7 +128,8 @@ the scalar DTE changes only rows that need that fallback.
 
 ## Known Limitations
 
-- No dealer/customer trade-direction model.
+- No observed dealer/customer participant classification; the optional
+  aggressor-directionalized proxy assumes a passive dealer-side counterparty.
 - No opening/closing trade classification.
 - No vanna, charm, delta exposure, vega exposure, or theta exposure.
 - Live option-chain coverage remains provider- and entitlement-specific.

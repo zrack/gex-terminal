@@ -106,6 +106,28 @@ class MarketDataAdapterContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "position_source"):
             validate_normalized_message(self._v2_option(position_source="both"))
 
+    def test_v2_accepts_optional_aggressor_direction_provenance(self):
+        validate_normalized_message(self._v2_option(
+            aggressor_side="buy",
+            direction_source="provider",
+        ))
+
+    def test_v2_direction_requires_incremental_trade_volume_and_provenance(self):
+        with self.assertRaisesRegex(ValueError, "direction_source provenance"):
+            validate_normalized_message(self._v2_option(aggressor_side="buy"))
+        with self.assertRaisesRegex(ValueError, "incremental"):
+            validate_normalized_message(self._v2_option(
+                aggressor_side="sell",
+                direction_source="quote_inference",
+                volume_semantics="cumulative",
+            ))
+        with self.assertRaisesRegex(ValueError, "position_source=trade_volume"):
+            validate_normalized_message(self._v2_option(
+                aggressor_side="sell",
+                direction_source="provider",
+                position_source="open_interest",
+            ))
+
     def test_v2_rejects_non_finite_numbers(self):
         with self.assertRaises(ValueError):
             validate_normalized_message(self._v2_option(strike=float("nan")))

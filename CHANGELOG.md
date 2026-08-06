@@ -9,7 +9,16 @@ published.
 
 ## Unreleased
 
-No entries yet.
+### Added
+
+- Optional schema-v2 aggressor-side and direction-source provenance for
+  incremental trade volume, including Databento trade-side fixture mapping.
+- A parallel aggressor-directionalized volume GEX model with explicit coverage,
+  unknown-volume, participant/open-close limitations, and unchanged default
+  model behavior.
+- JSON, CSV, and Markdown model-comparison reports with regime/strike sign
+  agreement, wall distances, strike rank correlation, normalized profile
+  distance, and an explicit `unmeasured` predictive-validity ceiling.
 
 ## 0.2.0 - 2026-08-04
 

@@ -147,6 +147,25 @@ def snapshot_to_markdown(snapshot: Dict[str, Any]) -> str:
             f"- Gamma aggregation: `{model.get('gamma_aggregation', '--')}`",
             f"- Zero-gamma semantics: `{model.get('zero_gamma_semantics', '--')}`",
         ])
+    if snapshot.get("directionalized"):
+        directional = snapshot["directionalized"]
+        lines.extend([
+            "",
+            "## Directionalized Volume Model",
+            "",
+            f"- Status: `{directional.get('status', '--')}`",
+            f"- Direction coverage: `{float(directional.get('directional_coverage', 0.0)):.1%}`",
+            f"- Known direction volume: `{float(directional.get('known_direction_volume', 0.0)):,.0f}`",
+            f"- Unknown direction volume: `{float(directional.get('unknown_direction_volume', 0.0)):,.0f}`",
+            f"- Participant classification: `{directional.get('participant_classification', 'unobserved')}`",
+            f"- Predictive validity: `{directional.get('predictive_validity', 'unmeasured')}`",
+        ])
+        if directional.get("status") == "available":
+            lines.extend([
+                f"- Directionalized net GEX: `{_money(directional['total_net_gex'])}`",
+                f"- Directionalized gamma wall: `{float(directional['gamma_wall_strike']):,.1f}`",
+                f"- Directionalized zero gamma: `{float(directional['zero_gamma_strike']):,.1f}`",
+            ])
     if snapshot.get("feed_quality"):
         quality = snapshot["feed_quality"]
         lines.extend([

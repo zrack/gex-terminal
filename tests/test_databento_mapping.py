@@ -91,6 +91,14 @@ class DatabentoMappingTests(unittest.TestCase):
         self.assertTrue(all(message["iv_source"] == "configured_default" for message in messages))
         self.assertEqual(messages[0]["contract_symbol"], "ESM6 C5950")
         self.assertEqual(messages[0]["event_time"], "2026-06-18T14:30:00.000000000Z")
+        self.assertEqual(
+            [message["aggressor_side"] for message in messages],
+            ["buy", "sell", "unknown"],
+        )
+        self.assertEqual(
+            [message["direction_source"] for message in messages],
+            ["provider", "provider", "unknown"],
+        )
 
     def test_expected_normalized_jsonl_fixture_is_valid(self):
         path = FIXTURE_DIR / "databento_normalized_expected.jsonl"
