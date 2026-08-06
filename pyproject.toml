@@ -41,11 +41,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-databento = ["databento>=0.47.0"]
+databento = ["databento>=0.83.0,<0.84.0"]
 ibkr = ["ib_insync>=0.9.86"]
 yfinance = ["yfinance>=0.2.40"]
 providers = [
-    "databento>=0.47.0",
+    "databento>=0.83.0,<0.84.0",
     "ib_insync>=0.9.86",
     "yfinance>=0.2.40",
 ]

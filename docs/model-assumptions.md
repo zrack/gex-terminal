@@ -48,8 +48,15 @@ Schema v2 labels each option quantity and volatility input with explicit provena
 - `volume_semantics`: `incremental` updates add to prior state; `cumulative`
   updates replace the prior absolute value.
 - `position_source`: `trade_volume` or `open_interest`.
-- `iv_source`: `provider` or `configured_default`; the latter is counted and
-  surfaced as degraded feed quality.
+- `iv_source`: `provider`, `black_76_inverted`, or `configured_default`; only
+  the latter is counted and surfaced as degraded feed quality.
+
+Databento's live option-trade path can derive `black_76_inverted` IV from the
+option trade price, latest observed continuous-futures midpoint, authoritative
+expiry timestamp, and configured risk-free rate. The `iv_provenance` object
+records those inputs, the bisection method, convergence status, iterations, and
+absolute option-price error. This is an asynchronous trade/midpoint pairing,
+not a synchronized executable option quote or an exchange-published IV.
 
 Contract state is scoped by provider, contract ID, and position source. Sequence
 numbers can suppress duplicate updates. If a cumulative source resets below its
@@ -135,6 +142,9 @@ the scalar DTE changes only rows that need that fallback.
 - Live option-chain coverage remains provider- and entitlement-specific.
 - Tradovate quote frames do not establish native implied volatility; fallback
   IV is marked as degraded and cannot certify quantitative GEX.
+- Databento trade-price IV inversion depends on the latest observed futures
+  midpoint and can be stale or asynchronous; the certification report measures
+  occurrence and provenance, not executable calibration quality.
 - Market-maker inventory and proprietary positioning assumptions are not
   modeled.
 - Exchange settlement conventions are not inferred from a date-only expiry.

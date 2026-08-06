@@ -17,7 +17,7 @@ INSTRUMENT_CLASSES = {"equity_option", "futures_option", "index_option"}
 PRICING_MODELS = {"black_scholes", "black_76"}
 VOLUME_SEMANTICS = {"incremental", "cumulative"}
 POSITION_SOURCES = {"trade_volume", "open_interest"}
-IV_SOURCES = {"provider", "configured_default"}
+IV_SOURCES = {"provider", "black_76_inverted", "configured_default"}
 AGGRESSOR_SIDES = {"buy", "sell", "unknown"}
 DIRECTION_SOURCES = {"provider", "quote_inference", "unknown"}
 
@@ -102,6 +102,7 @@ def canonical_option_contract(
             if message.get("iv_source") not in (None, "")
             else None
         ),
+        "iv_provenance": message.get("iv_provenance"),
         "event_time": message.get("event_time") or message.get("timestamp"),
         "received_time": message.get("received_time"),
         "sequence": _optional_int(message.get("sequence")),

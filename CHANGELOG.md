@@ -19,6 +19,18 @@ published.
 - JSON, CSV, and Markdown model-comparison reports with regime/strike sign
   agreement, wall distances, strike rank correlation, normalized profile
   distance, and an explicit `unmeasured` predictive-validity ceiling.
+- A bounded Black-76 implied-volatility inversion with no-arbitrage checks,
+  deterministic bisection, and per-tick price, futures-midpoint, time, rate,
+  convergence, and error provenance.
+- Mixed-schema Databento live ingestion for ES/NQ definitions, option trades,
+  and continuous-futures `mbp-1` quotes, plus a redacted, fail-closed
+  `databento-certify` transport/chain/model-input report.
+
+### Changed
+
+- Schema-v2 `iv_source` now distinguishes provider IV, Black-76-inverted IV,
+  and configured fallback IV. Only configured fallback values degrade IV
+  quality accounting.
 
 ## 0.2.0 - 2026-08-04
 

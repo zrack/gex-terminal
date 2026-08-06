@@ -44,7 +44,11 @@ def _build_tradovate(consumer, config: GexConfig) -> MarketDataAdapter:
 
 
 def _build_databento(consumer, config: GexConfig) -> MarketDataAdapter:
-    return DatabentoAdapter(consumer, target_underlying=config.symbol)
+    return DatabentoAdapter(
+        consumer,
+        target_underlying=config.symbol,
+        risk_free_rate=config.risk_free_rate,
+    )
 
 
 def _build_ibkr(consumer, config: GexConfig) -> MarketDataAdapter:

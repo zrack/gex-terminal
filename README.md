@@ -605,6 +605,19 @@ evidence ceiling. The command exits nonzero when transport is not certified.
 The adapter remains registry status `scaffold`; no live certification pass is
 claimed by this repository.
 
+Run the equivalent bounded Databento live-data gate for ES or NQ:
+
+```bash
+gex-terminal databento-certify databento_certification.json \
+  --ack-live-network --symbol ES --certification-duration 20
+```
+
+It subscribes read-only to option/futures definitions, ES or NQ option trades,
+and the volume-based continuous future's `mbp-1` stream. The report separates
+transport, chain ingestion, and Black-76 IV-input certification. No successful
+credentialed run is claimed by the repository; the command must be run with the
+user's own key and entitlements.
+
 Override `.env` settings from the command line:
 
 ```bash
@@ -712,6 +725,15 @@ cleans up subscriptions on shutdown. Official quote frames do not establish
 native implied volatility, so fallback-IV use is surfaced as degraded model
 input. Only an explicit credentialed `tradovate-certify` run can certify one
 environment and time window; fixture success is not a live-data claim.
+
+Databento live mode uses the optional official Python SDK and mixed-schema
+`GLBX.MDP3` subscriptions for ES/NQ definitions, option trades, and continuous
+futures top-of-book quotes. When Databento does not supply IV directly, the
+adapter inverts each eligible option trade with Black-76 against the latest
+observed futures midpoint. The normalized tick records the solver inputs,
+convergence, and price error; missing or invalid inputs remain a labeled
+configured fallback. Only `databento-certify --ack-live-network` can measure a
+specific credential, entitlement set, symbol, and run window.
 
 If live mode is missing credentials or market-data dependencies, the app exits
 with an install/configuration hint instead of a Python traceback:

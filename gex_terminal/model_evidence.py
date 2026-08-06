@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.implied_volatility import invert_black_76_iv
 
 
 MODEL_EVIDENCE_SCHEMA = "gex-terminal.model-evidence.v1"
@@ -151,6 +152,34 @@ def build_model_evidence_report() -> dict[str, Any]:
         "passed": directional_passed,
     })
 
+    inverted = invert_black_76_iv(
+        option_price=80.3315008190936,
+        futures_price=6000.0,
+        strike=6050.0,
+        time_to_expiry_years=14.0 / 365.0,
+        risk_free_rate=0.045,
+        option_type="C",
+    )
+    iv_passed = bool(
+        inverted.status == "converged"
+        and inverted.iv is not None
+        and np.isclose(inverted.iv, 0.22, rtol=0, atol=1e-9)
+        and inverted.absolute_price_error is not None
+        and inverted.absolute_price_error <= 1e-8
+    )
+    cases.append({
+        "name": "black_76_implied_volatility_inversion",
+        "pricing_model": "black_76",
+        "expected_iv": 0.22,
+        "actual_iv": float(inverted.iv or 0.0),
+        "absolute_error": abs(float(inverted.iv or 0.0) - 0.22),
+        "solver_status": inverted.status,
+        "option_price_error": inverted.absolute_price_error,
+        "rtol": 0.0,
+        "atol": 1e-9,
+        "passed": iv_passed,
+    })
+
     deterministic_checks = _deterministic_checks(engine)
     numerical_passed = all(case["passed"] for case in cases)
     deterministic_passed = all(check["passed"] for check in deterministic_checks)
@@ -163,6 +192,7 @@ def build_model_evidence_report() -> dict[str, Any]:
             "day_count_convention": DAY_COUNT_CONVENTION,
             "gex_units": GEX_UNITS,
             "pricing_models": ["black_scholes", "black_76"],
+            "iv_inversion": "bounded Black-76 bisection with no-arbitrage checks",
             "aggregation": "price each contract row, then aggregate by strike",
             "zero_gamma_semantics": "adjacent strike-profile crossing; not an underlying-price portfolio flip",
             "parallel_models": ["gex-terminal.aggressor-directionalized.v1"],
@@ -279,8 +309,12 @@ def model_evidence_to_markdown(report: dict[str, Any]) -> str:
         "| --- | --- | ---: | ---: | --- |",
     ]
     for case in numerical["cases"]:
-        expected = case.get("expected_gamma", case.get("expected_gex"))
-        actual = case.get("actual_gamma", case.get("actual_gex"))
+        expected = case.get(
+            "expected_gamma", case.get("expected_gex", case.get("expected_iv"))
+        )
+        actual = case.get(
+            "actual_gamma", case.get("actual_gex", case.get("actual_iv"))
+        )
         lines.append(
             f"| {case['name']} | {case['pricing_model']} | {expected:.15g} | "
             f"{actual:.15g} | {case['passed']} |"

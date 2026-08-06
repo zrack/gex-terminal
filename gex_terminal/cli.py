@@ -16,6 +16,10 @@ from gex_terminal.adapters.registry import (
 )
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
+from gex_terminal.databento_certification import (
+    build_databento_certification_report,
+    write_databento_certification_report,
+)
 from gex_terminal.demo_lab import (
     DEFAULT_DEMO_SESSION,
     build_demo_lab,
@@ -142,6 +146,11 @@ async def main():
     if args.command == "tradovate-certify":
         config = apply_cli_overrides(GexConfig.from_env(), args)
         await tradovate_certification_command(config, args)
+        return
+
+    if args.command == "databento-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await databento_certification_command(config, args)
         return
 
     if args.command == "model-evidence":
@@ -748,6 +757,33 @@ async def tradovate_certification_command(
         raise SystemExit(2)
 
 
+async def databento_certification_command(
+    config: GexConfig, args: argparse.Namespace
+) -> None:
+    """Run the explicit, read-only Databento live-network certification gate."""
+    output_path = args.command_path or "databento_certification.json"
+    try:
+        report = await build_databento_certification_report(
+            symbol=config.symbol,
+            contract_multiplier=config.contract_multiplier,
+            risk_free_rate=config.risk_free_rate,
+            duration_seconds=args.certification_duration,
+            ack_live_network=args.ack_live_network,
+        )
+        target = write_databento_certification_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    result = report["result"]
+    print(
+        f"Saved redacted Databento certification to {target} "
+        f"(transport={result['transport_certified']}, "
+        f"chain={result['chain_ingestion_certified']}, "
+        f"quantitative_gex_input={result['quantitative_gex_input_certified']})"
+    )
+    if not result["quantitative_gex_input_certified"]:
+        raise SystemExit(2)
+
+
 def model_evidence_command(output_path: str) -> None:
     """Write bounded numerical evidence and fail closed on a regression."""
     report = build_model_evidence_report()
@@ -849,6 +885,7 @@ def parse_args() -> argparse.Namespace:
             "fixture-lab",
             "inject-provider",
             "tradovate-certify",
+            "databento-certify",
             "model-evidence",
         ),
         help="Optional utility command.",
@@ -1031,13 +1068,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--ack-live-network",
         action="store_true",
-        help="Acknowledge credentialed, read-only network access for tradovate-certify.",
+        help="Acknowledge credentialed, read-only network access for provider certification.",
     )
     parser.add_argument(
         "--certification-duration",
         type=float,
         default=10.0,
-        help="Seconds to observe the Tradovate market-data stream. Default: 10.",
+        help="Seconds to observe a provider certification stream. Default: 10.",
     )
     parser.add_argument(
         "--max-option-contracts",

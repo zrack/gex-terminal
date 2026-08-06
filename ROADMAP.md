@@ -137,6 +137,10 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Add Databento synthetic fixture mapping notes for `GLBX.MDP3`
   definitions, option trades, underlying `mbp-1` quotes, and statistics-style
   open interest.
+- [x] Add ES/NQ Databento mixed-schema live ingestion, contract-aware Black-76
+  trade-price IV inversion with explicit provenance, and a redacted credentialed
+  certification gate. A successful external certification run remains an
+  operational requirement, not a repository claim.
 - [x] Add an Offline Provider Fixture Workbench that runs bundled provider-shaped
   samples into pass/fail scorecards, feed-health counters, and snapshot
   baselines.

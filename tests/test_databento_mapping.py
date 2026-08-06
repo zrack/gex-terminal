@@ -138,14 +138,20 @@ class DatabentoMappingTests(unittest.TestCase):
 
         self.assertEqual(open_interest, (9001001, 1200))
 
-    def test_live_validation_still_requires_sdk_ingestion(self):
-        with patch.dict("os.environ", {"DATABENTO_API_KEY": "db-test-key"}, clear=True):
+    def test_live_validation_requires_optional_sdk(self):
+        with (
+            patch.dict("os.environ", {"DATABENTO_API_KEY": "db-test-key"}, clear=True),
+            patch(
+                "gex_terminal.adapters.databento._load_databento_sdk",
+                side_effect=ModuleNotFoundError,
+            ),
+        ):
             adapter = DatabentoAdapter(consumer=None)
 
             with self.assertRaises(AdapterConfigurationError) as exc:
                 adapter.validate()
 
-        self.assertIn("databento-python ingestion", str(exc.exception))
+        self.assertIn("optional SDK", str(exc.exception))
 
 
 if __name__ == "__main__":

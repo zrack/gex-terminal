@@ -278,7 +278,7 @@ class StatefulGexConsumer:
                     if contract["schema_version"] >= 2:
                         if not self._update_v2_contract_locked(contract, data):
                             return
-                        if contract.get("iv_source") != "provider":
+                        if contract.get("iv_source") == "configured_default":
                             self.fallback_iv_tick_count += 1
                         self._v2_option_count += 1
                     else:
@@ -851,6 +851,17 @@ class StatefulGexConsumer:
             for source in state.get("direction_sources", ())
         })
         matrix["directionalized"] = directional
+        iv_sources = [str(state.get("iv_source") or "unknown") for state in contracts]
+        matrix["iv_sources"] = sorted(set(iv_sources))
+        matrix["iv_source_counts"] = {
+            source: iv_sources.count(source) for source in sorted(set(iv_sources))
+        }
+        matrix["iv_inversion_methods"] = sorted({
+            str(state.get("iv_provenance", {}).get("method"))
+            for state in contracts
+            if isinstance(state.get("iv_provenance"), dict)
+            and state.get("iv_provenance", {}).get("method")
+        })
         return matrix
 
     @staticmethod

@@ -126,6 +126,9 @@ def build_snapshot(
             "position_source_conflict_count": int(
                 data.get("position_source_conflict_count", 0)
             ),
+            "iv_sources": list(data.get("iv_sources", ())),
+            "iv_source_counts": dict(data.get("iv_source_counts", {})),
+            "iv_inversion_methods": list(data.get("iv_inversion_methods", ())),
             "expiry_filter": data.get("expiry_filter", "all"),
             "as_of": data.get("as_of"),
             "parallel_models": (

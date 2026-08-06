@@ -191,6 +191,39 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
     iv_source = str(message["iv_source"]).lower()
     if iv_source not in IV_SOURCES:
         raise ValueError(f"Unsupported iv_source: {message['iv_source']}")
+    if iv_source == "black_76_inverted":
+        provenance = message.get("iv_provenance")
+        if not isinstance(provenance, dict):
+            raise ValueError("black_76_inverted IV requires iv_provenance")
+        _require_fields(
+            provenance,
+            (
+                "method",
+                "status",
+                "option_price",
+                "option_price_source",
+                "underlying_price",
+                "underlying_price_source",
+                "risk_free_rate",
+                "time_to_expiry_years",
+                "iterations",
+                "absolute_price_error",
+            ),
+        )
+        if provenance["method"] != "black_76_bisection":
+            raise ValueError("Unsupported IV inversion method")
+        if provenance["status"] != "converged":
+            raise ValueError("black_76_inverted IV requires converged provenance")
+        for field in ("option_price", "underlying_price", "time_to_expiry_years"):
+            _require_positive_number(provenance, field)
+        _require_non_negative_int(provenance, "iterations")
+        try:
+            error = float(provenance["absolute_price_error"])
+            rate = float(provenance["risk_free_rate"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("IV inversion error and risk-free rate must be numeric") from exc
+        if not math.isfinite(error) or error < 0 or not math.isfinite(rate):
+            raise ValueError("IV inversion error and risk-free rate must be finite")
 
     pricing_model = str(
         message.get("pricing_model")

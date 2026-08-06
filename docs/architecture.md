@@ -145,6 +145,13 @@ explicit, redacted `tradovate-certify --ack-live-network` workflow can measure a
 credential/environment/run window. Fixture success cannot promote registry
 status or establish native-IV availability.
 
+Databento is `live-implemented-uncertified`: one official SDK session combines
+definition replay, ES/NQ option trades, and a continuous-futures `mbp-1` quote.
+The adapter performs provider joining and Black-76 IV inversion before emitting
+schema-v2 messages; the consumer remains the sole owner of mutable contract
+state. Only `databento-certify --ack-live-network` can measure one credential,
+entitlement set, symbol, and bounded run window.
+
 ## Offline Research Flow
 
 Offline tools reuse the same consumer and engine boundaries:

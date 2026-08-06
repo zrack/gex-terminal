@@ -172,15 +172,39 @@ not claim a successful live or demo certification.
 
 ## Databento Adapter
 
-The Databento adapter is scaffolded behind `--provider databento`. It validates
-`DATABENTO_API_KEY`, keeps live ingestion isolated, and now includes tested
-fixture-mapping helpers for `GLBX.MDP3` futures options definitions, trades,
-underlying `mbp-1` quotes, and statistics-style open interest.
+The Databento adapter is implemented behind `--provider databento` for ES and
+NQ. It validates `DATABENTO_API_KEY` and the optional SDK, then opens one
+mixed-schema `GLBX.MDP3` session containing:
+
+- `definition` replay for `<ROOT>.OPT` and `<ROOT>.FUT` with parent symbology.
+- `trades` for `<ROOT>.OPT` with provider aggressor side preserved.
+- `mbp-1` for the volume-based continuous future `<ROOT>.v.0`.
+
+Option trades join to point-in-time definitions. If a provider IV is absent,
+the adapter uses the trade price, latest futures midpoint, authoritative expiry
+timestamp, and configured risk-free rate to invert Black-76. A converged value
+uses `iv_source=black_76_inverted` and carries an `iv_provenance` object. Missing,
+out-of-bounds, or non-convergent inputs use the separately labeled configured
+fallback and degrade feed quality.
+An option definition's `underlying_id` must match the current continuous-future
+instrument ID; other futures months are counted and dropped rather than priced
+against the wrong forward.
 
 See [docs/databento-fixtures.md](databento-fixtures.md) for the synthetic
-fixture design, schema mapping, and contributor rules. Live Databento streaming
-is still future work; the current helpers are intended to make payload review
-and normalization safer before credentials or entitlements are required.
+fixture design, live mapping, and contributor rules. Fixture and mocked-client
+success do not establish authentication, entitlements, current ES/NQ coverage,
+latency, or reconnect behavior.
+
+Run the bounded redacted gate with explicit network acknowledgement:
+
+```bash
+gex-terminal databento-certify /tmp/databento-certification.json \
+  --ack-live-network --symbol ES --certification-duration 20
+```
+
+The adapter registry status is `live-implemented-uncertified` until a report
+from a real credentialed run clears its transport, chain-ingestion, and
+quantitative-input checks. Predictive validity remains unmeasured.
 
 Optional dependency:
 

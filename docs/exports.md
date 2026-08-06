@@ -227,6 +227,21 @@ It records one credential/environment/run window and exits nonzero when
 transport is not certified. It does not contain tokens and does not promote the
 adapter beyond `scaffold`. No successful live certification is claimed here.
 
+## Databento Certification Reports
+
+The bounded Databento probe also writes redacted JSON or Markdown:
+
+```bash
+gex-terminal databento-certify /tmp/databento-certification.json \
+  --ack-live-network --symbol ES --certification-duration 20
+```
+
+The report records transport/subscription evidence, definition/underlying/trade
+coverage, Black-76 inversion/fallback counts, and an explicit evidence ceiling.
+It exits nonzero unless transport, chain ingestion, and quantitative GEX inputs
+are all certified. A fixture or mocked test is not a successful external
+certification.
+
 ## Manual TradingView Workflow
 
 TradingView does not import these files directly as native annotations. For now:
