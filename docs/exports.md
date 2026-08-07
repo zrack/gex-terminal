@@ -233,7 +233,7 @@ The bounded Databento probe also writes redacted JSON or Markdown:
 
 ```bash
 gex-terminal databento-certify /tmp/databento-certification.json \
-  --ack-live-network --symbol ES --certification-duration 20
+  --ack-live-network --symbol ES --multiplier 50 --certification-duration 20
 ```
 
 The report records transport/subscription evidence, definition/underlying/trade
@@ -241,6 +241,10 @@ coverage, Black-76 inversion/fallback counts, and an explicit evidence ceiling.
 It exits nonzero unless transport, chain ingestion, and quantitative GEX inputs
 are all certified. A fixture or mocked test is not a successful external
 certification.
+
+Use `--symbol NQ --multiplier 20` and a separate path for NQ. The report may be
+written with partial transport or chain evidence, but the command exits `2`
+unless `quantitative_gex_input_certified` is true.
 
 ## Manual TradingView Workflow
 

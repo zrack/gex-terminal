@@ -199,12 +199,16 @@ Run the bounded redacted gate with explicit network acknowledgement:
 
 ```bash
 gex-terminal databento-certify /tmp/databento-certification.json \
-  --ack-live-network --symbol ES --certification-duration 20
+  --ack-live-network --symbol ES --multiplier 50 --certification-duration 20
 ```
 
 The adapter registry status is `live-implemented-uncertified` until a report
 from a real credentialed run clears its transport, chain-ingestion, and
 quantitative-input checks. Predictive validity remains unmeasured.
+
+Run NQ independently with `--symbol NQ --multiplier 20` and a different output
+path. The command writes partial evidence but exits `2` unless the complete
+quantitative-input gate passes; exit `0` is not awarded for transport alone.
 
 Optional dependency:
 

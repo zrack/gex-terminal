@@ -141,7 +141,7 @@ Run a bounded, read-only report only when external access is intended:
 
 ```bash
 gex-terminal databento-certify /tmp/databento-certification.json \
-  --ack-live-network --symbol ES --certification-duration 20
+  --ack-live-network --symbol ES --multiplier 50 --certification-duration 20
 ```
 
 The gate fails closed unless the full quantitative-input result passes. It reports
@@ -149,6 +149,10 @@ separate transport and chain-ingestion results; the final result requires
 definitions, an underlying quote, option trades, at least one converged
 Black-76 inversion, and zero fallback-IV ticks. This still does not establish
 dealer inventory, synchronized executable quotes, or predictive validity.
+
+Certify NQ in a separate run with `--symbol NQ --multiplier 20` and a distinct
+report path. A partial report is still written for review, but the process exits
+`2` unless the complete quantitative-input result passes.
 
 ## Contributor Fixture Rules
 

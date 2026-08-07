@@ -341,6 +341,17 @@ pip install -e .
 gex-terminal --version
 ```
 
+Install the pinned official Databento SDK when using the live ES/NQ adapter or
+its certification command:
+
+```bash
+pip install -e ".[databento]"
+```
+
+The broader `.[providers]` extra installs all optional provider clients. Offline
+replays, fixtures, model comparisons, and numerical evidence do not require a
+Databento key or SDK.
+
 The source/package version is `0.2.0`. Bundled replay sessions and sanitized
 provider fixtures are package resources, so the installed wheel supports the
 same named offline workflows from any working directory. This repository does
@@ -609,21 +620,24 @@ Run the equivalent bounded Databento live-data gate for ES or NQ:
 
 ```bash
 gex-terminal databento-certify databento_certification.json \
-  --ack-live-network --symbol ES --certification-duration 20
+  --ack-live-network --symbol ES --multiplier 50 --certification-duration 20
 ```
 
 It subscribes read-only to option/futures definitions, ES or NQ option trades,
 and the volume-based continuous future's `mbp-1` stream. The report separates
 transport, chain ingestion, and Black-76 IV-input certification. No successful
 credentialed run is claimed by the repository; the command must be run with the
-user's own key and entitlements.
+user's own key and entitlements. For NQ, use `--symbol NQ --multiplier 20` and a
+separate output file. Exit status `0` requires the full quantitative-input gate;
+transport-only or partial-chain observations write their evidence and exit `2`.
 
 Override `.env` settings from the command line:
 
 ```bash
 gex-terminal --providers
 gex-terminal --mode live --provider tradovate --symbol ES
-gex-terminal --mode live --provider databento --symbol ES
+gex-terminal --mode live --provider databento --symbol ES --multiplier 50
+gex-terminal --mode live --provider databento --symbol NQ --multiplier 20
 gex-terminal --mode live --provider ibkr --symbol ES
 gex-terminal --mode live --provider yfinance --symbol SPY
 gex-terminal --demo --symbol NQ --multiplier 20
@@ -740,6 +754,8 @@ with an install/configuration hint instead of a Python traceback:
 
 ```bash
 pip install -e .
+# Databento live mode additionally requires:
+pip install -e ".[databento]"
 ```
 
 ## Development Notes
@@ -758,7 +774,8 @@ pip install -e .
 - See [docs/architecture.md](docs/architecture.md) for runtime architecture,
   first-run flow, state ownership, and contributor boundaries.
 - See [docs/databento-fixtures.md](docs/databento-fixtures.md) for Databento
-  fixture mapping and GLBX.MDP3 schema notes.
+  fixture mapping, live certification, multiplier requirements, and GLBX.MDP3
+  schema notes.
 - See [docs/demo-lab.md](docs/demo-lab.md) for the no-credential demo pack,
   color preview, screenshots, snapshots, overlays, and lab report bundle.
 - See [docs/exports.md](docs/exports.md) for snapshot and TradingView overlay

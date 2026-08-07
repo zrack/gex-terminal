@@ -31,6 +31,9 @@ published.
 - Schema-v2 `iv_source` now distinguishes provider IV, Black-76-inverted IV,
   and configured fallback IV. Only configured fallback values degrade IV
   quality accounting.
+- Live Databento documentation now distinguishes the optional SDK from the base
+  install, states ES/NQ multiplier requirements, and documents the fail-closed
+  certification exit status.
 
 ## 0.2.0 - 2026-08-04
 
