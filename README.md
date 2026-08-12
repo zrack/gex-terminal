@@ -631,6 +631,30 @@ user's own key and entitlements. For NQ, use `--symbol NQ --multiplier 20` and a
 separate output file. Exit status `0` requires the full quantitative-input gate;
 transport-only or partial-chain observations write their evidence and exit `2`.
 
+Exercise the same Databento record handler entirely offline, including temporal
+alignment and adversarial failure cases:
+
+```bash
+gex-terminal databento-replay \
+  gex_terminal/data/provider_fixtures/databento_mixed_offline_records.jsonl \
+  offline_replay.json --symbol ES --multiplier 50
+gex-terminal databento-offline-certify offline_certification.json \
+  --symbol ES --multiplier 50
+```
+
+Evaluate saved price action and compare point-in-time OI, raw-volume, and
+directionalized models without live data:
+
+```bash
+gex-terminal price-action-evaluate INPUT.json OUTPUT.json
+gex-terminal position-model-compare INPUT.json OUTPUT.json \
+  --symbol ES --multiplier 50
+```
+
+These commands preserve `live_transport_certified=false` and
+`predictive_validity=unmeasured`. See
+[docs/offline-validation.md](docs/offline-validation.md) for their input contracts.
+
 Override `.env` settings from the command line:
 
 ```bash
@@ -786,6 +810,9 @@ pip install -e ".[databento]"
   deterministic checks, snapshot provenance, and the predictive evidence ceiling.
 - See [docs/model-comparison.md](docs/model-comparison.md) for the parallel
   directionalized-volume model, evidence limits, and comparison harness.
+- See [docs/offline-validation.md](docs/offline-validation.md) for temporal
+  integrity, raw Databento replay, adversarial certification, saved-price-action
+  evaluation, and point-in-time position-source comparisons.
 - See [docs/captured-sessions.md](docs/captured-sessions.md) for normalized event
   capture, integrity verification, event-time replay, and local inventory.
 - See [docs/provider-injection.md](docs/provider-injection.md) for raw

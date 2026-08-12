@@ -171,6 +171,11 @@ Offline tools reuse the same consumer and engine boundaries:
 - `--sensitivity` recomputes the same snapshot under alternate assumptions.
 - `model-evidence` runs analytical oracles and deterministic checks, with
   predictive market validity left `unmeasured`.
+- `databento-replay` routes local JSON/JSONL/DBN records through the live record
+  handler after temporal-integrity checks; `databento-offline-certify` exercises
+  adversarial cases without a live claim.
+- `price-action-evaluate` and `position-model-compare` produce descriptive,
+  point-in-time research artifacts while leaving predictive validity unmeasured.
 
 Generated output stays local by default under ignored folders such as
 `demo_lab/`, `demo_pack/`, `research_journal/`, and `historical_sessions/`.

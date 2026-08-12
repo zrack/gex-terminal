@@ -47,6 +47,9 @@ dashboard and more like a focused market-structure workstation. See
   `scaffold` until an explicit credentialed certification run passes.
 - [ ] Add official open-interest ingestion when provider entitlements support it
   so the terminal can move beyond the intraday volume proxy.
+- [x] Add offline Databento `statistics` normalization and a point-in-time
+  OI/raw-volume/directionalized comparison that rejects future vintages and
+  never sums position sources. Live OI availability still requires entitlement.
 - [x] Normalize provider payloads through a stable adapter contract before they
   reach the state consumer. Schema v2 adds provider-scoped contract identity,
   event time, instrument class, volume semantics, position source, expiry, and
@@ -58,6 +61,9 @@ dashboard and more like a focused market-structure workstation. See
   fields, malformed payloads, and entitlement failures. The Provider Health
   panel works in demo/replay mode with simulated feed-quality states and leaves
   counters for live adapters to increment later.
+- [x] Enforce Databento option/futures temporal alignment for Black-76 inversion,
+  preserve quote age in provenance, and reject future-dated, stale, crossed,
+  one-sided, or wrong-contract futures inputs.
 - [ ] Add logging controls suitable for live, demo, and debug sessions.
 
 ## Phase 3: Market Structure Metrics
@@ -184,8 +190,9 @@ dashboard and more like a focused market-structure workstation. See
   screenshot, snapshot exports, overlays, replay reports, provider fixture
   reports, and a manifest from offline data.
 - [x] Add a fixture validation workflow for normalized replay/provider JSONL.
-- [ ] Add a validation workflow that compares generated levels against saved
-  price action and replay fixtures.
+- [x] Add a descriptive validation workflow that compares generated levels
+  against saved later price paths with chronological train/calibration/test
+  labels. Predictive validity remains unmeasured pending real point-in-time data.
 - [ ] Add a multi-symbol scanner for ES, MES, NQ, MNQ, SPX, SPY, QQQ, and IWM.
 - [ ] Add an options P/L scenario tool with Greeks, volatility, and time controls.
 - [x] Add model sensitivity reports for multiplier, expiry, risk-free rate,

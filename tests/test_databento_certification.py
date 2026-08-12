@@ -28,6 +28,12 @@ class _PassingAdapter:
         self._dropped_before_definition_count = 0
         self._dropped_before_underlying_count = 0
         self._dropped_underlying_mismatch_count = 0
+        self._stale_underlying_count = 0
+        self._future_underlying_count = 0
+        self._missing_underlying_time_count = 0
+        self._crossed_underlying_book_count = 0
+        self._incomplete_underlying_book_count = 0
+        self.max_underlying_age_seconds = 2.0
 
     async def stream_market_data(self):
         self._connected_once = True
@@ -66,6 +72,8 @@ class _PassingAdapter:
                 "option_price_source": "databento_trade",
                 "underlying_price": 6000.0,
                 "underlying_price_source": "databento_mbp1_midpoint",
+                "underlying_price_age_ms": 1000.0,
+                "maximum_underlying_age_ms": 2000.0,
                 "risk_free_rate": 0.045,
                 "time_to_expiry_years": 0.04,
                 "iterations": 30,

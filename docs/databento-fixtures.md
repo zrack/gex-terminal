@@ -168,6 +168,20 @@ report path. A partial report is still written for review, but the process exits
 
 ## Verification
 
+Replay a mixed local provider stream through the live record handler and run the
+adversarial matrix:
+
+```bash
+gex-terminal databento-replay \
+  gex_terminal/data/provider_fixtures/databento_mixed_offline_records.jsonl \
+  /tmp/databento-offline.json --symbol ES --multiplier 50
+gex-terminal databento-offline-certify /tmp/databento-adversarial.json \
+  --symbol ES --multiplier 50
+```
+
+These commands never open a network connection and never certify live transport.
+See [offline-validation.md](offline-validation.md).
+
 Run the Databento mapper tests:
 
 ```bash

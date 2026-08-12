@@ -210,6 +210,15 @@ Run NQ independently with `--symbol NQ --multiplier 20` and a different output
 path. The command writes partial evidence but exits `2` unless the complete
 quantitative-input gate passes; exit `0` is not awarded for transport alone.
 
+Black-76 inversion also requires the futures midpoint to precede the option
+trade by no more than `--max-underlying-age` seconds (default `2`). Quote age is
+preserved in `iv_provenance`. Future-dated, stale, crossed, one-sided, and
+wrong-contract inputs cannot produce inverted IV.
+
+Local JSON/JSONL/DBN records can use the identical handler through
+`databento-replay`; `databento-offline-certify` runs the deterministic
+adversarial matrix. See [offline-validation.md](offline-validation.md).
+
 Optional dependency:
 
 ```bash

@@ -18,6 +18,7 @@ from gex_terminal.market_data_adapter import (
 
 DEFAULT_DATABENTO_DATASET = "GLBX.MDP3"
 DEFAULT_DATABENTO_IV = 0.15
+DEFAULT_MAX_UNDERLYING_AGE_SECONDS = 2.0
 DATABENTO_SCHEMAS = {
     "definitions": "definition",
     "option_trades": "trades",
@@ -55,6 +56,7 @@ class DatabentoAdapter(MarketDataAdapter):
         *,
         risk_free_rate: float = 0.045,
         default_iv: float = DEFAULT_DATABENTO_IV,
+        max_underlying_age_seconds: float = DEFAULT_MAX_UNDERLYING_AGE_SECONDS,
         live_client_factory=None,
     ):
         self.consumer = consumer
@@ -63,6 +65,7 @@ class DatabentoAdapter(MarketDataAdapter):
         self.api_key = os.getenv("DATABENTO_API_KEY")
         self.risk_free_rate = float(risk_free_rate)
         self.default_iv = float(default_iv)
+        self.max_underlying_age_seconds = float(max_underlying_age_seconds)
         self.live_client_factory = live_client_factory
         self.live_client = None
         self.contract_metadata: dict[int, dict[str, Any]] = {}
@@ -74,11 +77,17 @@ class DatabentoAdapter(MarketDataAdapter):
         self._definition_count = 0
         self._underlying_quote_count = 0
         self._option_trade_count = 0
+        self._open_interest_count = 0
         self._inverted_iv_count = 0
         self._iv_fallback_count = 0
         self._dropped_before_definition_count = 0
         self._dropped_before_underlying_count = 0
         self._dropped_underlying_mismatch_count = 0
+        self._stale_underlying_count = 0
+        self._future_underlying_count = 0
+        self._missing_underlying_time_count = 0
+        self._crossed_underlying_book_count = 0
+        self._incomplete_underlying_book_count = 0
         self._sdk_version = _databento_sdk_version()
 
     def validate(self) -> None:
@@ -90,6 +99,13 @@ class DatabentoAdapter(MarketDataAdapter):
             )
         if not math.isfinite(self.risk_free_rate):
             raise AdapterConfigurationError("risk_free_rate must be finite")
+        if (
+            not math.isfinite(self.max_underlying_age_seconds)
+            or self.max_underlying_age_seconds < 0
+        ):
+            raise AdapterConfigurationError(
+                "max_underlying_age_seconds must be finite and non-negative"
+            )
         if self.live_client_factory is None:
             try:
                 _load_databento_sdk()
@@ -166,8 +182,13 @@ class DatabentoAdapter(MarketDataAdapter):
                     self._definition_count += 1
             return
         if kind == "underlying_quote":
+            book_status = _underlying_book_status(values)
             message = self._normalize_underlying_quote(values)
             if message is None:
+                if book_status == "crossed":
+                    self._crossed_underlying_book_count += 1
+                elif book_status == "incomplete":
+                    self._incomplete_underlying_book_count += 1
                 self._record_consumer("record_dropped_message")
                 return
             self.latest_underlying_price = float(message["price"])
@@ -196,6 +217,19 @@ class DatabentoAdapter(MarketDataAdapter):
                 return
             if self.latest_underlying_price is None:
                 self._dropped_before_underlying_count += 1
+            timing = underlying_timing_status(
+                option_event_time=_lookup(
+                    values, "ts_event", "tsEvent", "event_time", "timestamp"
+                ),
+                underlying_event_time=self.latest_underlying_event_time,
+                maximum_age_seconds=self.max_underlying_age_seconds,
+            )
+            if timing["status"] == "stale_underlying_price":
+                self._stale_underlying_count += 1
+            elif timing["status"] == "future_underlying_price":
+                self._future_underlying_count += 1
+            elif timing["status"] == "missing_event_time":
+                self._missing_underlying_time_count += 1
             message = self._normalize_option_trade_record(
                 values,
                 self.contract_metadata,
@@ -204,6 +238,7 @@ class DatabentoAdapter(MarketDataAdapter):
                 underlying_instrument_id=self.latest_underlying_instrument_id,
                 risk_free_rate=self.risk_free_rate,
                 default_iv=self.default_iv,
+                max_underlying_age_seconds=self.max_underlying_age_seconds,
             )
             if message is None:
                 self._record_consumer("record_dropped_message")
@@ -213,6 +248,16 @@ class DatabentoAdapter(MarketDataAdapter):
                 self._inverted_iv_count += 1
             else:
                 self._iv_fallback_count += 1
+            await self.consumer.update_market_state(dumps_normalized_message(message))
+            return
+        if kind == "statistics":
+            message = self._normalize_statistics_record(
+                values, self.contract_metadata, default_iv=self.default_iv
+            )
+            if message is None:
+                self._record_consumer("record_dropped_message")
+                return
+            self._open_interest_count += 1
             await self.consumer.update_market_state(dumps_normalized_message(message))
 
     def _record_consumer(self, method_name: str, *args) -> None:
@@ -273,6 +318,8 @@ class DatabentoAdapter(MarketDataAdapter):
             bid = _safe_float(_lookup(record, "bid_px_00", "bid_price", "bidPrice", "bid"))
             ask = _safe_float(_lookup(record, "ask_px_00", "ask_price", "askPrice", "ask"))
             if bid is not None and ask is not None:
+                if ask < bid:
+                    return None
                 price = (bid + ask) / 2
 
         if price is None:
@@ -299,6 +346,7 @@ class DatabentoAdapter(MarketDataAdapter):
         underlying_instrument_id: int | None = None,
         risk_free_rate: float = 0.045,
         default_iv: float = DEFAULT_DATABENTO_IV,
+        max_underlying_age_seconds: float = DEFAULT_MAX_UNDERLYING_AGE_SECONDS,
     ) -> dict[str, Any] | None:
         """Join a Databento trade row to definition metadata and normalize volume."""
         instrument_id = _safe_int(_lookup(record, "instrument_id", "instrumentId"))
@@ -339,6 +387,14 @@ class DatabentoAdapter(MarketDataAdapter):
         message["direction_source"] = (
             "provider" if aggressor_side != "unknown" else "unknown"
         )
+        sequence = _safe_int(_lookup(record, "sequence", "seq"))
+        if sequence is not None:
+            message["sequence"] = sequence
+        received_time = _timestamp_text(
+            _lookup(record, "ts_recv", "received_time", "receivedTime")
+        )
+        if received_time:
+            message["received_time"] = received_time
         iv = _safe_float(_lookup(record, "iv", "implied_volatility", "impliedVolatility"))
         if iv is None:
             iv = _safe_float(metadata.get("iv"))
@@ -349,6 +405,11 @@ class DatabentoAdapter(MarketDataAdapter):
             )
             expiry_timestamp = _timestamp_text(metadata.get("expiry_timestamp"))
             as_of = parse_market_datetime(event_time)
+            timing = underlying_timing_status(
+                option_event_time=event_time,
+                underlying_event_time=underlying_event_time,
+                maximum_age_seconds=max_underlying_age_seconds,
+            )
             remaining_days = (
                 days_until_expiry(expiry_timestamp, as_of)
                 if expiry_timestamp and as_of is not None
@@ -360,6 +421,7 @@ class DatabentoAdapter(MarketDataAdapter):
                 and underlying_price is not None
                 and remaining_days is not None
                 and remaining_days > 0
+                and timing["status"] == "aligned"
             ):
                 inversion = invert_black_76_iv(
                     option_price=option_price,
@@ -381,6 +443,8 @@ class DatabentoAdapter(MarketDataAdapter):
                     "underlying_price_source": "databento_mbp1_midpoint",
                     "underlying_event_time": underlying_event_time,
                     "underlying_instrument_id": underlying_instrument_id,
+                    "underlying_price_age_ms": timing["age_ms"],
+                    "maximum_underlying_age_ms": timing["maximum_age_ms"],
                     "risk_free_rate": float(risk_free_rate),
                     "time_to_expiry_years": remaining_days / 365.0,
                     "iterations": inversion.iterations,
@@ -391,11 +455,19 @@ class DatabentoAdapter(MarketDataAdapter):
                 iv_source = "configured_default"
                 iv_provenance = {
                     "method": "black_76_bisection",
-                    "status": inversion.status if inversion is not None else "missing_inversion_input",
+                    "status": (
+                        inversion.status
+                        if inversion is not None
+                        else timing["status"]
+                        if timing["status"] != "aligned"
+                        else "missing_inversion_input"
+                    ),
                     "option_price_source": "databento_trade" if option_price is not None else "missing",
                     "underlying_price_source": (
                         "databento_mbp1_midpoint" if underlying_price is not None else "missing"
                     ),
+                    "underlying_price_age_ms": timing["age_ms"],
+                    "maximum_underlying_age_ms": timing["maximum_age_ms"],
                 }
         else:
             iv_source = "provider"
@@ -431,6 +503,57 @@ class DatabentoAdapter(MarketDataAdapter):
 
         instrument_id = _safe_int(_lookup(record, "instrument_id", "instrumentId"))
         return instrument_id, open_interest
+
+    @classmethod
+    def _normalize_statistics_record(
+        cls,
+        record: Mapping[str, Any],
+        metadata_by_instrument_id: Mapping[int | str, Mapping[str, Any]],
+        *,
+        default_iv: float = DEFAULT_DATABENTO_IV,
+    ) -> dict[str, Any] | None:
+        extracted = cls._open_interest_from_statistics(record)
+        if extracted is None:
+            return None
+        instrument_id, open_interest = extracted
+        metadata = _metadata_for_instrument(instrument_id, metadata_by_instrument_id)
+        if not metadata or open_interest < 0:
+            return None
+        strike = _safe_float(metadata.get("strike"))
+        option_type = _text(metadata.get("option_type")).upper()
+        if strike is None or option_type not in {"C", "P"}:
+            return None
+        iv = _safe_float(metadata.get("iv"))
+        event_time = _timestamp_text(
+            _lookup(record, "ts_event", "tsEvent", "event_time", "timestamp")
+        )
+        if parse_market_datetime(event_time) is None:
+            return None
+        message = {
+            "schema_version": 2,
+            "type": "options_volume_tick",
+            "provider": "databento",
+            "contract_id": str(instrument_id),
+            "contract_symbol": _text(metadata.get("raw_symbol")),
+            "symbol": _text(metadata.get("underlying")).upper(),
+            "strike": strike,
+            "option_type": option_type,
+            "volume": open_interest,
+            "instrument_class": "futures_option",
+            "volume_semantics": "cumulative",
+            "position_source": "open_interest",
+            "pricing_model": "black_76",
+            "iv": iv if iv is not None else float(default_iv),
+            "iv_source": "provider" if iv is not None else "configured_default",
+            "aggressor_side": "unknown",
+            "direction_source": "unknown",
+            "event_time": event_time,
+        }
+        for field in ("expiry", "expiry_timestamp", "contract_multiplier"):
+            value = metadata.get(field)
+            if value not in (None, ""):
+                message[field] = value
+        return message
 
 
 def _lookup(record: Mapping[str, Any], *fields: str) -> Any:
@@ -526,6 +649,8 @@ def _record_kind(record: Any) -> str:
         return "underlying_quote"
     if "trademsg" in explicit or explicit in {"trade", "trades", "option_trade"}:
         return "option_trade"
+    if "statistics" in explicit or "statmsg" in explicit or explicit in {"stat", "stats"}:
+        return "statistics"
     if "errormsg" in explicit or explicit == "error":
         return "error"
     return "control"
@@ -569,6 +694,9 @@ def _record_mapping(record: Any, kind: str) -> dict[str, Any]:
         values["ask_px_00"] = _first_record_value(record, "pretty_ask_px_00", "ask_px_00")
     elif kind == "option_trade":
         values["price"] = _first_record_value(record, "pretty_price", "price")
+    elif kind == "statistics":
+        values["stat_type"] = _first_record_value(record, "stat_type")
+        values["quantity"] = _first_record_value(record, "quantity")
     return values
 
 
@@ -605,3 +733,46 @@ def _date_label(value: Any) -> str:
 def _looks_like_entitlement_error(exc: Exception) -> bool:
     text = str(exc).lower()
     return any(token in text for token in ("auth", "credential", "entitlement", "license", "permission"))
+
+
+def _underlying_book_status(record: Mapping[str, Any]) -> str:
+    direct = _safe_float(
+        _lookup(record, "price", "close", "last_px", "last_price", "lastPrice")
+    )
+    if direct is not None:
+        return "direct_price"
+    bid = _safe_float(_lookup(record, "bid_px_00", "bid_price", "bidPrice", "bid"))
+    ask = _safe_float(_lookup(record, "ask_px_00", "ask_price", "askPrice", "ask"))
+    if bid is None or ask is None:
+        return "incomplete"
+    return "crossed" if ask < bid else "locked" if ask == bid else "valid"
+
+
+def underlying_timing_status(
+    *,
+    option_event_time: Any,
+    underlying_event_time: Any,
+    maximum_age_seconds: float = DEFAULT_MAX_UNDERLYING_AGE_SECONDS,
+) -> dict[str, Any]:
+    """Classify whether an underlying quote is safe for option-price inversion."""
+    option_time = parse_market_datetime(_timestamp_text(option_event_time))
+    underlying_time = parse_market_datetime(_timestamp_text(underlying_event_time))
+    maximum_age_ms = float(maximum_age_seconds) * 1000.0
+    if option_time is None or underlying_time is None:
+        return {
+            "status": "missing_event_time",
+            "age_ms": None,
+            "maximum_age_ms": maximum_age_ms,
+        }
+    age_ms = (option_time - underlying_time).total_seconds() * 1000.0
+    if age_ms < 0:
+        status = "future_underlying_price"
+    elif age_ms > maximum_age_ms:
+        status = "stale_underlying_price"
+    else:
+        status = "aligned"
+    return {
+        "status": status,
+        "age_ms": age_ms,
+        "maximum_age_ms": maximum_age_ms,
+    }

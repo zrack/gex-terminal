@@ -204,6 +204,8 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
                 "option_price_source",
                 "underlying_price",
                 "underlying_price_source",
+                "underlying_price_age_ms",
+                "maximum_underlying_age_ms",
                 "risk_free_rate",
                 "time_to_expiry_years",
                 "iterations",
@@ -216,6 +218,17 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
             raise ValueError("black_76_inverted IV requires converged provenance")
         for field in ("option_price", "underlying_price", "time_to_expiry_years"):
             _require_positive_number(provenance, field)
+        timing_values = {}
+        for field in ("underlying_price_age_ms", "maximum_underlying_age_ms"):
+            try:
+                timing_value = float(provenance[field])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"IV inversion {field} must be numeric") from exc
+            if not math.isfinite(timing_value) or timing_value < 0:
+                raise ValueError(f"IV inversion {field} must be finite and non-negative")
+            timing_values[field] = timing_value
+        if timing_values["underlying_price_age_ms"] > timing_values["maximum_underlying_age_ms"]:
+            raise ValueError("IV inversion underlying price exceeded maximum age")
         _require_non_negative_int(provenance, "iterations")
         try:
             error = float(provenance["absolute_price_error"])

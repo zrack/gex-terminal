@@ -138,6 +138,26 @@ class DatabentoMappingTests(unittest.TestCase):
 
         self.assertEqual(open_interest, (9001001, 1200))
 
+    def test_statistics_normalize_to_point_in_time_open_interest(self):
+        definitions = _load_fixture("databento_definition_records.json")
+        statistics = _load_fixture("databento_statistics_records.json")
+        metadata = {
+            item["instrument_id"]: item
+            for item in (
+                DatabentoAdapter._normalize_definition_record(record)
+                for record in definitions["records"]
+            )
+            if item
+        }
+        message = DatabentoAdapter._normalize_statistics_record(
+            {**statistics["records"][0], "ts_event": "2026-06-18T20:00:00Z"}, metadata
+        )
+        validate_normalized_message(message)
+        self.assertEqual(message["position_source"], "open_interest")
+        self.assertEqual(message["volume_semantics"], "cumulative")
+        self.assertEqual(message["volume"], 1200)
+        self.assertEqual(message["aggressor_side"], "unknown")
+
     def test_live_validation_requires_optional_sdk(self):
         with (
             patch.dict("os.environ", {"DATABENTO_API_KEY": "db-test-key"}, clear=True),

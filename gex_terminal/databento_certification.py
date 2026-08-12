@@ -22,6 +22,7 @@ async def build_databento_certification_report(
     contract_multiplier: float,
     risk_free_rate: float,
     duration_seconds: float = 10.0,
+    maximum_underlying_age_seconds: float = 2.0,
     ack_live_network: bool = False,
 ) -> dict[str, Any]:
     """Run a bounded read-only Databento live-data probe."""
@@ -42,6 +43,7 @@ async def build_databento_certification_report(
         consumer,
         target_underlying=symbol,
         risk_free_rate=risk_free_rate,
+        max_underlying_age_seconds=maximum_underlying_age_seconds,
     )
     errors: list[str] = []
     task: asyncio.Task | None = None
@@ -87,6 +89,11 @@ async def build_databento_certification_report(
         chain_ingestion_certified
         and adapter._inverted_iv_count > 0
         and adapter._iv_fallback_count == 0
+        and adapter._stale_underlying_count == 0
+        and adapter._future_underlying_count == 0
+        and adapter._missing_underlying_time_count == 0
+        and adapter._crossed_underlying_book_count == 0
+        and adapter._incomplete_underlying_book_count == 0
         and iv_sources == {"black_76_inverted"}
     )
 
@@ -125,6 +132,11 @@ async def build_databento_certification_report(
             "trades_before_definition": adapter._dropped_before_definition_count,
             "trades_before_underlying": adapter._dropped_before_underlying_count,
             "underlying_contract_mismatches": adapter._dropped_underlying_mismatch_count,
+            "stale_underlying_prices": adapter._stale_underlying_count,
+            "future_underlying_prices": adapter._future_underlying_count,
+            "missing_underlying_event_times": adapter._missing_underlying_time_count,
+            "crossed_underlying_books": adapter._crossed_underlying_book_count,
+            "incomplete_underlying_books": adapter._incomplete_underlying_book_count,
         },
         "model_inputs": {
             "iv_sources_observed": sorted(iv_sources),
@@ -132,6 +144,7 @@ async def build_databento_certification_report(
             "fallback_iv_ticks": adapter._iv_fallback_count,
             "risk_free_rate": float(risk_free_rate),
             "pricing_model": "black_76",
+            "maximum_underlying_age_ms": adapter.max_underlying_age_seconds * 1000.0,
         },
         "result": {
             "transport_certified": transport_certified,
@@ -190,6 +203,10 @@ def _format_markdown(report: dict[str, Any]) -> str:
         f"- Definitions observed: {chain['definitions_observed']}",
         f"- Underlying quotes observed: {chain['underlying_quotes_observed']}",
         f"- Option trades observed: {chain['option_trades_observed']}",
+        f"- Stale underlying prices: {chain['stale_underlying_prices']}",
+        f"- Future-dated underlying prices: {chain['future_underlying_prices']}",
+        f"- Crossed underlying books: {chain['crossed_underlying_books']}",
+        f"- Incomplete underlying books: {chain['incomplete_underlying_books']}",
         f"- Black-76 inverted ticks: {model['black_76_inverted_ticks']}",
         f"- Fallback-IV ticks: {model['fallback_iv_ticks']}",
         "",

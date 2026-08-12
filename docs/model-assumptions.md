@@ -145,6 +145,10 @@ the scalar DTE changes only rows that need that fallback.
 - Databento trade-price IV inversion depends on the latest observed futures
   midpoint and can be stale or asynchronous; the certification report measures
   occurrence and provenance, not executable calibration quality.
+- That midpoint must be timestamped no later than the option trade and no older
+  than the configured maximum age. Its age and threshold are explicit
+  provenance; timing failure forces labeled fallback IV and blocks quantitative
+  certification.
 - Market-maker inventory and proprietary positioning assumptions are not
   modeled.
 - Exchange settlement conventions are not inferred from a date-only expiry.

@@ -246,6 +246,11 @@ Use `--symbol NQ --multiplier 20` and a separate path for NQ. The report may be
 written with partial transport or chain evidence, but the command exits `2`
 unless `quantitative_gex_input_certified` is true.
 
+Offline Databento replay, adversarial certification, saved-price-action, and
+position-model reports are JSON artifacts documented in
+[offline-validation.md](offline-validation.md). They always distinguish
+software-path evidence from live transport and predictive validity.
+
 ## Manual TradingView Workflow
 
 TradingView does not import these files directly as native annotations. For now:

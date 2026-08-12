@@ -11,6 +11,11 @@ published.
 
 ### Added
 
+- Offline Databento JSON/JSONL/DBN record replay through the live record handler,
+  plus a twelve-case adversarial software certification matrix.
+- Descriptive saved-price-action evaluation with chronological data splits and a
+  point-in-time OI/raw-volume/directionalized model comparison.
+
 - Optional schema-v2 aggressor-side and direction-source provenance for
   incremental trade volume, including Databento trade-side fixture mapping.
 - A parallel aggressor-directionalized volume GEX model with explicit coverage,
@@ -27,6 +32,10 @@ published.
   `databento-certify` transport/chain/model-input report.
 
 ### Changed
+
+- Black-76 IV inversion now requires an aligned futures midpoint and records its
+  age and maximum permitted age. Stale, future-dated, crossed, incomplete, and
+  wrong-contract inputs fail closed; Databento trade sequences are preserved.
 
 - Schema-v2 `iv_source` now distinguishes provider IV, Black-76-inverted IV,
   and configured fallback IV. Only configured fallback values degrade IV

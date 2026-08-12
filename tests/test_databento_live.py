@@ -3,7 +3,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from gex_terminal.adapters.databento import DatabentoAdapter
+from gex_terminal.adapters.databento import DatabentoAdapter, underlying_timing_status
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.implied_volatility import black_76_option_price
@@ -34,6 +34,27 @@ class _FakeLiveClient:
 
 
 class DatabentoLiveAdapterTests(unittest.IsolatedAsyncioTestCase):
+    def test_underlying_timing_status_is_fail_closed(self):
+        aligned = underlying_timing_status(
+            option_event_time="2026-08-06T16:00:01Z",
+            underlying_event_time="2026-08-06T16:00:00Z",
+            maximum_age_seconds=2.0,
+        )
+        stale = underlying_timing_status(
+            option_event_time="2026-08-06T16:00:03Z",
+            underlying_event_time="2026-08-06T16:00:00Z",
+            maximum_age_seconds=2.0,
+        )
+        future = underlying_timing_status(
+            option_event_time="2026-08-06T15:59:59Z",
+            underlying_event_time="2026-08-06T16:00:00Z",
+            maximum_age_seconds=2.0,
+        )
+        self.assertEqual(aligned["status"], "aligned")
+        self.assertEqual(aligned["age_ms"], 1000.0)
+        self.assertEqual(stale["status"], "stale_underlying_price")
+        self.assertEqual(future["status"], "future_underlying_price")
+
     async def test_mixed_live_records_invert_iv_and_reach_consumer(self):
         event_time = "2026-08-06T16:00:00Z"
         expiry = "2026-08-20T20:00:00Z"

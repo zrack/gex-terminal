@@ -20,6 +20,11 @@ from gex_terminal.databento_certification import (
     build_databento_certification_report,
     write_databento_certification_report,
 )
+from gex_terminal.databento_offline import (
+    build_offline_databento_certification,
+    replay_databento_file,
+    write_offline_report,
+)
 from gex_terminal.demo_lab import (
     DEFAULT_DEMO_SESSION,
     build_demo_lab,
@@ -40,6 +45,14 @@ from gex_terminal.model_comparison import (
 )
 from gex_terminal.offline_quality import apply_quality_scenario, quality_scenario_names
 from gex_terminal.overlays import write_tradingview_overlay
+from gex_terminal.position_model_comparison import (
+    load_position_model_comparison,
+    write_position_model_comparison,
+)
+from gex_terminal.price_action_validation import (
+    load_price_action_report,
+    write_price_action_report,
+)
 from gex_terminal.provider_injector import (
     INJECTION_FORMATS,
     inject_provider_fixture,
@@ -151,6 +164,25 @@ async def main():
     if args.command == "databento-certify":
         config = apply_cli_overrides(GexConfig.from_env(), args)
         await databento_certification_command(config, args)
+        return
+
+    if args.command == "databento-replay":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await databento_replay_command(config, args)
+        return
+
+    if args.command == "databento-offline-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await databento_offline_certification_command(config, args)
+        return
+
+    if args.command == "price-action-evaluate":
+        price_action_evaluate_command(args)
+        return
+
+    if args.command == "position-model-compare":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await position_model_compare_command(config, args)
         return
 
     if args.command == "model-evidence":
@@ -768,6 +800,7 @@ async def databento_certification_command(
             contract_multiplier=config.contract_multiplier,
             risk_free_rate=config.risk_free_rate,
             duration_seconds=args.certification_duration,
+            maximum_underlying_age_seconds=args.max_underlying_age,
             ack_live_network=args.ack_live_network,
         )
         target = write_databento_certification_report(report, output_path)
@@ -782,6 +815,69 @@ async def databento_certification_command(
     )
     if not result["quantitative_gex_input_certified"]:
         raise SystemExit(2)
+
+
+async def databento_replay_command(config: GexConfig, args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal databento-replay INPUT OUTPUT.json")
+    try:
+        report = await replay_databento_file(
+            args.command_path,
+            config=config,
+            maximum_underlying_age_seconds=args.max_underlying_age,
+        )
+        target = write_offline_report(report, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved offline Databento replay to {target} "
+        f"(software_path={report['result']['software_path_certified']}, "
+        "live_transport=False, predictive_validity=unmeasured)"
+    )
+
+
+async def databento_offline_certification_command(
+    config: GexConfig, args: argparse.Namespace
+) -> None:
+    output_path = args.command_path or "databento_offline_certification.json"
+    report = await build_offline_databento_certification(config)
+    target = write_offline_report(report, output_path)
+    print(
+        f"Saved offline Databento certification to {target} "
+        f"(passed={report['result']['passed']}, live_transport=False)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+def price_action_evaluate_command(args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal price-action-evaluate INPUT.json OUTPUT.json")
+    try:
+        report = load_price_action_report(args.command_path)
+        target = write_price_action_report(report, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved price-action evaluation to {target} "
+        f"(status={report['result']['status']}, predictive_validity=unmeasured)"
+    )
+
+
+async def position_model_compare_command(
+    config: GexConfig, args: argparse.Namespace
+) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal position-model-compare INPUT.json OUTPUT.json")
+    try:
+        report = await load_position_model_comparison(args.command_path, config=config)
+        target = write_position_model_comparison(report, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved position-model comparison to {target} "
+        f"(status={report['result']['status']}, predictive_validity=unmeasured)"
+    )
 
 
 def model_evidence_command(output_path: str) -> None:
@@ -886,6 +982,10 @@ def parse_args() -> argparse.Namespace:
             "inject-provider",
             "tradovate-certify",
             "databento-certify",
+            "databento-replay",
+            "databento-offline-certify",
+            "price-action-evaluate",
+            "position-model-compare",
             "model-evidence",
         ),
         help="Optional utility command.",
@@ -1075,6 +1175,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=10.0,
         help="Seconds to observe a provider certification stream. Default: 10.",
+    )
+    parser.add_argument(
+        "--max-underlying-age",
+        type=float,
+        default=2.0,
+        help="Maximum seconds between futures midpoint and option trade for IV inversion. Default: 2.",
     )
     parser.add_argument(
         "--max-option-contracts",
