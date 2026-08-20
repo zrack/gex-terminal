@@ -17,6 +17,39 @@ dashboard and more like a focused market-structure workstation. See
 - GEX Alert Engine.
 - Multi-Symbol Market Structure Scanner.
 
+## Competitive Priority Gate — August 2026
+
+The refreshed [competitive analysis](docs/market-analysis.md) concludes that
+basic GEX, low price, tunability, local history, and replay are no longer unique
+claims. The defensible product direction is an evidence-bounded, local-first
+model laboratory: provider-normalized inputs, futures-aware contract treatment,
+identical-session methodology comparison, and explicit provenance.
+
+Priorities before broad feature expansion:
+
+- [ ] Certify one credentialed live ES/NQ provider end to end, including
+  entitlements, active-chain coverage, native IV/OI provenance, payload drift,
+  timing, reconnects, and production logging.
+- [ ] Replace “Dealer Regime” and causal zero-gamma copy with proxy/model
+  semantics, and expose provider readiness as `offline-certified`, `delayed`,
+  `scaffold`, `live-uncertified`, or `live-certified`.
+- [ ] Start a governed point-in-time live-day corpus with auditable digests,
+  licensed-data handling, immutable evaluation splits, independently specified
+  outcomes, and explicit cost assumptions.
+- [ ] Promote position-model comparison into a primary workflow that replays
+  one capture through OI, raw-volume, directionalized-volume, and future
+  participant-attributed methods without blending their quantities.
+- [ ] Add versioned model profiles and experiment manifests, then stabilize the
+  read-only Python/JSON research contract before considering local REST/MCP.
+- [ ] Add batch session/expiry/day comparisons and strike-by-expiry/DTE-layer
+  views before broadening into multi-Greek surfaces.
+- [ ] Build scanner, integrations, and delivery only on the certified live path;
+  keep per-symbol coverage and quality visible.
+
+Broad options flow, dark pools, mobile/social, execution, and proprietary daily
+commentary remain deferred unless target-persona research changes the product
+thesis.
+
 ## Phase 1: Prototype Hardening
 
 - [x] Add a local mock-data and replay mode that can run without live Tradovate
