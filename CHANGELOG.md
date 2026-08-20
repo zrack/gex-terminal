@@ -3,11 +3,15 @@
 All notable project changes should be recorded here so the README and roadmap
 can stay focused on current usage and future direction.
 
-The source/package version is `0.2.0`. This changelog describes that release
+The source/package version is `0.3.0`. This changelog describes that release
 baseline, but it does not claim that a Git tag or PyPI artifact has been
 published.
 
 ## Unreleased
+
+No changes recorded after `0.3.0`.
+
+## 0.3.0 - 2026-08-19 — Offline Research Certification Workbench
 
 ### Added
 
@@ -15,6 +19,17 @@ published.
   plus a twelve-case adversarial software certification matrix.
 - Descriptive saved-price-action evaluation with chronological data splits and a
   point-in-time OI/raw-volume/directionalized model comparison.
+- Versioned model-profile and experiment-spec contracts, reproducible manifests
+  with input/profile/semantic-result digests, and fail-closed reproduction.
+- Append-only hash-chained research-corpus registration with source integrity,
+  immutable dataset/split identity, rights, redaction, outcome, and cost fields.
+- Batch day/expiry/DTE-layer comparisons that preserve position-source
+  separation and leave low-coverage directional results unscored.
+- Model-property, provider-fault, and generated-chain performance certification
+  reports with explicit budgets and offline evidence ceilings.
+- Canonical provider-readiness states separate from runtime connection state.
+- SAED 1.3 repository adoption profile, routed work packet, research governance
+  guide, decision record, and current architecture diagram.
 
 - Optional schema-v2 aggressor-side and direction-source provenance for
   incremental trade volume, including Databento trade-side fixture mapping.
@@ -43,6 +58,9 @@ published.
 - Live Databento documentation now distinguishes the optional SDK from the base
   install, states ES/NQ multiplier requirements, and documents the fail-closed
   certification exit status.
+- Terminal and documentation semantics now say `GEX Proxy Regime` and
+  `live-uncertified`; neither a runtime `LIVE` state nor a proxy calculation is
+  presented as provider certification or observed dealer inventory.
 
 ## 0.2.0 - 2026-08-04
 

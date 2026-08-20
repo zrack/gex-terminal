@@ -312,7 +312,7 @@ def demo_lab_preview_svg(
 {''.join(row_blocks)}
 
   <rect x="874" y="336" width="434" height="184" rx="10" fill="#0d141c" stroke="#263445"/>
-  <text x="902" y="374" class="mono panel-title">Live Gamma Regime Map</text>
+  <text x="902" y="374" class="mono panel-title">GEX Proxy Regime Map</text>
   <rect x="902" y="402" width="348" height="26" rx="7" fill="url(#lane)" opacity="0.88"/>
   <line x1="1044" y1="391" x2="1044" y2="443" stroke="#38bdf8" stroke-width="4"/>
   <line x1="1176" y1="391" x2="1176" y2="443" stroke="#fbbf24" stroke-width="4" stroke-dasharray="7 6"/>

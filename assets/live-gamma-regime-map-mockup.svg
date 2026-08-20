@@ -1,6 +1,6 @@
 <svg width="1400" height="900" viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">Live Gamma Regime Map mockup for gex-terminal</title>
-  <desc id="desc">A terminal-style mockup showing price, gamma wall, zero-gamma node, regime state, alerts, and exposure bands.</desc>
+  <title id="title">GEX Proxy Regime Map mockup for gex-terminal</title>
+  <desc id="desc">A terminal-style research mockup showing price, gamma wall, compatibility level, modeled proxy state, alerts, and exposure bands.</desc>
   <defs>
     <linearGradient id="terminal-bg" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0" stop-color="#071018"/>
@@ -43,20 +43,20 @@
   <circle cx="58" cy="47" r="7" fill="#fb7185"/>
   <circle cx="82" cy="47" r="7" fill="#fbbf24"/>
   <circle cx="106" cy="47" r="7" fill="#4ade80"/>
-  <text x="132" y="53" class="mono white" font-size="18" font-weight="700">gex-terminal // live gamma regime map</text>
-  <text x="1020" y="53" class="mono label">ES M5 | Tradovate demo | 0DTE | 09:47:12 PT</text>
+  <text x="132" y="53" class="mono white" font-size="18" font-weight="700">gex-terminal // GEX proxy regime map</text>
+  <text x="1035" y="53" class="mono label">ES | replay | offline-certified</text>
 
   <rect x="54" y="92" width="1292" height="86" rx="8" class="frame"/>
   <text x="78" y="125" class="mono label">REGIME</text>
-  <text x="78" y="158" class="mono" fill="#4ade80" font-size="30" font-weight="800">PINNED POSITIVE GAMMA</text>
+  <text x="78" y="158" class="mono" fill="#4ade80" font-size="30" font-weight="800">POSITIVE GEX PROXY</text>
   <text x="470" y="125" class="mono label">SPOT</text>
   <text x="470" y="158" class="mono value">5948.75</text>
-  <text x="630" y="125" class="mono label">ZERO GAMMA</text>
+  <text x="630" y="125" class="mono label">COMPATIBILITY LEVEL</text>
   <text x="630" y="158" class="mono value">5941.50</text>
   <text x="830" y="125" class="mono label">GAMMA WALL</text>
   <text x="830" y="158" class="mono value">5965</text>
   <text x="1030" y="125" class="mono label">NEXT TRIGGER</text>
-  <text x="1030" y="158" class="mono" fill="#fbbf24" font-size="22" font-weight="700">Break below zero-gamma</text>
+  <text x="1030" y="158" class="mono" fill="#fbbf24" font-size="19" font-weight="700">Cross compatibility level</text>
 
   <rect x="54" y="202" width="1292" height="318" rx="8" class="panel"/>
   <text x="78" y="236" class="mono panel-title">REGIME LANE</text>
@@ -87,7 +87,7 @@
 
   <line x1="602" y1="258" x2="602" y2="428" stroke="#fbbf24" stroke-width="4" stroke-dasharray="9 8"/>
   <circle cx="602" cy="282" r="8" fill="#fbbf24" filter="url(#soft-glow)"/>
-  <text x="532" y="454" class="mono yellow" font-size="16" font-weight="700">ZERO-GAMMA 5941.50</text>
+  <text x="495" y="454" class="mono yellow" font-size="16" font-weight="700">COMPATIBILITY 5941.50</text>
 
   <line x1="692" y1="250" x2="692" y2="438" stroke="#38bdf8" stroke-width="4"/>
   <polygon points="692,244 680,263 704,263" fill="#38bdf8"/>
@@ -102,21 +102,21 @@
   <line x1="1002" y1="258" x2="1002" y2="428" stroke="#86efac" stroke-width="3"/>
   <text x="938" y="482" class="mono green" font-size="16" font-weight="700">CALL WALL 5975</text>
 
-  <text x="145" y="326" class="mono white" font-size="18" font-weight="700">NEGATIVE GAMMA</text>
-  <text x="145" y="345" class="mono small" fill="#fecdd3">trend risk expands</text>
+  <text x="145" y="326" class="mono white" font-size="18" font-weight="700">NEGATIVE GEX PROXY</text>
+  <text x="145" y="345" class="mono small" fill="#fecdd3">hypothesis zone</text>
   <text x="534" y="326" class="mono white" font-size="18" font-weight="700">TRANSITION</text>
-  <text x="534" y="345" class="mono small" fill="#fde68a">watch zero-gamma</text>
-  <text x="807" y="326" class="mono white" font-size="18" font-weight="700">POSITIVE GAMMA</text>
-  <text x="807" y="345" class="mono small" fill="#bbf7d0">mean reversion/pinning</text>
+  <text x="534" y="345" class="mono small" fill="#fde68a">watch compatibility</text>
+  <text x="807" y="326" class="mono white" font-size="18" font-weight="700">POSITIVE GEX PROXY</text>
+  <text x="807" y="345" class="mono small" fill="#bbf7d0">hypothesis zone</text>
 
   <rect x="54" y="544" width="414" height="270" rx="8" class="panel"/>
   <text x="78" y="578" class="mono panel-title">REGIME SIGNALS</text>
   <line x1="78" y1="598" x2="444" y2="598" class="muted-line"/>
-  <text x="78" y="636" class="mono label">Volatility state</text>
-  <text x="270" y="636" class="mono green" font-size="18" font-weight="700">COMPRESSED</text>
-  <text x="78" y="676" class="mono label">Pin risk</text>
-  <text x="270" y="676" class="mono green" font-size="18" font-weight="700">HIGH</text>
-  <text x="78" y="716" class="mono label">Breakout trigger</text>
+  <text x="78" y="636" class="mono label">Model source</text>
+  <text x="270" y="636" class="mono green" font-size="18" font-weight="700">RAW VOLUME</text>
+  <text x="78" y="676" class="mono label">Predictive validity</text>
+  <text x="270" y="676" class="mono yellow" font-size="18" font-weight="700">UNMEASURED</text>
+  <text x="78" y="716" class="mono label">Level trigger</text>
   <text x="270" y="716" class="mono yellow" font-size="18" font-weight="700">&lt; 5941.50</text>
   <text x="78" y="756" class="mono label">Imbalance</text>
   <text x="270" y="756" class="mono cyan" font-size="18" font-weight="700">CALL +1.42x</text>
@@ -138,21 +138,21 @@
   <text x="958" y="578" class="mono panel-title">EVENT TAPE</text>
   <line x1="958" y1="598" x2="1322" y2="598" class="muted-line"/>
   <text x="958" y="634" class="mono small">09:47:12</text>
-  <text x="1046" y="634" class="mono green" font-size="16">price holding above zero-gamma</text>
+  <text x="1046" y="634" class="mono green" font-size="16">price above compatibility level</text>
   <text x="958" y="674" class="mono small">09:43:08</text>
   <text x="1046" y="674" class="mono cyan" font-size="16">gamma wall shifted 5955 to 5965</text>
   <text x="958" y="714" class="mono small">09:38:51</text>
   <text x="1046" y="714" class="mono yellow" font-size="16">call imbalance crossed 1.35x</text>
   <text x="958" y="754" class="mono small">09:31:20</text>
-  <text x="1046" y="754" class="mono red" font-size="16">negative gamma below 5925</text>
+  <text x="1046" y="754" class="mono red" font-size="16">negative GEX proxy below 5925</text>
   <text x="958" y="794" class="mono small">09:30:00</text>
   <text x="1046" y="794" class="mono label">session opened in transition zone</text>
 
   <rect x="54" y="836" width="1292" height="24" rx="5" fill="#0b1118" stroke="#202b37"/>
-  <text x="76" y="854" class="mono small">provider: LIVE</text>
-  <text x="198" y="854" class="mono small">latency: 82ms</text>
-  <text x="330" y="854" class="mono small">last tick: 1.4s ago</text>
-  <text x="505" y="854" class="mono small">mode: research</text>
-  <text x="650" y="854" class="mono small">alert keys: zero-gamma, wall-shift, imbalance, stale-feed</text>
-  <text x="1160" y="854" class="mono small">q quit | e export | a alerts</text>
+  <text x="76" y="854" class="mono small">readiness: offline-certified</text>
+  <text x="300" y="854" class="mono small">latency: 82ms</text>
+  <text x="430" y="854" class="mono small">last tick: 1.4s</text>
+  <text x="575" y="854" class="mono small">mode: research</text>
+  <text x="710" y="854" class="mono small">alerts: compatibility, wall, imbalance, stale</text>
+  <text x="1160" y="854" class="mono small">q quit | e export</text>
 </svg>

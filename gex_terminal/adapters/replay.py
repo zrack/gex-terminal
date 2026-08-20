@@ -14,7 +14,7 @@ from gex_terminal.package_data import replay_data_path
 ADAPTER_INFO = AdapterInfo(
     name="replay",
     label="Replay JSONL",
-    status="ready",
+    status="offline-certified",
     notes="Local normalized JSONL replay adapter for demos, screenshots, and deterministic testing.",
 )
 

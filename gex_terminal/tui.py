@@ -17,6 +17,7 @@ from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.replay_catalog import ReplaySession, bundled_replay_sessions
 from gex_terminal.regime import build_regime_map
+from gex_terminal.provider_readiness import runtime_provider_readiness
 from gex_terminal.snapshot import build_snapshot, write_snapshot
 from gex_terminal.table_rows import arrange_rows, filter_rows, sort_rows
 
@@ -519,6 +520,7 @@ class GexTerminalApp(App):
         bar = Text(" ", style="#94a3b8")
         segments = (
             f"provider {self.config.data_provider}",
+            f"readiness {runtime_provider_readiness(self.config)}",
             self._workflow_label().lower(),
             f"{self.config.symbol} ×{self.config.contract_multiplier}",
             f"expiry {self.config.expiry_filter}",
@@ -755,18 +757,18 @@ class GexTerminalApp(App):
         regime_color = "green" if total_net >= 0 else "red"
 
         self.query_one("#dealer-regime", Static).update(
-            f"[b]Dealer Regime[/]   [{regime_color}]{regime_label}[/]\n"
-            f"Net {self._format_money(total_net)} · wall pinned {wall}\n"
+            f"[b]GEX Proxy Regime[/]   [{regime_color}]{regime_label}[/]\n"
+            f"Net {self._format_money(total_net)} · gamma wall {wall}\n"
             f"[green]call wall {call_wall}[/] · [red]put wall {put_wall}[/]"
         )
         self.query_one("#balance-pressure", Static).update(
-            f"[b]Balance Pressure[/]   [cyan]{imbalance:.2f}x[/]\n"
-            f"{'Call-side' if imbalance >= 1 else 'Put-side'} leads on the volume proxy.\n"
-            f"Top strike holds [#cbd5e1]{concentration:.0%}[/] of net gamma."
+            f"[b]Proxy Balance[/]   [cyan]{imbalance:.2f}x[/]\n"
+            f"{'Call-side' if imbalance >= 1 else 'Put-side'} leads in selected quantities.\n"
+            f"Top strike holds [#cbd5e1]{concentration:.0%}[/] of modeled net GEX."
         )
         self.query_one("#vol-boundary", Static).update(
-            f"[b]Volatility Boundary[/]   [amber]{zero}[/]\n"
-            f"Zero-gamma flip — a break shifts the vol regime.\n"
+            f"[b]Compatibility Level[/]   [amber]{zero}[/]\n"
+            f"Historical strike-profile field; predictive effect unmeasured.\n"
             f"70% band {band_low}–{band_high}."
         )
         self._render_regime_map(data)
@@ -774,14 +776,14 @@ class GexTerminalApp(App):
     def _render_regime_map(self, data: dict) -> None:
         regime = build_regime_map(data, self.consumer.current_spot)
         trigger = regime["next_trigger"]
-        primary = "+GEX" if regime["primary_regime"] == "positive_gamma" else "-GEX"
+        primary = "+GEX" if regime["primary_regime"] == "positive_gex_proxy" else "-GEX"
 
-        text = Text("Live Gamma Regime Map\n", style="bold #8a97a6")
+        text = Text("GEX Proxy Regime Map\n", style="bold #8a97a6")
         text.append(regime["label"], style=f"bold {regime['color']}")
         text.append(f"  base {primary}\n", style="#64748b")
         text.append("Spot ", style="#64748b")
         text.append(self._format_strike(regime["spot"], decimals=1), style="#cbd5e1")
-        text.append(" · zero ", style="#64748b")
+        text.append(" · compat ", style="#64748b")
         text.append(self._format_strike(regime["zero_gamma"], decimals=1), style="#38bdf8")
         text.append(" · wall ", style="#64748b")
         text.append(self._format_strike(regime["gamma_wall"]), style="#fbbf24")
@@ -793,13 +795,13 @@ class GexTerminalApp(App):
             f"{self._format_strike(trigger['price'], decimals=1)}\n",
             style="#94a3b8",
         )
-        text.append("+GEX", style="#22c55e")
+        text.append("+PROXY", style="#22c55e")
         text.append(" / ", style="#64748b")
-        text.append("-GEX", style="#ef4444")
+        text.append("-PROXY", style="#ef4444")
         text.append(" / ", style="#64748b")
-        text.append("TRANS", style="#38bdf8")
+        text.append("COMPAT", style="#38bdf8")
         text.append(" / ", style="#64748b")
-        text.append("PIN", style="#f59e0b")
+        text.append("WALL", style="#f59e0b")
         text.append(f"  threshold {regime['proximity_threshold']:.1f}", style="#64748b")
         self.query_one("#regime-map", Static).update(text)
 
@@ -897,24 +899,24 @@ class GexTerminalApp(App):
         regime = "+GEX" if total_net >= 0 else "-GEX"
 
         if self._last_wall is None:
-            self._event(f"gamma wall pinned at {self._format_strike(wall)}")
+            self._event(f"gamma wall initialized at {self._format_strike(wall)}")
         elif wall != self._last_wall:
             self._event(
                 f"gamma wall shifted {self._format_strike(self._last_wall)} -> {self._format_strike(wall)}"
             )
 
         if self._last_zero is None:
-            self._event(f"zero node interpolated at {self._format_strike(zero, decimals=1)}")
+            self._event(f"compatibility level initialized at {self._format_strike(zero, decimals=1)}")
         elif abs(zero - self._last_zero) >= 1:
             delta = zero - self._last_zero
             self._event(
-                f"zero node moved {delta:+.1f} handles to {self._format_strike(zero, decimals=1)}"
+                f"compatibility level moved {delta:+.1f} to {self._format_strike(zero, decimals=1)}"
             )
 
         if self._last_regime is None:
-            self._event(f"dealer regime initialized {regime}")
+            self._event(f"GEX proxy regime initialized {regime}")
         elif regime != self._last_regime:
-            self._event(f"dealer regime flipped {self._last_regime} -> {regime}")
+            self._event(f"GEX proxy sign changed {self._last_regime} -> {regime}")
 
         if self._last_imbalance is None:
             self._event(f"call/put imbalance {imbalance:.2f}x")

@@ -10,12 +10,46 @@ These higher-impact features would make `gex-terminal` feel less like a generic
 dashboard and more like a focused market-structure workstation. See
 [docs/product-vision.md](docs/product-vision.md) for concept notes and mockups.
 
-- Live Gamma Regime Map.
+- GEX Proxy Regime Map.
 - Replay Research Lab and Replayable Market Days.
 - Historical Research Journal.
 - TradingView Overlay Export.
 - GEX Alert Engine.
 - Multi-Symbol Market Structure Scanner.
+
+## Competitive Priority Gate — August 2026
+
+The refreshed [competitive analysis](docs/market-analysis.md) concludes that
+basic GEX, low price, tunability, local history, and replay are no longer unique
+claims. The defensible product direction is an evidence-bounded, local-first
+model laboratory: provider-normalized inputs, futures-aware contract treatment,
+identical-session methodology comparison, and explicit provenance.
+
+Priorities before broad feature expansion:
+
+- [ ] Certify one credentialed live ES/NQ provider end to end, including
+  entitlements, active-chain coverage, native IV/OI provenance, payload drift,
+  timing, reconnects, and production logging.
+- [x] Replace “Dealer Regime” and causal zero-gamma copy with proxy/model
+  semantics, and expose provider readiness as `offline-certified`, `delayed`,
+  `scaffold`, `live-uncertified`, or `live-certified`.
+- [ ] Populate the governed point-in-time corpus with licensed live-day data;
+  the append-only registry, auditable digests, immutable splits, outcome, cost,
+  rights, and redaction contracts are now implemented offline.
+- [x] Promote position-model comparison into a primary offline workflow that replays
+  one capture through OI, raw-volume, directionalized-volume, and future
+  participant-attributed methods without blending their quantities.
+- [x] Add versioned model profiles and experiment manifests, then stabilize the
+  read-only Python/JSON research contract before considering local REST/MCP.
+- [x] Add batch session/expiry/day/DTE-layer comparison reports before
+  broadening into multi-Greek surfaces. A dedicated strike-by-expiry UI view
+  remains future presentation work.
+- [ ] Build scanner, integrations, and delivery only on the certified live path;
+  keep per-symbol coverage and quality visible.
+
+Broad options flow, dark pools, mobile/social, execution, and proprietary daily
+commentary remain deferred unless target-persona research changes the product
+thesis.
 
 ## Phase 1: Prototype Hardening
 
@@ -115,8 +149,8 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Add in-terminal controls for expiry filter, fallback DTE, contract
   multiplier, and risk-free rate so offline researchers can recompute snapshots
   without restarting the app.
-- [x] Add a Live Gamma Regime Map panel that summarizes positive/negative gamma,
-  zero-gamma proximity, wall-pinning risk, and volatility expansion zones.
+- [x] Add a GEX Proxy Regime Map panel that summarizes positive/negative modeled
+  exposure, compatibility-level proximity, and wall concentration.
   The prototype renders current state, spot, zero-gamma, gamma wall, next
   trigger, and state legend from demo/replay data. Mockup:
   [assets/live-gamma-regime-map-mockup.svg](assets/live-gamma-regime-map-mockup.svg).
@@ -159,6 +193,10 @@ dashboard and more like a focused market-structure workstation. See
 - [x] Make the app installable with a console command such as `gex-terminal`.
 - [x] Establish the `0.2.0` source/package version, changelog, `--version`, and
   version consistency tests. This does not claim a release tag or PyPI publish.
+- [x] Establish the `0.3.0 Offline Research Certification Workbench` source
+  version with governed experiment/corpus contracts, installed-wheel workflow
+  smoke tests, and post-merge verification. This does not claim a release tag,
+  GitHub Release, or PyPI publication.
 - [x] Ship bundled replays and sanitized provider fixtures as package resources,
   with wheel tests that run named replay and fixture-lab workflows outside the
   source checkout.

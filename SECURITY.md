@@ -6,7 +6,7 @@ API tokens, session tokens, or private market-data entitlement details.
 
 ## Supported Versions
 
-This project is pre-1.0. The source/package version is `0.2.0`, but this
+This project is pre-1.0. The source/package version is `0.3.0`, but this
 repository does not claim a published PyPI artifact or release tag. Security
 fixes target the latest `main` branch.
 

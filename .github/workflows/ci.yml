@@ -29,6 +29,9 @@ jobs:
       - name: Compile source
         run: python -m compileall main.py gex_terminal tests
 
+      - name: Check patch hygiene
+        run: git diff --check
+
       - name: Run tests
         run: python -m unittest discover -s tests
 
@@ -61,10 +64,27 @@ jobs:
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal fixture-lab /tmp/gex-wheel-fixtures.json
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal inject-provider bundled:yfinance-etf-options --export /tmp/gex-wheel-injection.json
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab /tmp/gex-wheel-demo --replay-session gap-fade
+          FIXTURE_DIR=$(/tmp/gex-terminal-wheel-smoke/bin/python -c 'from gex_terminal.package_data import provider_fixture_dir; print(provider_fixture_dir())')
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal databento-replay "$FIXTURE_DIR/databento_mixed_offline_records.jsonl" /tmp/gex-wheel-databento.json --symbol ES --multiplier 50
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal databento-offline-certify /tmp/gex-wheel-databento-cert.json --symbol ES --multiplier 50
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal price-action-evaluate "$FIXTURE_DIR/price_action_validation_example.json" /tmp/gex-wheel-price-action.json
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal position-model-compare "$FIXTURE_DIR/position_model_comparison_example.json" /tmp/gex-wheel-position.json --symbol ES --multiplier 50
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal model-property-certify /tmp/gex-wheel-properties.json
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal provider-fault-certify /tmp/gex-wheel-faults.json
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal performance-certify /tmp/gex-wheel-performance.json --performance-contracts 100 --minimum-ingest-rps 5 --maximum-snapshot-ms 5000 --maximum-peak-mb 512
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal experiment-run "$FIXTURE_DIR/experiment_spec_example.json" /tmp/gex-wheel-experiment
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal experiment-reproduce /tmp/gex-wheel-experiment/manifest.json /tmp/gex-wheel-reproduction
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal batch-position-compare "$FIXTURE_DIR/batch_position_comparison_example.json" /tmp/gex-wheel-batch.json
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal corpus-init /tmp/gex-wheel-corpus --corpus-id wheel-smoke
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal corpus-register /tmp/gex-wheel-corpus "$FIXTURE_DIR/price_action_validation_example.json" "$FIXTURE_DIR/corpus_item_metadata_example.json"
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal corpus-verify /tmp/gex-wheel-corpus /tmp/gex-wheel-corpus.json
           test -s /tmp/gex-wheel-snapshot.json
           test -s /tmp/gex-wheel-fixtures.json
           test -s /tmp/gex-wheel-injection.json
           test -s /tmp/gex-wheel-demo/manifest.json
+          test -s /tmp/gex-wheel-experiment/manifest.json
+          test -s /tmp/gex-wheel-reproduction/manifest.json
+          test -s /tmp/gex-wheel-corpus.json
           ! grep -R -E 'site-packages|/home/runner/work/' /tmp/gex-wheel-snapshot.json /tmp/gex-wheel-fixtures.json /tmp/gex-wheel-injection.json /tmp/gex-wheel-demo
 
       - name: Verify tag matches package version

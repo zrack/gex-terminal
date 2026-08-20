@@ -29,7 +29,7 @@ DATABENTO_SCHEMAS = {
 ADAPTER_INFO = AdapterInfo(
     name="databento",
     label="Databento",
-    status="live-implemented-uncertified",
+    status="live-uncertified",
     notes=(
         "Databento mixed-schema live ingestion and Black-76 IV inversion are "
         "implemented; an explicit credentialed certification run is still required."
