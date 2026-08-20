@@ -6,7 +6,7 @@ method_version: "1.3"
 profile: gex-terminal-team-v1
 adoption_context: team
 change_rigor: L3
-status: Verifying
+status: Shipped / Validate
 packet_owner: project maintainer
 spec_steward: implementation agent
 architecture_authority: project maintainer
@@ -92,11 +92,11 @@ This packet adopts `INV-01` through `INV-08` from
 | `REQ-04` | Numerical properties cover round trips, order/scaling, state semantics, time boundaries, and nonfinite failures. | Property evidence report and tests | Verified locally |
 | `REQ-05` | Provider fault simulation covers gaps, duplicates, reorder, malformed/unknown frames, disconnect/reconnect, and partial prerequisites. | Fault report and tests | Verified locally |
 | `REQ-06` | Generated-chain benchmarks report throughput, snapshot latency, peak memory, environment, and declared budgets. | Performance report and tests | Verified locally |
-| `AC-04` | Default CI budgets are deterministic and generous enough to detect severe regression without claiming live capacity. | Hosted/local release gate | Verified locally; hosted pending |
+| `AC-04` | Default CI budgets are deterministic and generous enough to detect severe regression without claiming live capacity. | Hosted/local release gate | Verified locally and hosted |
 | `REQ-07` | Provider readiness and UI wording distinguish connection state, provider readiness, proxy model, and evidence ceiling. | Registry/UI/docs tests | Verified locally |
-| `REQ-08` | Clean-wheel CI exercises all offline commands and package resources outside the checkout. | CI definition and branch checks | Verified locally; hosted pending |
+| `REQ-08` | Clean-wheel CI exercises all offline commands and package resources outside the checkout. | CI definition and branch checks | Verified locally and hosted |
 | `AC-05` | README, architecture, operator docs, roadmap, changelog, contribution guide, and important generated images match shipped behavior. | Structural readback and image generation | Verified locally |
-| `AC-06` | Branch tests pass; one PR is reviewed and merged; merged `main` passes the release gate at version `0.3.0`. | Git/CI/release evidence | Planned |
+| `AC-06` | Branch tests pass; one PR is reviewed and merged; merged `main` passes the release gate at version `0.3.0`. | Git/CI/release evidence | Verified at `e7d1808` |
 
 ## Architecture Delta
 
@@ -182,9 +182,33 @@ recovery changes must be appended here before closeout.
   Databento replay/certification, position comparison, and price-action paths.
 - Product and onboarding screenshots, demo preview, social PNG/SVG, GEX proxy
   mockup, and research architecture diagram were regenerated and inspected.
+- Pull request [#12](https://github.com/zrack/gex-terminal/pull/12) was reviewed
+  with no blocking findings and merged through GitHub as `e7d1808` after both
+  hosted Python 3.11 and 3.12 jobs passed every required step.
+- The exact merged `main` tree passed compileall, patch hygiene, all 242 tests,
+  model evidence, the twelve-case offline Databento matrix, 7/7 property
+  checks, 7/7 fault cases, the default 500-contract performance budget,
+  experiment reproduction, batch comparison, corpus verification, screenshot
+  export, source/wheel build, Twine checks, and fresh installed-wheel smoke.
 
 ## Closeout
 
-Status remains `Verifying`. This section will record specified-versus-shipped
-differences, exact evidence, merged commit, release identity, deferred external
-validation, and the continuation condition without rewriting the baseline.
+Status is `Shipped / Validate`.
+
+- **Specified versus shipped:** No material product, architecture, invariant,
+  or evidence-ceiling difference. The GitHub integration could read the PR and
+  CI but could not merge it, so the explicitly approved merge used the signed-in
+  GitHub interface. This changed the execution surface, not the reviewed commit
+  or acceptance evidence.
+- **Release identity:** `0.3.0 Offline Research Certification Workbench` at
+  merge commit `e7d1808493a4e16302119ba95721746c1284a0b5`, delivered by PR #12.
+  No Git tag, GitHub Release, PyPI publication, or deployment is claimed.
+- **External validation deferred:** Authentication, entitlements, active ES/NQ
+  chain coverage, real reconnect and latency behavior, licensed participant
+  state, predictive validity, execution quality, and profitability remain
+  unverified. `predictive_validity` remains `unmeasured` and provider readiness
+  is not promoted by this release.
+- **Continuation condition:** Open a new routed packet before any credentialed
+  live certification, real-history outcome study, prediction claim, tag,
+  hosted release, package publication, or deployment. Preserve this packet as
+  the immutable closeout record for the offline release slice.
