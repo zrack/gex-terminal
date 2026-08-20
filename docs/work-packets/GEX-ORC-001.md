@@ -6,7 +6,7 @@ method_version: "1.3"
 profile: gex-terminal-team-v1
 adoption_context: team
 change_rigor: L3
-status: Build Ready
+status: Verifying
 packet_owner: project maintainer
 spec_steward: implementation agent
 architecture_authority: project maintainer
@@ -83,19 +83,19 @@ This packet adopts `INV-01` through `INV-08` from
 
 | ID | Requirement / Acceptance Criterion | Evidence | Status |
 | --- | --- | --- | --- |
-| `REQ-01` | A versioned profile controls model and evaluation assumptions. | Profile validation tests | Planned |
-| `AC-01` | An experiment can run, emit input/profile/version/result digests, and reproduce to the same semantic result. | Experiment CLI and tests | Planned |
-| `REQ-02` | Batch comparison groups sessions by declared day, expiry, and DTE layer without summing model sources. | Batch module and contract tests | Planned |
-| `AC-02` | Missing/future timestamps and insufficient directional coverage remain visible and unscored. | Batch tests | Planned |
-| `REQ-03` | Corpus registration records source digest, rights metadata, split, outcome definition, costs, and append-only chain identity. | Corpus tests | Planned |
-| `AC-03` | Duplicate IDs/digests, split reassignment, source drift, broken chains, and missing files fail verification. | Adversarial corpus tests | Planned |
-| `REQ-04` | Numerical properties cover round trips, order/scaling, state semantics, time boundaries, and nonfinite failures. | Property evidence report and tests | Planned |
-| `REQ-05` | Provider fault simulation covers gaps, duplicates, reorder, malformed/unknown frames, disconnect/reconnect, and partial prerequisites. | Fault report and tests | Planned |
-| `REQ-06` | Generated-chain benchmarks report throughput, snapshot latency, peak memory, environment, and declared budgets. | Performance report and tests | Planned |
-| `AC-04` | Default CI budgets are deterministic and generous enough to detect severe regression without claiming live capacity. | Hosted/local release gate | Planned |
-| `REQ-07` | Provider readiness and UI wording distinguish connection state, provider readiness, proxy model, and evidence ceiling. | Registry/UI/docs tests | Planned |
-| `REQ-08` | Clean-wheel CI exercises all offline commands and package resources outside the checkout. | CI definition and branch checks | Planned |
-| `AC-05` | README, architecture, operator docs, roadmap, changelog, contribution guide, and important generated images match shipped behavior. | Structural readback and image generation | Planned |
+| `REQ-01` | A versioned profile controls model and evaluation assumptions. | Profile validation tests | Verified locally |
+| `AC-01` | An experiment can run, emit input/profile/version/result digests, and reproduce to the same semantic result. | Experiment CLI and tests | Verified locally |
+| `REQ-02` | Batch comparison groups sessions by declared day, expiry, and DTE layer without summing model sources. | Batch module and contract tests | Verified locally |
+| `AC-02` | Missing/future timestamps and insufficient directional coverage remain visible and unscored. | Batch tests | Verified locally |
+| `REQ-03` | Corpus registration records source digest, rights metadata, split, outcome definition, costs, and append-only chain identity. | Corpus tests | Verified locally |
+| `AC-03` | Duplicate IDs/digests, split reassignment, source drift, broken chains, and missing files fail verification. | Adversarial corpus tests | Verified locally |
+| `REQ-04` | Numerical properties cover round trips, order/scaling, state semantics, time boundaries, and nonfinite failures. | Property evidence report and tests | Verified locally |
+| `REQ-05` | Provider fault simulation covers gaps, duplicates, reorder, malformed/unknown frames, disconnect/reconnect, and partial prerequisites. | Fault report and tests | Verified locally |
+| `REQ-06` | Generated-chain benchmarks report throughput, snapshot latency, peak memory, environment, and declared budgets. | Performance report and tests | Verified locally |
+| `AC-04` | Default CI budgets are deterministic and generous enough to detect severe regression without claiming live capacity. | Hosted/local release gate | Verified locally; hosted pending |
+| `REQ-07` | Provider readiness and UI wording distinguish connection state, provider readiness, proxy model, and evidence ceiling. | Registry/UI/docs tests | Verified locally |
+| `REQ-08` | Clean-wheel CI exercises all offline commands and package resources outside the checkout. | CI definition and branch checks | Verified locally; hosted pending |
+| `AC-05` | README, architecture, operator docs, roadmap, changelog, contribution guide, and important generated images match shipped behavior. | Structural readback and image generation | Verified locally |
 | `AC-06` | Branch tests pass; one PR is reviewed and merged; merged `main` passes the release gate at version `0.3.0`. | Git/CI/release evidence | Planned |
 
 ## Architecture Delta
@@ -167,8 +167,24 @@ outputs are outside the repository by default and remain operator-owned.
 None at baseline. Material scope, invariant, authority, proof-ceiling, or
 recovery changes must be appended here before closeout.
 
+## Branch Evidence
+
+- `python -m compileall main.py gex_terminal tests`: passed.
+- `python -m unittest discover -s tests`: 242 tests passed.
+- Model property certification: 7/7 checks passed.
+- Provider fault certification: 7/7 cases passed; live transport false.
+- Default 500-contract generated performance gate: passed; live capacity false.
+- Model evidence and 12-case Databento offline certification: passed;
+  predictive validity unmeasured and live transport false.
+- Source distribution and wheel built as `0.3.0`; both passed Twine validation.
+- Fresh Python 3.14 wheel installation outside the checkout ran the packaged
+  experiment/reproduction, batch, corpus, property, fault, performance,
+  Databento replay/certification, position comparison, and price-action paths.
+- Product and onboarding screenshots, demo preview, social PNG/SVG, GEX proxy
+  mockup, and research architecture diagram were regenerated and inspected.
+
 ## Closeout
 
-Status remains `Build Ready`. This section will record specified-versus-shipped
+Status remains `Verifying`. This section will record specified-versus-shipped
 differences, exact evidence, merged commit, release identity, deferred external
 validation, and the continuation condition without rewriting the baseline.

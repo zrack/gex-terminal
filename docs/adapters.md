@@ -202,7 +202,7 @@ gex-terminal databento-certify /tmp/databento-certification.json \
   --ack-live-network --symbol ES --multiplier 50 --certification-duration 20
 ```
 
-The adapter registry status is `live-implemented-uncertified` until a report
+The adapter registry status is `live-uncertified` until a report
 from a real credentialed run clears its transport, chain-ingestion, and
 quantitative-input checks. Predictive validity remains unmeasured.
 

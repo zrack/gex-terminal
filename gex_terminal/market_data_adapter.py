@@ -43,6 +43,11 @@ class AdapterInfo:
     status: str
     notes: str
 
+    def __post_init__(self) -> None:
+        from gex_terminal.provider_readiness import validate_provider_readiness
+
+        validate_provider_readiness(self.status)
+
 
 def validate_normalized_message(message: NormalizedMessage) -> None:
     schema_version = _schema_version(message)

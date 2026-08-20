@@ -13,8 +13,10 @@ workflows stay separated.
 | Provider adapters | `gex_terminal/adapters/`, `gex_terminal/market_data_adapter.py`, `gex_terminal/contracts.py` | Convert live, delayed, provider-shaped, or replay payloads into versioned normalized messages with contract identity and timing semantics. |
 | State consumer | `gex_terminal/consumer.py` | Own spot, provider-scoped contract positions, projections, expiry selection, lifecycle, and feed-quality state behind an async lock. |
 | GEX model | `gex_terminal/engine.py`, `gex_terminal/regime.py`, `gex_terminal/model_evidence.py` | Price Black-Scholes/Black-76 contract rows, aggregate dollar GEX, derive structural levels, and export bounded numerical evidence. |
+| Research authority | `gex_terminal/model_profiles.py`, `gex_terminal/experiment_manifest.py`, `gex_terminal/research_corpus.py` | Validate versioned assumptions, bind experiments to content identities, and maintain append-only corpus registration. |
+| Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows, first-run guidance, replay browser, model-assumption controls, feed quality, event log, and exports. |
-| Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py` | Produce replay, demo, and provider-fixture reports without live credentials. |
+| Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py`, `gex_terminal/batch_comparison.py` | Produce replay, demo, provider-fixture, and multi-session model-comparison reports without live credentials. |
 | Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py`, `gex_terminal/session_capture.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, historical records, and integrity-checked normalized sessions. |
 | Packaged data | `gex_terminal/data/`, `gex_terminal/package_data.py` | Resolve bundled replay and sanitized provider resources independently of the current working directory. |
 
@@ -145,7 +147,7 @@ explicit, redacted `tradovate-certify --ack-live-network` workflow can measure a
 credential/environment/run window. Fixture success cannot promote registry
 status or establish native-IV availability.
 
-Databento is `live-implemented-uncertified`: one official SDK session combines
+Databento is `live-uncertified`: one official SDK session combines
 definition replay, ES/NQ option trades, and a continuous-futures `mbp-1` quote.
 The adapter performs provider joining and Black-76 IV inversion before emitting
 schema-v2 messages; the consumer remains the sole owner of mutable contract
@@ -176,9 +178,24 @@ Offline tools reuse the same consumer and engine boundaries:
   adversarial cases without a live claim.
 - `price-action-evaluate` and `position-model-compare` produce descriptive,
   point-in-time research artifacts while leaving predictive validity unmeasured.
+- `experiment-run` and `experiment-reproduce` bind a versioned model profile,
+  input digest, implementation version, and semantic output digest.
+- `corpus-init`, `corpus-register`, and `corpus-verify` manage append-only local
+  source identity, rights, redaction, split, outcome, and cost declarations.
+- `batch-position-compare` groups source-separated comparisons by session day,
+  expiry, and DTE layer without aggregating OI and trade-volume states.
+- `model-property-certify`, `provider-fault-certify`, and
+  `performance-certify` produce bounded deterministic software evidence.
 
 Generated output stays local by default under ignored folders such as
 `demo_lab/`, `demo_pack/`, `research_journal/`, and `historical_sessions/`.
+
+![Offline research authority and evidence flow](../assets/offline-research-architecture.svg)
+
+Provider readiness is not runtime connection status. The readiness vocabulary
+is `offline-certified`, `delayed`, `scaffold`, `live-uncertified`, and
+`live-certified`. Runtime state remains `SIM`, `LIVE`, `STALE`, or
+`DISCONNECTED`; a live connection never promotes readiness by itself.
 
 ## State Ownership
 
@@ -220,4 +237,6 @@ used by live updates.
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
 | Snapshot/overlay exports | `tests/test_snapshot_formats.py`, `tests/test_overlays.py` |
 | Model evidence or sensitivity parity | `tests/test_model_evidence.py`, `tests/test_sensitivity.py` |
+| Experiment/corpus contracts | `tests/test_model_profiles.py`, `tests/test_experiment_manifest.py`, `tests/test_research_corpus.py` |
+| Batch/property/fault/performance gates | `tests/test_batch_comparison.py`, `tests/test_offline_certification_extensions.py` |
 | Wheel resources and release metadata | `tests/test_release_contract.py`, CI installed-wheel smoke workflow |

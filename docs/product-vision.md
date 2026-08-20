@@ -10,13 +10,14 @@ the model, data adapters, replay fixtures, and visualization workflows.
 These capabilities are intended to make the project distinctive and useful for
 contributors.
 
-### Live Gamma Regime Map
+### GEX Proxy Regime Map
 
-Build a real-time regime panel showing whether price is in positive gamma,
-negative gamma, near the documented strike-profile compatibility level, pinned
-near a gamma wall, or entering a volatility expansion zone.
+Build a real-time panel showing the selected position model's positive/negative
+GEX proxy, proximity to the documented strike-profile compatibility level, and
+gamma-wall concentration. Volatility and pinning interpretations remain
+explicit research hypotheses rather than observed dealer behavior.
 
-![Live Gamma Regime Map mockup](../assets/live-gamma-regime-map-mockup.svg)
+![GEX Proxy Regime Map mockup](../assets/live-gamma-regime-map-mockup.svg)
 
 ### Replayable Market Days
 

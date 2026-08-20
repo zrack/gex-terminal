@@ -14,6 +14,10 @@ from gex_terminal.adapters.registry import (
     build_market_data_adapter,
     effective_provider,
 )
+from gex_terminal.batch_comparison import (
+    build_batch_comparison,
+    write_batch_comparison,
+)
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.databento_certification import (
@@ -30,6 +34,7 @@ from gex_terminal.demo_lab import (
     build_demo_lab,
 )
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.experiment_manifest import reproduce_experiment, run_experiment
 from gex_terminal.fixture_validator import (
     format_fixture_validation_report,
     validate_fixture,
@@ -38,6 +43,10 @@ from gex_terminal.market_data_adapter import AdapterConfigurationError
 from gex_terminal.model_evidence import (
     build_model_evidence_report,
     write_model_evidence_report,
+)
+from gex_terminal.model_properties import (
+    build_model_property_report,
+    write_model_property_report,
 )
 from gex_terminal.model_comparison import (
     build_model_comparison_report,
@@ -49,6 +58,7 @@ from gex_terminal.position_model_comparison import (
     load_position_model_comparison,
     write_position_model_comparison,
 )
+from gex_terminal.performance_lab import build_performance_report, write_performance_report
 from gex_terminal.price_action_validation import (
     load_price_action_report,
     write_price_action_report,
@@ -57,6 +67,10 @@ from gex_terminal.provider_injector import (
     INJECTION_FORMATS,
     inject_provider_fixture,
     provider_injection_summary,
+)
+from gex_terminal.provider_fault_lab import (
+    build_provider_fault_report,
+    write_provider_fault_report,
 )
 from gex_terminal.provider_fixture_lab import (
     build_provider_fixture_lab_report,
@@ -79,6 +93,12 @@ from gex_terminal.research_journal import (
     format_journal_list,
     load_journal_entries,
     write_journal_report,
+)
+from gex_terminal.research_corpus import (
+    initialize_corpus,
+    register_corpus_item,
+    verify_corpus,
+    write_corpus_report,
 )
 from gex_terminal.screenshot import export_app_screenshot_svg
 from gex_terminal.session_store import (
@@ -187,6 +207,44 @@ async def main():
 
     if args.command == "model-evidence":
         model_evidence_command(args.command_path or "model_evidence.json")
+        return
+
+    if args.command == "experiment-run":
+        await experiment_run_command(args)
+        return
+
+    if args.command == "experiment-reproduce":
+        await experiment_reproduce_command(args)
+        return
+
+    if args.command == "batch-position-compare":
+        await batch_position_compare_command(args)
+        return
+
+    if args.command == "corpus-init":
+        corpus_init_command(args)
+        return
+
+    if args.command == "corpus-register":
+        corpus_register_command(args)
+        return
+
+    if args.command == "corpus-verify":
+        corpus_verify_command(args)
+        return
+
+    if args.command == "model-property-certify":
+        await model_property_command(args.command_path or "model_property_evidence.json")
+        return
+
+    if args.command == "provider-fault-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await provider_fault_command(config, args.command_path or "provider_fault_evidence.json")
+        return
+
+    if args.command == "performance-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await performance_command(config, args)
         return
 
     config = apply_cli_overrides(GexConfig.from_env(), args)
@@ -896,6 +954,134 @@ def model_evidence_command(output_path: str) -> None:
         raise SystemExit(1)
 
 
+async def experiment_run_command(args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal experiment-run SPEC.json OUTPUT_DIR")
+    try:
+        manifest = await run_experiment(args.command_path, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved experiment {manifest['experiment_id']} to {args.command_args[0]} "
+        f"(workflow={manifest['workflow']}, predictive_validity=unmeasured)"
+    )
+
+
+async def experiment_reproduce_command(args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal experiment-reproduce MANIFEST.json OUTPUT_DIR")
+    try:
+        manifest = await reproduce_experiment(args.command_path, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Reproduced experiment {manifest['experiment_id']} "
+        f"(matched={manifest['reproduction']['matched']}, predictive_validity=unmeasured)"
+    )
+
+
+async def batch_position_compare_command(args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal batch-position-compare SPEC.json OUTPUT.json")
+    try:
+        report = await build_batch_comparison(args.command_path)
+        target = write_batch_comparison(report, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved batch position comparison to {target} "
+        f"(sessions={report['result']['session_count']}, predictive_validity=unmeasured)"
+    )
+
+
+def corpus_init_command(args: argparse.Namespace) -> None:
+    if not args.command_path:
+        raise SystemExit("Usage: gex-terminal corpus-init CORPUS_DIR [--corpus-id ID]")
+    try:
+        target = initialize_corpus(args.command_path, corpus_id=args.corpus_id)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(f"Initialized append-only research corpus at {target}")
+
+
+def corpus_register_command(args: argparse.Namespace) -> None:
+    if not args.command_path or len(args.command_args) < 2:
+        raise SystemExit(
+            "Usage: gex-terminal corpus-register CORPUS_DIR INPUT METADATA.json"
+        )
+    try:
+        event = register_corpus_item(
+            args.command_path, args.command_args[0], args.command_args[1]
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Registered {event['payload']['dataset_id']} at sequence {event['sequence']} "
+        f"(split={event['payload']['split']})"
+    )
+
+
+def corpus_verify_command(args: argparse.Namespace) -> None:
+    if not args.command_path:
+        raise SystemExit("Usage: gex-terminal corpus-verify CORPUS_DIR [OUTPUT.json]")
+    try:
+        report = verify_corpus(args.command_path)
+        if args.command_args:
+            target = write_corpus_report(report, args.command_args[0])
+            print(f"Saved corpus verification to {target} (passed={report['result']['passed']})")
+        else:
+            print(json.dumps(report, indent=2, sort_keys=True))
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+async def model_property_command(output_path: str) -> None:
+    report = await build_model_property_report()
+    target = write_model_property_report(report, output_path)
+    print(
+        f"Saved model property evidence to {target} "
+        f"({report['result']['passed_checks']}/{report['result']['total_checks']} passed)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+async def provider_fault_command(config: GexConfig, output_path: str) -> None:
+    report = await build_provider_fault_report(config)
+    target = write_provider_fault_report(report, output_path)
+    print(
+        f"Saved provider fault evidence to {target} "
+        f"({report['result']['passed_cases']}/{report['result']['total_cases']} passed, "
+        "live_transport=False)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+async def performance_command(config: GexConfig, args: argparse.Namespace) -> None:
+    output_path = args.command_path or "performance_evidence.json"
+    try:
+        report = await build_performance_report(
+            config,
+            contracts=args.performance_contracts,
+            minimum_ingest_records_per_second=args.minimum_ingest_rps,
+            maximum_snapshot_milliseconds=args.maximum_snapshot_ms,
+            maximum_peak_megabytes=args.maximum_peak_mb,
+        )
+        target = write_performance_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved generated-chain performance evidence to {target} "
+        f"(contracts={report['workload']['option_contracts']}, "
+        f"passed={report['result']['passed']}, live_capacity=False)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
 async def compute_demo_snapshot(config: GexConfig) -> dict:
     snapshot, _, _ = await compute_snapshot(config)
     return snapshot
@@ -987,6 +1173,15 @@ def parse_args() -> argparse.Namespace:
             "price-action-evaluate",
             "position-model-compare",
             "model-evidence",
+            "experiment-run",
+            "experiment-reproduce",
+            "batch-position-compare",
+            "corpus-init",
+            "corpus-register",
+            "corpus-verify",
+            "model-property-certify",
+            "provider-fault-certify",
+            "performance-certify",
         ),
         help="Optional utility command.",
     )
@@ -1189,6 +1384,34 @@ def parse_args() -> argparse.Namespace:
         help="Maximum option subscriptions during Tradovate certification. Default: 12.",
     )
     parser.add_argument(
+        "--corpus-id",
+        help="Stable corpus identifier for corpus-init.",
+    )
+    parser.add_argument(
+        "--performance-contracts",
+        type=int,
+        default=500,
+        help="Generated option contracts for performance-certify. Default: 500.",
+    )
+    parser.add_argument(
+        "--minimum-ingest-rps",
+        type=float,
+        default=50.0,
+        help="Minimum generated ingest records/second. Default: 50.",
+    )
+    parser.add_argument(
+        "--maximum-snapshot-ms",
+        type=float,
+        default=1000.0,
+        help="Maximum generated snapshot milliseconds. Default: 1000.",
+    )
+    parser.add_argument(
+        "--maximum-peak-mb",
+        type=float,
+        default=256.0,
+        help="Maximum generated-chain peak memory in MiB. Default: 256.",
+    )
+    parser.add_argument(
         "--tradovate-environment",
         choices=("demo", "live"),
         help="Tradovate environment for live mode or certification. Overrides TRADOVATE_ENV.",
@@ -1291,7 +1514,7 @@ def validate_provider(config: GexConfig) -> None:
 def print_provider_summary() -> None:
     for provider in available_provider_names():
         info = adapter_info(provider)
-        print(f"{info.name:10} {info.status:9} {info.label} - {info.notes}")
+        print(f"{info.name:10} {info.status:20} {info.label} - {info.notes}")
 
 
 def print_replay_sessions() -> None:

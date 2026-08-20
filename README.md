@@ -92,6 +92,13 @@ Good starting points:
 |   |-- consumer.py     # Stateful asynchronous market-data aggregator
 |   |-- session_capture.py # Integrity-checked normalized event capture
 |   |-- model_evidence.py # Bounded numerical model-evidence gate
+|   |-- model_profiles.py # Versioned research assumptions
+|   |-- experiment_manifest.py # Reproducible experiment identity and digests
+|   |-- research_corpus.py # Append-only governed input registry
+|   |-- batch_comparison.py # Multi-session position-model comparisons
+|   |-- model_properties.py # Numerical/property certification gate
+|   |-- provider_fault_lab.py # Deterministic provider-state fault cases
+|   |-- performance_lab.py # Generated-chain performance budgets
 |   |-- demo_lab.py     # Offline demo pack generator for screenshots and reports
 |   |-- replay_lab.py   # Offline replay reports, alerts, and session comparisons
 |   |-- research_journal.py # Local replay-session journal and comparisons
@@ -134,6 +141,9 @@ Good starting points:
   clock.
 - **Bounded model evidence**: exports independent analytical oracles and
   deterministic checks while declaring predictive market validity unmeasured.
+- **Governed offline research**: versioned model profiles, reproducible
+  manifests, an append-only corpus registry, batch comparisons, and explicit
+  property/fault/performance gates make multi-contributor evidence reviewable.
 - **Parallel directionalized-volume research model**: preserves optional
   provider/quote-inferred aggressor side, reports known-direction coverage, and
   compares its signed profile with the unchanged default proxy without claiming
@@ -265,12 +275,12 @@ The terminal derives key market zones from the strike-level GEX matrix:
 - **Zero-Gamma Compatibility Field**: the historical `zero_gamma` field uses the
   strike-profile flip when available and otherwise the nearest-neutral strike.
   It is not a portfolio root found by repricing the entire book across spot.
-- **Positive Gamma Zone**: a region where dealer hedging may dampen volatility as
-  hedging flows lean against price movement.
-- **Negative Gamma Zone**: a region where dealer hedging may amplify volatility
-  as hedging flows move with price direction.
-- **Imbalance Boundary**: the area where call-side and put-side dollar gamma
-  exposure materially diverge, highlighting asymmetric hedging pressure.
+- **Positive GEX Proxy Zone**: a region where the selected position proxy yields
+  positive modeled exposure. Its market effect is a hypothesis for evaluation.
+- **Negative GEX Proxy Zone**: a region where the selected position proxy yields
+  negative modeled exposure. It does not identify dealer inventory or flow.
+- **Imbalance Boundary**: the area where call-side and put-side modeled dollar
+  GEX materially diverge in the selected quantities.
 
 ## Runtime Architecture
 
@@ -319,7 +329,8 @@ exports and reports
   - snapshot JSON/CSV/Markdown
   - TradingView overlay JSON/CSV
   - Replay Lab, Provider Fixture Lab, Demo Lab, Research Journal, Session Store,
-    captured sessions, Tradovate certification, and model-evidence artifacts
+    captured sessions, experiment/corpus/batch reports, offline certification,
+    Tradovate certification, and model-evidence artifacts
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the fuller component map,
@@ -352,7 +363,8 @@ The broader `.[providers]` extra installs all optional provider clients. Offline
 replays, fixtures, model comparisons, and numerical evidence do not require a
 Databento key or SDK.
 
-The source/package version is `0.2.0`. Bundled replay sessions and sanitized
+The source/package version is `0.3.0`, named **Offline Research Certification
+Workbench**. Bundled replay sessions and sanitized
 provider fixtures are package resources, so the installed wheel supports the
 same named offline workflows from any working directory. This repository does
 not claim a PyPI publication or release tag.
@@ -655,6 +667,24 @@ These commands preserve `live_transport_certified=false` and
 `predictive_validity=unmeasured`. See
 [docs/offline-validation.md](docs/offline-validation.md) for their input contracts.
 
+Run and reproduce a versioned experiment, verify a governed local corpus,
+compare multiple sessions, and exercise the broader offline gates:
+
+```bash
+gex-terminal experiment-run experiment_spec.json /tmp/gex-experiment
+gex-terminal experiment-reproduce /tmp/gex-experiment/manifest.json /tmp/gex-reproduction
+gex-terminal corpus-init /tmp/gex-corpus --corpus-id es-research-v1
+gex-terminal corpus-register /tmp/gex-corpus INPUT.json METADATA.json
+gex-terminal corpus-verify /tmp/gex-corpus /tmp/gex-corpus-report.json
+gex-terminal batch-position-compare batch_spec.json batch_report.json
+gex-terminal model-property-certify /tmp/model-properties.json
+gex-terminal provider-fault-certify /tmp/provider-faults.json
+gex-terminal performance-certify /tmp/performance.json
+```
+
+These are reproducibility and software gates, not live-feed or predictive
+certification. See [docs/research-governance.md](docs/research-governance.md).
+
 Override `.env` settings from the command line:
 
 ```bash
@@ -745,7 +775,7 @@ events arrive. During a live session, the matrix should surface:
 - strike-profile flip and nearest-neutral strike (`zero_gamma` compatibility field)
 - call/put imbalance
 - positive and negative gamma zones
-- Live Gamma Regime Map state with spot, the zero-gamma compatibility level,
+- GEX Proxy Regime Map state with spot, the zero-gamma compatibility level,
   gamma wall, and next trigger
 - Provider Health panel with connection state, stale checks, latency, dropped
   payloads, malformed payloads, provider frame counts, parse errors,
@@ -813,6 +843,11 @@ pip install -e ".[databento]"
 - See [docs/offline-validation.md](docs/offline-validation.md) for temporal
   integrity, raw Databento replay, adversarial certification, saved-price-action
   evaluation, and point-in-time position-source comparisons.
+- See [docs/research-governance.md](docs/research-governance.md) for model
+  profiles, experiment manifests, corpus registration, batch comparisons, and
+  the property/fault/performance evidence gates.
+- See [docs/SAED_ADOPTION_PROFILE.md](docs/SAED_ADOPTION_PROFILE.md) for the
+  repository's change-routing, evidence, and release methodology.
 - See [docs/captured-sessions.md](docs/captured-sessions.md) for normalized event
   capture, integrity verification, event-time replay, and local inventory.
 - See [docs/provider-injection.md](docs/provider-injection.md) for raw
@@ -845,8 +880,8 @@ Recommended early test coverage:
 - First-run terminal guidance, in-app replay selection, and consumer reset
   behavior for offline session switching.
 - TradingView overlay export rows for levels and exposure bands.
-- Live Gamma Regime Map classification for positive, negative, transition, and
-  pinned states.
+- GEX Proxy Regime Map classification for positive, negative, compatibility,
+  and wall-proximity states.
 - Replay Lab reports for alerts, session comparison, and saved snapshot
   baselines.
 - Historical Research Journal entries, entry comparisons, and Markdown/CSV/JSON

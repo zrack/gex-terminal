@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Offline Research Certification Workbench architecture</title>
+  <desc id="desc">Versioned model profile and governed corpus feed reproducible experiments and certification gates, producing reviewable evidence with an explicit offline ceiling.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#12263d"/></linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#75e6da"/></marker>
+    <style>
+      .title{font:700 34px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#f4f7fb}.sub{font:18px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#a8bbcf}.box{fill:#102b43;stroke:#4dd0c8;stroke-width:2}.gate{fill:#242744;stroke:#b19cff;stroke-width:2}.out{fill:#173526;stroke:#68d391;stroke-width:2}.warn{fill:#3d291c;stroke:#f6ad55;stroke-width:2}.h{font:700 20px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#fff}.t{font:15px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#d6e2ee}.line{stroke:#75e6da;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1280" height="720" rx="28" fill="url(#bg)"/>
+  <text x="64" y="66" class="title">Offline Research Certification Workbench</text>
+  <text x="64" y="101" class="sub">contract identity → deterministic execution → bounded evidence</text>
+
+  <rect x="64" y="150" width="285" height="145" rx="16" class="box"/>
+  <text x="88" y="188" class="h">Versioned inputs</text>
+  <text x="88" y="222" class="t">• model profile</text><text x="88" y="250" class="t">• experiment spec</text><text x="88" y="278" class="t">• point-in-time cutoff</text>
+
+  <rect x="64" y="340" width="285" height="145" rx="16" class="box"/>
+  <text x="88" y="378" class="h">Governed corpus</text>
+  <text x="88" y="412" class="t">• append-only hash chain</text><text x="88" y="440" class="t">• rights + redaction</text><text x="88" y="468" class="t">• immutable split identity</text>
+
+  <rect x="447" y="215" width="330" height="205" rx="16" class="gate"/>
+  <text x="475" y="255" class="h">Shared consumer + engine</text>
+  <text x="475" y="290" class="t">contract-aware Black-76 / BS</text><text x="475" y="320" class="t">OI · raw volume · directional</text><text x="475" y="350" class="t">batch grouping, no source sum</text><text x="475" y="380" class="t">semantic result digest</text>
+
+  <rect x="875" y="150" width="335" height="205" rx="16" class="out"/>
+  <text x="903" y="190" class="h">Reviewable evidence</text>
+  <text x="903" y="225" class="t">• reproducible manifest</text><text x="903" y="255" class="t">• corpus verification</text><text x="903" y="285" class="t">• batch comparison</text><text x="903" y="315" class="t">• property/fault/perf reports</text>
+
+  <rect x="875" y="410" width="335" height="155" rx="16" class="warn"/>
+  <text x="903" y="450" class="h">Evidence ceiling</text>
+  <text x="903" y="485" class="t">offline software + process only</text><text x="903" y="515" class="t">predictive validity: unmeasured</text><text x="903" y="545" class="t">live certification: separate gate</text>
+
+  <path d="M349 223 H447" class="line"/><path d="M349 412 C400 412 400 370 447 370" class="line"/><path d="M777 282 H875" class="line"/><path d="M1042 355 V410" class="line"/>
+  <text x="64" y="650" class="sub">Readiness vocabulary: offline-certified · delayed · scaffold · live-uncertified · live-certified</text>
+  <text x="64" y="682" class="sub">Runtime connection state is reported separately: SIM · LIVE · STALE · DISCONNECTED</text>
+</svg>

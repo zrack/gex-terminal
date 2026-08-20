@@ -1,11 +1,11 @@
-"""Live gamma-regime classification from computed GEX snapshots."""
+"""GEX-proxy classification from computed snapshots."""
 
 from statistics import median
 from typing import Any, Dict
 
 
 def build_regime_map(data: Dict[str, Any], spot: float) -> Dict[str, Any]:
-    """Summarize the current gamma regime and nearby structural triggers."""
+    """Summarize the selected GEX proxy and nearby structural levels."""
     total_net = float(data["total_net_gex"])
     zero = float(data["zero_gamma_strike"])
     wall = float(data["gamma_wall_strike"])
@@ -16,28 +16,28 @@ def build_regime_map(data: Dict[str, Any], spot: float) -> Dict[str, Any]:
 
     near_zero = abs(float(spot) - zero) <= proximity
     near_wall = abs(float(spot) - wall) <= proximity
-    primary = "positive_gamma" if total_net >= 0 else "negative_gamma"
+    primary = "positive_gex_proxy" if total_net >= 0 else "negative_gex_proxy"
 
     if near_zero:
         state = "transition"
-        label = "TRANSITION"
+        label = "COMPATIBILITY PROXIMITY"
         color = "#38bdf8"
-        description = "Spot is near the zero-gamma boundary."
+        description = "Spot is near the historical strike-profile compatibility level."
     elif near_wall:
-        state = "pinned"
-        label = "PINNED"
+        state = "wall_proximity"
+        label = "WALL PROXIMITY"
         color = "#f59e0b"
         description = "Spot is near the dominant gamma wall."
-    elif primary == "positive_gamma":
-        state = "positive_gamma"
-        label = "POSITIVE GAMMA"
+    elif primary == "positive_gex_proxy":
+        state = "positive_gex_proxy"
+        label = "POSITIVE GEX PROXY"
         color = "#22c55e"
-        description = "Net gamma is positive; modeled hedging pressure may dampen movement."
+        description = "The selected position quantities produce positive modeled net GEX."
     else:
-        state = "negative_gamma"
-        label = "NEGATIVE GAMMA"
+        state = "negative_gex_proxy"
+        label = "NEGATIVE GEX PROXY"
         color = "#ef4444"
-        description = "Net gamma is negative; modeled hedging pressure may amplify movement."
+        description = "The selected position quantities produce negative modeled net GEX."
 
     return {
         "primary_regime": primary,
@@ -76,7 +76,7 @@ def _proximity_threshold(strikes: list[float], spot: float) -> float:
 
 def _next_trigger(*, spot: float, levels: Dict[str, float]) -> Dict[str, Any]:
     labels = {
-        "zero_gamma": "Zero Gamma",
+        "zero_gamma": "Compatibility Level",
         "gamma_wall": "Gamma Wall",
         "call_wall": "Call Wall",
         "put_wall": "Put Wall",
@@ -97,26 +97,26 @@ def _zones(*, strikes: list[float], zero: float, wall: float, proximity: float) 
     high = max(strikes) if strikes else zero + proximity
     return [
         {
-            "name": "negative_gamma_zone",
-            "label": "-GEX Expansion Zone",
+            "name": "negative_gex_proxy_zone",
+            "label": "Negative GEX Proxy",
             "low": float(low),
             "high": float(zero),
         },
         {
-            "name": "transition_zone",
-            "label": "Zero-Gamma Transition",
+            "name": "compatibility_transition",
+            "label": "Compatibility Proximity",
             "low": float(zero - proximity),
             "high": float(zero + proximity),
         },
         {
-            "name": "positive_gamma_zone",
-            "label": "+GEX Pinning Zone",
+            "name": "positive_gex_proxy_zone",
+            "label": "Positive GEX Proxy",
             "low": float(zero),
             "high": float(high),
         },
         {
-            "name": "wall_pin_zone",
-            "label": "Wall Pin Zone",
+            "name": "wall_proximity_zone",
+            "label": "Gamma-Wall Proximity",
             "low": float(wall - proximity),
             "high": float(wall + proximity),
         },

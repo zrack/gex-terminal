@@ -89,6 +89,19 @@ For model changes, also run the bounded evidence gate:
 gex-terminal model-evidence /tmp/model_evidence.json
 ```
 
+For research-contract, provider-normalization, or performance changes, run the
+applicable offline certification gates:
+
+```bash
+gex-terminal model-property-certify /tmp/model-properties.json
+gex-terminal provider-fault-certify /tmp/provider-faults.json
+gex-terminal performance-certify /tmp/performance.json
+```
+
+Changes to model profiles, experiment manifests, corpus registration, or batch
+comparison must include their focused tests and an example run/reproduction.
+See [docs/research-governance.md](docs/research-governance.md).
+
 For package/resource changes, reproduce the CI release contract:
 
 ```bash
@@ -104,6 +117,14 @@ the repository working directory.
 
 ## Development Guidelines
 
+This repository follows the local SAED 1.3 adoption profile in
+[docs/SAED_ADOPTION_PROFILE.md](docs/SAED_ADOPTION_PROFILE.md). Route material
+changes before implementation, name a work packet for L2/L3 work, preserve its
+baseline and evidence ceiling, and close technical shipment separately from
+external outcome validation. Use a `codex/` feature branch, focused named-file
+commits, a pull request, hosted checks, merge, and a clean post-merge test for a
+release slice. See `docs/work-packets/` for the active packet form.
+
 - Keep market-data adapters separate from calculation logic.
 - Keep GEX math deterministic and covered by focused tests where possible.
 - Prefer vectorized NumPy operations in `gex_terminal/engine.py`.
@@ -115,6 +136,8 @@ the repository working directory.
 - Keep credentials and user-specific settings in environment variables.
 - Use small, focused pull requests when changing calculation behavior.
 - Document any financial-market assumptions that affect displayed metrics.
+- Keep provider readiness (`offline-certified`, `delayed`, `scaffold`,
+  `live-uncertified`, `live-certified`) separate from runtime connection state.
 
 ## Market-Data Adapter Guidelines
 
@@ -195,6 +218,9 @@ Before opening a pull request, please confirm:
 - Generated local output such as `demo_lab/`, `research_journal/`, and
   `historical_sessions/` is not included.
 - UI changes can be exercised with mock data or documented sample input.
+- Experiment manifests reproduce semantically and corpus verification passes
+  without committing private or licensed source data.
+- Generated performance reports retain the exact budgets and environment used.
 
 ## Reporting Issues
 

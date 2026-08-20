@@ -91,6 +91,14 @@ Bundled examples live under `gex_terminal/data/provider_fixtures/`:
 - `price_action_validation_example.json`
 - `position_model_comparison_example.json`
 
+## Governed Research And Broader Offline Gates
+
+Versioned profiles, reproducible experiment manifests, append-only corpus
+registration, multi-session comparison, model properties, provider-fault
+simulation, and generated-chain performance budgets are documented in
+[Research Governance](research-governance.md). These commands extend the
+software-evidence surface; they do not raise its external evidence ceiling.
+
 ## Still Requires External Evidence
 
 Offline work cannot certify authentication, entitlements, current active-chain
