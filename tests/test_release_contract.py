@@ -16,6 +16,11 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 import gex_terminal
+from gex_terminal.capture_governance import (
+    CAPTURE_POLICY_SCHEMA,
+    capture_policy_identity,
+    load_capture_policy,
+)
 from gex_terminal.config import GexConfig
 from gex_terminal.cli import inject_provider_command
 from gex_terminal.demo_lab import build_demo_lab
@@ -109,6 +114,28 @@ class ReleaseMetadataContractTests(unittest.TestCase):
 
 
 class BundledResourceContractTests(unittest.TestCase):
+    def test_sanitized_capture_policy_example_is_packaged_and_valid(self):
+        policy_path = provider_fixture_path("capture_policy_example.json")
+        policy = load_capture_policy(policy_path)
+
+        self.assertTrue(policy_path.is_absolute(), policy_path)
+        self.assertTrue(policy_path.is_relative_to(PACKAGE_ROOT), policy_path)
+        self.assertEqual(policy["schema"], CAPTURE_POLICY_SCHEMA)
+        self.assertEqual(policy["research_use"]["status"], "prohibited")
+        self.assertFalse(policy["rights"]["redistributable"])
+        self.assertEqual(len(capture_policy_identity(policy)["sha256"]), 64)
+
+        serialized = json.dumps(policy).casefold()
+        for sensitive_name in (
+            "api_key",
+            "account_id",
+            "authorization",
+            "credential",
+            "secret",
+            "subscription_id",
+        ):
+            self.assertNotIn(sensitive_name, serialized)
+
     def test_fresh_process_loads_dotenv_from_arbitrary_working_directory(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

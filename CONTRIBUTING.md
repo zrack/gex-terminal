@@ -99,6 +99,19 @@ gex-terminal provider-fault-certify /tmp/provider-faults.json
 gex-terminal performance-certify /tmp/performance.json
 ```
 
+For Databento certification, lifecycle, or capture-safety changes, also run the
+focused policy and redaction suite:
+
+```bash
+python -m unittest -v \
+  tests.test_databento_live \
+  tests.test_databento_certification \
+  tests.test_databento_certification_policy \
+  tests.test_safety_controls \
+  tests.test_capture_governance \
+  tests.test_research_corpus
+```
+
 Changes to model profiles, experiment manifests, corpus registration, or batch
 comparison must include their focused tests and an example run/reproduction.
 See [docs/research-governance.md](docs/research-governance.md).
@@ -124,10 +137,13 @@ changes before implementation, name a work packet for L2/L3 work, preserve its
 baseline and evidence ceiling, and close technical shipment separately from
 external outcome validation. Use a `codex/` feature branch, focused named-file
 commits, a pull request, hosted checks, merge, and a clean post-merge test for a
-release slice. The closed
-[GEX-ORC-001 packet](docs/work-packets/GEX-ORC-001.md) is a structural example;
-no packet is currently active, and a new routed packet is required for the next
-L2/L3 change.
+release slice. The release-ready
+[GEX-LIVE-001 packet](docs/work-packets/GEX-LIVE-001.md) owns the `0.4.0`
+pre-live hardening slice through merged-tree and tag closeout. The earlier
+[GEX-ORC-001 packet](docs/work-packets/GEX-ORC-001.md) remains a structural
+example. A new routed packet is required for any unrelated L2/L3 change. A
+credentialed certification run is external observation, not permission to
+change readiness or retain data without its own authority.
 
 - Keep market-data adapters separate from calculation logic.
 - Keep GEX math deterministic and covered by focused tests where possible.
@@ -157,6 +173,13 @@ position-source separation, multiplier, instrument class, IV provenance, and
 expiry authority. Never add open interest and trade volume together or hide a
 configured fallback IV.
 
+For Databento work, treat SDK subscription return values as local request IDs,
+not provider acknowledgements. Preserve provider maybe-bad-book flags and
+observed ordering; do not classify every discontinuity in a trade-only venue
+sequence as feed loss. Keep reconnect callback, post-reconnect frame, and
+per-schema record/error evidence distinct; do not infer acknowledgements the
+SDK does not expose.
+
 If you add a provider, please document:
 
 - Required credentials and permissions.
@@ -168,7 +191,10 @@ If you add a provider, please document:
 
 If adding captured-session fixtures, never include raw authentication frames,
 tokens, account identifiers, or data that cannot be redistributed. See
-[docs/captured-sessions.md](docs/captured-sessions.md).
+[docs/captured-sessions.md](docs/captured-sessions.md). Live capture requires a
+validated policy before connection, and captured-session corpus registration
+requires its exact matching approved policy plus verified redaction. The full
+gate is in [docs/capture-governance.md](docs/capture-governance.md).
 
 ## Pull Request Checklist
 

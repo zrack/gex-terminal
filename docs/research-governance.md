@@ -53,6 +53,24 @@ rejected. Verification fails on chain tampering, source drift, missing files,
 duplicate identities, or invalid split labels. Rights metadata describes the
 operator's declaration; the tool does not independently grant data rights.
 
+Captured sessions are stricter than ordinary offline inputs. Supply the exact
+capture policy during registration:
+
+```bash
+gex-terminal corpus-register /tmp/gex-corpus \
+  session.gex-session.jsonl captured-session-metadata.json \
+  --capture-policy capture-policy.json
+```
+
+The captured header's policy schema, ID, and SHA-256 must exactly match the
+supplied policy. The policy must approve research use; corpus metadata rights
+status and redistribution decision must match it; and metadata must declare
+`source_kind=captured_session` plus `redaction_status=verified`. A prohibited
+research-use decision, missing/mismatched policy, rights mismatch, or merely
+required/unknown redaction fails closed. See
+[Capture Governance](capture-governance.md) for the policy contract and its
+legal/evidence limits.
+
 ## Compare Multiple Sessions
 
 `batch-position-compare` runs the existing point-in-time OI/raw-volume/

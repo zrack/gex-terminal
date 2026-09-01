@@ -6,9 +6,10 @@ API tokens, session tokens, or private market-data entitlement details.
 
 ## Supported Versions
 
-This project is pre-1.0. The source/package version is `0.3.0`, but this
-repository does not claim a published PyPI artifact or release tag. Security
-fixes target the latest `main` branch.
+This project is pre-1.0. The supported source/package version is `0.4.0`; the
+annotated `v0.4.0` tag is created only after clean merged-tree verification.
+The release candidate does not yet claim that tag, a published PyPI artifact,
+or a hosted release. Security fixes target the latest `main` branch.
 
 ## Reporting a Vulnerability
 
@@ -30,6 +31,9 @@ Include:
 - Keep real credentials in `.env`, not `.env.example`.
 - Confirm `.env` is not staged before committing.
 - Remove tokens, account IDs, and private entitlement details from logs.
+- Runtime logging defaults to `WARNING`. `GEX_LOG_LEVEL` and `--log-level`
+  accept only `CRITICAL`, `ERROR`, `WARNING`, `INFO`, or `DEBUG`; configured CLI
+  handlers apply central recursive redaction before formatting output.
 - Prefer demo or replay mode when sharing screenshots or bug reports.
 - Treat captured sessions as potentially licensed market data. The capture
   format stores normalized messages rather than raw provider frames, but that
@@ -39,7 +43,12 @@ Include:
   one.
 - Do not share `.partial` captures as evidence; they are intentionally
   incomplete and cannot pass integrity verification.
-- Run `tradovate-certify` only with the explicit `--ack-live-network` flag. Its
-  report is designed to be redacted, but review any artifact before sharing it.
+- Live capture requires an explicit policy for rights, retention, redaction, and
+  research use before the provider connection opens. A policy records an
+  operator decision; it does not grant rights or make captured data shareable.
+  See [Capture Governance](docs/capture-governance.md).
+- Run `tradovate-certify` or `databento-certify` only with the explicit
+  `--ack-live-network` flag. Their reports are designed to be redacted, but
+  review every artifact before sharing it.
 - Never paste Tradovate access tokens, market-data tokens, authorization frames,
   usernames, client secrets, or account identifiers into issues or fixtures.

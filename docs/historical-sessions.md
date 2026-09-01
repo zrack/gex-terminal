@@ -76,6 +76,9 @@ gex-terminal session-store captures
 gex-terminal session-store captures --session-store-dir /tmp/gex-store
 ```
 
+Live recording requires the pre-capture decisions described in
+[Capture Governance](capture-governance.md); replay recording remains exempt.
+
 The inventory verifies the footer, contiguous sequence, message/record hashes,
 and aggregate content hash. It skips incomplete `.partial` files and invalid
 captures. Replay a verified file with `--captured-session PATH`. See
