@@ -4,6 +4,24 @@
 state ownership, model calculation, terminal rendering, and export/report
 workflows stay separated.
 
+## Repository Map
+
+| Path | Architectural role |
+| --- | --- |
+| `gex_terminal/` | Installable application package and all runtime, model, and report modules |
+| `gex_terminal/adapters/` | Provider protocol and replay implementations behind the normalized adapter boundary |
+| `gex_terminal/data/` | Packaged synthetic replays and sanitized provider fixtures |
+| `tests/` | Contract, model, provider, TUI, report, package, and documentation regression tests |
+| `docs/` | Canonical technical, workflow, governance, decision, and packet documentation |
+| `assets/` | Derived screenshots, diagrams, and product mockups; never canonical system truth |
+| `main.py` | Backward-compatible wrapper around the package CLI |
+| `pyproject.toml` | Package identity, dependencies, extras, and console entry point |
+| `.env.example` | Provider and runtime configuration template; real credentials stay local |
+
+The documentation ownership map is [docs/README.md](README.md). Release history
+is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
+[ROADMAP.md](../ROADMAP.md).
+
 ## Runtime Components
 
 | Layer | Files | Responsibility |
@@ -11,8 +29,11 @@ workflows stay separated.
 | CLI orchestration | `gex_terminal/cli.py` | Parse command-line options, load config, select runtime mode, start adapters, run exports, and coordinate shutdown. |
 | Configuration | `gex_terminal/config.py` | Read the invocation directory's `.env` and environment defaults into a typed `GexConfig`. |
 | Provider adapters | `gex_terminal/adapters/`, `gex_terminal/market_data_adapter.py`, `gex_terminal/contracts.py` | Convert live, delayed, provider-shaped, or replay payloads into versioned normalized messages with contract identity and timing semantics. |
+| Provider certification | `gex_terminal/tradovate_certification.py`, `gex_terminal/databento_certification.py` | Run acknowledged, bounded, redacted live-network gates without converting fixture evidence into a live claim. |
+| Provider fixture and replay intake | `gex_terminal/provider_injector.py`, `gex_terminal/databento_offline.py` | Route provider-shaped local records through production mapping and adversarial checks without opening a live connection. |
 | State consumer | `gex_terminal/consumer.py` | Own spot, provider-scoped contract positions, projections, expiry selection, lifecycle, and feed-quality state behind an async lock. |
 | GEX model | `gex_terminal/engine.py`, `gex_terminal/regime.py`, `gex_terminal/model_evidence.py` | Price Black-Scholes/Black-76 contract rows, aggregate dollar GEX, derive structural levels, and export bounded numerical evidence. |
+| Evaluation models | `gex_terminal/model_comparison.py`, `gex_terminal/position_model_comparison.py`, `gex_terminal/price_action_validation.py` | Compare separated position models and descriptive later-price paths without promoting predictive validity. |
 | Research authority | `gex_terminal/model_profiles.py`, `gex_terminal/experiment_manifest.py`, `gex_terminal/research_corpus.py` | Validate versioned assumptions, bind experiments to content identities, and maintain append-only corpus registration. |
 | Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows, first-run guidance, replay browser, model-assumption controls, feed quality, event log, and exports. |
@@ -20,69 +41,24 @@ workflows stay separated.
 | Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py`, `gex_terminal/session_capture.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, historical records, and integrity-checked normalized sessions. |
 | Packaged data | `gex_terminal/data/`, `gex_terminal/package_data.py` | Resolve bundled replay and sanitized provider resources independently of the current working directory. |
 
-## Data Contract
+## Adapter-Consumer Boundary
 
-Adapters emit normalized JSON messages into `StatefulGexConsumer`.
+Adapters emit versioned underlying and option-quantity messages into
+`StatefulGexConsumer`. The canonical contract implementation is
+`gex_terminal/market_data_adapter.py` plus `gex_terminal/contracts.py`; the
+complete documented message shapes and provider extension rules live in
+[Market-Data Adapters](adapters.md).
 
-Underlying tick:
+The boundary preserves provider-scoped contract identity, event time, expiry,
+quantity semantics, position source, IV provenance, multiplier, and optional
+trade-direction provenance. Mutable state is keyed by provider, contract, and
+position source. Incremental values accumulate, cumulative values replace, and
+open interest is never summed with trade volume. Contract rows are priced before
+equal strikes are aggregated.
 
-```json
-{
-  "schema_version": 2,
-  "type": "underlying_tick",
-  "provider": "example",
-  "symbol": "ES",
-  "price": 5968.25,
-  "event_time": "2026-08-04T17:30:00Z"
-}
-```
-
-Option-volume tick:
-
-```json
-{
-  "schema_version": 2,
-  "type": "options_volume_tick",
-  "provider": "example",
-  "contract_id": "example-es-option-123",
-  "symbol": "ES",
-  "strike": 5975,
-  "option_type": "C",
-  "volume": 1200,
-  "iv": 0.14,
-  "iv_source": "provider",
-  "expiry": "2026-08-07",
-  "expiry_timestamp": "2026-08-07T20:00:00Z",
-  "instrument_class": "futures_option",
-  "volume_semantics": "incremental",
-  "position_source": "trade_volume",
-  "aggressor_side": "buy",
-  "direction_source": "provider",
-  "contract_multiplier": 50,
-  "event_time": "2026-08-04T17:30:00Z"
-}
-```
-
-Schema v2 keeps mutable state under `(provider, contract_id, position_source)`.
-Incremental values accumulate; cumulative values replace the previous absolute
-quantity. When trade volume and open interest describe the same provider
-contract, the consumer chooses one source rather than adding them. All
-schema-v2 options require explicit `iv` and `iv_source`; configured defaults
-degrade feed quality instead of being presented as native provider IV. Futures
-options map to Black-76 and equity/index options to Black-Scholes. Contract rows
-use their own DTE and multiplier before equal strikes are aggregated. An
-authoritative timezone-bearing expiry timestamp takes precedence over explicit
-contract DTE, followed by the configured scalar fallback.
-Optional schema-v2 aggressor direction accumulates as buy, sell, or unknown
-volume inside the same selected contract state. The engine computes a parallel
-directionalized matrix from those buckets while the default call/put matrix
-remains unchanged. Cumulative quantities clear directional attribution because
-they cannot reconstruct the side composition of prior trades.
-
-Schema v1 remains accepted for the historical strike-level replay path. The
-consumer ignores off-symbol underlying ticks, tracks malformed or dropped
-messages, excludes authoritatively expired contracts, and filters `all`, `0dte`,
-or an exact expiry. A mixed v1/v2 session reports a legacy fallback calculation.
+Schema v1 remains a legacy replay path; schema v2 is the contract-aware path.
+Validation, filtering, pricing-model routing, IV provenance, and direction rules
+belong to the adapter and model topic guides rather than this component map.
 
 ## First-Run Flow
 
@@ -156,36 +132,27 @@ entitlement set, symbol, and bounded run window.
 
 ## Offline Research Flow
 
-Offline tools reuse the same consumer and engine boundaries:
+Offline tools reuse the same adapter, consumer, and engine boundaries through
+five paths:
 
-- `--replay PATH` and `--replay-session NAME` stream normalized JSONL.
-- `replay-lab` compares bundled replay sessions and alert behavior.
-- `demo-lab` packages visuals, snapshots, overlays, replay reports, fixture
-  reports, and a manifest.
-- `fixture-lab` runs provider-shaped fixtures through adapter mapping and model
-  output.
-- `journal` saves local replay-session entries and compares level changes.
-- `session-store` saves local snapshot records and exports historical summaries.
-- `--record-session` writes normalized replay/live events to an integrity-checked
-  capture; `--captured-session` verifies and replays them with event-time pacing.
-  The TUI disables replay-session switching while capture is active because a
-  consumer reset is not a normalized event boundary.
-- `--sensitivity` recomputes the same snapshot under alternate assumptions.
-- `model-evidence` runs analytical oracles and deterministic checks, with
-  predictive market validity left `unmeasured`.
-- `databento-replay` routes local JSON/JSONL/DBN records through the live record
-  handler after temporal-integrity checks; `databento-offline-certify` exercises
-  adversarial cases without a live claim.
-- `price-action-evaluate` and `position-model-compare` produce descriptive,
-  point-in-time research artifacts while leaving predictive validity unmeasured.
-- `experiment-run` and `experiment-reproduce` bind a versioned model profile,
-  input digest, implementation version, and semantic output digest.
-- `corpus-init`, `corpus-register`, and `corpus-verify` manage append-only local
-  source identity, rights, redaction, split, outcome, and cost declarations.
-- `batch-position-compare` groups source-separated comparisons by session day,
-  expiry, and DTE layer without aggregating OI and trade-volume states.
-- `model-property-certify`, `provider-fault-certify`, and
-  `performance-certify` produce bounded deterministic software evidence.
+- **Normalized replay and capture:** packaged/local normalized events and
+  integrity-checked captures enter through replay adapters and event-time
+  controls. A capture cannot switch replay streams mid-file.
+- **Provider-shaped intake:** provider injection, fixture labs, and offline
+  Databento certification reuse production mapping without opening a live
+  connection or promoting readiness.
+- **Model evaluation:** sensitivity, numerical evidence, position-model
+  comparison, and descriptive later-price evaluation derive bounded artifacts
+  from the selected source state.
+- **Governed research:** model profiles, experiment manifests, append-only
+  corpus registration, and batch comparison bind source identity, assumptions,
+  splits, outcomes, costs, and semantic results.
+- **Presentation and local storage:** replay/demo labs, journals, session stores,
+  snapshots, and overlays present or retain derived state without becoming the
+  canonical input authority.
+
+The [documentation map](README.md) routes each workflow to its command and
+artifact reference.
 
 Generated output stays local by default under ignored folders such as
 `demo_lab/`, `demo_pack/`, `research_journal/`, and `historical_sessions/`.
@@ -217,9 +184,14 @@ used by live updates.
 ## Contributor Boundaries
 
 - Add provider protocol code inside `gex_terminal/adapters/`.
-- Keep normalized message changes compatible with `StatefulGexConsumer`.
-- Keep model changes in `engine.py` or `regime.py`, then add independent numeric
-  oracles, deterministic fixture tests, and model-evidence coverage.
+- Keep provider live-gate logic in the certification modules and provider-shaped
+  offline intake in the injector/offline modules.
+- Keep normalized message changes compatible with `StatefulGexConsumer`, the
+  sole owner of mutable market state.
+- Put pricing and structural-level changes in `engine.py` or `regime.py`;
+  comparison, evaluation, IV, or profile changes belong in their focused model
+  modules. Add independent oracles, deterministic fixtures, and the applicable
+  evidence coverage.
 - Keep terminal presentation changes in `tui.py` and `gex_terminal.tcss`.
 - Keep artifact format changes in the relevant export/report module.
 - Update README only for user-facing workflows; put implementation detail in
@@ -235,6 +207,8 @@ used by live updates.
 | Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py`, `tests/test_session_store.py` |
 | Capture integrity or event clocks | `tests/test_session_capture.py`, `tests/test_replay_adapter.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
+| Provider certification or readiness | `tests/test_tradovate_certification.py`, `tests/test_databento_certification.py`, `tests/test_provider_readiness.py` |
+| Offline Databento or outcome evaluation | `tests/test_databento_offline.py`, `tests/test_position_model_comparison.py`, `tests/test_price_action_validation.py` |
 | Snapshot/overlay exports | `tests/test_snapshot_formats.py`, `tests/test_overlays.py` |
 | Model evidence or sensitivity parity | `tests/test_model_evidence.py`, `tests/test_sensitivity.py` |
 | Experiment/corpus contracts | `tests/test_model_profiles.py`, `tests/test_experiment_manifest.py`, `tests/test_research_corpus.py` |

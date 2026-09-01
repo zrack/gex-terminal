@@ -28,13 +28,13 @@ Verification:
 python -m unittest -v tests.test_replay_lab
 ```
 
-## 2. Add A Terminal Onboarding Screenshot Refresh Script
+## 2. Add A README Preview Refresh Script
 
 Labels: `good first issue`, `help wanted`, `documentation`, `terminal-ui`
 
 Summary:
 Add a small maintainer script or documented Make-style command that refreshes
-the README onboarding screenshot.
+the generated README demo preview and optional onboarding asset.
 
 Why it helps:
 The project looks better when the README visual stays aligned with the actual
@@ -42,38 +42,37 @@ Textual terminal.
 
 Suggested scope:
 - Add a script under a maintainer-friendly location such as `scripts/`.
-- Use `--screenshot-view replay-browser`.
+- Generate `assets/gex-terminal-demo-lab.svg` through the documented Demo Lab
+  workflow; optionally refresh the replay-browser onboarding asset too.
 - Avoid committing generated local demo packs.
 
 Verification:
 
 ```bash
-gex-terminal --demo --screenshot /tmp/gex-terminal-onboarding.svg --screenshot-view replay-browser
+gex-terminal demo-lab /tmp/gex-readme-preview --replay-session zero-gamma-flip
 ```
 
-## 3. Add Session Store Example Output Fixture
+## 3. Validate Markdown Heading Links
 
-Labels: `good first issue`, `help wanted`, `documentation`, `exports`
+Labels: `good first issue`, `help wanted`, `documentation`, `testing`
 
 Summary:
-Add a tiny sanitized example output fixture or regression assertion for
-`session-store save`, `list`, and `report` against a bundled replay session.
+Extend the documentation link contract to verify local `#heading` fragments in
+addition to file existence.
 
 Why it helps:
-New contributors can practice the historical research workflow without a live
-provider.
+The documentation index now links many canonical guides. A renamed heading can
+break navigation even when the target file still exists.
 
 Suggested scope:
-- Extend `tests/test_session_store.py` with a small inline/sanitized record.
-- Use `/tmp` or another ignored folder for generated output.
-- Explain that `historical_sessions/` is ignored by Git.
+- Extend `DocumentationLinkContractTests` in `tests/test_release_contract.py`.
+- Normalize common GitHub-style Markdown heading fragments deterministically.
+- Add focused valid and invalid fragment cases without checking external URLs.
 
 Verification:
 
 ```bash
-gex-terminal session-store save --replay-session zero-gamma-flip --session-store-dir /tmp/gex-store
-gex-terminal session-store list --session-store-dir /tmp/gex-store
-gex-terminal session-store report /tmp/gex-store/session_store.md --session-store-dir /tmp/gex-store
+python -m unittest -v tests.test_release_contract.DocumentationLinkContractTests
 ```
 
 ## 4. Document One Provider Payload Shape
@@ -99,24 +98,30 @@ Verification:
 python -m unittest -v tests.test_provider_fixture_lab
 ```
 
-## 5. Add A Small Snapshot Export Assertion
+## 5. Add A Dedicated Synthetic NQ Replay
 
-Labels: `good first issue`, `help wanted`, `testing`, `exports`
+Labels: `good first issue`, `help wanted`, `replay`, `testing`
 
 Summary:
-Add one focused assertion for Markdown or CSV snapshot exports.
+Add one small schema-v2 NQ replay whose own rows use the NQ multiplier and a
+declared deterministic structural expectation.
 
 Why it helps:
-Exports are how users share research, so small format regressions matter.
+The packaged replay catalog is ES-focused. A dedicated NQ fixture would exercise
+symbol and multiplier handling without requiring live data or implying provider
+certification.
 
 Suggested scope:
-- Extend `tests/test_snapshot_formats.py`.
-- Check one field that appears in both snapshot metrics and the human-readable
-  output.
-- Keep the test deterministic and fixture-based.
+- Add a synthetic JSONL replay under `gex_terminal/data/replays/`.
+- Use schema-v2 contract identity, event time, expiry, IV provenance, and the NQ
+  multiplier consistently.
+- Register it in the replay catalog and add one focused validator or Replay Lab
+  expectation.
+- Label the scenario synthetic and avoid copied licensed market data.
 
 Verification:
 
 ```bash
-python -m unittest -v tests.test_snapshot_formats
+gex-terminal validate-fixture gex_terminal/data/replays/NEW_NQ_FIXTURE.jsonl
+python -m unittest -v tests.test_replay_lab tests.test_release_contract
 ```

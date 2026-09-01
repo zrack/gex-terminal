@@ -50,58 +50,17 @@ Useful provider references:
 ## Normalized App Contract
 
 The app consumes only the shared normalized messages described in
-[docs/adapters.md](adapters.md). Databento-specific fields stay inside
+[docs/adapters.md](adapters.md); that document is the canonical wire-schema
+example. Databento-specific parsing and joins stay inside
 `gex_terminal/adapters/databento.py`.
 
-Underlying quote:
-
-```json
-{
-  "schema_version": 2,
-  "type": "underlying_tick",
-  "provider": "databento",
-  "symbol": "ES",
-  "price": 5943.25,
-  "event_time": "2026-06-12T15:30:00Z"
-}
-```
-
-Option volume tick:
-
-```json
-{
-  "schema_version": 2,
-  "type": "options_volume_tick",
-  "provider": "databento",
-  "contract_id": "12345",
-  "contract_symbol": "ESM6 C5950",
-  "symbol": "ES",
-  "strike": 5950,
-  "option_type": "C",
-  "volume": 42,
-  "iv": 0.22,
-  "iv_source": "black_76_inverted",
-  "iv_provenance": {
-    "method": "black_76_bisection",
-    "status": "converged",
-    "option_price": 34.5,
-    "option_price_source": "databento_trade",
-    "underlying_price": 5943.25,
-    "underlying_price_source": "databento_mbp1_midpoint",
-    "risk_free_rate": 0.045,
-    "time_to_expiry_years": 0.0027,
-    "iterations": 31,
-    "absolute_price_error": 0.000000004
-  },
-  "expiry": "2026-06-19",
-  "instrument_class": "futures_option",
-  "volume_semantics": "incremental",
-  "position_source": "trade_volume",
-  "aggressor_side": "buy",
-  "direction_source": "provider",
-  "event_time": "2026-06-12T15:30:00Z"
-}
-```
+Databento's main contract delta is IV inversion provenance. A
+`black_76_inverted` option tick carries the option trade price/source, futures
+midpoint/source, midpoint age and maximum allowed age, risk-free rate, time to
+expiry, solver method/status/iterations, and absolute price error. Definition
+records supply stable contract identity, strike, type, and expiry. Statistics
+records map open interest as a cumulative quantity in fixture/offline flows;
+the live statistics subscription remains roadmap work.
 
 ## Mapping Rules
 
@@ -117,7 +76,7 @@ Option volume tick:
 | `contract_id` | Stable Databento `instrument_id` scoped to provider `databento` |
 | `event_time` | Timezone-bearing `ts_event` or equivalent provider event time |
 | `volume_semantics` | `incremental` for individual trade sizes |
-| `position_source` | `trade_volume` for trade messages; a future statistics mapping must use `open_interest` with `cumulative` semantics |
+| `position_source` | `trade_volume` for trade messages; fixture-tested statistics mapping uses `open_interest` with `cumulative` semantics, while live statistics subscription remains roadmap work |
 | `aggressor_side` | Databento trade `side`: `B`/bid maps to `buy`, `A`/ask maps to `sell`, and absent/indeterminate side maps to `unknown` |
 | `direction_source` | `provider` when a known Databento side is preserved; otherwise `unknown` |
 | `iv_source` | `provider`, `black_76_inverted`, or `configured_default`; only the fallback degrades feed quality |

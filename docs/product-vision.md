@@ -1,60 +1,83 @@
 # Product Vision
 
-`gex-terminal` is not trying to be a cheaper clone of a closed commercial
-dashboard. The stronger opportunity is an open-source, local-first GEX research
-terminal that makes assumptions visible and gives contributors room to improve
-the model, data adapters, replay fixtures, and visualization workflows.
+`gex-terminal` is an open, local-first market-structure research workbench for
+people who want to inspect how a GEX estimate was produced. It is not trying to
+be a cheaper clone of a closed dashboard. Its durable advantage should come
+from provider-normalized inputs, replaceable models, reproducible point-in-time
+research, and explicit evidence ceilings.
 
-## Signature Capabilities
+Implementation status and sequencing belong in [ROADMAP.md](../ROADMAP.md).
+Shipped history belongs in [CHANGELOG.md](../CHANGELOG.md).
 
-These capabilities are intended to make the project distinctive and useful for
-contributors.
+## Product Promise
 
-### GEX Proxy Regime Map
+A researcher should be able to answer:
 
-Build a real-time panel showing the selected position model's positive/negative
-GEX proxy, proximity to the documented strike-profile compatibility level, and
-gamma-wall concentration. Volatility and pinning interpretations remain
-explicit research hypotheses rather than observed dealer behavior.
+- Which provider records and position quantity produced this view?
+- Which pricing model, expiry, multiplier, rate, and IV provenance were used?
+- How would the result change under another explicit position model?
+- Can another person replay the same point-in-time inputs and reproduce it?
+- What does the evidence establish, and what remains unobserved or unmeasured?
 
-![GEX Proxy Regime Map mockup](../assets/live-gamma-regime-map-mockup.svg)
+The workbench should make those answers easier without requiring a hosted
+account or hiding calculations behind a proprietary interface.
+
+## Primary Users
+
+- **Quant and model researchers** comparing assumptions, providers, sessions,
+  and outcomes.
+- **Python and data engineers** extending normalized adapters and reproducible
+  research contracts.
+- **Advanced ES/NQ traders** studying transparent structural proxies after a
+  live data path has met its declared certification gate.
+
+Mobile-first novices, commentary-seeking traders, and users seeking automatic
+trade execution are not the primary product target.
+
+## Signature Outcomes
+
+### Inspectable Proxy Regime View
+
+Present the selected position model's positive or negative exposure proxy,
+documented strike-profile compatibility level, gamma-wall concentration, spot,
+and next structural trigger in one compact view. Volatility, pinning, support,
+and resistance interpretations remain hypotheses for evaluation rather than
+observed dealer behavior.
 
 ### Replayable Market Days
 
-Save full intraday sessions and replay them later with synchronized GEX, price,
-wall shifts, strike-profile moves, and event markers.
+Let researchers preserve a governed point-in-time session, replay it on its
+event-time clock, compare walls and profile changes, and bind the result to its
+input identity and model profile. In-file consistency hashes detect corruption;
+source rights, authenticity, and historical immutability require separate
+authority.
 
-The event foundation is now in place: normalized replay/live streams can be
-captured with internal sequence/hash checks, replayed on their event-time clock,
-inventoried in the session store, and added to the research journal. These
-in-file checks are not an authenticity signature. The next
-step is collecting governed live-day evidence from a provider that has passed
-its explicit credentialed certification gate.
+### Portable Levels And Local Alerts
 
-### TradingView Overlay Export
+Make derived levels, exposure bands, quality states, and structural changes
+portable to local files and user-owned tools. Every export or alert should
+retain enough provider, model, timing, and readiness provenance to avoid turning
+a proxy into an unexplained signal.
 
-Export gamma wall, zero-gamma, call wall, put wall, and major exposure bands into
-a TradingView-compatible format so users can overlay levels on their charts.
+### Comparable Position Models
 
-### GEX Alert Engine
+Replay identical sessions through open interest, raw trade volume,
+directionalized trade volume, and any future licensed participant-attribution
+method without adding or relabeling unlike quantities. Comparison should expose
+coverage and disagreement before attempting to score predictive value.
 
-Trigger local alerts for zero-gamma crosses, gamma wall shifts, stale data,
-regime flips, and major call/put imbalance changes, with optional Discord or
-webhook output.
+### Cross-Symbol Research
 
-### Multi-Symbol Market Structure Scanner
+Allow comparable ES/NQ and related-symbol study only where each provider path
+can show contract coverage, freshness, provenance, and quality. A scanner should
+rank modeled structural change, not imply dealer inventory or forecast risk
+that the inputs do not observe.
 
-Scan ES, NQ, SPX, SPY, QQQ, and IWM to rank symbols by gamma concentration,
-negative-gamma risk, 0DTE pressure, and the biggest intraday structural shifts.
+## Product Boundaries
 
-## Contributor Hooks
-
-The project is intentionally shaped so contributors can help without needing to
-own every part of the stack:
-
-- Improve the math model and document assumptions.
-- Add provider adapters and normalized payload fixtures.
-- Build replay datasets for reproducible research.
-- Add good-first issues and small docs/tests that help new contributors start.
-- Improve first-run terminal UX, panels, exports, alerts, and data-quality views.
-- Compare generated levels against saved price action.
+The product does not infer dealer/customer identity, opening/closing activity,
+or institutional intent without licensed fields that supply those facts. It
+does not treat a live connection as provider certification, offline correctness
+as predictive validation, or a backtest as executable performance. Broad
+options flow, dark pools, social/mobile delivery, execution, and proprietary
+commentary remain outside the core thesis unless user evidence changes it.

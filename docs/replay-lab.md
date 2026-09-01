@@ -33,25 +33,16 @@ gex-terminal replay-lab gap_fade_lab.md --replay-session gap-fade
 - A leaderboard for largest absolute net GEX, most alerts, tightest gamma
   concentration, and largest spot move.
 - Session-to-session comparisons using saved final replay snapshots.
-- Replay alerts for gamma wall shifts, zero-gamma crosses, net-GEX sign flips,
+- Replay alerts for gamma wall shifts, compatibility-level crosses, net-GEX sign flips,
   major exposure changes, imbalance threshold crossings, and data-quality cases.
 - Full snapshot payloads in the JSON report so future changes can be compared
   against a saved baseline.
 
 ## Bundled Lab Sessions
 
-The current lab catalog covers:
-
-- `demo`: compact screenshot/smoke-test flow.
-- `full-session`: open, mid-session, and late-session ES 0DTE flow.
-- `trend-day`: rising spot with call-side accumulation.
-- `chop-day`: range-bound balanced call/put flow.
-- `volatility-spike`: downside move with higher IV and put-heavy flow.
-- `gap-fade`: gap-up open that rejects higher call walls and rotates lower.
-- `call-wall-breakout`: upside breakout that walks the call wall higher.
-- `zero-gamma-flip`: flow rotation across the zero-gamma boundary.
-- `expiration-compression`: late 0DTE pinning around the gamma wall.
-- `quality-stress`: off-symbol, partial-chain, and latency fixture cases.
+The lab runs the packaged catalog documented in
+[Replay Research Mode](replay-research.md#bundled-sessions). That page owns the
+session list and synthetic-scenario descriptions.
 
 ## Screenshot Workflow
 

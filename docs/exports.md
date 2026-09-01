@@ -37,12 +37,15 @@ gex-terminal --demo --export gex_snapshot.md
 gex-terminal --replay-session zero-gamma-flip --export gex_snapshot.md
 ```
 
-The snapshot is the best format for reproducible research because it keeps the
-strike-level values that produced the displayed gamma wall, strike-profile
-flip/nearest-neutral values, call wall, put wall, and concentration band. Schema
-v2 also records model version, normalized schemas, pricing models, position
-sources, selected/expired contract counts, expiry filter, units, day count,
-aggregation, as-of time, and compatibility-field semantics.
+The snapshot is the best format for inspecting or sharing one computed result
+because it keeps the strike-level values that produced the displayed gamma
+wall, strike-profile flip/nearest-neutral values, call wall, put wall, and
+concentration band. It is a derived view, not the complete reproducibility
+authority; repeatable research binds source inputs, model profile, implementation
+version, and semantic output through the governed experiment/corpus workflow.
+Schema v2 also records model version, normalized schemas, pricing models,
+position sources, selected/expired contract counts, expiry filter, units, day
+count, aggregation, as-of time, and compatibility-field semantics.
 When schema-v2 trade direction is present, snapshots also include the parallel
 `directionalized` matrix, known/unknown volume coverage, direction sources, and
 the explicit participant/open-close evidence limits.

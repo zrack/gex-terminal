@@ -9,7 +9,15 @@ published.
 
 ## Unreleased
 
-No changes recorded after `0.3.0`.
+### Changed
+
+- Reorganized documentation ownership: the README is now a concise user front
+  door, architecture owns system structure, the roadmap contains only planned
+  work, and `docs/README.md` routes each technical and research topic.
+- Consolidated the next roadmap outcome into a bounded Databento live-path
+  certification packet candidate, followed by governed real-session evidence.
+- Corrected normalized IV-source, Databento provenance/OI, active-packet, and
+  reproducibility wording that had drifted from the `0.3.0` implementation.
 
 ## 0.3.0 - 2026-08-19 — Offline Research Certification Workbench
 

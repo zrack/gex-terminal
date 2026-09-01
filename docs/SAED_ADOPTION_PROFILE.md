@@ -18,7 +18,8 @@
 
 **Adopted:** 2026-08-19
 
-**Status owner:** The active packet under `docs/work-packets/`
+**Status owner:** Any open packet under `docs/work-packets/`; none is active
+after the `GEX-ORC-001` closeout
 
 ## Purpose And Entry Boundary
 
@@ -43,7 +44,7 @@ inventory, predictive validity, or financial advice.
 | Normalized market contract | `gex_terminal/market_data_adapter.py` and `gex_terminal/contracts.py` | Maintainers through reviewed changes | Contract tests and fixture validation |
 | Model behavior | `gex_terminal/engine.py` and model modules | Maintainers through reviewed changes | Numerical, property, sensitivity, and replay evidence |
 | Current architecture | `docs/architecture.md` | Architecture authority | Closeout reconciliation against shipped source |
-| Active change intent/status | One active packet in `docs/work-packets/` | Spec steward | PR review and closeout check |
+| Active change intent/status | Any open packet in `docs/work-packets/`; no active status when all packets are closed | Spec steward | PR review and closeout check |
 | Release history | `CHANGELOG.md` and Git history | Release maintainer | Version/release consistency inspection |
 | Research corpus membership | Corpus event chain created by `corpus-init` and `corpus-register` | Explicit corpus operator | Hash-chain, source-digest, duplicate, and split verification |
 | Experiment result | Immutable input digest, model profile, implementation version, and semantic result digest | Experiment runner | `experiment-reproduce` |

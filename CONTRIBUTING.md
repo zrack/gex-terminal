@@ -34,13 +34,14 @@ Install dependencies:
 pip install -e .
 ```
 
-Create a local environment file:
+Demo and replay work needs no provider credentials. Create a local environment
+file only when testing provider configuration:
 
 ```bash
 cp .env.example .env
 ```
 
-Then fill in your local Tradovate credentials in `.env`.
+Fill only the provider fields required for the path you are testing.
 
 Never commit `.env`, broker credentials, API tokens, account IDs, or market-data
 entitlements. The `.gitignore` is set up to keep local secrets out of Git, but
@@ -123,7 +124,10 @@ changes before implementation, name a work packet for L2/L3 work, preserve its
 baseline and evidence ceiling, and close technical shipment separately from
 external outcome validation. Use a `codex/` feature branch, focused named-file
 commits, a pull request, hosted checks, merge, and a clean post-merge test for a
-release slice. See `docs/work-packets/` for the active packet form.
+release slice. The closed
+[GEX-ORC-001 packet](docs/work-packets/GEX-ORC-001.md) is a structural example;
+no packet is currently active, and a new routed packet is required for the next
+L2/L3 change.
 
 - Keep market-data adapters separate from calculation logic.
 - Keep GEX math deterministic and covered by focused tests where possible.
@@ -142,55 +146,16 @@ release slice. See `docs/work-packets/` for the active packet form.
 ## Market-Data Adapter Guidelines
 
 Provider adapters should normalize incoming data before it reaches
-`StatefulGexConsumer`. New option adapters should emit schema v2:
+`StatefulGexConsumer`. [docs/adapters.md](docs/adapters.md) is the canonical
+normalized-message contract and contains the current schema-v2 examples,
+allowed IV sources, timing rules, and provider implementation notes. Do not copy
+that schema into contribution guides or provider-specific docs; link to it and
+document only the provider's mapping differences.
 
-See [docs/adapters.md](docs/adapters.md) for the current adapter contract and
-provider implementation notes.
-
-```json
-{
-  "schema_version": 2,
-  "type": "options_volume_tick",
-  "provider": "example",
-  "contract_id": "provider-contract-123",
-  "symbol": "ES",
-  "strike": 5000,
-  "option_type": "C",
-  "volume": 100,
-  "iv": 0.15,
-  "iv_source": "provider",
-  "expiry": "2026-08-07",
-  "expiry_timestamp": "2026-08-07T20:00:00Z",
-  "instrument_class": "futures_option",
-  "volume_semantics": "cumulative",
-  "position_source": "trade_volume",
-  "contract_multiplier": 50,
-  "event_time": "2026-08-04T17:30:00Z"
-}
-```
-
-Underlying ticks should be shaped like:
-
-```json
-{
-  "schema_version": 2,
-  "type": "underlying_tick",
-  "provider": "example",
-  "symbol": "ES",
-  "price": 5000.25,
-  "event_time": "2026-08-04T17:30:00Z"
-}
-```
-
-Schema-v2 contract identity is provider scoped. Declare whether `volume` is
-`incremental` or `cumulative`, and whether it represents `trade_volume` or
-`open_interest`; do not add both sources together. Supply a positive `iv` and
-label `iv_source` as `provider` or `configured_default`; fallback IV must remain
-visible as degraded feed quality. Futures options map to
-Black-76, while equity and index options map to Black-Scholes. Date-only expiry
-labels are useful for selection, but a timezone-bearing expiry timestamp is the
-authoritative fractional-DTE source and overrides explicit contract DTE. Without
-that timestamp, use explicit contract DTE and then the configured fallback.
+Preserve provider-scoped contract identity, event time, quantity semantics,
+position-source separation, multiplier, instrument class, IV provenance, and
+expiry authority. Never add open interest and trade volume together or hide a
+configured fallback IV.
 
 If you add a provider, please document:
 
@@ -211,7 +176,9 @@ Before opening a pull request, please confirm:
 
 - The app still imports and compiles.
 - No secrets or local-only files are included.
-- New behavior is documented in the README or comments where appropriate.
+- New behavior is documented in its canonical topic guide. Update the README
+  only when the front-door install, quick-start, status, or workflow routing
+  changes.
 - Calculation changes include tests or clearly described manual verification.
 - Model evidence still reports predictive market validity as `unmeasured`
   unless a separate, reviewable validation design proves a narrower claim.

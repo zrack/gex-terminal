@@ -1,8 +1,10 @@
 # Competitive Landscape and Product Positioning
 
-Reviewed August 14, 2026. This replaces the June 12 market snapshot.
-Pricing, coverage, entitlements, and vendor features change frequently; recheck
-the linked first-party sources before reusing price or package claims.
+External market sources were reviewed August 14, 2026; repository capability
+claims were reconciled to the `0.3.0` tree on August 31, 2026. This replaces the
+June 12 market snapshot. Pricing, coverage, entitlements, and vendor features
+change frequently; recheck the linked first-party sources before reusing price
+or package claims.
 
 ## Executive Answer
 
@@ -59,6 +61,8 @@ fees, and billing cadence may change the comparison.
   fixtures, and implemented or scaffolded Tradovate, Databento, and IBKR paths.
 - A numerical evidence gate and explicit
   `predictive_validity=unmeasured` ceiling.
+- Versioned model profiles, reproducible experiment manifests, append-only
+  corpus registration, and batch day/expiry/DTE-layer model comparisons.
 - MIT source, deterministic fixtures, contributor tests, and local credential
   handling.
 
@@ -160,7 +164,7 @@ rankings of latency, accuracy, support, or realized results.
 | Dimension | Current strength | Competitive conclusion | Product implication |
 | --- | --- | --- | --- |
 | Sticker price | Medium | Free software helps, but free pages, low-cost Barchart, and open-source peers exist. Live data may erase the savings. | Use price as adoption, education, and contributor access—not the positioning headline. |
-| Model tunability | Medium-high | Valuable, but UI controls and open code exist elsewhere. | Productize named model profiles, saved experiment manifests, and identical-session diffs. |
+| Model tunability | Medium-high | Valuable, but UI controls and open code exist elsewhere. | Make the shipped model profiles, experiment manifests, and identical-session diffs a visible primary workflow. |
 | Auditability and provenance | High | Many vendors explain concepts; fewer expose a replaceable engine with per-output input and model provenance. | Keep every calculation traceable to provider, timestamp, IV source, multiplier, position source, pricing model, and quality state. |
 | Reproducibility | High offline | Local history/replay exists elsewhere, but the same normalized replay across competing methodologies is less common. | Make model/provider comparison the hero workflow, not a secondary CLI. |
 | Futures-native correctness | Medium-high | MenthorQ, FlashAlpha, and open-source futures dashboards now support this space. | Certify real ES/NQ first, extend to GC only after the contract/data path is stable, and benchmark Black-76 outputs. |
@@ -184,7 +188,7 @@ patterns were adapted to this product rather than treated as validated
 
 | Persona | Job to be done | Current fit | Primary blocker | Product priority |
 | --- | --- | ---: | --- | ---: |
-| Quant/model researcher | Inspect assumptions, compare position models, replay controlled sessions, preserve point-in-time provenance | High offline; low empirical | No governed real historical corpus, batch evaluation surface, or out-of-sample evidence | Primary |
+| Quant/model researcher | Inspect assumptions, compare position models, replay controlled sessions, preserve point-in-time provenance | High offline; low empirical | No governed real historical corpus or out-of-sample evidence; the shipped batch surface has only synthetic/offline inputs | Primary |
 | Python/data engineer or contributor | Add licensed feeds, schemas, models, fixtures, exports, and tests without leaking credentials | High | Live validation needs credentials; no stable library/API contract; adapter readiness is uneven | Primary |
 | Advanced ES/NQ futures trader with existing data | Generate fast structural levels, regime context, overlays, and alerts while understanding assumptions | Medium-low | No production-certified live provider, automated integration loop, or measured trading value | Secondary after live certification |
 | Advanced options/volatility trader | Compare GEX with DEX/vanna/charm, flow, term structure, and volatility context | Low-medium | Missing production multi-Greek and flow surfaces; current focus is narrow | Secondary/later |
@@ -196,75 +200,29 @@ control**, with advanced futures traders as the first adjacent user once live
 certification is real. Chasing the novice/mobile audience would pull the product
 toward a crowded hosted-signals business and away from its best assets.
 
-## Roadmap From the Competitive Scan
+## Product Implications From The Competitive Scan
 
-### P0: Establish product truth and a real live foundation
+The scan supports four durable decisions:
 
-1. **Certify one provider end to end.** Complete active ES/NQ chain discovery,
-   entitlement-backed OI/IV coverage, redacted credentialed certification,
-   payload-drift tests, reconnect/latency evidence, and production logging.
-   Do not widen provider breadth until this passes.
-2. **Fix semantics and readiness labels.** Replace “Dealer Regime” and causal
-   zero-gamma language with “Modeled GEX Regime” or “Proxy Regime.” Show
-   `offline-certified`, `delayed`, `scaffold`, `live-uncertified`, and
-   `live-certified` status explicitly.
-3. **Begin a governed live-day evidence program.** Preserve point-in-time chains,
-   underlying quotes, native IV/OI coverage, source rights, immutable digests,
-   train/calibration/test assignments, independently specified outcomes, and
-   costs. Captures must be auditable without redistributing licensed raw data.
-4. **Make model comparison the hero workflow.** Provide one command and one
-   visual report that replay the same capture through OI, raw-volume,
-   directionalized-volume, and future participant-attributed methods, with
-   coverage, disagreement, and “do not sum” semantics.
+1. Certify one ES/NQ provider path before widening provider, symbol, or delivery
+   breadth.
+2. Build licensed, governed point-in-time evidence after certification; model
+   profiles, manifests, corpus contracts, and batch comparisons are now shipped
+   foundations, not remaining feature gaps.
+3. Stabilize a public read-only research interface, then build scanners,
+   integrations, and alerts only on a certified path with visible quality.
+4. Keep broad flow, dark pools, mobile/social, execution, and proprietary
+   commentary outside the core thesis unless persona evidence changes it.
 
-### P1: Productize the quant/developer niche
-
-1. Add named, versioned model profiles and saved experiment manifests covering
-   data source, session digest, position model, pricing model, rate, DTE,
-   multiplier, IV policy, filters, and software version.
-2. Publish a stable read-only Python/library interface and versioned JSON/CSV;
-   add Parquet/Arrow for batch research. Consider local REST/MCP after the
-   library contract stabilizes.
-3. Add batch journal comparison over captured days, expiry and date-tagged
-   comparisons, and a no-lookahead validation harness with visible unscored
-   results.
-4. Add a strike-by-expiry heatmap, term-structure view, and explicit DTE layers
-   for 0DTE, near-term, and structural exposure. Treat these as parity UX, not
-   the moat.
-5. Reduce installation friction with a verified release/tag, `pipx`, and a
-   one-command no-credential demo.
-
-### P2: Close the advanced-trader loop without abandoning the niche
-
-1. Add webhook/Discord delivery and automatic chart consumers using the current
-   versioned overlay schema; prioritize TradingView, NinjaTrader, and Sierra
-   Chart interoperability over building a general chart platform.
-2. Build the multi-symbol scanner only on the certified provider path and expose
-   coverage/quality per symbol.
-3. Add DEX, vanna, charm, vega, and theta only with the same provenance,
-   contract-aware pricing, oracle tests, and evidence ceilings as GEX.
-4. Research a participant/open-close attribution model when licensed evidence
-   is economically available. Present it as another comparable method, not a
-   silent replacement for the existing ladder.
-5. Add the options P/L scenario tool only if advanced-trader research shows that
-   integration beats linking to a mature specialist.
-
-### Defer unless the target market changes
-
-- A broad options-flow and dark-pool platform.
-- Mobile-first social/community features.
-- Brokerage execution and order routing.
-- Proprietary daily commentary as the core product.
-- Performance or support/resistance claims before point-in-time validation.
-
-These would place the project in the expensive “cheaper SpotGamma/Unusual
-Whales” contest and dilute the more credible research-workbench position.
+[ROADMAP.md](../ROADMAP.md) is the sole owner of current sequence, status,
+dependencies, and exit criteria. This section records the market evidence's
+implications without maintaining a second delivery checklist.
 
 ## Decision Gates and Success Evidence
 
 | Decision | Evidence required before promotion |
 | --- | --- |
-| Call the product live-capable | One provider has a saved redacted certification report covering entitlements, active contracts, chain coverage, OI/IV provenance, timing, reconnects, and failure handling. |
+| Call a live path certified | A saved redacted report covers entitlements, active contracts, chain coverage, OI/IV provenance, timing, reconnects, and failure handling for the exact provider, symbol, environment, and window; any broader claim follows a packet-defined recurrence rule. |
 | Claim model-comparison leadership | A user can replay one governed session through multiple named models and reproduce a versioned diff artifact from the same inputs. |
 | Claim research value | A governed corpus and preregistered evaluation protocol exist; results include null/negative findings and keep predictive validity separate from numerical correctness. |
 | Target active futures traders | The live path, overlay/alert delivery, data-quality visibility, and failure recovery work as one tested workflow. |

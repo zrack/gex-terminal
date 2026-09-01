@@ -73,8 +73,10 @@ cumulative volume, and open interest remain explicitly unknown rather than being
 inferred. See [model-comparison.md](model-comparison.md).
 
 Futures options map to Black-76; equity and index options map to Black-Scholes.
-`iv_source` is `provider` or `configured_default`. Adapters that use a fallback
-IV must label it and expose degraded feed quality. A
+`iv_source` is `provider`, `black_76_inverted`, or `configured_default`.
+Black-76 inversion requires its complete timing and solver provenance. Adapters
+that use a configured fallback IV must label it and expose degraded feed
+quality. A
 timezone-bearing `expiry_timestamp` can drive fractional DTE; a date-only
 `expiry` label supports filtering but cannot silently invent settlement time.
 
@@ -202,9 +204,12 @@ gex-terminal databento-certify /tmp/databento-certification.json \
   --ack-live-network --symbol ES --multiplier 50 --certification-duration 20
 ```
 
-The adapter registry status is `live-uncertified` until a report
-from a real credentialed run clears its transport, chain-ingestion, and
-quantitative-input checks. Predictive validity remains unmeasured.
+The adapter registry status remains `live-uncertified`. A real credentialed
+report that clears transport, chain-ingestion, and quantitative-input checks is
+necessary evidence for its exact symbol, environment, entitlement set, and run
+window; it does not automatically promote a global adapter label. Any broader
+readiness decision requires the active packet's recurrence criteria and
+maintainer approval. Predictive validity remains unmeasured.
 
 Run NQ independently with `--symbol NQ --multiplier 20` and a different output
 path. The command writes partial evidence but exits `2` unless the complete
