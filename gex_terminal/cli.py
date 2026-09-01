@@ -1,7 +1,6 @@
 import asyncio
 import argparse
 import json
-import logging
 from dataclasses import replace
 from pathlib import Path
 from typing import Iterable
@@ -17,6 +16,11 @@ from gex_terminal.adapters.registry import (
 from gex_terminal.batch_comparison import (
     build_batch_comparison,
     write_batch_comparison,
+)
+from gex_terminal.capture_governance import (
+    CapturePolicyError,
+    capture_policy_identity,
+    load_capture_policy,
 )
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
@@ -40,6 +44,7 @@ from gex_terminal.fixture_validator import (
     validate_fixture,
 )
 from gex_terminal.market_data_adapter import AdapterConfigurationError
+from gex_terminal.logging_config import LOG_LEVELS, configure_logging
 from gex_terminal.model_evidence import (
     build_model_evidence_report,
     write_model_evidence_report,
@@ -126,10 +131,16 @@ from gex_terminal.tradovate_certification import (
     write_tradovate_certification_report,
 )
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-
 async def main():
     args = parse_args()
+    try:
+        configure_logging(args.log_level)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    if args.command == "capture-policy-validate":
+        capture_policy_validate_command(args.command_path)
+        return
 
     if args.command == "validate-fixture":
         validate_fixture_command(args.command_path)
@@ -254,6 +265,7 @@ async def main():
         print_provider_summary()
         return
 
+    policy_identity = _resolve_capture_policy_for_runtime(args, config)
     validate_provider(config)
 
     if args.screenshot:
@@ -323,16 +335,7 @@ async def main():
         )
         capture_writer = CapturedSessionWriter(
             capture_target,
-            source={
-                "mode": config.data_mode,
-                "provider": effective_provider(config),
-                "environment": (
-                    config.tradovate_environment
-                    if effective_provider(config) == "tradovate"
-                    else None
-                ),
-                "symbol": config.symbol,
-            },
+            source=_capture_source_metadata(config, policy_identity),
             model_inputs={
                 "days_to_expiry": config.days_to_expiry,
                 "risk_free_rate": config.risk_free_rate,
@@ -1007,11 +1010,15 @@ def corpus_init_command(args: argparse.Namespace) -> None:
 def corpus_register_command(args: argparse.Namespace) -> None:
     if not args.command_path or len(args.command_args) < 2:
         raise SystemExit(
-            "Usage: gex-terminal corpus-register CORPUS_DIR INPUT METADATA.json"
+            "Usage: gex-terminal corpus-register CORPUS_DIR INPUT METADATA.json "
+            "[--capture-policy POLICY.json]"
         )
     try:
         event = register_corpus_item(
-            args.command_path, args.command_args[0], args.command_args[1]
+            args.command_path,
+            args.command_args[0],
+            args.command_args[1],
+            capture_policy_path=args.capture_policy,
         )
     except (FileNotFoundError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
@@ -1182,6 +1189,7 @@ def parse_args() -> argparse.Namespace:
             "model-property-certify",
             "provider-fault-certify",
             "performance-certify",
+            "capture-policy-validate",
         ),
         help="Optional utility command.",
     )
@@ -1304,6 +1312,15 @@ def parse_args() -> argparse.Namespace:
         help="Capture normalized replay/live messages to an integrity-checked session file.",
     )
     parser.add_argument(
+        "--capture-policy",
+        metavar="PATH",
+        help=(
+            "Validated capture-governance JSON. Required before live session capture; "
+            "optional for replay capture and required to register a captured session "
+            "into a research corpus."
+        ),
+    )
+    parser.add_argument(
         "--capture-path",
         metavar="PATH",
         help="Output path for --record-session; specifying it also enables capture.",
@@ -1311,6 +1328,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--capture-label",
         help="Optional human label stored in the captured-session header.",
+    )
+    parser.add_argument(
+        "--log-level",
+        type=str.upper,
+        choices=LOG_LEVELS,
+        help=(
+            "Process log level. Overrides GEX_LOG_LEVEL; safe default is WARNING."
+        ),
     )
     parser.add_argument(
         "--screenshot",
@@ -1529,6 +1554,60 @@ def validate_fixture_command(path: str | None) -> None:
     print(format_fixture_validation_report(report))
     if not report.ok:
         raise SystemExit(1)
+
+
+def capture_policy_validate_command(path: str | None) -> None:
+    if not path:
+        raise SystemExit("Usage: gex-terminal capture-policy-validate POLICY.json")
+    try:
+        identity = capture_policy_identity(load_capture_policy(path))
+    except CapturePolicyError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Capture policy valid: "
+        f"{identity['policy_id']} ({identity['schema']}, sha256={identity['sha256']})"
+    )
+
+
+def _resolve_capture_policy_for_runtime(
+    args: argparse.Namespace,
+    config: GexConfig,
+) -> dict[str, str] | None:
+    capture_requested = bool(args.record_session or args.capture_path)
+    if args.capture_policy and not capture_requested:
+        raise SystemExit(
+            "--capture-policy requires --record-session or --capture-path"
+        )
+    if not capture_requested:
+        return None
+    if config.data_mode == "live" and not args.capture_policy:
+        raise SystemExit(
+            "Live session capture requires --capture-policy PATH before any provider connection."
+        )
+    if not args.capture_policy:
+        return None
+    try:
+        return capture_policy_identity(load_capture_policy(args.capture_policy))
+    except CapturePolicyError as exc:
+        raise SystemExit(f"Capture policy rejected: {exc}") from exc
+
+
+def _capture_source_metadata(
+    config: GexConfig,
+    policy_identity: dict[str, str] | None,
+) -> dict[str, object]:
+    provider = effective_provider(config)
+    source: dict[str, object] = {
+        "mode": config.data_mode,
+        "provider": provider,
+        "environment": (
+            config.tradovate_environment if provider == "tradovate" else None
+        ),
+        "symbol": config.symbol,
+    }
+    if policy_identity is not None:
+        source["capture_policy"] = dict(policy_identity)
+    return source
 
 
 def _session_store_source_name(config: GexConfig, args: argparse.Namespace) -> str:

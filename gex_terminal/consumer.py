@@ -18,7 +18,7 @@ from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.feed_quality import build_feed_quality_snapshot
 from gex_terminal.market_data_adapter import validate_normalized_message
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+LOGGER = logging.getLogger(__name__)
 
 class StatefulGexConsumer:
     def __init__(
@@ -295,7 +295,7 @@ class StatefulGexConsumer:
 
         except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
             self.malformed_message_count += 1
-            logging.error(f"Failed parsing market data frame: {e}")
+            LOGGER.error("Failed parsing normalized market-data message: %s", e)
 
     def _update_v1_projection_locked(
         self,
@@ -957,13 +957,13 @@ class StatefulGexConsumer:
         days_to_expiry: float = 0.01,
     ):
         """Asynchronous worker loop that periodically calculates GEX from memory state."""
-        logging.info("Starting calculation dispatcher...")
+        LOGGER.info("Starting calculation dispatcher...")
         while True:
             await asyncio.sleep(interval_seconds)
             results = await self.process_latest_snapshot(days_to_expiry=days_to_expiry)
             
             if "error" not in results:
-                logging.info(
+                LOGGER.info(
                     f"Spot: {self.current_spot:.2f} | "
                     f"Gamma Wall: {results['gamma_wall_strike']} | "
                     f"Zero GEX Node: {results['zero_gamma_strike']}"

@@ -9,6 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from gex_terminal.capture_governance import (
+    capture_policy_identity,
+    load_capture_policy,
+)
+from gex_terminal.session_capture import (
+    inspect_captured_session,
+    is_captured_session,
+)
 
 CORPUS_EVENT_SCHEMA = "gex-terminal.research-corpus-event.v1"
 CORPUS_ITEM_SCHEMA = "gex-terminal.research-corpus-item.v1"
@@ -16,7 +24,14 @@ CORPUS_REPORT_SCHEMA = "gex-terminal.research-corpus-verification.v1"
 CORPUS_EVENT_FILE = "events.jsonl"
 ZERO_HASH = "0" * 64
 SPLITS = {"train", "calibration", "test", "unassigned"}
-RIGHTS_STATUSES = {"owned", "licensed", "redistributable", "restricted", "unknown"}
+RIGHTS_STATUSES = {
+    "owned",
+    "licensed",
+    "public_domain",
+    "redistributable",
+    "restricted",
+    "unknown",
+}
 REDACTION_STATUSES = {"not_required", "verified", "required", "unknown"}
 
 
@@ -43,19 +58,29 @@ def register_corpus_item(
     directory: str | Path,
     source_path: str | Path,
     metadata_path: str | Path,
+    *,
+    capture_policy_path: str | Path | None = None,
 ) -> dict[str, Any]:
     root = Path(directory)
     event_path = root / CORPUS_EVENT_FILE
     events, base_report = _read_and_verify_events(event_path)
     if not base_report["chain_valid"]:
         raise ValueError("cannot register into a corpus with an invalid event chain")
-    metadata = json.loads(Path(metadata_path).read_text(encoding="utf-8"))
+    metadata = json.loads(
+        Path(metadata_path).read_text(encoding="utf-8"),
+        object_pairs_hook=_reject_duplicate_metadata_keys,
+    )
     if not isinstance(metadata, Mapping):
         raise ValueError("corpus item metadata must be a JSON object")
     item = _validate_item_metadata(metadata)
     source = Path(source_path).resolve()
     if not source.is_file():
         raise FileNotFoundError(f"corpus source not found: {source}")
+    _apply_capture_governance(
+        item,
+        source,
+        capture_policy_path=capture_policy_path,
+    )
     source_digest = _file_digest(source)
     registrations = [
         event["payload"]
@@ -142,6 +167,8 @@ def verify_corpus(directory: str | Path) -> dict[str, Any]:
                 else None
             ),
             "redaction_status": item.get("redaction_status"),
+            "capture_policy": item.get("capture_policy"),
+            "research_use": item.get("research_use"),
         })
     return {
         "schema": CORPUS_REPORT_SCHEMA,
@@ -224,6 +251,83 @@ def _validate_item_metadata(metadata: Mapping[str, Any]) -> dict[str, Any]:
         "cost_assumptions": dict(costs),
         "notes": metadata.get("notes"),
     }
+
+
+def _reject_duplicate_metadata_keys(
+    pairs: list[tuple[str, Any]],
+) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"corpus item metadata contains duplicate field: {key}")
+        result[key] = value
+    return result
+
+
+def _apply_capture_governance(
+    item: dict[str, Any],
+    source: Path,
+    *,
+    capture_policy_path: str | Path | None,
+) -> None:
+    captured_session = is_captured_session(source)
+    declared_capture = item["source_kind"] == "captured_session"
+    if declared_capture and not captured_session:
+        raise ValueError(
+            "captured_session source_kind requires a complete verified captured session"
+        )
+    if not captured_session:
+        if capture_policy_path is not None:
+            raise ValueError(
+                "capture_policy_path is only valid for a captured-session source"
+            )
+        return
+    if not declared_capture:
+        raise ValueError(
+            "captured-session input requires source_kind=captured_session"
+        )
+    inventory = inspect_captured_session(source)
+    source_metadata = inventory.get("source")
+    source_policy_identity = (
+        source_metadata.get("capture_policy")
+        if isinstance(source_metadata, Mapping)
+        else None
+    )
+    if not isinstance(source_policy_identity, Mapping):
+        raise ValueError(
+            "captured-session input has no capture-policy identity and is not corpus eligible"
+        )
+    if capture_policy_path is None:
+        raise ValueError(
+            "captured-session registration requires --capture-policy POLICY.json"
+        )
+    policy = load_capture_policy(capture_policy_path)
+    expected_identity = capture_policy_identity(policy)
+    if dict(source_policy_identity) != expected_identity:
+        raise ValueError(
+            "capture policy does not match the identity embedded in the captured session"
+        )
+    if policy["research_use"]["status"] != "approved":
+        raise ValueError(
+            "capture policy prohibits research corpus registration"
+        )
+    if item["rights"]["status"] != policy["rights"]["status"]:
+        raise ValueError(
+            "corpus rights status must match the capture policy"
+        )
+    if (
+        item["rights"]["redistributable"]
+        is not policy["rights"]["redistributable"]
+    ):
+        raise ValueError(
+            "corpus redistribution decision must match the capture policy"
+        )
+    if item["redaction_status"] != "verified":
+        raise ValueError(
+            "captured-session corpus registration requires redaction_status=verified"
+        )
+    item["capture_policy"] = expected_identity
+    item["research_use"] = dict(policy["research_use"])
 
 
 def _read_and_verify_events(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:

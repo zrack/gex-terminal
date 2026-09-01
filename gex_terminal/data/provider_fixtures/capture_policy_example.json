@@ -1,0 +1,24 @@
+{
+  "schema": "gex-terminal.capture-policy.v1",
+  "policy_id": "example-synthetic-fixture-only",
+  "rights": {
+    "status": "owned",
+    "basis": "Synthetic repository fixture only; this example does not authorize live provider capture.",
+    "redistributable": false
+  },
+  "retention": {
+    "mode": "time_limited",
+    "days": 7,
+    "storage": "temporary local test workspace",
+    "owner": "test operator"
+  },
+  "redaction": {
+    "status": "required",
+    "profile": "normalized-no-sensitive-identifiers-v1",
+    "review_before_sharing": true
+  },
+  "research_use": {
+    "status": "prohibited",
+    "scope": "Schema validation only; replace every decision before any live capture or research use."
+  }
+}

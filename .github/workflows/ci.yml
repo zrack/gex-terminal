@@ -65,6 +65,7 @@ jobs:
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal inject-provider bundled:yfinance-etf-options --export /tmp/gex-wheel-injection.json
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab /tmp/gex-wheel-demo --replay-session gap-fade
           FIXTURE_DIR=$(/tmp/gex-terminal-wheel-smoke/bin/python -c 'from gex_terminal.package_data import provider_fixture_dir; print(provider_fixture_dir())')
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal capture-policy-validate "$FIXTURE_DIR/capture_policy_example.json"
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal databento-replay "$FIXTURE_DIR/databento_mixed_offline_records.jsonl" /tmp/gex-wheel-databento.json --symbol ES --multiplier 50
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal databento-offline-certify /tmp/gex-wheel-databento-cert.json --symbol ES --multiplier 50
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal price-action-evaluate "$FIXTURE_DIR/price_action_validation_example.json" /tmp/gex-wheel-price-action.json
