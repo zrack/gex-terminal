@@ -33,9 +33,9 @@ and limitations are documented in
 ## Current Status
 
 The source/package version is `0.4.0`, **Pre-Live Certification Hardening**.
-The release candidate is in contributor review; the annotated `v0.4.0` tag is
-created only after clean merged-tree verification. The project does not yet
-claim that tag, a PyPI publication, or a hosted release.
+The annotated `v0.4.0` tag identifies the reviewed closeout merge after clean
+branch and merged-tree verification. The release is not published to PyPI and
+does not have a hosted GitHub Release.
 
 Provider readiness is intentionally explicit:
 

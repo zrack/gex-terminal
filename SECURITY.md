@@ -6,10 +6,10 @@ API tokens, session tokens, or private market-data entitlement details.
 
 ## Supported Versions
 
-This project is pre-1.0. The supported source/package version is `0.4.0`; the
-annotated `v0.4.0` tag is created only after clean merged-tree verification.
-The release candidate does not yet claim that tag, a published PyPI artifact,
-or a hosted release. Security fixes target the latest `main` branch.
+This project is pre-1.0. The supported source/package version is `0.4.0`, and
+the annotated `v0.4.0` tag identifies its reviewed closeout merge. No published
+PyPI artifact or hosted GitHub Release is claimed. Security fixes target the
+latest `main` branch.
 
 ## Reporting a Vulnerability
 

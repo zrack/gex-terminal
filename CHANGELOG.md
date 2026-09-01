@@ -3,9 +3,9 @@
 All notable project changes should be recorded here so the README and roadmap
 can stay focused on current usage and future direction.
 
-The source/package version is `0.4.0`. The release candidate is prepared for
-merged-tree verification; this changelog does not yet claim an annotated tag,
-PyPI publication, or hosted GitHub Release.
+The source/package version is `0.4.0`. The annotated `v0.4.0` tag identifies the
+reviewed closeout merge. No PyPI publication or hosted GitHub Release is
+claimed.
 
 ## Unreleased
 
@@ -40,9 +40,10 @@ No changes yet.
 - Reorganized documentation ownership: the README is now a concise user front
   door, architecture owns system structure, the roadmap contains only planned
   work, and `docs/README.md` routes each technical and research topic.
-- Completed the repository-owned implementation in the release-ready work
-  packet and narrowed the immediate roadmap to credentialed exact-run evidence
-  and predeclared recurrence; no credentialed run or readiness promotion is
+- Closed the repository-owned implementation work packet after contributor and
+  closeout pull requests, branch and merged-tree gates, and release tagging.
+  The immediate roadmap is now limited to credentialed exact-run evidence and
+  predeclared recurrence; no credentialed run or readiness promotion is
   claimed.
 - Databento subscription diagnostics now call SDK return values local request
   IDs rather than provider acknowledgements and use actual records/errors for
