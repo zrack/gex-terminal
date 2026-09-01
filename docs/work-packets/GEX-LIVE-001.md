@@ -6,14 +6,18 @@ method_version: "1.3"
 profile: gex-terminal-team-v1
 adoption_context: team
 change_rigor: L3
-status: "Release Ready — implementation verified"
+status: "Closed — repository release shipped; external observation open"
 packet_owner: project maintainer
 spec_steward: implementation agent
 architecture_authority: project maintainer
 evidence_reviewer: pull-request reviewer and hosted CI
 baseline: main@360abdc
 branch: codex/gex-live-001-prelive-v0.4.0
+feature_pull_request: 14
+feature_merge: main@e58511cf652a5dcfe3326869987b6b9a8d34f890
+closeout_branch: codex/gex-live-001-prelive-v0.4.0-closeout
 target_release: "0.4.0 Pre-Live Certification Hardening"
+release_tag: v0.4.0
 created: 2026-08-31
 external_outcome: "Open — credentialed provider observation"
 ```
@@ -115,8 +119,8 @@ This packet adopts `INV-01` through `INV-08` from
 | `AC-03` | Diagnostics remain bounded to observed callbacks and do not claim real provider behavior or reinterpret request IDs as acknowledgements. | Evidence-ceiling assertions | Verified |
 | `REQ-06` | Logging level is configurable and report/log redaction covers secrets and sensitive identifiers recursively. | Redaction and CLI tests | Verified |
 | `REQ-07` | Capture governance rejects ambiguous rights/retention/redaction/research-use declarations and captured-session corpus mismatches. | Policy/corpus tests and guide | Verified |
-| `AC-04` | Full source, behavioral, offline-provider, research, performance, distribution, and documentation gates pass on branch and merged `main`. | Release evidence | Pending merged-tree closeout |
-| `AC-05` | Version, changelog, package metadata, merged commit, and annotated `v0.4.0` tag agree. | Release identity checks | Pending merged-tree closeout |
+| `AC-04` | Full source, behavioral, offline-provider, research, performance, distribution, and documentation gates pass on branch and merged `main`. | Release evidence | Verified |
+| `AC-05` | Version, changelog, package metadata, merged commit, and annotated `v0.4.0` tag agree. | Release identity checks | Verified at release closeout |
 
 ## Architecture Delta
 
@@ -178,8 +182,9 @@ release tree. No user data or licensed market data is migrated.
 
 ## Amendments
 
-None at baseline. Material scope, invariant, authority, proof-ceiling, version,
-or recovery changes must be appended before implementation continues.
+- 2026-08-31 — The evidence-only closeout records the reviewed feature merge,
+  clean merged-tree gates, narrow closeout pull request, and authorized release
+  tag. It changes no implementation scope, invariant, or evidence ceiling.
 
 ## Evidence
 
@@ -216,9 +221,21 @@ Repository evidence:
   property/fault/performance gates, experiment reproduction, batch comparison,
   and corpus registration/verification. Persisted outputs contained no checkout
   or site-packages paths.
-- The contributor branch implementation is release-ready. Its pull-request
-  merge, clean merged-tree gate, narrow closeout pull request, final merge, and
-  annotated `v0.4.0` tag remain the pending release-identity evidence.
+- Contributor pull request
+  [#14](https://github.com/zrack/gex-terminal/pull/14) passed its Python 3.11 and
+  3.12 hosted checks and merged with commit
+  `e58511cf652a5dcfe3326869987b6b9a8d34f890`, preserving the three contributor
+  commits. The original `main` checkout then fast-forwarded cleanly from
+  `origin/main` without modifying its pre-existing untracked image files.
+- The merged tree passed source compilation, patch hygiene, all 297 unit tests,
+  model evidence, offline Databento certification, 7/7 model properties, 7/7
+  provider faults, the 500-contract performance budget, documentation links,
+  screenshot export, isolated wheel/source build, and Twine validation. The
+  [hosted merged-main run](https://github.com/zrack/gex-terminal/actions/runs/33474249035)
+  also passed both supported Python versions.
+- The documentation-only closeout pull request records actual release evidence.
+  Its merge commit is the annotated `v0.4.0` target; the tag is pushed only after
+  that merge is re-read from clean `main` and its identity checks pass.
 
 External evidence remains deliberately absent. No credentialed Databento run,
 licensed OI observation, provider-side resubscription result, recurring service

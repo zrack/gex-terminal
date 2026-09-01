@@ -18,8 +18,8 @@
 
 **Adopted:** 2026-08-19
 
-**Status owner:** Active release-ready packet `GEX-LIVE-001` under
-`docs/work-packets/`
+**Status owner:** No active work packet; closed packet `GEX-LIVE-001` records
+the `0.4.0` repository release
 
 ## Purpose And Entry Boundary
 
@@ -155,4 +155,4 @@ predeclared outcomes, untouched test data, costs, and an observation window.
 | Date | From | To | Changed Rules | Active Packets | Decision |
 | --- | --- | --- | --- | --- | --- |
 | 2026-08-19 | none | `gex-terminal-team-v1` | Initial SAED 1.3 adoption | `GEX-ORC-001` | Adopted for multi-participant release workflow |
-| 2026-08-31 | `GEX-ORC-001` closed | `GEX-LIVE-001` release ready | Implemented repository-owned pre-live certification hardening for `0.4.0`; merged-tree closeout and credentialed outcome remain open | `GEX-LIVE-001` | Maintainer authorized; release closeout pending |
+| 2026-08-31 | `GEX-ORC-001` closed | `GEX-LIVE-001` closed | Shipped repository-owned pre-live certification hardening for `0.4.0`; credentialed outcome remains external | none | Contributor and closeout pull requests, merged-tree gate, and annotated tag completed |

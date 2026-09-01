@@ -27,8 +27,7 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. `GEX-LIVE-001` remains active through the contributor merge,
-merged-tree verification, closeout pull request, and release tag.
+active. No work packet is active after the `0.4.0` release closeout.
 
 ## Start Here By Goal
 
@@ -83,9 +82,9 @@ merged-tree verification, closeout pull request, and release tag.
   contract-driven research identity decision.
 - [GEX-ORC-001](work-packets/GEX-ORC-001.md) — closed `0.3.0` work-packet record;
   it is not an active packet.
-- [GEX-LIVE-001](work-packets/GEX-LIVE-001.md) — release-ready `0.4.0` pre-live
-  hardening packet; merge/tag closeout is pending and credentialed validation
-  remains external follow-on work.
+- [GEX-LIVE-001](work-packets/GEX-LIVE-001.md) — closed `0.4.0` pre-live
+  hardening and release record; credentialed validation remains external
+  follow-on work.
 
 ## Editing Rules
 

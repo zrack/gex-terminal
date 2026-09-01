@@ -19,12 +19,10 @@ of every result.
 | Blocked | Build a governed real-session evaluation corpus | Licensed retention/research authority plus a certified provider path |
 | Later | Stabilize research interfaces and live delivery | Reproducible corpus/model evidence and demonstrated user need |
 
-The `0.4.0` release candidate implements the repository-owned pre-live
-hardening under the release-ready
-[GEX-LIVE-001 packet](docs/work-packets/GEX-LIVE-001.md). The packet remains
-active through merged-tree and tag closeout. Databento still has registry status
-`live-uncertified`: no credentialed report or recurring service evidence is
-claimed.
+Version `0.4.0` shipped the repository-owned pre-live hardening under the closed
+[GEX-LIVE-001 packet](docs/work-packets/GEX-LIVE-001.md). Databento still has
+registry status `live-uncertified`: no credentialed report or recurring service
+evidence is claimed.
 
 ## Now: Credentialed Databento Evidence
 
