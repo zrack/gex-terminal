@@ -16,6 +16,7 @@ branch: codex/gex-live-001-prelive-v0.4.0
 feature_pull_request: 14
 feature_merge: main@e58511cf652a5dcfe3326869987b6b9a8d34f890
 closeout_branch: codex/gex-live-001-prelive-v0.4.0-closeout
+closeout_pull_request: 15
 target_release: "0.4.0 Pre-Live Certification Hardening"
 release_tag: v0.4.0
 created: 2026-08-31
@@ -233,9 +234,11 @@ Repository evidence:
   screenshot export, isolated wheel/source build, and Twine validation. The
   [hosted merged-main run](https://github.com/zrack/gex-terminal/actions/runs/33474249035)
   also passed both supported Python versions.
-- The documentation-only closeout pull request records actual release evidence.
-  Its merge commit is the annotated `v0.4.0` target; the tag is pushed only after
-  that merge is re-read from clean `main` and its identity checks pass.
+- Documentation-only closeout pull request
+  [#15](https://github.com/zrack/gex-terminal/pull/15) records actual release
+  evidence. Its merge commit is the annotated `v0.4.0` target; the tag is pushed
+  only after that merge is re-read from clean `main` and its identity checks
+  pass.
 
 External evidence remains deliberately absent. No credentialed Databento run,
 licensed OI observation, provider-side resubscription result, recurring service
