@@ -18,8 +18,7 @@
 
 **Adopted:** 2026-08-19
 
-**Status owner:** Any open packet under `docs/work-packets/`; none is active
-after the `GEX-ORC-001` closeout
+**Status owner:** Active packet `GEX-LIVE-001` under `docs/work-packets/`
 
 ## Purpose And Entry Boundary
 
@@ -155,3 +154,4 @@ predeclared outcomes, untouched test data, costs, and an observation window.
 | Date | From | To | Changed Rules | Active Packets | Decision |
 | --- | --- | --- | --- | --- | --- |
 | 2026-08-19 | none | `gex-terminal-team-v1` | Initial SAED 1.3 adoption | `GEX-ORC-001` | Adopted for multi-participant release workflow |
+| 2026-08-31 | `GEX-ORC-001` closed | `GEX-LIVE-001` active | Routed pre-live certification hardening and `0.4.0` release | `GEX-LIVE-001` | Maintainer authorized |

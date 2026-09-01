@@ -76,6 +76,8 @@ active.
   contract-driven research identity decision.
 - [GEX-ORC-001](work-packets/GEX-ORC-001.md) — closed `0.3.0` work-packet record;
   it is not an active packet.
+- [GEX-LIVE-001](work-packets/GEX-LIVE-001.md) — active `0.4.0` pre-live
+  certification-hardening packet; credentialed validation remains excluded.
 
 ## Editing Rules
 

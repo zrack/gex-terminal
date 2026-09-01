@@ -27,15 +27,15 @@ governed point-in-time corpus. That corpus does not yet exist.
 
 ## Now: Databento Live-Path Certification
 
-**Candidate packet:** `GEX-LIVE-001`
+**Active packet:** [`GEX-LIVE-001`](docs/work-packets/GEX-LIVE-001.md)
 
 **Rigor:** L3
 
-**Status:** next, not active
+**Status:** build / validate — repository-owned pre-live hardening
 
-Open a routed work packet before implementation or any credentialed run. Live
+The routed packet authorizes repository-owned pre-live hardening only. Live
 credentials, paid entitlements, retained market data, and readiness promotion
-require explicit owner authority under the
+still require separate explicit owner authority under the
 [SAED adoption profile](docs/SAED_ADOPTION_PROFILE.md).
 
 Databento is the shortest path because its adapter, Black-76 inversion,
