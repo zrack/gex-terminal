@@ -176,11 +176,19 @@ not claim a successful live or demo certification.
 
 The Databento adapter is implemented behind `--provider databento` for ES and
 NQ. It validates `DATABENTO_API_KEY` and the optional SDK, then opens one
-mixed-schema `GLBX.MDP3` session containing:
+mixed-schema `GLBX.MDP3` session. It submits three required requests and one
+optional request:
 
 - `definition` replay for `<ROOT>.OPT` and `<ROOT>.FUT` with parent symbology.
-- `trades` for `<ROOT>.OPT` with provider aggressor side preserved.
 - `mbp-1` for the volume-based continuous future `<ROOT>.v.0`.
+- `trades` for `<ROOT>.OPT` with provider aggressor side preserved.
+- Optional `statistics` for `<ROOT>.OPT` open interest.
+
+The integer returned by the SDK for each request is a local request ID, not a
+provider acknowledgement. Diagnostics therefore distinguish requested schemas,
+schemas for which a request ID returned, failed schemas, and records actually
+observed. Required-request submission without synchronous error is necessary
+but not sufficient for certification.
 
 Option trades join to point-in-time definitions. If a provider IV is absent,
 the adapter uses the trade price, latest futures midpoint, authoritative expiry
@@ -192,10 +200,38 @@ An option definition's `underlying_id` must match the current continuous-future
 instrument ID; other futures months are counted and dropped rather than priced
 against the wrong forward.
 
-See [docs/databento-fixtures.md](databento-fixtures.md) for the synthetic
-fixture design, live mapping, and contributor rules. Fixture and mocked-client
-success do not establish authentication, entitlements, current ES/NQ coverage,
-latency, or reconnect behavior.
+Open interest remains a separate cumulative position source. Its status is one
+of `observed`, `unavailable`, `unsupported`, `entitlement_denied`, or
+`not_requested`. Optional OI failure does not silently become trade volume and
+does not block a trade-volume certification path. The report distinguishes
+`open_interest_observed` from `open_interest_window_validated`. The latter is
+true only when OI was observed and the chain-ingestion gate passed. An explicit
+unavailable/unsupported state may leave the trade-volume path eligible, but it
+does not validate OI for that window.
+
+The live client requests the SDK reconnect policy and registers a callback.
+Diagnostics distinguish callback registration, callback errors, observed
+reconnect boundaries, and frames seen after a reconnect. A post-reconnect frame
+is bounded resumption evidence, not an acknowledgement that every schema was
+resubscribed. If no reconnect occurs during a run, the report says so rather
+than manufacturing an event.
+
+Sequence diagnostics preserve Databento venue sequence values by publisher and
+channel. Because a trades stream omits non-trade venue messages,
+nonconsecutive values and duplicates are descriptive. The quantitative gate
+fails on the provider maybe-bad-book flag or observed out-of-order sequence, not
+on a numeric discontinuity alone.
+
+Shutdown calls the pinned SDK's nonblocking `stop()` and awaits
+`wait_for_close()` under a bounded timeout; awaitable stop implementations are
+bounded too. Only confirmed closure sets `clean_stop=true`; timeout or failure
+records a stop error and uses the SDK termination fallback.
+
+See [Databento Fixture Mapping](databento-fixtures.md) for the policy values,
+synthetic fixture design, live mapping, and contributor rules. Fixture and
+scripted-client success do not establish authentication, entitlements, current
+ES/NQ coverage, licensed OI availability, latency, or provider-side reconnect
+behavior.
 
 Run the bounded redacted gate with explicit network acknowledgement:
 
@@ -204,12 +240,14 @@ gex-terminal databento-certify /tmp/databento-certification.json \
   --ack-live-network --symbol ES --multiplier 50 --certification-duration 20
 ```
 
-The adapter registry status remains `live-uncertified`. A real credentialed
+The adapter registry status remains `live-uncertified`. The command selects the
+versioned ES or NQ policy before network I/O, rejects a noncanonical multiplier,
+and writes all required-versus-observed checks into the report. A credentialed
 report that clears transport, chain-ingestion, and quantitative-input checks is
-necessary evidence for its exact symbol, environment, entitlement set, and run
-window; it does not automatically promote a global adapter label. Any broader
-readiness decision requires the active packet's recurrence criteria and
-maintainer approval. Predictive validity remains unmeasured.
+necessary evidence for its exact symbol, dataset, credential, entitlement set,
+and run window. It does not automatically promote a global adapter label;
+promotion requires maintainer-approved recurrence evidence. Predictive validity
+remains unmeasured.
 
 Run NQ independently with `--symbol NQ --multiplier 20` and a different output
 path. The command writes partial evidence but exits `2` unless the complete

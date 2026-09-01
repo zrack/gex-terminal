@@ -14,133 +14,81 @@ of every result.
 
 | Order | Outcome | Gate |
 | --- | --- | --- |
-| Now | Certify one bounded Databento ES/NQ live path | Credentialed, entitlement-aware evidence with real chain coverage and production diagnostics |
-| Next | Build a governed real-session corpus and evaluation baseline | Licensed point-in-time captures from the certified path |
-| Then | Stabilize public research interfaces and add live delivery | Reproducible corpus/model evidence and a certified multi-symbol data path |
-| Later | Broaden analytics and distribution | Demonstrated user need without weakening model or provider truth |
+| Now | Produce one bounded credentialed ES Databento report | Explicit credential/data-owner authority and the versioned ES policy |
+| Next | Establish recurrence evidence and evaluate NQ separately | Predeclared observation windows, retained redacted reports, and per-symbol review |
+| Blocked | Build a governed real-session evaluation corpus | Licensed retention/research authority plus a certified provider path |
+| Later | Stabilize research interfaces and live delivery | Reproducible corpus/model evidence and demonstrated user need |
 
-The sequence follows the August 2026
-[competitive analysis](docs/market-analysis.md): core GEX calculations, local
-operation, replay, and generic tunability are not a sufficient moat. The
-stronger opportunity is reproducible provider/model comparison backed by a
-governed point-in-time corpus. That corpus does not yet exist.
+The `0.4.0` release candidate implements the repository-owned pre-live
+hardening under the release-ready
+[GEX-LIVE-001 packet](docs/work-packets/GEX-LIVE-001.md). The packet remains
+active through merged-tree and tag closeout. Databento still has registry status
+`live-uncertified`: no credentialed report or recurring service evidence is
+claimed.
 
-## Now: Databento Live-Path Certification
+## Now: Credentialed Databento Evidence
 
-**Active packet:** [`GEX-LIVE-001`](docs/work-packets/GEX-LIVE-001.md)
+The only immediate work is external observation. It requires authority to use a
+credential and the relevant market-data entitlements; retaining a capture also
+requires an approved [capture policy](docs/capture-governance.md) before the
+connection opens.
 
-**Rigor:** L3
+1. Run `databento-certify` for ES with the canonical multiplier and the
+   versioned ES policy in a declared read-only observation window.
+2. Retain the redacted report, exact package/tag identity, credential and
+   entitlement scope description, and observation-window metadata. Do not
+   retain raw or normalized market data unless the separate capture policy
+   permits it.
+3. Review transport, chain breadth, freshness, sequence, multiplier, IV,
+   shutdown, reconnect, and OI fields as separate evidence. A returned request
+   ID is not a provider acknowledgement, unavailable OI is not trade volume, and
+   an unobserved reconnect cannot be claimed as tested service behavior.
+4. Classify any failure as authentication, entitlement, coverage, payload,
+   temporal, lifecycle, or policy evidence. Repair code only when the evidence
+   identifies a repository defect; otherwise keep the external limitation
+   explicit.
 
-**Status:** build / validate — repository-owned pre-live hardening
+Exit only when a redacted report clears the declared ES policy for its exact
+dataset, symbol, credential, entitlements, configuration, and window. That is a
+bounded observation, not global readiness, predictive validity, execution
+quality, or profitability.
 
-The routed packet authorizes repository-owned pre-live hardening only. Live
-credentials, paid entitlements, retained market data, and readiness promotion
-still require separate explicit owner authority under the
-[SAED adoption profile](docs/SAED_ADOPTION_PROFILE.md).
+## Next: Recurrence And Separate NQ Review
 
-Databento is the shortest path because its adapter, Black-76 inversion,
-temporal checks, offline replay, and bounded certification command already
-exist. It remains `live-uncertified`: the repository has not demonstrated
-active ES/NQ chain coverage, entitlement behavior, live OI availability,
-payload drift, reconnect behavior, or production diagnostics.
+Before changing provider readiness, route a new packet that defines the number,
+timing, market conditions, and failure tolerance of recurring observations.
+Repeat the same immutable report contract across those windows and preserve
+failures as evidence rather than selecting only successful runs.
 
-### Intended Scope
+Evaluate NQ independently with its own canonical multiplier and policy. ES
+evidence cannot certify NQ. A readiness decision must name the exact supported
+scope and unresolved limitations, including OI availability and any reconnect
+behavior that was not actually observed.
 
-1. Strengthen the certification contract before using credentials. Require
-   explicit thresholds for contract definitions, option trades, underlying
-   quotes, expiries, strikes, freshness, sequence integrity, and usable IV
-   inputs; a single definition/quote/trade sample is not chain certification.
-2. Make open-interest status explicit. Subscribe to and normalize the licensed
-   statistics path when available, or report OI as unavailable without falling
-   back silently or combining it with trade volume.
-3. Measure native, Black-76-inverted, and configured-fallback IV separately,
-   including quote age, inversion failures, and fallback coverage.
-4. Add production-suitable logging controls and redaction checks for
-   credentials, account identifiers, licensed payloads, and report output.
-5. Exercise disconnect, reconnect, resubscription, stale-data, entitlement, and
-   shutdown behavior in deterministic tests and in an acknowledged bounded
-   live window where the provider allows it.
-6. Certify ES first, then NQ with its own multiplier and report. Keep every
-   result scoped to the exact credential, entitlement set, environment, symbol,
-   and observation window.
-7. Decide and record, before capture, whether observed data may be retained,
-   redacted, and used in research. Corpus population belongs to the next packet
-   after the live gate passes.
+## Blocked Future Outcomes
 
-### Exit Criteria
+After the live and recurrence gates have explicit authority and evidence:
 
-- Offline regression, adversarial, temporal-integrity, package, and redaction
-  gates still pass.
-- A redacted credentialed report proves the declared ES chain-coverage and
-  quantitative-input thresholds for a bounded observation window.
-- OI availability, IV provenance, fallback share, latency/freshness, malformed
-  frames, disconnects, reconnects, subscription requests/IDs, and provider
-  acknowledgements or errors where exposed are visible rather than inferred.
-- No credentials, account identifiers, or non-redistributable payloads enter
-  committed fixtures, logs, screenshots, or reports.
-- Documentation and provider readiness are reconciled with the evidence. A
-  connection alone does not promote the adapter, and a single run proves only
-  its declared window unless the work packet defines a stronger recurrence
-  rule.
-- NQ is evaluated separately after the ES gate; an ES pass does not certify NQ.
-
-If credentials or entitlements are unavailable, the repository-owned portion
-can still strengthen the harness and deterministic tests. The live outcome must
-remain open rather than being inferred from offline evidence.
-
-## Next: Governed Real-Session Evidence
-
-After one live path meets its bounded gate:
-
-1. Capture licensed, point-in-time market days with source, rights, redaction,
-   cost, symbol, session, expiry, and as-of metadata.
-2. Register immutable train, calibration, and untouched test splits before
-   evaluating outcomes.
-3. Replay identical sessions through OI, raw-volume, and directionalized-volume
-   models without summing or relabeling their quantities.
-4. Define outcome windows, executable timing, and costs before reading the test
-   results.
-5. Publish descriptive disagreement and stability evidence first. Keep
-   `predictive_validity=unmeasured` until governed out-of-sample evidence
-   supports a narrower claim.
-
-Exit when another researcher can reproduce the registered corpus identity,
-model profile, experiment manifest, semantic output, and declared split without
-using post-as-of data in decision-time inputs. Later held-out observations may
-be used only as predeclared outcomes. The prospective moat is this governed
-history, not the existence of replay commands alone.
-
-## Then
-
-- Define and version a supported read-only Python research interface. Existing
-  CLI and JSON artifacts are useful foundations, but they are not yet a stable
-  public Python, REST, or MCP contract.
-- Build the multi-symbol scanner only on provider paths that expose comparable
-  per-symbol coverage and feed quality. Start with certified ES/NQ scope before
-  adding MES, MNQ, SPX, SPY, QQQ, or IWM.
-- Deliver live alerts, TradingView/webhook/Discord integrations, and hosted
-  views only from the certified path; retain provider and model provenance in
-  every message.
-- Add dedicated expiry-exposure and date-tagged day-over-day journal fields.
-- Evaluate `pipx`, a tagged release, and package publication as separately
-  authorized distribution work.
-- Consider DEX, vanna, charm, vega, theta, and scenario P/L only after the live
-  option-chain and evaluation contracts are stable.
+- Capture licensed, point-in-time sessions with source, rights, retention,
+  redaction, research-use, cost, symbol, expiry, and as-of metadata.
+- Register immutable train, calibration, and untouched test splits before
+  evaluating outcomes.
+- Replay identical sessions through OI, raw-volume, and
+  directionalized-volume models without summing or relabeling their quantities.
+- Publish descriptive disagreement and stability evidence first. Keep
+  `predictive_validity=unmeasured` until governed out-of-sample evidence
+  supports a narrower claim.
+- Define a supported read-only Python research interface before considering
+  REST or MCP contracts.
+- Build multi-symbol scans, alerts, integrations, or hosted views only on
+  provider paths with comparable certified coverage and retained provenance.
 
 ## Deferred
 
-Broad retail options flow, dark pools, mobile/social features, trade execution,
-and proprietary daily commentary are not current priorities. Reconsider them
-only if target-persona research changes the product thesis.
+Higher Greeks, scenario P/L, broad retail options flow, dark pools, mobile or
+social features, trade execution, and proprietary commentary are not current
+priorities. PyPI publication and a hosted GitHub Release remain separately
+authorized distribution decisions.
 
-## Completed Baseline
-
-Version `0.3.0` established the offline research certification workbench:
-contract-aware Black-76/Black-Scholes calculations, normalized provider and
-replay paths, captured sessions, model comparisons, experiment/corpus
-contracts, batch evaluation, deterministic certification gates, packaging
-checks, and explicit evidence ceilings. See [CHANGELOG.md](CHANGELOG.md) for the
-shipped record; completed checklists are intentionally not repeated here.
-
-Contributor-sized tasks live in
+Contributor-sized offline tasks live in
 [docs/good-first-issues.md](docs/good-first-issues.md), not in this roadmap.

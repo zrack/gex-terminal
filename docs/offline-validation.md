@@ -50,6 +50,36 @@ invalid option price, unknown control records, duplicate sequences, crossed and
 one-sided books, and provider error records. This proves fail-closed software
 behavior only.
 
+Databento trade sequence numbers are venue sequence values, while the trades
+schema is only a subset of venue events. A numeric jump between trades is
+therefore descriptive, not proof of feed loss. The live-policy integrity check
+uses the provider maybe-bad-book flag and observed out-of-order values; it also
+reports discontinuities, skipped values, and duplicates for review.
+
+## Scripted Live-Lifecycle Contract
+
+`tests/test_databento_live.py` drives the production adapter with local scripted
+clients. The matrix covers required request success/failure, optional
+statistics outcomes, provider and entitlement errors, malformed records,
+disconnect completion, reconnect callbacks, a frame after reconnect,
+cancellation, and bounded shutdown.
+
+These tests distinguish four different facts:
+
+- A returned integer is a local subscription request ID, not a provider
+  acknowledgement.
+- Reconnect callback registration and invocation prove only that the callback
+  path ran.
+- A post-reconnect frame shows bounded data resumption, not that every schema
+  was resubscribed or acknowledged.
+- `clean_stop=true` requires the pinned SDK's nonblocking `stop()` request and
+  bounded awaitable `wait_for_close()` to confirm closure; timeout records an
+  error and exercises the termination fallback.
+
+The scripted clients make lifecycle behavior deterministic. They cannot prove
+SDK/service payload drift, real entitlements, provider-side replay, or network
+reliability.
+
 ## Saved Price-Action Evaluation
 
 Each input observation supplies a timestamp, decision-time spot, named levels by
@@ -98,6 +128,12 @@ registration, multi-session comparison, model properties, provider-fault
 simulation, and generated-chain performance budgets are documented in
 [Research Governance](research-governance.md). These commands extend the
 software-evidence surface; they do not raise its external evidence ceiling.
+
+Captured-session registration has an additional fail-closed authority gate.
+The captured header's policy schema, ID, and SHA-256 must exactly match the
+policy supplied to `corpus-register`; research use must be approved, declared
+rights and redistribution must match, and redaction must be verified. See
+[Capture Governance](capture-governance.md) for the policy contract.
 
 ## Still Requires External Evidence
 

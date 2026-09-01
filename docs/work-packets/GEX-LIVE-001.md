@@ -6,7 +6,7 @@ method_version: "1.3"
 profile: gex-terminal-team-v1
 adoption_context: team
 change_rigor: L3
-status: Build / Validate
+status: "Release Ready — implementation verified"
 packet_owner: project maintainer
 spec_steward: implementation agent
 architecture_authority: project maintainer
@@ -15,6 +15,7 @@ baseline: main@360abdc
 branch: codex/gex-live-001-prelive-v0.4.0
 target_release: "0.4.0 Pre-Live Certification Hardening"
 created: 2026-08-31
+external_outcome: "Open — credentialed provider observation"
 ```
 
 ## Authorization And Routing
@@ -43,10 +44,10 @@ expiry/strike coverage, expose OI availability as a state, measure IV-source
 coverage, or exercise the adapter lifecycle through a scripted provider client.
 Its exception redaction is limited to exact API-key replacement.
 
-After this change, contributors can test a versioned, fail-closed certification
-contract entirely offline. A report will carry its policy, target identity,
+Version `0.4.0` lets contributors test a versioned, fail-closed certification
+contract entirely offline. A report carries its policy, target identity,
 coverage measurements, OI status, IV provenance, lifecycle diagnostics, and
-evidence ceiling. Scripted clients will prove deterministic behavior for
+evidence ceiling. Scripted clients prove deterministic behavior for
 success, entitlement rejection, disconnect, malformed input, cancellation, and
 shutdown paths. None of this changes Databento from `live-uncertified`.
 
@@ -104,18 +105,18 @@ This packet adopts `INV-01` through `INV-08` from
 
 | ID | Requirement / Acceptance Criterion | Evidence | Status |
 | --- | --- | --- | --- |
-| `REQ-01` | A versioned policy defines supported ES/NQ targets, canonical multipliers, and quantitative thresholds. | Policy tests | Planned |
-| `AC-01` | Unknown policies, symbols, multiplier mismatches, invalid thresholds, and insufficient coverage fail closed. | Positive/negative report tests | Planned |
-| `REQ-02` | Reports include distinct expiry/strike counts, freshness/sequence measurements, and observed-versus-required coverage. | Report schema tests | Planned |
-| `REQ-03` | OI status distinguishes observed, unavailable, unsupported, entitlement-denied, and not-requested states. | Adapter/report tests | Planned |
-| `AC-02` | OI and trade volume remain separate throughout adapter, consumer, and report paths. | Contract/regression tests | Planned |
-| `REQ-04` | IV provenance reports native, inverted, fallback, failure, age, and coverage measurements separately. | Adapter/report tests | Planned |
-| `REQ-05` | Scripted clients exercise connection, subscription, entitlement, provider-error, malformed-record, cancellation, and stop behavior. | Lifecycle test matrix | Planned |
-| `AC-03` | Diagnostics remain bounded to observed callbacks and do not claim real provider behavior. | Evidence-ceiling assertions | Planned |
-| `REQ-06` | Logging level is configurable and report/log redaction covers secrets and sensitive identifiers recursively. | Redaction and CLI tests | Planned |
-| `REQ-07` | Capture governance rejects ambiguous rights/retention/redaction/research-use declarations before corpus eligibility. | Policy schema tests and guide | Planned |
-| `AC-04` | Full source, behavioral, offline-provider, research, performance, distribution, and documentation gates pass on branch and merged `main`. | Release evidence | Planned |
-| `AC-05` | Version, changelog, package metadata, merged commit, and annotated `v0.4.0` tag agree. | Release identity checks | Planned |
+| `REQ-01` | A versioned policy defines supported ES/NQ targets, canonical multipliers, and quantitative thresholds. | Policy tests | Verified |
+| `AC-01` | Unknown policies, symbols, multiplier mismatches, invalid thresholds, and insufficient coverage fail closed. | Positive/negative report tests | Verified |
+| `REQ-02` | Reports include distinct expiry/strike counts, freshness/sequence measurements, and observed-versus-required coverage. | Report schema tests | Verified |
+| `REQ-03` | OI status distinguishes observed, unavailable, unsupported, entitlement-denied, and not-requested states. | Adapter/report tests | Verified |
+| `AC-02` | OI and trade volume remain separate throughout adapter, consumer, and report paths. | Contract/regression tests | Verified |
+| `REQ-04` | IV provenance reports native, inverted, fallback, failure, age, and coverage measurements separately. | Adapter/report tests | Verified |
+| `REQ-05` | Scripted clients exercise connection, subscription, entitlement, provider-error, malformed-record, reconnect callback, post-reconnect observation, cancellation, and bounded stop/close behavior. | Lifecycle test matrix | Verified |
+| `AC-03` | Diagnostics remain bounded to observed callbacks and do not claim real provider behavior or reinterpret request IDs as acknowledgements. | Evidence-ceiling assertions | Verified |
+| `REQ-06` | Logging level is configurable and report/log redaction covers secrets and sensitive identifiers recursively. | Redaction and CLI tests | Verified |
+| `REQ-07` | Capture governance rejects ambiguous rights/retention/redaction/research-use declarations and captured-session corpus mismatches. | Policy/corpus tests and guide | Verified |
+| `AC-04` | Full source, behavioral, offline-provider, research, performance, distribution, and documentation gates pass on branch and merged `main`. | Release evidence | Pending merged-tree closeout |
+| `AC-05` | Version, changelog, package metadata, merged commit, and annotated `v0.4.0` tag agree. | Release identity checks | Pending merged-tree closeout |
 
 ## Architecture Delta
 
@@ -182,4 +183,45 @@ or recovery changes must be appended before implementation continues.
 
 ## Evidence
 
-Pending implementation and branch verification.
+Repository evidence:
+
+- `gex_terminal/databento_certification_policy.py` owns versioned ES/NQ target
+  identity, canonical multipliers, and repository-chosen thresholds;
+  `tests/test_databento_certification_policy.py` and
+  `tests/test_databento_certification.py` exercise fail-closed selection and
+  report evaluation.
+- `gex_terminal/adapters/databento.py` exposes required/optional request
+  outcomes, explicit OI states, IV/age metrics, provider-flag sequence evidence,
+  reconnect callback boundaries, post-reconnect frames, and bounded
+  `wait_for_close`; `tests/test_databento_live.py` uses scripted clients to cover
+  those paths. Returned request IDs are submission evidence, not
+  acknowledgements.
+- `gex_terminal/logging_config.py` and `gex_terminal/redaction.py` provide safe
+  defaults and recursive sanitization; `tests/test_safety_controls.py` covers
+  nested secrets, identifiers, payload labels, and CLI configuration.
+- `gex_terminal/capture_governance.py` binds live captures to explicit policy
+  identity. `gex_terminal/research_corpus.py` requires an exact embedded-policy
+  match, approved research use, matching rights/redistribution metadata, and
+  verified redaction; focused governance and corpus tests exercise rejection.
+- The complete branch gate passed on 2026-08-31: source compilation, patch
+  hygiene, all 297 unit tests, model evidence, Databento offline certification,
+  all 7 model-property checks, all 7 provider-fault scenarios, the generated
+  500-contract performance budget, documentation links, and screenshot export.
+  Offline reports retained `live_transport=false`, `live_capacity=false`, and
+  `predictive_validity=unmeasured` where applicable.
+- The `0.4.0` wheel and source distribution both passed Twine validation. A
+  fresh Python 3.12 environment installed the wheel outside the checkout and
+  passed every installed-wheel smoke command in CI, including packaged-resource
+  discovery, capture-policy validation, offline Databento certification,
+  property/fault/performance gates, experiment reproduction, batch comparison,
+  and corpus registration/verification. Persisted outputs contained no checkout
+  or site-packages paths.
+- The contributor branch implementation is release-ready. Its pull-request
+  merge, clean merged-tree gate, narrow closeout pull request, final merge, and
+  annotated `v0.4.0` tag remain the pending release-identity evidence.
+
+External evidence remains deliberately absent. No credentialed Databento run,
+licensed OI observation, provider-side resubscription result, recurring service
+window, readiness promotion, retained market-data corpus, or predictive result
+is claimed. Those outcomes are the remaining roadmap work and require separate
+authority.

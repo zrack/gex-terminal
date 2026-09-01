@@ -29,16 +29,17 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | CLI orchestration | `gex_terminal/cli.py` | Parse command-line options, load config, select runtime mode, start adapters, run exports, and coordinate shutdown. |
 | Configuration | `gex_terminal/config.py` | Read the invocation directory's `.env` and environment defaults into a typed `GexConfig`. |
 | Provider adapters | `gex_terminal/adapters/`, `gex_terminal/market_data_adapter.py`, `gex_terminal/contracts.py` | Convert live, delayed, provider-shaped, or replay payloads into versioned normalized messages with contract identity and timing semantics. |
-| Provider certification | `gex_terminal/tradovate_certification.py`, `gex_terminal/databento_certification.py` | Run acknowledged, bounded, redacted live-network gates without converting fixture evidence into a live claim. |
+| Provider certification | `gex_terminal/tradovate_certification.py`, `gex_terminal/databento_certification.py`, `gex_terminal/databento_certification_policy.py` | Select a versioned target policy before I/O, run acknowledged and bounded live-network gates, and derive redacted exact-run evidence without converting fixture evidence into a live claim. |
 | Provider fixture and replay intake | `gex_terminal/provider_injector.py`, `gex_terminal/databento_offline.py` | Route provider-shaped local records through production mapping and adversarial checks without opening a live connection. |
 | State consumer | `gex_terminal/consumer.py` | Own spot, provider-scoped contract positions, projections, expiry selection, lifecycle, and feed-quality state behind an async lock. |
 | GEX model | `gex_terminal/engine.py`, `gex_terminal/regime.py`, `gex_terminal/model_evidence.py` | Price Black-Scholes/Black-76 contract rows, aggregate dollar GEX, derive structural levels, and export bounded numerical evidence. |
 | Evaluation models | `gex_terminal/model_comparison.py`, `gex_terminal/position_model_comparison.py`, `gex_terminal/price_action_validation.py` | Compare separated position models and descriptive later-price paths without promoting predictive validity. |
-| Research authority | `gex_terminal/model_profiles.py`, `gex_terminal/experiment_manifest.py`, `gex_terminal/research_corpus.py` | Validate versioned assumptions, bind experiments to content identities, and maintain append-only corpus registration. |
+| Capture and research authority | `gex_terminal/capture_governance.py`, `gex_terminal/session_capture.py`, `gex_terminal/model_profiles.py`, `gex_terminal/experiment_manifest.py`, `gex_terminal/research_corpus.py` | Fail closed on ambiguous live-capture decisions, bind captures to policy identity, validate versioned assumptions, and maintain reproducible experiment and append-only corpus identity. |
+| Runtime safety | `gex_terminal/logging_config.py`, `gex_terminal/redaction.py` | Configure warning-level process logging by default and recursively sanitize secrets, sensitive identifiers, and labeled private payload fields before configured log or certification output. |
 | Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows, first-run guidance, replay browser, model-assumption controls, feed quality, event log, and exports. |
 | Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py`, `gex_terminal/batch_comparison.py` | Produce replay, demo, provider-fixture, and multi-session model-comparison reports without live credentials. |
-| Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py`, `gex_terminal/session_capture.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, historical records, and integrity-checked normalized sessions. |
+| Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, and historical records from normalized state. |
 | Packaged data | `gex_terminal/data/`, `gex_terminal/package_data.py` | Resolve bundled replay and sanitized provider resources independently of the current working directory. |
 
 ## Adapter-Consumer Boundary
@@ -92,30 +93,72 @@ the active session.
 ## Live Provider Flow
 
 ```text
-gex-terminal --mode live --provider tradovate --symbol ES
+CLI acknowledgement/configuration
         |
         v
-CLI validates mode/provider/config
+provider adapter -> normalized messages -> StatefulGexConsumer
         |
         v
-adapter streams provider payloads
-        |
-        v
-adapter normalizes frames and records provider diagnostics
-        |
-        v
-consumer updates state and feed-quality counters
-        |
-        v
-engine computes snapshots on refresh
-        |
-        v
-TUI displays structure, lifecycle state, and feed health
+engine snapshot -> TUI/report/capture
 ```
 
 Live adapters should never write credentials to logs, snapshots, fixtures, or
-reports. Captured provider payloads must be sanitized before they become tests
-or documentation examples.
+reports. A live capture is a separate authority boundary:
+
+```text
+capture policy (rights + retention + redaction + research use)
+        |
+        v
+validated policy identity -> live connection -> captured-session header
+        |
+        v
+matching approved policy + verified redaction -> corpus registration
+```
+
+The policy records an operator decision; it neither grants provider rights nor
+automatically makes retained observations redistributable. The capture header
+stores only policy schema, ID, and SHA-256. Corpus registration of a captured
+session additionally requires a matching policy, approved research use,
+matching rights/redistribution metadata, and `redaction_status=verified`.
+
+### Databento Certification Boundary
+
+Databento remains `live-uncertified`. Its provider path is deliberately split
+into implementation authority and exact-run evidence:
+
+```text
+ES/NQ target -> versioned certification policy -> DatabentoAdapter
+        |
+        v
+required requests + optional statistics request -> provider records
+        |
+        v
+consumer state + adapter diagnostics -> redacted certification report
+```
+
+The three required requests are `definition`, `mbp-1`, and `trades`; the
+`statistics` open-interest request is optional. The SDK's returned integers are
+local request IDs. They show that a request returned without a synchronous
+exception; they are not provider acknowledgements. Actual records, distinct
+chain coverage, and explicit errors supply the observation evidence.
+
+The adapter requests the SDK reconnect policy and registers a reconnect
+callback. Diagnostics count callback boundaries and the first frame observed
+after each boundary. A post-callback frame is useful resumption evidence, but it
+does not acknowledge each schema or prove provider-side resubscription. No
+reconnect event is required to pass a window that did not disconnect.
+
+Trade records carry venue sequence values even though `trades` is only a subset
+of the venue event stream. Nonconsecutive values and duplicates are therefore
+reported descriptively. The certification integrity gate uses the provider's
+maybe-bad-book flag and observed out-of-order records; it does not reinterpret
+every numeric discontinuity as feed loss.
+
+Shutdown is bounded around the pinned SDK's nonblocking `stop()` contract and
+its awaitable `wait_for_close()`. Awaitable stop implementations are also
+bounded. Closure must complete within the time limit for `clean_stop=true`; a
+timeout triggers the termination fallback and records a stop error. The outer
+certification task also has a bounded cancellation grace period.
 
 Tradovate is still a scaffold. Its official-protocol implementation waits for
 raw-token authorization and subscription acknowledgements, but only the
@@ -123,12 +166,14 @@ explicit, redacted `tradovate-certify --ack-live-network` workflow can measure a
 credential/environment/run window. Fixture success cannot promote registry
 status or establish native-IV availability.
 
-Databento is `live-uncertified`: one official SDK session combines
-definition replay, ES/NQ option trades, and a continuous-futures `mbp-1` quote.
-The adapter performs provider joining and Black-76 IV inversion before emitting
-schema-v2 messages; the consumer remains the sole owner of mutable contract
-state. Only `databento-certify --ack-live-network` can measure one credential,
-entitlement set, symbol, and bounded run window.
+Only `databento-certify --ack-live-network` can measure one credential,
+entitlement set, symbol, and bounded run window. The ES and NQ policies are
+separate and enforce their canonical multipliers. Their thresholds are
+repository-owned fail-closed choices, not an empirical definition of sufficient
+market coverage. Open interest is separately reported as observed, unavailable,
+unsupported, entitlement-denied, or not requested; it is never replaced by or
+summed with trade volume. Detailed mapping and policy values live in
+[Databento Fixture Mapping](databento-fixtures.md).
 
 ## Offline Research Flow
 
@@ -137,7 +182,8 @@ five paths:
 
 - **Normalized replay and capture:** packaged/local normalized events and
   integrity-checked captures enter through replay adapters and event-time
-  controls. A capture cannot switch replay streams mid-file.
+  controls. A capture cannot switch replay streams mid-file. Live capture
+  additionally passes the capture-policy gate before provider startup.
 - **Provider-shaped intake:** provider injection, fixture labs, and offline
   Databento certification reuse production mapping without opening a live
   connection or promoting readiness.
@@ -186,6 +232,11 @@ used by live updates.
 - Add provider protocol code inside `gex_terminal/adapters/`.
 - Keep provider live-gate logic in the certification modules and provider-shaped
   offline intake in the injector/offline modules.
+- Keep certification target identity and thresholds in the versioned policy
+  module; do not hide threshold changes in a report formatter or adapter.
+- Use the central logging and redaction modules for process output. Keep
+  capture/corpus authority in the governance modules rather than inferring it
+  from provider readiness or file integrity.
 - Keep normalized message changes compatible with `StatefulGexConsumer`, the
   sole owner of mutable market state.
 - Put pricing and structural-level changes in `engine.py` or `regime.py`;
@@ -205,12 +256,13 @@ used by live updates.
 | Model math or structural levels | `tests/test_gex_engine.py`, `tests/test_engine_structure.py`, `tests/test_regime.py` |
 | TUI table or first-run behavior | `tests/test_tui_table.py`, `tests/test_tui_first_run.py`, `tests/test_demo_lab.py` |
 | Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py`, `tests/test_session_store.py` |
-| Capture integrity or event clocks | `tests/test_session_capture.py`, `tests/test_replay_adapter.py` |
+| Capture integrity, policy, or event clocks | `tests/test_session_capture.py`, `tests/test_capture_governance.py`, `tests/test_replay_adapter.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
-| Provider certification or readiness | `tests/test_tradovate_certification.py`, `tests/test_databento_certification.py`, `tests/test_provider_readiness.py` |
+| Provider certification, policy, lifecycle, or readiness | `tests/test_tradovate_certification.py`, `tests/test_databento_certification.py`, `tests/test_databento_certification_policy.py`, `tests/test_databento_live.py`, `tests/test_provider_readiness.py` |
 | Offline Databento or outcome evaluation | `tests/test_databento_offline.py`, `tests/test_position_model_comparison.py`, `tests/test_price_action_validation.py` |
 | Snapshot/overlay exports | `tests/test_snapshot_formats.py`, `tests/test_overlays.py` |
 | Model evidence or sensitivity parity | `tests/test_model_evidence.py`, `tests/test_sensitivity.py` |
 | Experiment/corpus contracts | `tests/test_model_profiles.py`, `tests/test_experiment_manifest.py`, `tests/test_research_corpus.py` |
+| Logging and recursive redaction | `tests/test_safety_controls.py` |
 | Batch/property/fault/performance gates | `tests/test_batch_comparison.py`, `tests/test_offline_certification_extensions.py` |
 | Wheel resources and release metadata | `tests/test_release_contract.py`, CI installed-wheel smoke workflow |

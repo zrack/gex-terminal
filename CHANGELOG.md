@@ -3,21 +3,63 @@
 All notable project changes should be recorded here so the README and roadmap
 can stay focused on current usage and future direction.
 
-The source/package version is `0.3.0`. This changelog describes that release
-baseline, but it does not claim that a Git tag or PyPI artifact has been
-published.
+The source/package version is `0.4.0`. The release candidate is prepared for
+merged-tree verification; this changelog does not yet claim an annotated tag,
+PyPI publication, or hosted GitHub Release.
 
 ## Unreleased
+
+No changes yet.
+
+## 0.4.0 - 2026-08-31 — Pre-Live Certification Hardening
+
+### Added
+
+- Versioned, fail-closed ES and NQ Databento certification policies with
+  canonical multipliers, explicit chain/freshness/sequence/IV thresholds, and
+  observed-versus-required report checks.
+- Databento certification report schema v2 with distinct transport,
+  target-identity, chain-ingestion, quantitative-input, and open-interest
+  results plus an explicit evidence ceiling.
+- Optional live `statistics` request and open-interest normalization with
+  observed, unavailable, unsupported, entitlement-denied, and not-requested
+  states that remain separate from trade volume.
+- Scripted Databento lifecycle coverage for request failures, provider errors,
+  malformed records, reconnect callbacks, post-reconnect frames, cancellation,
+  disconnect completion, and bounded shutdown.
+- Warning-level default process logging, configurable validated log levels, and
+  central recursive redaction for secrets, sensitive identifiers, and labeled
+  private payload fields.
+- Versioned live-capture policy validation for rights, retention, redaction, and
+  research use. Captures retain only policy identity; captured-session corpus
+  registration requires an exact matching approved policy, matching rights and
+  redistribution metadata, and verified redaction.
 
 ### Changed
 
 - Reorganized documentation ownership: the README is now a concise user front
   door, architecture owns system structure, the roadmap contains only planned
   work, and `docs/README.md` routes each technical and research topic.
-- Consolidated the next roadmap outcome into a bounded Databento live-path
-  certification packet candidate, followed by governed real-session evidence.
-- Corrected normalized IV-source, Databento provenance/OI, active-packet, and
-  reproducibility wording that had drifted from the `0.3.0` implementation.
+- Completed the repository-owned implementation in the release-ready work
+  packet and narrowed the immediate roadmap to credentialed exact-run evidence
+  and predeclared recurrence; no credentialed run or readiness promotion is
+  claimed.
+- Databento subscription diagnostics now call SDK return values local request
+  IDs rather than provider acknowledgements and use actual records/errors for
+  observation evidence.
+- Trade-schema venue sequence discontinuities and duplicates are descriptive;
+  the certification integrity gate uses provider maybe-bad-book flags and
+  observed out-of-order values.
+- Databento shutdown now bounds awaitable stop implementations and
+  `wait_for_close`, records failures, and uses a termination fallback without
+  claiming a clean stop.
+
+### Security
+
+- Live capture now fails before provider connection when no valid capture
+  policy is supplied.
+- Log and certification paths sanitize configured credentials, bearer tokens,
+  account/subscription identifiers, and recursively labeled sensitive values.
 
 ## 0.3.0 - 2026-08-19 — Offline Research Certification Workbench
 

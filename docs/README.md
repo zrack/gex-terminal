@@ -17,13 +17,18 @@ status checklists into multiple files.
 | Normalized provider contract | [Market-Data Adapters](adapters.md) | Message shapes, quantity semantics, provider readiness, and adapter extension rules |
 | Model meaning | [Model Assumptions](model-assumptions.md) | Equations, pricing models, units, position proxies, levels, and limitations |
 | Model evidence | [Model Validation](model-validation.md) | Numerical oracles, deterministic gates, provenance, and proof ceiling |
+| Databento mapping | [Databento Fixture Mapping](databento-fixtures.md) | Provider-specific requests, record mapping, certification policy, and lifecycle evidence semantics |
+| Offline provider evidence | [Offline Validation](offline-validation.md) | Replay, temporal, adversarial, and scripted-lifecycle checks plus their proof ceiling |
+| Capture safety | [Capture Governance](capture-governance.md) | Pre-capture rights, retention, redaction, research-use decisions, and logging safeguards |
+| Research authority | [Research Governance](research-governance.md) | Model profiles, manifests, corpus gates, split identity, and evidence ladder |
 | Contribution workflow | [Contributing](../CONTRIBUTING.md) | Setup, verification commands, development rules, and pull-request checklist |
 | Change governance | [SAED Adoption Profile](SAED_ADOPTION_PROFILE.md) | Change rigor, authority, invariants, active-packet rules, and release evidence |
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active.
+active. `GEX-LIVE-001` remains active through the contributor merge,
+merged-tree verification, closeout pull request, and release tag.
 
 ## Start Here By Goal
 
@@ -50,6 +55,8 @@ active.
 
 ### Capture And Compare Research
 
+- [Capture Governance](capture-governance.md) — required live-capture policy,
+  retention decisions, and logging/redaction safeguards.
 - [Captured Sessions](captured-sessions.md) — normalized event files and replay.
 - [Historical Session Store](historical-sessions.md) — computed snapshot archive.
 - [Research Journal](research-journal.md) — local study entries and comparisons.
@@ -76,8 +83,9 @@ active.
   contract-driven research identity decision.
 - [GEX-ORC-001](work-packets/GEX-ORC-001.md) — closed `0.3.0` work-packet record;
   it is not an active packet.
-- [GEX-LIVE-001](work-packets/GEX-LIVE-001.md) — active `0.4.0` pre-live
-  certification-hardening packet; credentialed validation remains excluded.
+- [GEX-LIVE-001](work-packets/GEX-LIVE-001.md) — release-ready `0.4.0` pre-live
+  hardening packet; merge/tag closeout is pending and credentialed validation
+  remains external follow-on work.
 
 ## Editing Rules
 

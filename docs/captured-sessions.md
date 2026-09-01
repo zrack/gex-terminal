@@ -8,6 +8,11 @@ writer preserves arbitrary extension fields and does not perform secret
 redaction. Adapter authors must keep sensitive fields out, and users must inspect
 captures before sharing them.
 
+Live capture additionally requires a validated rights, retention, redaction,
+and research-use policy before any provider connection opens. See
+[Capture Governance](capture-governance.md). Replay capture remains available
+without a policy because it does not acquire new provider data.
+
 ## Record A Session
 
 Capture a bundled replay to an explicit path:
@@ -22,7 +27,9 @@ gex-terminal --replay-session trend-day \
 Capture a live, read-only provider stream:
 
 ```bash
-gex-terminal --mode live --provider tradovate --symbol ES --record-session
+gex-terminal --mode live --provider tradovate --symbol ES \
+  --record-session \
+  --capture-policy capture-policy.json
 ```
 
 When `--capture-path` is omitted, completed captures are written under

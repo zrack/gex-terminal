@@ -10,14 +10,14 @@ the live service.
 - Dataset target: `GLBX.MDP3`.
 - Option-chain parent symbols: `ES.OPT`, `NQ.OPT`, or
   `<UNDERLYING>.OPT` for another futures root.
-- Implemented locally: official SDK live client setup, mixed `definition`,
-  `trades`, and `mbp-1` subscriptions, option-definition joins, ES/NQ
-  continuous-futures midpoint tracking, option-trade normalization, aggressor
-  side, and Black-76 IV inversion with explicit provenance.
-- Fixture-only: statistics/open-interest extraction. It is not yet subscribed
-  into live consumer state.
+- Implemented locally: official SDK live client setup; required `definition`,
+  `mbp-1`, and `trades` requests; optional `statistics` request;
+  option-definition joins; ES/NQ continuous-futures midpoint tracking;
+  option-trade and OI normalization; aggressor side; Black-76 IV inversion;
+  bounded shutdown; and reconnect/sequence diagnostics.
 - Operationally unverified in this repository: credentials, entitlements,
-  current contract coverage, latency, reconnect gaps, and a successful
+  current contract coverage, licensed OI availability, latency, provider-side
+  resubscription, recurring reliability, and a successful credentialed
   `databento-certify` report.
 
 ## Databento Schemas To Validate
@@ -42,9 +42,11 @@ Useful provider references:
 
 - [Options on futures introduction](https://databento.com/docs/examples/options/options-on-futures-introduction)
 - [Live Python client](https://databento.com/docs/api-reference-live/client/live-blocking)
+- [Reconnect callback](https://databento.com/docs/api-reference-live/client/add-reconnect-callback)
 - [Parent and continuous symbology](https://databento.com/docs/standards-and-conventions/symbology)
 - [GLBX.MDP3 dataset](https://databento.com/docs/venues-and-datasets/glbx-mdp3)
 - [Schemas and data formats](https://databento.com/docs/schemas-and-data-formats)
+- [Common fields, flags, and sequence](https://databento.com/docs/standards-and-conventions/common-fields-enums-types)
 - [Open interest and settlement example](https://databento.com/docs/examples/futures/retrieving-oi-and-settlement-prices)
 
 ## Normalized App Contract
@@ -59,8 +61,8 @@ Databento's main contract delta is IV inversion provenance. A
 midpoint/source, midpoint age and maximum allowed age, risk-free rate, time to
 expiry, solver method/status/iterations, and absolute price error. Definition
 records supply stable contract identity, strike, type, and expiry. Statistics
-records map open interest as a cumulative quantity in fixture/offline flows;
-the live statistics subscription remains roadmap work.
+records map open interest as a cumulative quantity in offline handling and the
+optional live path; availability remains an observed status, not an assumption.
 
 ## Mapping Rules
 
@@ -76,21 +78,31 @@ the live statistics subscription remains roadmap work.
 | `contract_id` | Stable Databento `instrument_id` scoped to provider `databento` |
 | `event_time` | Timezone-bearing `ts_event` or equivalent provider event time |
 | `volume_semantics` | `incremental` for individual trade sizes |
-| `position_source` | `trade_volume` for trade messages; fixture-tested statistics mapping uses `open_interest` with `cumulative` semantics, while live statistics subscription remains roadmap work |
+| `position_source` | `trade_volume` for trade messages; open-interest statistics use `open_interest` with `cumulative` semantics |
 | `aggressor_side` | Databento trade `side`: `B`/bid maps to `buy`, `A`/ask maps to `sell`, and absent/indeterminate side maps to `unknown` |
 | `direction_source` | `provider` when a known Databento side is preserved; otherwise `unknown` |
 | `iv_source` | `provider`, `black_76_inverted`, or `configured_default`; only the fallback degrades feed quality |
 | `iv_provenance` | Required for inverted IV: method/status, option price/source, futures midpoint/source/time, rate, time to expiry, iterations, and absolute price error |
-| open interest | `statistics` rows with open-interest stat fields; extraction is fixture-tested but live ingestion remains unimplemented |
+| open interest | `statistics` rows whose statistic type represents open interest; availability stays explicit and separate from trade volume |
 
-## Live Subscriptions And Certification
+## Live Requests And Certification
 
-The live adapter makes three subscriptions in one `GLBX.MDP3` session:
+The live adapter submits three required requests and one optional request in one
+`GLBX.MDP3` session:
 
 1. `definition` with parent symbols `ES.OPT`/`NQ.OPT` and `ES.FUT`/`NQ.FUT`,
    using the weekly definition replay available for this dataset.
 2. `mbp-1` for the volume-based continuous future `ES.v.0` or `NQ.v.0`.
 3. `trades` for the option parent `ES.OPT` or `NQ.OPT`.
+4. Optional `statistics` for the option parent, requested with replay start so
+   an entitled open-interest observation can enter consumer state.
+
+`Live.subscribe(...)` returns a local integer request ID. The adapter records
+which schemas returned IDs and which failed synchronously, but does not label an
+ID as a provider acknowledgement. Provider records and explicit error frames
+are the evidence that a requested path produced observations. Optional OI is
+reported as `observed`, `unavailable`, `unsupported`, `entitlement_denied`, or
+`not_requested`; a generic provider error is not silently attributed to OI.
 
 The adapter matches definition `underlying_id` to the instrument ID currently
 mapped by the continuous future. It counts and drops trades on other futures
@@ -103,15 +115,50 @@ gex-terminal databento-certify /tmp/databento-certification.json \
   --ack-live-network --symbol ES --multiplier 50 --certification-duration 20
 ```
 
-The gate fails closed unless the full quantitative-input result passes. It reports
-separate transport and chain-ingestion results; the final result requires
-definitions, an underlying quote, option trades, at least one converged
-Black-76 inversion, and zero fallback-IV ticks. This still does not establish
-dealer inventory, synchronized executable quotes, or predictive validity.
+The selected `databento-<symbol>-prelive-v1` policy is resolved before I/O.
+Its ES and NQ profiles enforce canonical multipliers of `50` and `20`.
+Both profiles currently require at least 50 provider frames, 24 definitions, 5
+underlying quotes, 20 option trades, 12 normalized option states, 2 expiries, 8
+strikes, and 12 trade-sequence observations. Freshness, sequence
+coverage/integrity, multiplier coverage, usable-IV coverage, and inverted-IV
+age coverage must each be 100%; fallback-IV and inversion-failure coverage must
+be zero; maximum observed underlying age is 2,000 ms. These are
+repository-owned pre-live policy choices, not an empirically validated claim of
+market sufficiency.
+
+The gate fails closed unless the full quantitative-input result passes. It
+reports transport, chain-ingestion, target-identity, quantitative-input, and
+open-interest results separately. `open_interest_observed` states whether an OI
+record was seen; `open_interest_window_validated` states whether the window
+observed OI while also passing chain ingestion. OI observation is not required
+for the trade-volume path, so unavailable OI remains visible without being
+substituted or treated as a validated OI window.
+This still does not establish dealer inventory, synchronized executable option
+quotes, predictive validity, or ongoing reliability.
 
 Certify NQ in a separate run with `--symbol NQ --multiplier 20` and a distinct
 report path. A partial report is still written for review, but the process exits
 `2` unless the complete quantitative-input result passes.
+
+## Lifecycle And Sequence Evidence
+
+The adapter requests the SDK reconnect policy and registers reconnect and
+callback-error callbacks. It records callback boundaries and the first provider
+frame seen afterward. The report's post-reconnect/resubscription observation
+means only that data resumed after the callback; it is not a per-schema
+resubscription acknowledgement. A quiet window can pass without manufacturing
+a reconnect, provided callback registration and all other gates pass.
+
+Shutdown is part of the transport contract. The pinned SDK's `stop()` call is
+nonblocking; awaitable stop implementations and `wait_for_close()` run under
+bounded timeouts. A closure timeout invokes the SDK termination fallback,
+increments the stop-error count, and prevents `clean_stop=true`.
+
+Databento `sequence` is a venue sequence. Since `trades` is a subset of venue
+messages, jumps between trade records can be expected and are reported only as
+descriptive discontinuities/skipped values. Duplicates are also reported. The
+certification integrity failure signal is a maybe-bad-book flag or an observed
+out-of-order value; a gap in the numbers alone is not called feed loss.
 
 ## Contributor Fixture Rules
 
@@ -145,7 +192,8 @@ Run the Databento mapper tests:
 
 ```bash
 python -m unittest -v tests.test_databento_mapping tests.test_databento_live \
-  tests.test_databento_certification tests.test_implied_volatility
+  tests.test_databento_certification tests.test_databento_certification_policy \
+  tests.test_implied_volatility
 ```
 
 Run the installed-resource workbench without referring to source paths:

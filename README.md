@@ -32,10 +32,10 @@ and limitations are documented in
 
 ## Current Status
 
-The source/package version is `0.3.0`, **Offline Research Certification
-Workbench**. The repository includes deterministic offline workflows and
-installed-wheel checks, but it does not claim a PyPI publication or release
-tag.
+The source/package version is `0.4.0`, **Pre-Live Certification Hardening**.
+The release candidate is in contributor review; the annotated `v0.4.0` tag is
+created only after clean merged-tree verification. The project does not yet
+claim that tag, a PyPI publication, or a hosted release.
 
 Provider readiness is intentionally explicit:
 
