@@ -9,7 +9,11 @@ claimed.
 
 ## Unreleased
 
-No changes yet.
+### Changed
+
+- Updated GitHub CI to the Node 24-based `actions/checkout@v7` and
+  `actions/setup-python@v7` releases after the hosted runner reported the older
+  Node 20 action runtimes as deprecated.
 
 ## 0.4.0 - 2026-08-31 — Pre-Live Certification Hardening
 
