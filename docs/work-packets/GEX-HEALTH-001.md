@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: ready for contributor review
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: pull-request reviewer and hosted CI
@@ -65,4 +65,7 @@ implementation; no stored artifacts are migrated or overwritten.
 - Public SPY fixture export records effective multiplier 100 and configured
   fallback 50. ES/NQ demo, selected replay, screenshot, and saved-store identity
   cases are covered by public-workflow tests.
-- Hosted checks and merged-main verification remain pending at this commit.
+- [PR #20](https://github.com/zrack/gex-terminal/pull/20) passed all four
+  Python 3.11/3.12 hosted checks, including installed-wheel smoke, and merged.
+  Clean main at `e613e26387549a34c74a836bc885683ee8008c74` passed all 314
+  tests and source compilation with no local changes.

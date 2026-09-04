@@ -230,9 +230,12 @@ owns:
 - provider and feed-quality counters
 - subscription and entitlement status
 
-Use `reset_state(...)` before loading a new offline session into an existing
-terminal app. That clears market data and quality counters behind the same lock
-used by live updates.
+The CLI gives the terminal ownership of its active replay writer task. Replay
+replacement is serialized and cancels/awaits that writer before calling
+`reset_state(...)`; only after adapter cleanup may new input enter. A failed
+writer blocks replacement and remains visible at CLI shutdown. Reset clears
+market data and quality counters behind the same lock used by updates. Capture
+and live-source sessions cannot switch replay.
 
 ## Contributor Boundaries
 

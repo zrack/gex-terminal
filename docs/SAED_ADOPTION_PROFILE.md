@@ -18,8 +18,9 @@
 
 **Adopted:** 2026-08-19
 
-**Status owner:** `GEX-HEALTH-001` owns the active instrument-identity slice;
-closed packet `GEX-LIVE-001` records the `0.4.0` repository release
+**Status owner:** Each routed contributor packet owns its bounded slice;
+`GEX-HEALTH-003` owns replay lifecycle, and `GEX-HEALTH-001` records the merged
+identity repair. Closed `GEX-LIVE-001` records the `0.4.0` repository release.
 
 ## Purpose And Entry Boundary
 

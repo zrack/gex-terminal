@@ -115,7 +115,14 @@ Reject invalid timing, rate, multiplier, and expiry values with an actionable
 error. A stale source must never become healthy because of an invalid setting.
 Keep intentionally optional values distinct from malformed ones.
 
-### H3 — P1: Switching replay can leave the previous stream writing state
+### H3 — Resolved: Replay replacement settles the previous writer
+
+Repair: the CLI passes its writer task to the terminal, which serializes
+replacement and cancels/awaits the old source before reset. Fixed-delay and
+event-clock tests exercise the full CLI-to-interactive path and prove an old-only
+strike cannot enter the new session. A failed writer blocks replacement and is
+reported at shutdown. [GEX-HEALTH-003](work-packets/GEX-HEALTH-003.md) owns the
+repair evidence. The following records the original defect.
 
 The interactive CLI starts an adapter task in
 [`cli.py`](../gex_terminal/cli.py), while the TUI's

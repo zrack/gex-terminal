@@ -11,6 +11,10 @@ claimed.
 
 ### Fixed
 
+- Replay selection now settles the previous CLI writer before resetting state;
+  active fixed-delay/event-clock streams cannot contaminate a replacement
+  session. Failed writers block replacement and remain visible at shutdown.
+
 - Bound bundled replay workflows to catalog instrument identity and rejected
   unsupported symbol labels on the seeded ES demo. Snapshot exports now
   distinguish the configured fallback multiplier from actual selected-contract
