@@ -186,11 +186,13 @@ def verify_corpus(directory: str | Path) -> dict[str, Any]:
             "passed": bool(events) and not errors,
             "predictive_validity": "unmeasured",
             "live_provider_certified": False,
+            "evaluation_eligibility": "not_assessed",
         },
         "errors": errors,
         "evidence_ceiling": (
             "corpus identity, rights metadata, split immutability, and source integrity only; "
-            "not source accuracy, live coverage, or predictive validity"
+            "not point-in-time evaluation eligibility, source accuracy, live coverage, "
+            "or predictive validity"
         ),
     }
 

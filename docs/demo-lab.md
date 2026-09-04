@@ -91,11 +91,14 @@ from version ordering. The current source table is:
 
 | Contract | Accepted producer | Accepted reader |
 | --- | --- | --- |
-| Review receipt v1 / runtime v1 | `0.4.0` | `0.4.0` |
+| Review receipt v1 / runtime v1 | `0.4.0`, `0.5.0` | `0.5.0` |
 
-A later release may add an older producer and a newer reader only after the
-receipt, runtime, model, and result semantics are shown to match; unknown
-versions remain rejected.
+The 0.4.0 contributor implementation accepted only 0.4.0 producers. This
+0.5.0 release also accepts its receipts when exact runtime and semantic results
+match. The original tagged 0.4.0 release did not produce these receipts; its
+legacy Demo Lab packs are not silently upgraded. Unknown versions remain
+rejected. Python major/minor and pinned NumPy/Textual versions must match the
+recorded runtime; cross-Python reproduction is not promised.
 
 ## Output Folder
 

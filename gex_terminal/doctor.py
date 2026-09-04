@@ -55,6 +55,7 @@ REQUIRED_BUNDLED_RESOURCES: tuple[str, ...] = (
     "data/replays/es_trend_day.jsonl",
     "data/replays/es_volatility_spike.jsonl",
     "data/replays/es_zero_gamma_flip.jsonl",
+    "data/replays/nq_research_loop_v2.jsonl",
     "data/provider_fixtures/batch_position_comparison_example.json",
     "data/provider_fixtures/capture_policy_example.json",
     "data/provider_fixtures/cboe_option_quotes_sample.csv",
@@ -442,11 +443,11 @@ def build_doctor_report(
         elif selected:
             status = "fail"
             summary = f"The selected {provider} optional SDK is unavailable."
-            action = f'Install the provider extra with: pip install "gex-terminal[{extra}]"'
+            action = f"Install the reviewed wheel with the {extra} provider extra."
         else:
             status = "warning"
             summary = f"The unselected {provider} optional SDK is not installed."
-            action = f'Install only if needed: pip install "gex-terminal[{extra}]"'
+            action = f"Install the reviewed wheel with the {extra} extra only if needed."
         add_check(
             f"provider.sdk.{provider}",
             "provider",

@@ -31,8 +31,15 @@ source .venv/bin/activate
 Install dependencies:
 
 ```bash
-pip install -e .
+pip install -e . build twine packaging
 ```
+
+For an end-user installation use the reviewed wheel in [First Run](docs/first-run.md).
+`gex-terminal doctor` checks local configuration/resources without a provider
+connection. If an editable launcher cannot import the package, try the source
+module invocation and inspect doctor output; on macOS, hidden editable `.pth`
+flags can recur. A regular wheel in a dedicated environment avoids that editable
+path dependency. Do not clear flags on broad filesystem trees.
 
 Demo and replay work needs no provider credentials. Create a local environment
 file only when testing provider configuration:
@@ -119,10 +126,20 @@ See [docs/research-governance.md](docs/research-governance.md).
 For package/resource changes, reproduce the CI release contract:
 
 ```bash
-python -m pip install build twine
+python -m pip install build twine packaging
 python -m build --outdir /tmp/gex-terminal-dist
 python -m twine check /tmp/gex-terminal-dist/*
 ```
+
+Release verification also compares the retained 0.4.0 wheel with the candidate
+using `scripts/verify_distribution_lifecycle.py --previous-wheel OLD.whl
+--candidate-wheel NEW.whl --output NEW_REPORT.json`. The script uses the
+`packaging` library installed with these maintainer build tools, and creates its
+own temporary environment and synthetic research; it must never target a
+developer or customer installation. The first dependency install may use the
+network, but application commands are offline. CI exercises this lifecycle on
+Python 3.11/3.12 and runs the portable pack, doctor and research checks from a
+fresh wheel outside the checkout. Preserve the exact wheel hashes and report.
 
 Install the wheel into a temporary virtual environment, change to a directory
 outside the checkout, and exercise `gex-terminal --version`, a named replay,

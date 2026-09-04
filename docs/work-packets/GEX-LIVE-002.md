@@ -26,10 +26,13 @@ after inspection create a new population identity with an explained reason.
 - Named operator/reviewer and read-only observation authority.
 - Exact account entitlement scope, provider/SDK/application/Python versions,
   environment and symbol mapping, recorded without secret/account values.
-- ES canonical multiplier 50 and `ES_PRELIVE_V1` selected from the canonical
+- ES canonical multiplier 50 and policy ID `databento-es-prelive-v1`
+  (`ES_PRELIVE_V1`) selected from the canonical
   [certification policy](../../gex_terminal/databento_certification_policy.py).
   Preserve that policy's full thresholds/digest beside every observation;
-  this packet does not replace or weaken its quantitative gates.
+  this packet does not replace or weaken its quantitative gates. The offline
+  plan contract in `GEX-LIVE-PREP-001` owns canonical policy/population hashing
+  and the exact-run evidence envelope; freeze its validated plan before I/O.
 - Authorized dates/windows, clock/timezone source and stale-response procedure.
 - Approved rights, storage, report retention and deletion decisions. Raw capture
   is off unless a separate valid capture policy expressly authorizes it.
@@ -60,6 +63,9 @@ public repo if even timing/diagnostics have restricted use.
 - Any wrong symbol/multiplier, silent fallback, unexplained sequence loss,
   stale-as-live state or cross-contract contamination stops the run and blocks
   promotion. Retain the redacted failure and repair evidence.
+  Numeric gaps in trade-schema venue sequences alone are descriptive, not
+  proof of loss: apply the canonical policy's flag/order semantics and retain
+  the evidence for an actual integrity failure.
 - Authentication, entitlement, policy, payload/coverage, temporal, lifecycle,
   operator and environment failures are distinct categories. An infrastructure
   cause does not turn a failure into a success.
@@ -67,6 +73,8 @@ public repo if even timing/diagnostics have restricted use.
   is required for this initial narrow promotion proposal. A failed population
   remains failed. After a documented repair and review, preregister a fresh
   complete population rather than restarting a success counter silently.
+  Every later population and promotion record must retain immutable lineage
+  and disclose all prior populations/failures, not just the successful one.
 - On two distinct dates, perform a separately authorized clean stop/restart
   observation. Confirm bounded shutdown, fresh resubscription, a new accepted
   state and no stale carryover. Retain both process lifetimes.
@@ -87,7 +95,10 @@ A prospective promotion decision must bind population identity, exact accepted
 application/provider/SDK versions, ES scope, entitlement assumptions, session
 windows, fallback policy, operator response and limitations. Route registry,
 documentation and regression-test changes together as a separate reviewed L3
-change. A report or connection cannot promote itself.
+change. A report or connection cannot promote itself. Twelve zero-failure
+windows cannot establish a general failure rate or reliability guarantee;
+promotion names only the observed envelope, and all earlier failures remain
+part of the disclosure.
 
 NQ requires a separate population and its own canonical policy/multiplier.
 Neither an ES pass nor a synthetic NQ fixture certifies NQ. No result from this

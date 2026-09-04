@@ -44,5 +44,15 @@ closeout. No user data is migrated/deleted; rollback uses the prior wheel.
 The compact-layout checkpoint passes 335 tests, compilation and whitespace
 checks. Screenshots were inspected at 140×42 and 80×24: supported sizes retain
 metrics, the strike table, health cards and controls; smaller sizes show the
-minimum-size guidance. Installation guidance and lifecycle evidence remain
-pending; this checkpoint does not close the packet.
+minimum-size guidance. Installation guidance and lifecycle evidence were still
+pending at that checkpoint.
+
+The integrated 0.5.0 candidate then passed the disposable macOS ARM64/Python
+3.12.13 lifecycle from retained tagged 0.4.0: install, upgrade, corrupt-wheel
+rejection, rollback, reinstall and uninstall preserved all 14 research-file
+identities. Source and wheel distributions passed build/Twine. A regular wheel
+replaced the locally broken editable launcher, and version/doctor succeeded.
+Independent review added wheel digests/version ordering, working-app checks
+after failed upgrade and complete metadata/launcher absence after uninstall.
+The exact final build and hosted lifecycle still require verification before
+closure. A corrupt-wheel test is not arbitrary interrupted-upgrade recovery.

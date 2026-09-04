@@ -64,6 +64,26 @@ async def _write_captured_session(path: Path, policy: dict) -> None:
 
 
 class ResearchCorpusTests(unittest.TestCase):
+    def test_registration_without_cutoff_never_claims_evaluation_eligibility(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source.json"
+            source.write_text('{"event_time":"2099-01-01T00:00:00Z"}\n')
+            metadata = json.loads(
+                provider_fixture_path("corpus_item_metadata_example.json").read_text()
+            )
+            metadata.pop("as_of", None)
+            metadata_path = root / "metadata.json"
+            metadata_path.write_text(json.dumps(metadata))
+            corpus = root / "corpus"
+            initialize_corpus(corpus)
+            event = register_corpus_item(corpus, source, metadata_path)
+            report = verify_corpus(corpus)
+            self.assertIsNone(event["payload"]["as_of"])
+            self.assertTrue(report["result"]["passed"])
+            self.assertEqual(report["result"]["evaluation_eligibility"], "not_assessed")
+            self.assertIn("not point-in-time", report["evidence_ceiling"])
+
     def test_rejects_timezone_naive_as_of(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

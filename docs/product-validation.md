@@ -58,6 +58,9 @@ live behavior, delivered alerts or paid access.
 ## Observed application task (at least six participants)
 
 Use [First Run](first-run.md), the same pinned wheel and a fresh environment.
+Before recruiting, freeze the wheel SHA-256, application version, OS/architecture,
+Python version and fixture identity, along with the scoring key below. Record
+any build change as a separate cohort rather than changing the task mid-study.
 Alternate the provided ES/NQ fixtures across participants and record which was
 used. Do not compare task times across fixtures without retaining that context.
 
@@ -73,6 +76,13 @@ Allow the participant to use shipped help. Log each moderator intervention;
 after a blocking failure, assist only to expose the next task and mark that task
 assisted. A preinstalled environment cannot count as installation success.
 
+Scoring key: source/instrument/time must match the receipt; the chosen level's
+position model and units must match its model guide; the participant must state
+that direction coverage is incomplete when the fixture declares it, that the
+three quantities are not additive, and that replay success proves neither live
+readiness nor predictive value. Technical jargon is not required. A misleading
+product label is a defect even if the moderator knows the intended answer.
+
 ## Copyable scorecard
 
 One row per participant/task; empty means not observed, never zero.
@@ -81,12 +91,24 @@ One row per participant/task; empty means not observed, never zero.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Not yet collected | | | | | | | | | |
 
+Retain a separate decision row for each eligible participant: concept order,
+concept choice and reasons, local-setup refusal/not-start reason, exact
+offer/version/price and included data/support terms, buying authority, named
+recurring job, existing legitimate data access (yes/no/unknown), and commitment
+status (none / hypothetical interest / nonbinding intent / explicit design-
+partner commitment / paid-pilot acceptance subject to available terms). These
+statuses are distinct; a moderator may not promote one to the next.
+
 - **Install activation:** unaided successful install and readiness result /
-  participants who attempted install; report numerator and denominator.
+  participants who attempted install; report numerator and denominator plus
+  the full eligible cohort, setup refusals and not-started counts. Report
+  unaided activation / all preregistered task participants alongside it so
+  refusal cannot inflate local-path fit.
 - **Time to insight:** elapsed time from beginning installation to a correct
   source/model/quality explanation. Report completion count and individual
   times; failures remain failures, not discarded fast observations.
-- **Loop completion:** unaided completion of all six tasks / all attempts;
+- **Loop completion:** unaided completion of all six tasks / all preregistered
+  task participants, including refusals and not-starts;
   separately report assisted completion and time after install.
 - **Trust defect:** participant relies on stale, mislabeled or unverified
   evidence because the product hides or contradicts its status. Record every
@@ -129,7 +151,7 @@ Enter conservative/base/optimistic scenarios and retain units and provenance.
 | --- | --- | --- |
 | Price P | dollars per active customer per month | A defined offer tested with the intended buyer |
 | Active paid customer-months M | customer-months in year one | Cohort additions, churn and seasonality assumptions |
-| Payment fraction f and per-payment cost t | fraction; dollars | Actual selected billing quote |
+| Payment fraction f and fixed payment cost t | fraction; dollars per customer-month under one monthly payment | Actual selected billing quote and payment frequency |
 | Data/entitlement cost d | dollars per customer-month | Written provider/exchange quote, status and minimums |
 | Hosting/storage/incident cost h | dollars per customer-month | Workload-based measured estimate |
 | Support time s and loaded hourly cost w | hours per customer-month; dollars/hour | Pilot time log and owner cost assumption |
@@ -137,9 +159,13 @@ Enter conservative/base/optimistic scenarios and retain units and provenance.
 | New paying customers N | customers in year one | Cohort plan, separate from M |
 | Fixed build/legal/security/support F | dollars in year one | Named work and quotes or bounded labor estimates |
 
-Monthly unit contribution: `C = P × (1 − f) − t − d − h − s × w`.
+For one payment per active customer-month, monthly unit contribution is
+`C = P × (1 − f) − t − d − h − s × w`.
 Year-one contribution after acquisition and fixed costs:
-`M × C − N × A − F`. Fixed annual licensing minimums belong in F, with only
+`M × C − N × A − F`. For annual or irregular payments, instead subtract
+`Q × t_payment` from `M × [P × (1 − f) − d − h − s × w] − N × A − F`, where Q
+is actual payment count and t_payment is dollars per payment. Do not treat an
+annual transaction charge as twelve monthly charges. Fixed annual licensing minimums belong in F, with only
 incremental per-customer charges in d; do not count the same fee twice. BYOD can
 set d to zero only when written terms establish that the business owes no
 incremental data fee. Developer support can use paid seat-months plus a separate

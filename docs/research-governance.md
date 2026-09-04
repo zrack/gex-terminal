@@ -22,6 +22,11 @@ Four contracts keep research decisions inspectable:
 The schemas are versioned. Unknown schemas, runtime contracts, producer
 versions, or unsupported model ladders fail closed. Compatibility is declared
 explicitly; it is not inferred from package-version ordering.
+
+The 0.5.0 reader explicitly supports v2 producers 0.4.0 and 0.5.0 under
+`gex-terminal.experiment-runtime.v1`; result parity is still required. A
+compatible runtime does not guarantee that a report produced before a
+correctness repair will match the corrected implementation.
 `predictive_validity` is fixed to `unmeasured` in these offline contracts.
 
 ## Run And Reproduce An Experiment
@@ -86,6 +91,26 @@ Registration never edits earlier events. Duplicate IDs or source digests are
 rejected. Verification fails on chain tampering, source drift, missing files,
 duplicate identities, or invalid split labels. Rights metadata describes the
 operator's declaration; the tool does not independently grant data rights.
+
+### Registration is not point-in-time evaluation eligibility
+
+Registration may omit `as_of` for an inventory/reference input whose use has not
+yet been selected. A supplied cutoff must include a timezone, but registration
+does not inspect every source event or enforce that cutoff. A corpus can pass
+integrity with a missing cutoff or future content; this is not an empirical
+evaluation pass. Verification reports `evaluation_eligibility=not_assessed`.
+
+Before descriptive or predictive evaluation, the experiment owner must bind an
+explicit timezone-aware cutoff, source digest and immutable split; demonstrate
+that every feature/observation was available at or before that cutoff; reject
+missing/future event time; and bind outcome horizons and costs separately from
+features. Outcomes after the cutoff are labels, never input features. The
+experiment workflows enforce their declared cutoff, but a source-specific
+availability/rights review is still required. Legacy untimed samples are
+software fixtures only. Do not repair historical registration events in place;
+record a new governed evaluation identity. A cutoff alone also cannot establish
+source authenticity, valid rights, untouched holdout or absence of survivorship
+bias.
 
 Captured sessions are stricter than ordinary offline inputs. Supply the exact
 capture policy during registration:

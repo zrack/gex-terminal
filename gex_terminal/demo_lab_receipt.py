@@ -50,10 +50,10 @@ EVIDENCE_CEILING = (
 # release must deliberately extend both declarations after proving that the
 # receipt and runtime semantics remain compatible.
 SUPPORTED_DEMO_LAB_PRODUCERS = {
-    REVIEW_RECEIPT_SCHEMA: frozenset({"0.4.0"}),
+    REVIEW_RECEIPT_SCHEMA: frozenset({"0.4.0", "0.5.0"}),
 }
 SUPPORTED_DEMO_LAB_READERS = {
-    RUNTIME_SCHEMA: frozenset({"0.4.0"}),
+    RUNTIME_SCHEMA: frozenset({"0.4.0", "0.5.0"}),
 }
 REQUIRED_SEMANTIC_ARTIFACTS = (
     "manifest.json",
