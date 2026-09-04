@@ -6,7 +6,7 @@ method_version: "1.3"
 profile: gex-terminal-team-v1
 adoption_context: team
 change_rigor: L3
-status: "Ready for integration — branch evidence passed"
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 architecture_authority: project maintainer
@@ -170,8 +170,9 @@ None.
 Integration at `main@813bb24` preserved H1 multiplier identity, H3 writer
 ownership, and H5 chronology. An additional regression validates UI assumption
 changes before publishing engine mutations. All 333 integrated tests,
-compilation, diff hygiene, and the 7/7 provider-fault gate passed. Hosted checks
-and clean-main verification remain pending at this integration commit.
+compilation, diff hygiene, and the 7/7 provider-fault gate passed. PR #23 merged
+as `51ad3a2` after all four hosted Python 3.11/3.12 checks passed. Clean merged
+main passed all 333 tests and compilation. No live-readiness status changed.
 
 Repository evidence on the isolated contributor branch:
 

@@ -151,7 +151,16 @@ the consumer. A public interactive-path regression must prove that no prior
 session record arrives after the new session is selected, including delayed
 and event-clock replay. Existing idle-consumer switch tests are insufficient.
 
-### H4 — P1: Reproduction accepts inconsistent experiment metadata
+### H4 — Resolved: Experiment reproduction validates complete identity
+
+Repair: versioned v2 manifests bind the full normalized specification, profile,
+input, implementation, evidence policy and semantic result. Reproduction rejects
+inconsistent or unsupported records before execution and refuses nonempty output
+directories. V1 records retain an explicit `legacy_partial` ceiling rather than
+claiming complete historical identity. Focused tamper, compatibility and
+no-overwrite regressions are recorded in
+[GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md). The following describes the
+original defect; unkeyed hashes still do not establish authenticity.
 
 [`reproduce_experiment`](../gex_terminal/experiment_manifest.py) verifies the
 input digest and resulting report digest, but does not compare the embedded

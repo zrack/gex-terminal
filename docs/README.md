@@ -28,10 +28,10 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. [GEX-HEALTH-002](work-packets/GEX-HEALTH-002.md) owns configuration and
-offline-health integration; independent experiment, preflight, and research-loop
-slices are isolated on their contributor branches. `GEX-HEALTH-001`, `003`,
-and `005` record merged identity, replay ownership, and chronology repairs.
+active. [GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md) owns experiment-identity
+integration; independent preflight, support, installation and research-loop
+slices are isolated on their contributor branches. `GEX-HEALTH-001`, `002`,
+`003`, and `005` record merged correctness repairs.
 
 ## Start Here By Goal
 

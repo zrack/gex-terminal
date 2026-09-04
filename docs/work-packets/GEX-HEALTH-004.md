@@ -88,6 +88,10 @@ v2 experiment.
 
 ## Evidence
 
+Integration on `main@51ad3a2` preserves all four preceding correctness repairs.
+All 344 integrated tests, source compilation and diff hygiene pass. Hosted
+checks and clean-main verification are required before closing this packet.
+
 - `tests.test_experiment_manifest`: 15 tests passed, including complete v2
   identity, legacy partial identity, predictive-validity and unknown-field
   rejection, result/input drift, CLI status, and no-overwrite coverage.
