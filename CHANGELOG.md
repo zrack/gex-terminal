@@ -11,6 +11,12 @@ claimed.
 
 ### Changed
 
+- Reprioritized the roadmap around application correctness, offline preflight,
+  reuse of existing research packs, and one usable installation path; corrected
+  phase dependencies and separated commercial and empirical research tracks.
+- Added a dated application health review with fresh-install and offline gate
+  evidence, open correctness findings, and terminal-size limitations. These are
+  review findings, not implemented fixes.
 - Refreshed the September 2026 competitive landscape with Nightglass,
   GammaTape, FlashAlpha, current industry evidence, a narrower native-futures
   positioning, and a gated path from research kernel to commercial product.

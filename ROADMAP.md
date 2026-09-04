@@ -6,6 +6,47 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
+Priorities reviewed September 4, 2026 against application version `0.4.0` and
+source commit `8330319`. This is a work-order update; the phases below remain
+conditional plans. [Application Review](docs/application-review.md) owns the
+dated health evidence and open findings.
+
+## Current Work Order
+
+Prioritize correctness of the user's result, then reliable first use, then the
+research workflow. Customer discovery proceeds alongside these engineering
+slices. A priority is a recommendation, not a claim that its work has started;
+an accepted work packet owns implementation status.
+
+| Order | Work | Why now | Completion evidence |
+| --- | --- | --- | --- |
+| 1 — Correctness | Close the application review's confirmed P1 correctness and research-integrity findings | A useful product must preserve the identity and validity of the result before adding delivery features | Each accepted finding has a minimal reproduction, a focused regression, and an explicit rejection or correct result through the public workflow |
+| 2 — Offline preflight | Add an offline `doctor` command and repair any demonstrated install/configuration failures | Users and contributors need to distinguish a broken environment from an unsupported provider | Text/JSON diagnostics work from an installed wheel outside the checkout; invalid base configuration fails; absent optional providers are explained; no connection or secret disclosure occurs |
+| 3 — Complete one research loop | Extend the existing Demo Lab with model comparison and a reproducible review receipt; add a synthetic NQ fixture where needed | Existing replay, export, journal, and experiment tools already provide most of the machinery | One authorized session yields a portable pack with source/model/quality identity, separated position models, and a reproducible result |
+| 4 — Make it usable on a fresh machine | Deliver one guided install and replay journey for the first user segment | Observed activation matters more than another command or panel | One selected distribution path passes install/upgrade checks and users complete the scoped journey without developer help |
+| 5 — Prepare a supported live beta | Finish required local support/lifecycle work and the separate recurring ES certification gate | This converts the validated offline job into a dependable live workflow | Phase 1 support gates, Phase 2 evidence, and Phase 3 entry requirements all pass within a declared scope |
+
+Two tracks can progress alongside that order:
+
+- **Customer evidence — Phase 0:** prepare the interview protocol, comparable
+  concepts, observed tasks, rights questions, and cost model now. Recruitment,
+  interviews, commitments, and provider answers require real participants or
+  owners; a written protocol does not complete those gates.
+- **Live evidence — Phase 2:** prepare the recurrence criteria now and run
+  bounded ES observations when credentials, entitlements, and data-use authority
+  are available. NQ needs independent evidence.
+
+Keep one engineering slice active at a time. Each slice should be reviewable
+and mergeable on its own. A confirmed correctness issue can interrupt feature
+work; an unvalidated feature request cannot.
+
+Before assigning additional provider fixtures, reconcile open
+[Databento issue #5](https://github.com/zrack/gex-terminal/issues/5) with the
+shipped fixture/certification tools and review the existing
+[Tradovate contribution #10](https://github.com/zrack/gex-terminal/pull/10)
+against its linked issue. Avoid a parallel implementation of that contributor's
+scope. This queue cleanup does not outrank the correctness repairs above.
+
 ## Product Destination
 
 Build the auditable, local-first ES/NQ market-structure instrument: a user can
@@ -43,17 +84,18 @@ decision.
 
 ## Priority And Gate Map
 
-Planning ranges describe likely sequence, not delivery commitments. A phase
-advances on its exit evidence, not because a date elapsed.
+Phases describe dependencies, not delivery dates. Phase 0 and bounded offline
+work can overlap; after Phase 3, research evidence and a descriptive paid beta
+can progress in parallel. A phase advances on its exit evidence.
 
 | Phase | Outcome | Can proceed without live data? | Primary gate |
 | --- | --- | ---: | --- |
 | 0 — Now | Prove the customer wedge and qualify or retire the hosted alternative | Yes | Repeated user job, design partners, data-rights path, and paid-pilot intent |
-| 1 — Next | Make the offline research kernel installable and usable as one product | Yes | Clean-machine activation, stable contracts, safe diagnostics, and reproducible evidence pack |
+| 1 — Now/next | Correctness, offline preflight, one research loop, and usable distribution | Yes | Correct results, safe diagnostics, portable evidence, and clean-machine activation |
 | 2 — Parallel external gate | Certify one narrow recurring ES/Databento operating envelope | No | Credential, entitlement, capture authority, exact-run evidence, and predeclared recurrence |
 | 3 | Run a design-partner live beta | Partly | Weekly use, reliable activation, workflow replacement, and no severe trust defects |
-| 4 | Build the governed evidence moat | No for real-session evidence | Licensed corpus, preregistered evaluation, reproducibility, and appropriately narrow claims |
-| 5 | Establish a paid commercial beta | Partly | Distribution/legal readiness, retention, support load, and positive unit economics |
+| 4 — Evidence track | Build the governed evidence moat | No for real-session evidence | Licensed corpus, preregistered evaluation, reproducibility, and appropriately narrow claims |
+| 5 — Commercial track | Establish a paid descriptive-tool beta after Phase 3 | Partly | Distribution/legal readiness, retention, support load, and positive unit economics; predictive success is not a prerequisite |
 | 6 | Expand from proven demand | Depends | Independent symbol/provider evidence and demonstrated user demand |
 
 The recommended counts and thresholds below are hypotheses to predeclare in a
@@ -132,80 +174,87 @@ behind a later hosted product.
 This phase is repository-owned and can proceed using synthetic, sanitized, and
 rights-cleared inputs.
 
-### Slice 1A — Stable contract and evidence pack
+### Slice 1A — Correct results and offline preflight
 
-- Define supported read-only Python objects for normalized events, provider and
-  quality state, model profiles, snapshots, comparisons, and experiment
-  artifacts.
-- Publish compatibility, schema-version, deprecation, and migration policies.
-- Add golden contract tests that load artifacts across the declared supported
-  version boundary.
-- Keep mutable state ownership inside the existing consumer; public interfaces
-  must not bypass validation or introduce alternate semantics.
-- Generate one complete shareable evidence pack from a session without asking
-  the user to assemble multiple command outputs.
+Land correctness repairs in focused changes before building on affected output.
+Use the [application review](docs/application-review.md) for reproductions and
+acceptance targets, then add an independent `doctor` slice:
 
-Exit this slice when the public contract and artifact compatibility tests pass
-across the declared version boundary and a second clean environment can verify
-the one-action evidence pack.
+- Check package/Python identity, bundled resources, configuration validity,
+  optional SDK presence, selected provider/readiness, and local storage access.
+- Produce concise text and versioned JSON with useful exit codes. Distinguish
+  broken base installation from an absent optional provider.
+- Keep the command offline with no persistent application-state changes. A
+  writable-storage probe may create and remove its own temporary file in the
+  selected directory; it must not alter existing research or credentials.
+  Report live authentication and entitlements as unverified; file or SDK
+  presence cannot establish them.
+- Reuse central redaction and exclude credentials, account IDs, and raw data.
 
-### Slice 1B — Guided offline journey
+Exit when corrected inputs preserve symbol/model/source identity, invalid
+configuration fails visibly, and an installed wheel can run the preflight from
+an arbitrary directory with no network calls or secret-bearing output.
 
-- Reorganize the visible product around Today, Explain, Compare, Replay, and
-  Review while preserving backward-compatible CLI entry points.
-- Make model disagreement, input quality, and provenance primary surfaces.
-- Let a user drill from a wall, flip, or profile change to the contributing
-  contracts and assumptions.
-- Add a guided first run and an offline `doctor` workflow for version, optional
-  dependencies, configuration, storage, and local resource readiness.
+### Slice 1B — One portable research loop
 
-Exit this slice when a clean user reaches the first replay insight in under ten
-minutes and completes Today/Explain/Compare/Replay/Review in under fifteen
-minutes without repository checkout or developer help.
+- Extend the existing `demo-lab` and experiment/report tools with separated
+  model comparison and a review receipt; avoid creating a competing pack format.
+- Add a dedicated synthetic schema-v2 NQ replay and ensure symbol/multiplier
+  identity remains consistent across the chosen replay and generated pack.
+- Bind the pack to authorized inputs, application/model version, assumptions,
+  quality, and stable content identities. Carry evidence limits into every
+  artifact that can leave the application.
+- Expose only the read-only snapshot, quality, or comparison objects required
+  by this workflow. Keep new Python interfaces experimental until their shape
+  is exercised; declare support and compatibility for any exported schema.
+- Preserve consumer state ownership and existing immutable research identities.
 
-### Slice 1C — Local lifecycle and supportability
+Exit when one action produces the scoped pack and another clean environment
+reproduces its semantic results. Tests must reject incompatible versions,
+changed inputs, and mislabeled symbol/model state. A broad public SDK is not
+required to complete this slice.
 
-- Extend `doctor` to cover credential-store availability, provider selection,
-  and entitlement-readiness checks without opening an unauthorized connection.
-- Use a platform credential-store abstraction where supported; never move
-  secrets into an artifact or support bundle.
-- Add a redacted support bundle with application version, configuration shape,
-  readiness state, recent bounded diagnostics, and artifact identities.
-- Define clean uninstall and local-data deletion behavior.
+### Slice 1C — Install and guided journey
 
-#### Indexed local data
+- Select one installation path using Phase 0 user evidence; use the existing
+  wheel as the technical baseline. Packaging correctness can be checked now.
+- Verify install, upgrade, failed upgrade, rollback, and uninstall on the
+  explicitly supported platform(s), preserving compatible local artifacts.
+- Guide Today, Explain, Compare, Replay, and Review through existing tools,
+  adding only the navigation and drill-down needed for the chosen job.
+- Make model disagreement, input quality, and provenance visible. Test normal
+  and small terminal sizes and declare a usable minimum size.
 
-- Add an indexed local catalog for derived sessions, experiment metadata,
-  model versions, tags, and quality states; raw licensed data remains governed
-  separately.
-- Add explicit migrations, backup/restore, retention enforcement, and deletion
-  tests.
-- Preserve append-only experiment and corpus identity while allowing indexes
-  and disposable derived views to be rebuilt.
+Technical packaging acceptance precedes observed user acceptance. Exit when a
+new user installs without a checkout, reaches a replay insight in under ten
+minutes, and completes the scoped loop in under fifteen minutes without
+developer help. These times are proposed user-study thresholds, not existing
+measurements. Full desktop redesign, multiple installers, and automatic
+updating are separate demand-driven decisions.
 
-Exit this slice when migrations, backup/restore, retention, and deletion pass
-from supported prior states and a generated support bundle contains no
-credential, account identifier, raw licensed payload, or configured sensitive
-value.
+### Slice 1D — Beta support and local lifecycle
 
-### Slice 1D — Supported distribution
+- Add a redacted support bundle containing version, configuration shape,
+  readiness, bounded diagnostics, and artifact identities.
+- Define credential storage and removal for the selected provider/platform;
+  route any credential-store implementation under the existing change profile.
+- Verify recovery, backup/restore, retention, and deletion for the file-based
+  artifacts actually supported by the beta. Preserve append-only identities.
+- Specify what uninstall removes and what research data requires explicit
+  deletion. Keep raw licensed data governed separately.
 
-- Choose the smallest supported release path based on Phase 0 users: PyPI,
-  Homebrew, a signed standalone application, or a limited combination.
-- Produce checksummed/signed artifacts, a release channel, upgrade and rollback
-  behavior, and clean-machine smoke tests.
-- Test first install, upgrade with existing sessions, failed upgrade, rollback,
-  and uninstall on every supported platform.
-
-Exit this slice when a non-developer installs without repository checkout,
-upgrade and rollback preserve compatible settings and research identities, and
-the full clean-install matrix passes on every supported platform.
+Exit when supported recovery/lifecycle paths pass and support output contains
+no credential, account identifier, raw licensed payload, or configured sensitive
+value. An indexed database/catalog and generalized migration framework move to
+Phase 4 only if observed retrieval or scale needs justify them.
 
 ### Phase exit
 
-Phase 1 completes only after slices 1A through 1D pass in order. Each slice is
-independently reviewable and releasable; failure in a later slice does not erase
-the evidence from an accepted earlier slice.
+Phase 1 completes after all four slices pass. Correctness repairs precede any
+workflow that consumes affected results. Preflight and packaging investigation
+can proceed independently; the guided journey consumes the accepted research
+loop and a working installation path. Support/lifecycle work is required before
+supported live beta use. Customer discovery runs alongside these slices.
 
 ## Phase 2 — Narrow Live ES Certification
 
@@ -276,7 +325,7 @@ workflow rather than merely a technically successful connection.
 ### Work
 
 - Before onboarding a design partner, establish a signed beta agreement,
-  privacy and telemetry notice with explicit consent, data-handling promises,
+  privacy notice, explicit consent for any optional telemetry, data-handling promises,
   risk disclaimer, security/vulnerability path, support limits, and incident
   contact. Phase 5 can harden these for paid scale; it cannot introduce them
   after live use begins.
@@ -291,7 +340,8 @@ workflow rather than merely a technically successful connection.
   webhook/chart bridge before building another full charting surface.
 - Add background operation, bounded recovery, user-visible incident state,
   and redacted diagnostics.
-- Add opt-in, privacy-safe product analytics for activation and workflow use;
+- Measure activation and workflow use through observed sessions and weekly
+  reviews first. If needed, add opt-in, privacy-safe product analytics;
   never collect raw market data, credentials, private research, or trade/account
   activity by default.
 - If Phase 0 keeps the hosted alternative viable and written data rights permit
@@ -304,9 +354,10 @@ workflow rather than merely a technically successful connection.
 
 ### Exit gate
 
-- Every participant has the applicable beta agreement and telemetry consent;
-  support, incident, security, risk, and data-handling commitments were usable
-  throughout the pilot.
+- Every participant has the applicable beta agreement; telemetry consent is
+  required only when optional telemetry is enabled. Non-consenting users can
+  participate with observed sessions and reviews. Support, incident, security,
+  risk, and data-handling commitments were usable throughout the pilot.
 - At least five design partners use the product weekly for four consecutive
   weeks.
 - At least 80% install and connect without developer intervention.
@@ -319,10 +370,13 @@ workflow rather than merely a technically successful connection.
 
 ### Product decision
 
-Compare these results with the time-boxed hosted-cockpit pilot. Choose the hosted
-path only if its activation, four-week retention, and willingness to pay are
-materially stronger and the data-rights economics remain viable. Otherwise
-continue with the local professional product.
+If the hosted-cockpit pilot qualified and ran, compare its results with the
+local beta. Choose the hosted path only if its activation, four-week retention,
+and willingness to pay are materially stronger and the data-rights economics
+remain viable. Continue locally only when the local beta meets its own gates.
+If Phase 0 retired the hosted alternative or its rights gate prevented a pilot,
+decide between continuing the validated local product and narrowing/stopping;
+do not assume evidence from an unrun comparison.
 
 - **Local wins:** retain the current product vision and use the local-path
   commercial offer in Phase 5.
@@ -338,12 +392,23 @@ continue with the local professional product.
 **Purpose:** learn what the models describe and whether any narrow outcome claim
 survives point-in-time evaluation.
 
+Rights-authorized collection can begin during Phase 2 once the applicable
+capture gate passes. This evidence track can continue alongside Phase 5. A paid
+descriptive research tool does not require a successful predictive study;
+predictive or execution claims do require their corresponding evidence.
+
 ### Work
 
 - Build a licensed corpus spanning volatility, expiry, event, overnight, trend,
   range, and data-quality regimes.
+- Add an indexed catalog only if observed search or scale needs exceed the
+  existing stores. Keep it rebuildable from canonical artifacts and test any
+  required migrations, backup/restore, retention, and deletion separately.
 - Register immutable train, calibration, and untouched test identities before
   evaluating outcomes.
+- Define when corpus membership requires an `as_of` cutoff and distinguish
+  source registration from eligibility for point-in-time evaluation. A passing
+  corpus integrity check alone cannot establish evaluation eligibility.
 - Externally sign or anchor corpus and manifest identities. Existing unkeyed
   hashes establish internal consistency, not source authenticity or historical
   immutability.
@@ -373,6 +438,10 @@ survives point-in-time evaluation.
 **Purpose:** test whether product value exceeds distribution, data, and support
 costs without weakening the evidence contract.
 
+Entry requires the accepted Phase 3 product decision, supported live scope and
+beta workflow, and the commercial requirements below. Phase 4 may still be in
+progress; its unmeasured outcomes must remain unclaimed.
+
 ### Local-path offer hypothesis
 
 This offer applies only if the Phase 3 decision selects the local professional
@@ -395,8 +464,9 @@ phase begins.
   commercial terms; add refunds and vendor obligations and obtain the
   appropriate professional review.
 - Add payment and entitlement only after Phase 0 and Phase 3 price evidence.
-- Operate signed release channels, auto-update or guided update, migrations,
-  rollback, support bundles, and a vulnerability/incident process.
+- Operate the release, update/rollback, support, and local-data lifecycle accepted
+  in Phase 1; harden signing, channel access, vulnerability response, and incident
+  operations for the selected commercial offer.
 - Measure activation, active use, retention, cancellation reason, support time,
   infrastructure, vendor fees, payment costs, and refunds.
 - Keep marketing claims linked to the live, empirical, and commercial evidence
@@ -490,11 +560,22 @@ phase uses them as a gate.
 
 ## Immediate Continuation Point
 
-The next governed product packet should own Phase 0 only: interview protocol,
-two comparable prototypes, acceptance tasks, data-rights matrix, commercial
-hypotheses, metric definitions, and the product-path decision. Phase 1 can begin
-with reversible contract and clean-install work, but should not choose a broad
-distribution surface before Phase 0 identifies the first user and buying model.
+The next engineering packet, proposed as `GEX-HEALTH-001`, should cover H1
+instrument identity and multiplier metadata from the
+[application review](docs/application-review.md) only. Queue H2 health output,
+H3 replay lifecycle, H4 experiment identity, and H5 event chronology as separate
+bounded repair slices with their own reproductions and regressions. Finish this
+correctness sequence before extending the affected research workflows.
+
+The subsequent `GEX-PREFLIGHT-001` proposal covers the offline diagnostic command
+in Slice 1A. These proposals do not include a database, public API freeze, new
+provider, or UI rewrite, and become active only when individually routed.
+
+In parallel, a separate Phase 0 packet should own the interview protocol,
+two comparable prototypes, acceptance tasks, data-rights questions, commercial
+hypotheses, metric definitions, and qualification or retirement of the hosted
+comparator. The final product-path decision remains in Phase 3. Prepare these
+materials without treating customer commitments or provider answers as given.
 
 The existing credentialed ES observation remains a separate external evidence
 gate under Phase 2. Do not hold customer discovery or offline product design
