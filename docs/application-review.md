@@ -1,300 +1,97 @@
 # Application State And Health Review
 
-Reviewed September 4, 2026 against source commit `8330319` and package version
-`0.4.0`. This document owns the latest dated review findings and verification
-record. [Architecture](architecture.md) owns current structure;
-[Roadmap](../ROADMAP.md) owns work order and acceptance gates. Refresh this
-review in place; Git preserves earlier assessments.
+Reviewed September 4, 2026 for `0.5.0 — Offline Research Foundation`. This
+document owns the dated state assessment and verification limits.
+[Architecture](architecture.md) owns implementation structure;
+[Roadmap](../ROADMAP.md) owns remaining work. Earlier assessments remain in Git.
 
 ## Assessment
 
-The application is a substantial offline research alpha. Its numerical,
-provider-fixture, replay, packaging, and report checks pass, and a fresh wheel
-installation works outside the checkout. Five correctness findings need repair
-before expanding the affected workflows: instrument metadata, health reporting,
-replay isolation, experiment metadata verification, and replay event chronology.
-The instrument-identity repair is now implemented under `GEX-HEALTH-001`;
-the remaining findings retain their open status below.
-Small-terminal usability also needs attention. Passing the current tests does
-not cover these cases.
+The application is an offline research alpha with corrected result identity,
+fail-closed configuration, isolated replay replacement and verifiable portable
+research packs. All five P1 correctness repairs are merged. Compact-terminal
+support and the offline product foundation are undergoing final integrated
+release verification under [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md).
 
-No credentialed provider observation, real-user study, or commercial pilot was
-performed in this review. Databento remains `live-uncertified`; predictive
-validity remains `unmeasured`.
+No credentialed provider observation, real-user activation study, customer
+commitment or commercial pilot was performed. Databento remains
+`live-uncertified`; predictive validity remains `unmeasured`. The next product
+evidence is observed use of the offline loop, not another broad feature layer.
 
-## Current State
+## Current state
 
-| Area | Observed state | Practical meaning |
+| Area | Observed state | Limit |
 | --- | --- | --- |
-| Research engine | Contract-aware Black-76/Black-Scholes and separate OI, raw-volume, and directionalized-volume paths exist; numerical/property checks pass | A working calculation and comparison foundation, with open workflow defects below |
-| Offline experience | Ten bundled replay scenarios, provider fixture lab, snapshots, overlays, journals, session stores, experiments, corpus tools, and a 12-artifact Demo Lab | Extend these tools into one usable loop; a new evidence-pack subsystem is unnecessary |
-| Terminal | Demo/replay renders, keyboard replay controls and model controls are covered by tests; smaller layouts lose key content | Usable large-terminal research surface; first-use and responsive-layout work remains |
-| Distribution | Source and wheel build; fresh Python 3.12 wheel install and offline commands pass | Packaging exists; a supported installer/update channel and observed non-developer activation remain future work |
-| Local checkout | Source-module invocation works; the existing `.venv/bin/gex-terminal` launcher raises `ModuleNotFoundError` | A local environment fault, distinguished from the successful fresh wheel installation |
-| Live inputs | Databento implemented but uncertified; Tradovate and IBKR scaffolded; yfinance delayed; demo/replay offline-certified | No supported recurring live ES/NQ operating envelope is established |
-| Commercial readiness | No customer/retention/payment evidence is supplied by the repository checks | Phase 0 discovery and the later beta gates remain necessary |
+| Model and state | Contract-aware Black-76/Black-Scholes with separate OI, raw-volume and directionalized-volume paths | Numerical correctness does not establish dealer inventory or forecasting value |
+| Replay and identity | Eleven bundled scenarios including NQ ×20 schema-v2; catalog identity, actual/fallback multipliers and accepted-event chronology are explicit | Synthetic fixtures do not establish provider support for ES or NQ |
+| Research loop | Existing Demo Lab extended to a 20-file portable pack, input copy, three-model ladder and versioned receipt | Strict inventory/runtime compatibility; unkeyed hashes are not signatures |
+| Terminal | Compact layout at 140×42+, larger view at 180×54; smaller sizes show guidance; resize preserves state | Not a mobile interface or unaided usability study |
+| Preflight | Offline doctor checks package, resources, config, provider structure and temporary storage with text/JSON exit status | No live authentication, entitlements, SDK behavior or market-quality check |
+| Distribution | Reviewed wheel path, cross-version pack check, lifecycle harness and guided journey | Customer distribution choice and observed activation remain open |
+| Local launcher | Regular 0.5.0 wheel replaces the faulty editable install; version and doctor succeed | The original macOS hidden `.pth` condition is diagnosed, not claimed permanently fixed for editable installs |
+| Support and lifecycle | Redacted diagnostics; verified owner-only backup/restore; whole-group retention bound to a verified backup and exact confirmation | POSIX safety support only; no general database, automatic migration or licensed-capture lifecycle claim |
+| Product preparation | Study kit, matched paper concepts, scorecard, rights questions and scenario worksheet prepared | No demand, price, margin, license or conversion measurement |
+| Live preparation | Strict local plan/result contracts bind a declared 12-slot ES population, policy/runtime identity and failed/missed attempts | No execution, report-byte authentication, complete-history proof or external authority |
+| Live readiness | Databento uncertified; Tradovate/IBKR scaffolded; yfinance delayed | No supported recurring live operating envelope |
 
-At review time, GitHub also has open provider-fixture issues #4/#5 and
-[PR #10](https://github.com/zrack/gex-terminal/pull/10) for Tradovate payload
-validation. The PR returned no check results in this inspection; its code has
-not been accepted as part of this review. Reconcile that queue with current
-source before assigning duplicate adapter work.
+## Findings and repair evidence
 
-## Findings And Repair Status
+The original reproductions and implementation evidence belong to the named
+packets rather than being duplicated here.
 
-P1 means a correctness repair should precede new work that depends on the
-affected result. P2 means a material usability or maintainability issue. These
-findings are open unless explicitly marked resolved with regression evidence.
-
-### H1 — Resolved: Instrument identity and multiplier provenance
-
-Repair: seeded non-ES demos fail before creating an artifact; bundled replays
-resolve their instrument through one catalog contract. Snapshot v2 now labels
-its compatibility multiplier as configured fallback and records the effective
-multiplier(s), selected contract identities, and fallback use. Consumer,
-snapshot, injection, and public replay-identity tests cover ES/NQ selection,
-SPY ×100 and heterogeneous rows. The following describes the original defect;
-it is not current behavior. See [GEX-HEALTH-001](work-packets/GEX-HEALTH-001.md).
-
-`GEX_SYMBOL=NQ gex-terminal --demo --export nq-demo.json` exits successfully
-with `symbol=NQ`, `spot=5943.25`, and `contract_multiplier=50`. The same fixed
-ES demonstration prices and strikes are used regardless of the requested
-symbol. The exported model is also explicitly `legacy_v1`/`black_scholes`, so
-this does not exercise the contract-aware native NQ path.
-
-The symbol and default multiplier are independently configured in
-[`config.py`](../gex_terminal/config.py); the unconditional seed is in
-[`seed_demo_session`](../gex_terminal/cli.py). Selecting a symbol must not relabel
-another instrument's sample data. A synthetic fixture is still required to have
-truthful identity.
-
-Repair acceptance: reject unsupported demo symbols or provide symbol-specific
-synthetic inputs and correct defaults. Exercise the public CLI, exports, and
-screenshots for ES and NQ. Keep a dedicated schema-v2 NQ scenario distinct from
-this legacy demo. Do not infer live NQ support from that fixture.
-
-There is a separate schema-v2 metadata case in the same instrument-profile
-boundary: `inject-provider bundled:yfinance-etf-options --export spy.json`
-prices SPY contract rows with their multiplier 100 but exports the fallback
-`contract_multiplier=50`. The row pricing is distinct from the incorrect
-top-level description. See [`provider_injector.py`](../gex_terminal/provider_injector.py)
-and [`yfinance_adapter.py`](../gex_terminal/adapters/yfinance_adapter.py).
-Repair acceptance also requires exports to distinguish fallback assumptions
-from the actual row multipliers, including mixed-contract cases.
-
-### H2 — Resolved: Fail-closed configuration and truthful offline health
-
-Repair: every configuration construction/replacement validates numeric domain
-and finiteness; malformed environment/CLI values fail without raw-value echo.
-Consumer and feed-quality entry points defend stale thresholds. UI assumption
-changes validate before mutating the engine. Injection exports and fixture-lab
-reports explicitly carry offline/no-network origin, `REPLAY`, `DISCONNECTED`,
-and simulated/degraded health. Scripted live-lifecycle fault tests remain
-unchanged. See [GEX-HEALTH-002](work-packets/GEX-HEALTH-002.md). The following
-describes the original defect.
-
-The normal offline command
-`inject-provider bundled:yfinance-etf-options --export spy.json` emits
-`status=LIVE`, `data_mode=LIVE`, `connection_state=CONNECTED`, and
-`health=healthy`. [`provider_injector.py`](../gex_terminal/provider_injector.py)
-creates a live-mode consumer and marks it connected to exercise mapping, then
-exports that simulated state without a distinct offline runtime label. No
-network connection was opened; the artifact also contains fixture provenance.
-Users should not have to resolve these contradictory status fields.
-
-Repair acceptance: retain a visible offline/simulated origin in injection
-artifacts and CLI summaries, and keep mapping quality separate from observed
-live connection or provider readiness. Test the complete public export.
-
-The second failure is stale detection under invalid configuration:
-
-[`_env_float`](../gex_terminal/config.py) accepts `nan` and `inf`;
-[`runtime_status`](../gex_terminal/consumer.py) uses the resulting stale limit
-without a finite/domain check. With `GEX_STALE_AFTER_SECONDS=nan`, a simulated
-connected live consumer whose last message is one day old reports `LIVE` and
-`health=healthy`. This was reproduced offline through the installed wheel.
-
-The integer/float parsers also silently replace malformed numeric strings with
-defaults. Invalid input can therefore produce plausible behavior instead of a
-clear configuration error.
-
-Repair acceptance: validate finite values and allowed ranges before runtime or
-export starts, including direct construction and CLI overrides where applicable.
-Reject invalid timing, rate, multiplier, and expiry values with an actionable
-error. A stale source must never become healthy because of an invalid setting.
-Keep intentionally optional values distinct from malformed ones.
-
-### H3 — Resolved: Replay replacement settles the previous writer
-
-Repair: the CLI passes its writer task to the terminal, which serializes
-replacement and cancels/awaits the old source before reset. Fixed-delay and
-event-clock tests exercise the full CLI-to-interactive path and prove an old-only
-strike cannot enter the new session. A failed writer blocks replacement and is
-reported at shutdown. [GEX-HEALTH-003](work-packets/GEX-HEALTH-003.md) owns the
-repair evidence. The following records the original defect.
-
-The interactive CLI starts an adapter task in
-[`cli.py`](../gex_terminal/cli.py), while the TUI's
-[`_load_replay_session`](../gex_terminal/tui.py) resets the consumer and loads a
-new replay without settling that task. Replay switching is enabled whenever
-capture is inactive, including while the original replay is still streaming.
-
-An offline reproduction starts a three-record slow ES replay whose final
-record has a unique strike, switches to `zero-gamma-flip` after two records,
-then lets the old task finish. The selected replay stays
-`es_zero_gamma_flip.jsonl`, but the consumer message count rises from 13 to 14
-and the old-only strike `9999` appears in its chain.
-
-Repair acceptance: give replay lifecycle one owner. Cancel and await the old
-writer before reset/replacement, or explicitly block switching while it owns
-the consumer. A public interactive-path regression must prove that no prior
-session record arrives after the new session is selected, including delayed
-and event-clock replay. Existing idle-consumer switch tests are insufficient.
-
-### H4 — Resolved: Experiment reproduction validates complete identity
-
-Repair: versioned v2 manifests bind the full normalized specification, profile,
-input, implementation, evidence policy and semantic result. Reproduction rejects
-inconsistent or unsupported records before execution and refuses nonempty output
-directories. V1 records retain an explicit `legacy_partial` ceiling rather than
-claiming complete historical identity. Focused tamper, compatibility and
-no-overwrite regressions are recorded in
-[GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md). The following describes the
-original defect; unkeyed hashes still do not establish authenticity.
-
-[`reproduce_experiment`](../gex_terminal/experiment_manifest.py) verifies the
-input digest and resulting report digest, but does not compare the embedded
-model profile against the recorded `profile_sha256` or bind the complete
-experiment specification to an expected identity.
-
-The minimal confirmed probe changes its embedded `profile_id` and changes
-`split` from `test` to `train`, leaving the original profile hash unchanged.
-Reproduction still reports `matched=true` and writes a different profile hash
-alongside the same report digest. Metadata that does not
-change the calculation can therefore be silently relabeled as a successful
-reproduction. A matching report alone cannot establish an unchanged experiment.
-
-Repair acceptance: verify recorded profile and full specification identities
-before execution. Define which metadata is informational versus bound to the
-experiment, and reject inconsistent records or require a new experiment
-identity. Test profile, split, outcome, cost, and implementation compatibility
-independently from input/result parity. These checks establish internal
-consistency; authenticity still requires separate signed or anchored evidence.
-
-### H5 — Resolved: Replay chronology follows accepted state
-
-Repair: consumer updates return explicit acceptance. Replay reports skip
-analytical points for rejected input, retain a separate raw-input audit, and
-align snapshot time with model as-of. Regressions cover off-symbol, malformed,
-duplicate, conflicting-identity and regressed-time records, untimed legacy
-labels, and journal persistence. [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md)
-owns verification. The following describes the original defect.
-
-[`analyze_replay_session`](../gex_terminal/replay_lab.py) records incoming
-metadata before consumer validation and creates a timeline point after each
-message once state exists, including rejected messages. Its final snapshot time
-comes from the last input timestamp, independently of the model's accepted
-`as_of`.
-
-In a synthetic ES session valid through `2026-08-01T14:00:02Z`, a later NQ tick
-at `2026-08-02T15:00:00Z` is correctly dropped by the consumer. The replay report
-nevertheless adds a timeline row for that dropped event and dates the final
-snapshot at the NQ timestamp; `model.as_of` still records the earlier ES time.
-
-Repair acceptance: separate the raw input audit trail from accepted-state
-timeline points. Use accepted event time for the analytical snapshot and do not
-attribute model transitions to dropped events. Test late off-symbol, malformed,
-and rejected records after a valid chain already exists, including downstream
-journal/report use.
-
-### H6 — P2: Small terminal layouts hide the core research view
-
-Offline screenshots were inspected at 180×54, 120×40, and 80×24 terminal cells.
-The large view shows the strike matrix. At 120×40 its headers remain but data
-rows are clipped from the initial view; at 80×24 the matrix/structure area
-disappears and metric labels truncate.
-
-[`gex_terminal.tcss`](../gex_terminal/gex_terminal.tcss) fixes side columns at
-20 and 40 cells and assigns 9, 10, and 7 rows around the remaining matrix row.
-The fixed portions consume the available space at smaller sizes. Current
-screenshot tests verify generation, not access to core content.
-
-Repair acceptance: reflow or scroll the layout, or show a clear minimum-size
-message. Test actual visibility/access to the strike table, quality, and replay
-controls at declared supported sizes. A nonempty SVG alone is insufficient.
-
-## Other Limits And Open Contract Questions
-
-- **Portability:** experiment output records an absolute `source_root` and emits
-  a report plus manifest, without bundling its input. Reproduction still needs
-  access to that original source location. The portable research loop in
-  Phase 1 must provide rights-aware source resolution and inspect manifests for
-  local path disclosure before sharing. This is a product gap, not a new claim
-  that local reproduction is broken.
-- **Corpus cutoff scope:** registration accepts an omitted `as_of`, stores
-  `null`, and passes corpus verification. The registration contract checks
-  membership/integrity; the reviewed documentation does not clearly require a
-  cutoff for every kind of registered source. Clarify the boundary with the
-  point-in-time research invariant before empirical use. This is a contract
-  question, not a confirmed instance of future data entering an evaluation.
-
-## Verification Record
-
-Local environment: macOS 26.6 ARM64, CPython 3.12.13. Commands used the source
-environment for regression and a separate temporary virtual environment for
-fresh-wheel checks. Temporary generated artifacts were kept outside the
-repository. No production data, credentials, or provider connections were used.
-
-| Check | Result | Boundary |
+| Finding | Status and acceptance evidence | Owner |
 | --- | --- | --- |
-| Compile and full regression suite | 297 tests passed | Existing tests do not cover H1–H6 |
-| Dependency consistency | `pip check` passed in source and fresh environments | Dependency resolution consistency; no vulnerability audit claimed |
-| Source/wheel build and metadata | Both distributions built; Twine passed | Build used installed build tools with `--no-isolation` |
-| Fresh wheel, arbitrary working directory | Version, replay catalog, replay export, fixture lab, Demo Lab, and screenshot commands passed | Python 3.12 on this Mac; cross-platform UX/installer support is unmeasured |
-| Provider fixture lab | 5/5 passed, 2 intentionally degraded | Provider-shaped offline fixtures only |
-| Demo Lab | 12 artifacts generated | Existing pack baseline; no customer acceptance claim |
-| Numerical evidence | Passed | Formula/pipeline checks; predictive validity unmeasured |
-| Model property checks | 7/7 passed | Deterministic properties and input cases |
-| Provider fault checks | 7/7 passed | Scripted faults; live transport false |
-| Databento offline certification | Passed | Offline path only; live transport false |
-| Generated-chain performance | Passed at 100 contracts | Broad regression budgets, not a capacity benchmark |
-| Terminal inspection | Three sizes inspected; H6 observed | Automated synthetic rendering, not a user study |
-| Adversarial review probes | H1–H5 reproduced | Targeted cases beyond the existing suite |
+| H1 — Instrument identity/multiplier provenance | Resolved: reject mislabeled legacy demos; bind catalog identity; expose actual versus configured fallback multipliers, including heterogeneous rows | [GEX-HEALTH-001](work-packets/GEX-HEALTH-001.md) |
+| H2 — Invalid config/offline health | Resolved: finite/domain validation across config/CLI/UI and stale guards; injection explicitly replay/disconnected/simulated | [GEX-HEALTH-002](work-packets/GEX-HEALTH-002.md) |
+| H3 — Replay writer contamination | Resolved: cancel and await prior writer before reset; full interactive CLI regressions for fixed/event clocks and failure | [GEX-HEALTH-003](work-packets/GEX-HEALTH-003.md) |
+| H4 — Experiment metadata relabeling | Resolved: complete v2 identity before reproduction; legacy partial status; reject unknown/inconsistent fields and nonempty targets | [GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md) |
+| H5 — Rejected-input chronology | Resolved: analytical points follow accepted updates; raw input audit separated; snapshot/model time agree | [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md) |
+| H6 — Clipped small terminal | Implemented: visibility checks at supported sizes, explicit minimum message below them and state-preserving resize | [GEX-INSTALL-001](work-packets/GEX-INSTALL-001.md) |
 
-The 100-contract performance observation was approximately 1,609 normalized
-records/second, 13.6 ms per snapshot, and 0.664 MiB peak traced memory, against
-the existing smoke budgets of 5 records/second, 5,000 ms, and 512 MiB. This is a
-single local generated workload; it does not establish exchange latency,
-production memory use, sustained throughput, or live capacity.
+These are scoped regression results, not a claim that the application has no
+other defects. Source and tests were inspected together; runtime boundaries
+remain explicit.
 
-## Reproduce The Review
+## Compatibility and remaining limits
 
-Use the contributor setup and verification commands in
-[Contributing](../CONTRIBUTING.md). In an installed environment outside the
-checkout, the relevant offline public workflows are:
+- **Portable versus private:** Demo Lab copies its authorized synthetic source.
+  Standalone experiments can still reference external private inputs; backing
+  up their output directory does not preserve those external inputs or make
+  the experiment shareable.
+- **Runtime:** receipt compatibility is an explicit allowlist and also binds
+  Python major/minor and dependency versions. Same-version hashes alone do not
+  guarantee parity after a correctness change; reproduction compares results.
+- **Corpus:** omitted `as_of` can be valid registration metadata, but corpus
+  verification reports evaluation eligibility `not_assessed`. Empirical use
+  requires the source-specific cutoff/availability gates in
+  [Research Governance](research-governance.md).
+- **Provider queue:** [Good First Issues](good-first-issues.md) records the
+  September 4 issue/PR reconciliation. Tradovate PR #10 remains unaccepted; its
+  fixture assertion and unsupported access claims require contributor changes.
+- **Customer/live gates:** prepared protocols are not observations. The
+  [Product Validation](product-validation.md) kit and prepared
+  [GEX-LIVE-002](work-packets/GEX-LIVE-002.md) packet do not authorize external
+  commitments, credentials, retention or readiness promotion.
 
-```bash
-gex-terminal --version
-gex-terminal list-replays
-gex-terminal --replay-session trend-day --export snapshot.json
-gex-terminal fixture-lab fixtures.json
-gex-terminal demo-lab demo --replay-session zero-gamma-flip
-gex-terminal model-evidence numerical.json
-gex-terminal model-property-certify properties.json
-gex-terminal provider-fault-certify faults.json
-gex-terminal databento-offline-certify databento.json --symbol ES --multiplier 50
-gex-terminal performance-certify performance.json --performance-contracts 100 \
-  --minimum-ingest-rps 5 --maximum-snapshot-ms 5000 --maximum-peak-mb 512
-gex-terminal --demo --screenshot compact.svg --screenshot-width 120 --screenshot-height 40
-gex-terminal --demo --screenshot small.svg --screenshot-width 80 --screenshot-height 24
-```
+## Verification record
 
-Run the commands in a new scratch directory so they do not overwrite existing
-research. All confirmed H1–H5 probes should become regressions in their
-respective repair changes; they are not covered by rerunning only the current
-suite.
+Local environment: macOS ARM64, CPython 3.12.13. Generated inputs and artifacts
+are synthetic and retained in disposable directories outside the repository.
+Package dependency downloads are not market-data connections.
 
-The [roadmap work order](../ROADMAP.md#current-work-order) places P1 correctness
-repairs ahead of new features, then proceeds to offline preflight, a complete
-research loop, guided installation, and supported live beta work. H6 belongs
-to the guided-journey slice. Customer discovery can proceed alongside repairs.
+| Check | Verified result | Boundary |
+| --- | --- | --- |
+| Correctness merged main | PRs #20–#24; clean main `2029f29` passed 344 tests and compilation; four hosted Python 3.11/3.12 checks passed per PR | Historical correctness baseline, not final release total |
+| Portable-loop integration | Contributor passed 349 tests, numerical/offline-provider gates and fresh-wheel copied-pack reproduction | Twenty artifacts and five decision hashes; synthetic only |
+| Cross-version pack | Actual 0.4.0 contributor receipt verified/reproduced under 0.5.0 with matching source/model/content | Same Python 3.12 and NumPy/Textual runtime; original tagged 0.4.0 legacy packs are not upgraded |
+| Doctor contribution | 52 focused / 335 branch tests, distributions/Twine, isolated normal/invalid/missing-base checks | Branch baseline differs; final integrated total below |
+| Compact terminal | Screenshots inspected at 140×42 and 80×24; visibility/resize regressions passed | Not a user study |
+| Integrated release branch | 419 tests, compilation and 202 local documentation links passed; numerical, property, offline-provider, fault and 500-contract performance gates passed | Offline implementation evidence only; hosted/merged-main closeout pending |
+| Distribution lifecycle | Complete feature wheel passed build/Twine and 0.4.0 → 0.5.0 install/upgrade/corrupt-update/rollback/uninstall; all 14 research-file byte identities preserved | macOS ARM64/Python 3.12.13; no arbitrary interrupted-install guarantee |
+
+The complete final release gate and clean merged-tree evidence must be recorded
+before tagging. Follow [Contributing](../CONTRIBUTING.md) for repeatable commands,
+[First Run](first-run.md) for installation, and the individual guides for
+artifact contracts. Run review commands in new scratch directories so existing
+research cannot be overwritten. No dependency vulnerability audit or external
+penetration test is claimed.

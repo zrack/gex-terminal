@@ -16,6 +16,10 @@ class ReplaySession:
     public_ref: str | None = None
     symbol: str = "ES"
     contract_multiplier: int = 50
+    source_kind: str = "synthetic_fixture"
+    rights_status: str = "owned"
+    redistributable: bool = True
+    research_loop: bool = False
 
     @property
     def source_ref(self) -> str:
@@ -83,6 +87,18 @@ REPLAY_SESSIONS: tuple[ReplaySession, ...] = (
         path=str(replay_data_path("es_quality_stress.jsonl")),
         label="Quality Stress",
         description="Valid replay fixture with off-symbol drops and partial chain coverage.",
+    ),
+    ReplaySession(
+        name="nq-research-loop",
+        path=str(replay_data_path("nq_research_loop_v2.jsonl")),
+        label="NQ Portable Research Loop",
+        description=(
+            "Synthetic NQ schema-v2 session with separate open interest, raw "
+            "trade volume, and aggressor-direction evidence."
+        ),
+        symbol="NQ",
+        contract_multiplier=20,
+        research_loop=True,
     ),
 )
 

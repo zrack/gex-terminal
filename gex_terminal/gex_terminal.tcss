@@ -14,12 +14,42 @@ Footer {
     color: #94a3b8;
 }
 
+#minimum-size-message {
+    display: none;
+    height: 1fr;
+    padding: 2;
+    content-align: center middle;
+    color: #fbbf24;
+}
+
+Screen.compact #dashboard {
+    grid-size: 2 4;
+    grid-columns: 1fr 36;
+    grid-rows: 9 1fr 11 5;
+}
+
+Screen.compact #sidebar {
+    display: none;
+}
+
+Screen.compact #structure-panel {
+    overflow-y: auto;
+}
+
+Screen.compact #event-panel {
+    overflow-y: auto;
+}
+
+Screen.compact .quality-card {
+    overflow-y: auto;
+}
+
 #dashboard {
     height: 1fr;
     layout: grid;
     grid-size: 3 4;
     grid-columns: 20 1fr 40;
-    grid-rows: 9 1fr 10 7;
+    grid-rows: 9 1fr 11 7;
     background: #080a0d;
 }
 
@@ -167,6 +197,7 @@ Footer {
 }
 
 .quality-card {
+    overflow-y: auto;
     height: 6;
     border: round #232e3a;
     background: #10151b;

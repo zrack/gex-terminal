@@ -60,6 +60,36 @@ class ReplayLabTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(report["sessions"][1]["summary"]["alert_count"], 0)
         self.assertIn("snapshot", report["sessions"][0])
 
+    async def test_mixed_instruments_are_grouped_and_never_compared(self):
+        report = await build_replay_lab_report(
+            _config(),
+            session_names=("trend-day", "nq-research-loop", "zero-gamma-flip"),
+        )
+
+        self.assertIsNone(report["symbol"])
+        self.assertIsNone(report["inputs"]["contract_multiplier"])
+        self.assertEqual(report["leaderboard"], {})
+        self.assertEqual(
+            {(row["symbol"], row["contract_multiplier"]) for row in report["instruments"]},
+            {("ES", 50), ("NQ", 20)},
+        )
+        self.assertEqual(len(report["comparisons"]), 1)
+        self.assertEqual(report["comparisons"][0]["symbol"], "ES")
+        self.assertEqual(report["comparisons"][0]["contract_multiplier"], 50)
+        self.assertNotIn("nq-research-loop", {
+            report["comparisons"][0]["from_session"],
+            report["comparisons"][0]["to_session"],
+        })
+
+        markdown = replay_lab_to_markdown(report)
+        csv_rows = list(csv.DictReader(io.StringIO(replay_lab_to_csv(report))))
+        self.assertIn("Multiple instrument identities", markdown)
+        session_rows = [row for row in csv_rows if row["record_type"] == "session"]
+        self.assertEqual(
+            {(row["symbol"], row["contract_multiplier"]) for row in session_rows},
+            {("ES", "50"), ("NQ", "20")},
+        )
+
     async def test_formats_replay_lab_markdown_csv_and_json(self):
         report = await build_replay_lab_report(_config(), session_names=("trend-day",))
 

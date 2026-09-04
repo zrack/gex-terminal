@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gex-terminal"
-version = "0.4.0"
+version = "0.5.0"
 description = "Terminal UI for intraday gamma exposure and options market structure."
 readme = "README.md"
 requires-python = ">=3.11"

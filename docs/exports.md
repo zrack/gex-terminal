@@ -11,14 +11,23 @@ Demo Lab writes the most useful offline artifacts into one folder:
 ```bash
 gex-terminal demo-lab demo_lab
 gex-terminal demo-lab demo_lab --replay-session zero-gamma-flip
+gex-terminal demo-lab nq_demo_lab --replay-session nq-research-loop
+gex-terminal demo-lab verify nq_demo_lab
+gex-terminal demo-lab reproduce nq_demo_lab reproduced_nq_demo_lab
 ```
 
 The pack includes a color SVG preview, color-themed Textual terminal screenshot,
 snapshot JSON/Markdown, TradingView overlay JSON/CSV, Replay Lab Markdown/JSON,
-Provider Fixture Lab Markdown/JSON, a local README, and `manifest.json`.
+Provider Fixture Lab Markdown/JSON, raw/directional model-comparison JSON/Markdown/CSV,
+separated OI/raw/directional position-comparison JSON/Markdown/CSV, the exact
+copied synthetic replay, a local README, `manifest.json`, and a review receipt.
 
 Use this when preparing GitHub screenshots, attaching reproducible evidence to
 issues, or onboarding contributors who do not have live market-data access yet.
+Verify a copied pack before review. Reproduction uses its copied input and bound
+model/runtime contract, then compares stable decision-content hashes. The exact
+pack also binds every non-receipt artifact by byte hash. See
+[demo-lab.md](demo-lab.md) for inventory and fail-closed rules.
 
 For interactive first-run review, start `gex-terminal --demo`, press `p` to
 open the replay browser, choose a bundled replay session, then press `e` to
@@ -140,6 +149,10 @@ for every replay session so future model or fixture changes can be compared
 against a baseline. CSV gives spreadsheet-friendly session, alert, and
 comparison rows.
 
+When a selection includes more than one instrument or contract multiplier, JSON
+and Markdown group leaderboards by identity. Comparisons are produced only
+within a matching symbol/multiplier group; there is no ES-versus-NQ delta.
+
 ## Historical Journal Reports
 
 Historical Research Journal reports export selected replay-session studies saved
@@ -239,6 +252,18 @@ model, including coverage, wall distances, sign agreement, strike rank
 correlation, and normalized profile distance. Missing side data returns an
 unscored `insufficient_directional_coverage` result. See
 [model-comparison.md](model-comparison.md).
+
+Point-in-time OI/raw/directional comparisons use a separate report because the
+position sources are parallel proxies and may not be summed:
+
+```bash
+gex-terminal position-model-compare INPUT.json position_comparison.json
+gex-terminal position-model-compare INPUT.json position_comparison.md
+gex-terminal position-model-compare INPUT.json position_comparison.csv
+```
+
+Each format preserves the information cutoff, rejected-future counters,
+model-specific results, pairwise differences, and evidence limitations.
 
 ## Tradovate Certification Reports
 

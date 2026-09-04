@@ -6,10 +6,10 @@ API tokens, session tokens, or private market-data entitlement details.
 
 ## Supported Versions
 
-This project is pre-1.0. The supported source/package version is `0.4.0`, and
-the annotated `v0.4.0` tag identifies its reviewed closeout merge. No published
-PyPI artifact or hosted GitHub Release is claimed. Security fixes target the
-latest `main` branch.
+This project is pre-1.0. The supported source/package version is `0.5.0`.
+Annotated version tags identify verified merged trees; `v0.4.0` remains an
+unchanged historical release. No published PyPI artifact or hosted GitHub
+Release is claimed. Security fixes target the latest `main` branch.
 
 ## Reporting a Vulnerability
 
@@ -35,6 +35,9 @@ Include:
   accept only `CRITICAL`, `ERROR`, `WARNING`, `INFO`, or `DEBUG`; configured CLI
   handlers apply central recursive redaction before formatting output.
 - Prefer demo or replay mode when sharing screenshots or bug reports.
+- Review redacted support bundles before sharing. Private research backups and
+  retention plans are not support attachments; see [Local Support](docs/local-support.md)
+  for their permissions, recovery and explicit-deletion boundaries.
 - Treat captured sessions as potentially licensed market data. The capture
   format stores normalized messages rather than raw provider frames, but that
   does not make the data redistributable.

@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import json
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Iterable
@@ -12,6 +13,13 @@ from gex_terminal.adapters.registry import (
     available_provider_names,
     build_market_data_adapter,
     effective_provider,
+)
+from gex_terminal.artifact_lifecycle import (
+    apply_retention_plan,
+    create_private_backup,
+    create_retention_plan,
+    restore_private_backup,
+    verify_private_backup,
 )
 from gex_terminal.batch_comparison import (
     build_batch_comparison,
@@ -36,6 +44,13 @@ from gex_terminal.databento_offline import (
 from gex_terminal.demo_lab import (
     DEFAULT_DEMO_SESSION,
     build_demo_lab,
+    reproduce_demo_lab,
+    verify_demo_lab,
+)
+from gex_terminal.doctor import (
+    build_doctor_report,
+    doctor_report_to_json,
+    doctor_report_to_text,
 )
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.experiment_manifest import reproduce_experiment, run_experiment
@@ -44,6 +59,15 @@ from gex_terminal.fixture_validator import (
     validate_fixture,
 )
 from gex_terminal.market_data_adapter import AdapterConfigurationError
+from gex_terminal.live_population_contract import (
+    LIVE_POPULATION_RESULT_SCHEMA,
+    LivePopulationContractError,
+    live_population_plan_identity,
+    live_population_result_identity,
+    load_live_population_plan,
+    load_live_population_result_manifest,
+)
+from gex_terminal.local_support import build_support_bundle, write_support_bundle
 from gex_terminal.logging_config import LOG_LEVELS, configure_logging
 from gex_terminal.model_evidence import (
     build_model_evidence_report,
@@ -134,6 +158,23 @@ from gex_terminal.tradovate_certification import (
 
 async def main():
     args = parse_args()
+    if args.command == "doctor":
+        if args.command_path or args.command_args:
+            print("Usage: gex-terminal doctor [--json]", file=sys.stderr)
+            raise SystemExit(2)
+        try:
+            config = apply_cli_overrides(GexConfig.from_env(), args)
+        except ConfigValidationError as exc:
+            report = build_doctor_report(config_error=exc)
+        else:
+            report = build_doctor_report(config)
+        print(
+            doctor_report_to_json(report)
+            if args.json
+            else doctor_report_to_text(report)
+        )
+        raise SystemExit(int(report["summary"]["exit_code"]))
+
     try:
         configure_logging(args.log_level)
     except ValueError as exc:
@@ -141,6 +182,42 @@ async def main():
 
     if args.command == "capture-policy-validate":
         capture_policy_validate_command(args.command_path)
+        return
+
+    if args.command == "support-bundle":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        support_bundle_command(config, args)
+        return
+
+    if args.command == "research-backup":
+        research_backup_command(args)
+        return
+
+    if args.command == "research-backup-verify":
+        research_backup_verify_command(args)
+        return
+
+    if args.command == "research-restore":
+        research_restore_command(args)
+        return
+
+    if args.command == "research-retention-plan":
+        research_retention_plan_command(args)
+        return
+
+    if args.command == "research-retention-apply":
+        research_retention_apply_command(args)
+        return
+
+    if args.command == "live-population-plan-validate":
+        live_population_plan_validate_command(args.command_path)
+        return
+
+    if args.command == "live-population-results-validate":
+        live_population_results_validate_command(
+            args.command_path,
+            args.command_args,
+        )
         return
 
     if args.command == "validate-fixture":
@@ -565,7 +642,43 @@ async def export_provider_fixture_lab(config: GexConfig, output_path: str) -> No
 
 async def export_demo_lab(config: GexConfig, args: argparse.Namespace) -> None:
     """Generate the offline demo pack for GitHub and contributor onboarding."""
+    action = args.command_path
+    if action == "verify":
+        if len(args.command_args) != 1:
+            raise SystemExit("Usage: gex-terminal demo-lab verify PACK")
+        try:
+            report = verify_demo_lab(args.command_args[0])
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        print(
+            f"Verified Demo Lab pack {report['pack']} "
+            f"({report['artifact_count']} artifacts, content={report['content_sha256']})"
+        )
+        return
+    if action == "reproduce":
+        if len(args.command_args) != 2:
+            raise SystemExit("Usage: gex-terminal demo-lab reproduce PACK OUTPUT")
+        try:
+            result = await reproduce_demo_lab(
+                args.command_args[0],
+                args.command_args[1],
+                screenshot_width=args.screenshot_width,
+                screenshot_height=args.screenshot_height,
+            )
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        verification = result["verification"]
+        print(
+            f"Reproduced and verified Demo Lab pack at {args.command_args[1]} "
+            f"({verification['artifact_count']} artifacts)"
+        )
+        return
     output_dir = args.command_path or "demo_lab"
+    if args.command_args:
+        raise SystemExit(
+            "Usage: gex-terminal demo-lab [OUTPUT] [--replay-session NAME], "
+            "or demo-lab {verify,reproduce}"
+        )
     session_name = args.replay_session or DEFAULT_DEMO_SESSION
     try:
         manifest = await build_demo_lab(
@@ -964,6 +1077,124 @@ def model_evidence_command(output_path: str) -> None:
         raise SystemExit(1)
 
 
+def support_bundle_command(config: GexConfig, args: argparse.Namespace) -> None:
+    if not args.command_path:
+        raise SystemExit(
+            "Usage: gex-terminal support-bundle OUTPUT.json [ARTIFACT_DIR ...]"
+        )
+    try:
+        bundle = build_support_bundle(config, artifact_dirs=args.command_args)
+        target = write_support_bundle(bundle, args.command_path)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved redacted support bundle to {target} "
+        f"(artifacts={len(bundle['artifacts'])}, raw_paths=False, logs=False)"
+    )
+
+
+def research_backup_command(args: argparse.Namespace) -> None:
+    if not args.command_path or len(args.command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal research-backup SOURCE_DIR BACKUP_DIR"
+        )
+    try:
+        report = create_private_backup(args.command_path, args.command_args[0])
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']}, "
+        f"manifest_sha256={report['manifest_sha256']})"
+    )
+
+
+def research_backup_verify_command(args: argparse.Namespace) -> None:
+    if not args.command_path or getattr(args, "command_args", ()):
+        raise SystemExit(
+            "Usage: gex-terminal research-backup-verify BACKUP_DIR"
+        )
+    try:
+        report = verify_private_backup(args.command_path)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']}, "
+        f"manifest_sha256={report['manifest_sha256']})"
+    )
+
+
+def research_restore_command(args: argparse.Namespace) -> None:
+    if not args.command_path or len(args.command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal research-restore BACKUP_DIR DESTINATION_DIR"
+        )
+    try:
+        report = restore_private_backup(args.command_path, args.command_args[0])
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup restored and verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']})"
+    )
+
+
+def research_retention_plan_command(args: argparse.Namespace) -> None:
+    if (
+        not args.command_path
+        or len(args.command_args) < 2
+        or not args.retention_backups
+        or len(args.retention_backups) != len(args.command_args) - 1
+    ):
+        raise SystemExit(
+            "Usage: gex-terminal research-retention-plan OUTPUT.json "
+            "CUTOFF_UTC ARTIFACT_DIR [ARTIFACT_DIR ...] "
+            "--retention-backup BACKUP_DIR [--retention-backup BACKUP_DIR ...]"
+        )
+    try:
+        plan = create_retention_plan(
+            args.command_args[1:],
+            args.command_args[0],
+            args.command_path,
+            backup_dirs=args.retention_backups,
+        )
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    deletions = sum(
+        target["action"] == "delete_whole_group" for target in plan["targets"]
+    )
+    print(
+        "Saved dry-run retention plan "
+        f"(targets={len(plan['targets'])}, deletions={deletions}, "
+        f"plan_sha256={plan['plan_sha256']})"
+    )
+
+
+def research_retention_apply_command(args: argparse.Namespace) -> None:
+    if (
+        not args.command_path
+        or not args.confirm_plan_sha256
+        or getattr(args, "command_args", ())
+    ):
+        raise SystemExit(
+            "Usage: gex-terminal research-retention-apply PLAN.json "
+            "--confirm-plan-sha256 SHA256"
+        )
+    try:
+        receipt = apply_retention_plan(
+            args.command_path,
+            confirmation=args.confirm_plan_sha256,
+        )
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Applied unchanged retention plan "
+        f"(deleted={receipt['deleted_count']}, retained={receipt['retained_count']}, "
+        f"plan_sha256={receipt['plan_sha256']})"
+    )
+
+
 async def experiment_run_command(args: argparse.Namespace) -> None:
     if not args.command_path or not args.command_args:
         raise SystemExit("Usage: gex-terminal experiment-run SPEC.json OUTPUT_DIR")
@@ -1177,8 +1408,20 @@ def _safe_integer_argument(value: str) -> int:
         raise argparse.ArgumentTypeError("must be an integer") from None
 
 
+class _RedactingArgumentParser(argparse.ArgumentParser):
+    """Keep rejected command-line values out of public parser errors."""
+
+    def error(self, message: str) -> None:
+        if "invalid choice:" in message:
+            prefix = message.split("invalid choice:", 1)[0].rstrip()
+            message = f"{prefix} invalid choice; use --help to see supported values"
+        elif message.startswith("unrecognized arguments:"):
+            message = "unrecognized arguments; use --help to see supported values"
+        super().error(message)
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+    parser = _RedactingArgumentParser(
         description="Intraday GEX imbalance terminal",
     )
     parser.add_argument(
@@ -1215,6 +1458,15 @@ def parse_args() -> argparse.Namespace:
             "provider-fault-certify",
             "performance-certify",
             "capture-policy-validate",
+            "support-bundle",
+            "research-backup",
+            "research-backup-verify",
+            "research-restore",
+            "research-retention-plan",
+            "research-retention-apply",
+            "live-population-plan-validate",
+            "live-population-results-validate",
+            "doctor",
         ),
         help="Optional utility command.",
     )
@@ -1255,6 +1507,11 @@ def parse_args() -> argparse.Namespace:
         "--providers",
         action="store_true",
         help="List available market-data providers and exit.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the doctor report as versioned JSON.",
     )
     parser.add_argument(
         "--multiplier",
@@ -1438,6 +1695,24 @@ def parse_args() -> argparse.Namespace:
         help="Stable corpus identifier for corpus-init.",
     )
     parser.add_argument(
+        "--confirm-plan-sha256",
+        help=(
+            "Exact SHA-256 printed by research-retention-plan. Required for the "
+            "separate destructive apply command."
+        ),
+    )
+    parser.add_argument(
+        "--retention-backup",
+        dest="retention_backups",
+        action="append",
+        default=[],
+        metavar="BACKUP_DIR",
+        help=(
+            "Verified private backup paired by order with each artifact passed to "
+            "research-retention-plan. Repeat once per target."
+        ),
+    )
+    parser.add_argument(
         "--performance-contracts",
         type=_safe_integer_argument,
         default=500,
@@ -1602,6 +1877,44 @@ def capture_policy_validate_command(path: str | None) -> None:
     print(
         "Capture policy valid: "
         f"{identity['policy_id']} ({identity['schema']}, sha256={identity['sha256']})"
+    )
+
+
+def live_population_plan_validate_command(path: str | None) -> None:
+    if not path:
+        raise SystemExit(
+            "Usage: gex-terminal live-population-plan-validate PLAN.json"
+        )
+    try:
+        identity = live_population_plan_identity(load_live_population_plan(path))
+    except LivePopulationContractError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Live population plan valid: "
+        f"{identity['population_id']} "
+        f"({identity['plan_schema']}, sha256={identity['sha256']})"
+    )
+
+
+def live_population_results_validate_command(
+    plan_path: str | None,
+    command_args: list[str],
+) -> None:
+    if not plan_path or len(command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal live-population-results-validate "
+            "PLAN.json RESULTS.json"
+        )
+    try:
+        plan = load_live_population_plan(plan_path)
+        result = load_live_population_result_manifest(plan_path, command_args[0])
+        identity = live_population_result_identity(plan, result)
+    except LivePopulationContractError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Live population results valid: "
+        f"{identity['population_id']} "
+        f"({LIVE_POPULATION_RESULT_SCHEMA}, sha256={identity['sha256']})"
     )
 
 

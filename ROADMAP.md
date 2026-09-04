@@ -6,33 +6,34 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
-Priorities reviewed September 4, 2026 against application version `0.4.0`.
-The five P1 correctness repairs are implemented; offline preflight is next.
-The phases below remain
-conditional plans. [Application Review](docs/application-review.md) owns the
-dated health evidence and open findings.
+Priorities reviewed September 4, 2026 for version `0.5.0`. Repository-owned
+offline work is delivered through the release packets; [Changelog](CHANGELOG.md)
+and [Application Review](docs/application-review.md) own shipped capabilities
+and verification. The remaining work below requires customer evidence, owner
+decisions, live access or a later demand-driven product choice.
 
 ## Current Work Order
 
-Prioritize correctness of the user's result, then reliable first use, then the
-research workflow. Customer discovery proceeds alongside these engineering
-slices. A priority is a recommendation, not a claim that its work has started;
-an accepted work packet owns implementation status.
+Do not add another broad feature layer before testing the completed offline
+loop with real users. Correctness regressions still interrupt product work.
+Prepared protocols are ready to use, but preparation is not a passed gate.
 
 | Order | Work | Why now | Completion evidence |
 | --- | --- | --- | --- |
-| 2 — Offline preflight | Add an offline `doctor` command and repair any demonstrated install/configuration failures | Users and contributors need to distinguish a broken environment from an unsupported provider | Text/JSON diagnostics work from an installed wheel outside the checkout; invalid base configuration fails; absent optional providers are explained; no connection or secret disclosure occurs |
-| 3 — Complete one research loop | Extend the existing Demo Lab with model comparison and a reproducible review receipt; add a synthetic NQ fixture where needed | Existing replay, export, journal, and experiment tools already provide most of the machinery | One authorized session yields a portable pack with source/model/quality identity, separated position models, and a reproducible result |
-| 4 — Make it usable on a fresh machine | Deliver one guided install and replay journey for the first user segment | Observed activation matters more than another command or panel | One selected distribution path passes install/upgrade checks and users complete the scoped journey without developer help |
-| 5 — Prepare a supported live beta | Finish required local support/lifecycle work and the separate recurring ES certification gate | This converts the validated offline job into a dependable live workflow | Phase 1 support gates, Phase 2 evidence, and Phase 3 entry requirements all pass within a declared scope |
+| 1 — Observe first use | Run six observed offline task sessions using the prepared study kit | Tests cannot establish whether a non-developer understands or trusts the result | Unaided installation/loop outcomes, timing, intervention log and reproduced trust defects |
+| 2 — Validate the customer and rights path | Recruit design partners, compare the two product concepts, obtain provider answers and price/cost evidence | Avoid committing to a distribution/business model from feature enthusiasm | Phase 0 recurring-job, commitment, rights and economics gates |
+| 3 — Observe live ES | Approve the prepared recurrence packet and execute only within its authority | No live operating envelope exists yet | Complete predeclared population, retained failures and separately reviewed promotion |
+| 4 — Run the narrow beta | Select installation/support scope from observed needs and enter Phase 3 | Turn certified input into a recurring user workflow | Phase 3 activation, use, replacement, trust and product-path decision |
 
 Two tracks can progress alongside that order:
 
-- **Customer evidence — Phase 0:** prepare the interview protocol, comparable
-  concepts, observed tasks, rights questions, and cost model now. Recruitment,
+- **Customer evidence — Phase 0:** use the prepared [Product Validation](docs/product-validation.md)
+  protocol, comparable paper concepts, scorecard, rights questions and cost
+  worksheet. Recruitment,
   interviews, commitments, and provider answers require real participants or
   owners; a written protocol does not complete those gates.
-- **Live evidence — Phase 2:** prepare the recurrence criteria now and run
+- **Live evidence — Phase 2:** review the prepared [GEX-LIVE-002](docs/work-packets/GEX-LIVE-002.md)
+  recurrence criteria and run
   bounded ES observations when credentials, entitlements, and data-use authority
   are available. NQ needs independent evidence.
 
@@ -43,12 +44,10 @@ implements the maintainer's September 4 authorization to complete all offline
 priorities. A confirmed correctness issue can interrupt feature work; an
 unvalidated feature request cannot.
 
-Before assigning additional provider fixtures, reconcile open
-[Databento issue #5](https://github.com/zrack/gex-terminal/issues/5) with the
-shipped fixture/certification tools and review the existing
-[Tradovate contribution #10](https://github.com/zrack/gex-terminal/pull/10)
-against its linked issue. Avoid a parallel implementation of that contributor's
-scope. This queue cleanup does not outrank the correctness repairs above.
+Provider queue reconciliation is recorded in [Good First Issues](docs/good-first-issues.md).
+Databento #5 overlaps shipped fixtures; Tradovate #10 requires contributor
+changes and observed provenance. Do not duplicate that work or treat an open
+contribution as accepted/live evidence.
 
 ## Product Destination
 
@@ -94,7 +93,7 @@ can progress in parallel. A phase advances on its exit evidence.
 | Phase | Outcome | Can proceed without live data? | Primary gate |
 | --- | --- | ---: | --- |
 | 0 — Now | Prove the customer wedge and qualify or retire the hosted alternative | Yes | Repeated user job, design partners, data-rights path, and paid-pilot intent |
-| 1 — Now/next | Correctness, offline preflight, one research loop, and usable distribution | Yes | Correct results, safe diagnostics, portable evidence, and clean-machine activation |
+| 1 — Acceptance remaining | Validate clean-machine use of the shipped offline foundation | Yes, with participants | Observed activation and evidence-backed distribution/support choice |
 | 2 — Parallel external gate | Certify one narrow recurring ES/Databento operating envelope | No | Credential, entitlement, capture authority, exact-run evidence, and predeclared recurrence |
 | 3 | Run a design-partner live beta | Partly | Weekly use, reliable activation, workflow replacement, and no severe trust defects |
 | 4 — Evidence track | Build the governed evidence moat | No for real-session evidence | Licensed corpus, preregistered evaluation, reproducibility, and appropriately narrow claims |
@@ -127,22 +126,27 @@ phase does not make the final product-path decision.
 
 ### Work
 
+Use [Product Validation](docs/product-validation.md) as the canonical study kit.
+The following are collection and decision obligations, not another request to
+rebuild its templates or concepts.
+
 1. Recruit 12–15 interview candidates split between quantitative/developer
    users and advanced ES/NQ traders. Treat existing personas as hypotheses.
 2. Run at least six observed task sessions using current demo and replay data.
    Ask users to reach a trusted view, explain one level, compare models, save a
    receipt, and replay the session without developer help.
-3. Prototype both product stories at comparable fidelity:
+3. Test the prepared comparable-fidelity product concepts:
    - professional local instrument: Today, Explain, Compare, Replay, Review;
    - hosted tactical cockpit: current levels, simple explanation, alert, and
      chart delivery.
 4. Record task completion, time to insight, trust questions, install tolerance,
    existing data accounts, workflow replacement, and price reaction.
-5. Produce a provider/data-rights matrix covering personal and professional
+5. Obtain written answers for the prepared provider/data-rights matrix covering personal and professional
    use, non-display calculation, local retention, derived display, external
    distribution, support access, and termination obligations.
-6. Model the first-year economics for bring-your-own data, bundled data, and a
-   developer/support product. Keep exchange fees and support time explicit.
+6. Populate and challenge the first-year economics worksheet for bring-your-own
+   data, bundled data, and a developer/support product using real quotes and
+   observed support effort. Keep exchange fees and support time explicit.
 
 ### Exit gate
 
@@ -174,90 +178,31 @@ supportable before live beta risk is added. This foundation remains useful as
 the user-facing local product or as the inspectable operator/research layer
 behind a later hosted product.
 
-This phase is repository-owned and can proceed using synthetic, sanitized, and
-rights-cleared inputs.
+The repository-owned 1A–1D work is recorded in the release packets and
+[Changelog](CHANGELOG.md), not repeated as an open implementation checklist.
+Current command and compatibility contracts live in [First Run](docs/first-run.md),
+[Doctor](docs/doctor.md), [Demo Lab](docs/demo-lab.md) and
+[Local Support](docs/local-support.md).
 
-### Slice 1A — Correct results and offline preflight
+### Remaining acceptance
 
-Land correctness repairs in focused changes before building on affected output.
-Use the [application review](docs/application-review.md) for reproductions and
-acceptance targets, then add an independent `doctor` slice:
+- Observe a new user installing without a checkout, reaching a correct replay
+  insight in under ten minutes, and completing the scoped loop in under fifteen
+  minutes without developer help. These are proposed study thresholds, not
+  existing measurements. Record failures and assisted attempts.
+- Select the commercial distribution channel and supported customer platform
+  from Phase 0 evidence. A tested wheel is the technical baseline, not that
+  product decision. Additional installers, automatic updating or a desktop
+  redesign require observed demand and a new packet.
+- Confirm that the supported file-based lifecycle and environment-based
+  credential procedure fit the selected beta. A platform credential-store
+  implementation, licensed captures/session-store lifecycle, database or
+  generalized migration framework is a separately routed need, not implied
+  support for every local file.
 
-- Check package/Python identity, bundled resources, configuration validity,
-  optional SDK presence, selected provider/readiness, and local storage access.
-- Produce concise text and versioned JSON with useful exit codes. Distinguish
-  broken base installation from an absent optional provider.
-- Keep the command offline with no persistent application-state changes. A
-  writable-storage probe may create and remove its own temporary file in the
-  selected directory; it must not alter existing research or credentials.
-  Report live authentication and entitlements as unverified; file or SDK
-  presence cannot establish them.
-- Reuse central redaction and exclude credentials, account IDs, and raw data.
-
-Exit when corrected inputs preserve symbol/model/source identity, invalid
-configuration fails visibly, and an installed wheel can run the preflight from
-an arbitrary directory with no network calls or secret-bearing output.
-
-### Slice 1B — One portable research loop
-
-- Extend the existing `demo-lab` and experiment/report tools with separated
-  model comparison and a review receipt; avoid creating a competing pack format.
-- Add a dedicated synthetic schema-v2 NQ replay and ensure symbol/multiplier
-  identity remains consistent across the chosen replay and generated pack.
-- Bind the pack to authorized inputs, application/model version, assumptions,
-  quality, and stable content identities. Carry evidence limits into every
-  artifact that can leave the application.
-- Expose only the read-only snapshot, quality, or comparison objects required
-  by this workflow. Keep new Python interfaces experimental until their shape
-  is exercised; declare support and compatibility for any exported schema.
-- Preserve consumer state ownership and existing immutable research identities.
-
-Exit when one action produces the scoped pack and another clean environment
-reproduces its semantic results. Tests must reject incompatible versions,
-changed inputs, and mislabeled symbol/model state. A broad public SDK is not
-required to complete this slice.
-
-### Slice 1C — Install and guided journey
-
-- Select one installation path using Phase 0 user evidence; use the existing
-  wheel as the technical baseline. Packaging correctness can be checked now.
-- Verify install, upgrade, failed upgrade, rollback, and uninstall on the
-  explicitly supported platform(s), preserving compatible local artifacts.
-- Guide Today, Explain, Compare, Replay, and Review through existing tools,
-  adding only the navigation and drill-down needed for the chosen job.
-- Make model disagreement, input quality, and provenance visible. Test normal
-  and small terminal sizes and declare a usable minimum size.
-
-Technical packaging acceptance precedes observed user acceptance. Exit when a
-new user installs without a checkout, reaches a replay insight in under ten
-minutes, and completes the scoped loop in under fifteen minutes without
-developer help. These times are proposed user-study thresholds, not existing
-measurements. Full desktop redesign, multiple installers, and automatic
-updating are separate demand-driven decisions.
-
-### Slice 1D — Beta support and local lifecycle
-
-- Add a redacted support bundle containing version, configuration shape,
-  readiness, bounded diagnostics, and artifact identities.
-- Define credential storage and removal for the selected provider/platform;
-  route any credential-store implementation under the existing change profile.
-- Verify recovery, backup/restore, retention, and deletion for the file-based
-  artifacts actually supported by the beta. Preserve append-only identities.
-- Specify what uninstall removes and what research data requires explicit
-  deletion. Keep raw licensed data governed separately.
-
-Exit when supported recovery/lifecycle paths pass and support output contains
-no credential, account identifier, raw licensed payload, or configured sensitive
-value. An indexed database/catalog and generalized migration framework move to
-Phase 4 only if observed retrieval or scale needs justify them.
-
-### Phase exit
-
-Phase 1 completes after all four slices pass. Correctness repairs precede any
-workflow that consumes affected results. Preflight and packaging investigation
-can proceed independently; the guided journey consumes the accepted research
-loop and a working installation path. Support/lifecycle work is required before
-supported live beta use. Customer discovery runs alongside these slices.
+Phase 1's engineering acceptance does not complete its real-user acceptance.
+Close the phase only after those observations and the scoped distribution/
+support decision; retain the external Phase 2 live gate independently.
 
 ## Phase 2 — Narrow Live ES Certification
 
@@ -273,9 +218,10 @@ declared complete from offline evidence.
 1. Route the exact-run authority and select the canonical ES multiplier,
    versioned policy, credential/entitlement scope, and declared read-only
    observation window.
-2. Before running or reviewing the first observation, route a recurrence packet
-   defining observation count, open/midday/close or Globex coverage, market
-   conditions, failure tolerance, retention, and promotion logic.
+2. Before running or reviewing the first observation, accept and freeze the
+   prepared [GEX-LIVE-002](docs/work-packets/GEX-LIVE-002.md) population, exact
+   windows, failure tolerance, retention and promotion logic. Preparation does
+   not supply execution authority.
 3. Run the existing `databento-certify` path and retain redacted successes and
    failures. Classify authentication, entitlement, coverage, payload, temporal,
    lifecycle, and policy failures separately.
@@ -409,9 +355,10 @@ predictive or execution claims do require their corresponding evidence.
   required migrations, backup/restore, retention, and deletion separately.
 - Register immutable train, calibration, and untouched test identities before
   evaluating outcomes.
-- Define when corpus membership requires an `as_of` cutoff and distinguish
-  source registration from eligibility for point-in-time evaluation. A passing
-  corpus integrity check alone cannot establish evaluation eligibility.
+- Apply the [Research Governance](docs/research-governance.md) distinction
+  between source registration and point-in-time evaluation eligibility. Prove
+  source-specific availability at the declared cutoff before empirical use;
+  corpus integrity alone cannot establish that eligibility.
 - Externally sign or anchor corpus and manifest identities. Existing unkeyed
   hashes establish internal consistency, not source authenticity or historical
   immutability.
@@ -563,23 +510,16 @@ phase uses them as a gate.
 
 ## Immediate Continuation Point
 
-Finish H4 experiment identity with its reproductions and regressions. Finish
-this correctness sequence before extending the affected research workflows.
+Follow the [Current Work Order](#current-work-order): use the completed
+[Product Validation](docs/product-validation.md) kit with real participants,
+starting with observed offline first use. Record assistance, failed attempts
+and trust defects before routing another engineering slice. Commercial product
+selection remains in Phase 3.
 
-The subsequent `GEX-PREFLIGHT-001` proposal covers the offline diagnostic command
-in Slice 1A. These proposals do not include a database, public API freeze, new
-provider, or UI rewrite, and become active only when individually routed.
-
-In parallel, a separate Phase 0 packet should own the interview protocol,
-two comparable prototypes, acceptance tasks, data-rights questions, commercial
-hypotheses, metric definitions, and qualification or retirement of the hosted
-comparator. The final product-path decision remains in Phase 3. Prepare these
-materials without treating customer commitments or provider answers as given.
-
-The existing credentialed ES observation remains a separate external evidence
-gate under Phase 2. Do not hold customer discovery or offline product design
-hostage to live data, and do not let offline product progress imply live
-readiness.
+Separately, obtain owner approval for the prepared ES observation population
+and use [Live Population Preparation](docs/live-population-prep.md) to validate
+the frozen plan before any authorized live run. Offline product completion
+does not supply credentials, data rights or live-readiness evidence.
 
 Contributor-sized offline tasks remain in
 [Good First Issues](docs/good-first-issues.md), not in this strategic roadmap.

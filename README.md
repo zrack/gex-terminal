@@ -20,8 +20,8 @@ dealer inventory.
 - Runs a Textual terminal with strike-level exposure, walls, a documented
   strike-profile flip, feed health, replay selection, and assumption controls.
 - Replays bundled sessions and provider-shaped fixtures without credentials.
-- Captures normalized sessions and exports snapshots, overlays, comparisons,
-  experiment manifests, and bounded certification reports.
+- Builds portable packs with authorized input, separated model comparisons and
+  verifiable review receipts; supports safe diagnosis and private local recovery.
 - Keeps provider readiness, runtime connection state, model verification, and
   predictive validity as separate claims.
 
@@ -32,20 +32,14 @@ and limitations are documented in
 
 ## Current Status
 
-The source/package version is `0.4.0`, **Pre-Live Certification Hardening**.
-The annotated `v0.4.0` tag identifies the reviewed closeout merge after clean
-branch and merged-tree verification. The release is not published to PyPI and
-does not have a hosted GitHub Release.
+Version **0.5.0 — Offline Research Foundation** is a research alpha. The
+repository and reviewed Git tag are the release record; no PyPI publication or
+hosted GitHub Release is claimed.
 
-Provider readiness is intentionally explicit:
-
-| Provider path | Readiness | Meaning |
-| --- | --- | --- |
-| Bundled demo and replay | `offline-certified` | Deterministic software and fixture path; no live-market claim. |
-| Databento | `live-uncertified` | Live SDK path and bounded certification command exist; no successful credentialed run is claimed. |
-| Tradovate | `scaffold` | Protocol and fixture coverage exist; credentialed chain certification is still required. |
-| yfinance | `delayed` | Delayed ETF-options research path. |
-| IBKR | `scaffold` | Registry and adapter boundary exist; production readiness is not claimed. |
+Bundled demo/replay is `offline-certified`. Databento is `live-uncertified`;
+Tradovate and IBKR remain scaffolds; yfinance is delayed. Details belong in
+[Market-Data Adapters](docs/adapters.md) and the dated
+[Application Review](docs/application-review.md).
 
 `predictive_validity` remains `unmeasured`. Offline tests and fixtures verify
 software behavior. A credentialed certification report can establish bounded
@@ -55,24 +49,20 @@ quality, or profitability.
 
 ## Install
 
-Python 3.11 or newer is required.
+Use Python 3.11/3.12 and a reviewed wheel supplied by your maintainer. Replace
+the example path with the actual wheel location:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
+python3 -m venv gex-app
+source gex-app/bin/activate
+python -m pip install /path/to/gex_terminal-0.5.0-py3-none-any.whl
 gex-terminal --version
+gex-terminal doctor
 ```
 
-Install the optional Databento SDK for live use, credentialed certification, or
-offline DBN/DBN.ZST record replay. JSON and JSONL offline workflows use the base
-installation:
-
-```bash
-pip install -e ".[databento]"
-```
-
-The broader `.[providers]` extra installs all optional provider clients.
+No credentials or optional provider extras are needed for offline use. Follow
+[First Run](docs/first-run.md) for the guided journey, update and uninstall.
+Developers start with [Contributing](CONTRIBUTING.md).
 
 ## Quick Start
 
@@ -83,21 +73,14 @@ gex-terminal --demo
 ```
 
 Press `p` to open the replay browser, use Up/Down to choose a session, and press
-Enter to load it. Press `x`, `d`, `m`, or `i` to change the expiry filter,
-fallback DTE, multiplier, or risk-free rate. Press `e` to export the current
-snapshot and `q` to quit.
+Enter to load it. Press `q` to quit. The terminal needs at least 140×42 cells;
+180×54 provides more room. See First Run for model controls and interpretation.
 
 Run a named replay or list the packaged catalog:
 
 ```bash
 gex-terminal list-replays
 gex-terminal --replay-session zero-gamma-flip
-```
-
-Copy `.env.example` only when you need provider configuration:
-
-```bash
-cp .env.example .env
 ```
 
 Credentials belong in the local environment and must never be committed. See
@@ -110,6 +93,7 @@ canonical guide:
 
 | Goal | Starting command | Guide |
 | --- | --- | --- |
+| Diagnose a local installation | `gex-terminal doctor` | [Offline Doctor](docs/doctor.md) |
 | Explore bundled market days | `gex-terminal --replay-session trend-day` | [Replay Research](docs/replay-research.md) |
 | Generate a shareable offline pack | `gex-terminal demo-lab demo_lab` | [Demo Lab](docs/demo-lab.md) |
 | Exercise provider-shaped fixtures | `gex-terminal fixture-lab report.md` | [Provider Injection](docs/provider-injection.md) |
@@ -119,32 +103,17 @@ canonical guide:
 | Run reproducible governed research | `gex-terminal experiment-run SPEC.json OUTPUT_DIR` | [Research Governance](docs/research-governance.md) |
 | Export snapshots and overlays | `gex-terminal --demo --export snapshot.json` | [Export Formats](docs/exports.md) |
 
+Private backup/recovery and safe support output belong in
+[Local Support](docs/local-support.md).
+
 Use `gex-terminal --help` for the complete command surface.
-
-## Architecture And Model Boundaries
-
-The runtime path is:
-
-```text
-CLI -> provider/replay adapter -> state consumer -> GEX engine -> TUI or report
-```
-
-The consumer is the sole owner of mutable market state. Adapters normalize
-provider payloads; the engine calculates contract-aware proxy exposure; the TUI
-and report modules only present derived state. See
-[Architecture](docs/architecture.md) for the repository map, component
-responsibilities, runtime flows, state ownership, and verification map.
-
-The normalized message contract belongs in
-[Market-Data Adapters](docs/adapters.md). Mathematical definitions belong in
-[Model Assumptions](docs/model-assumptions.md), and the evidence ceiling belongs
-in [Model Validation](docs/model-validation.md).
 
 ## Documentation
 
 [Documentation Map](docs/README.md) lists the canonical owner for each topic and
 routes readers to the detailed guides.
 
+- [Architecture](docs/architecture.md) — current structure and state ownership.
 - [Roadmap](ROADMAP.md) — planned and deferred work, including the next gate.
 - [Changelog](CHANGELOG.md) — shipped history.
 - [Product Vision](docs/product-vision.md) — durable product direction.

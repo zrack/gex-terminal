@@ -5,6 +5,26 @@ needing live market-data credentials. Maintainers can copy one into GitHub,
 apply `good first issue` and `help wanted`, and adjust scope as the codebase
 changes.
 
+## Existing provider queue — reviewed September 4, 2026
+
+- [Databento issue #5](https://github.com/zrack/gex-terminal/issues/5) asks for
+  dataset/schema selection, synthetic payloads, normalized mappings and known
+  gaps. These are already owned by [Databento Fixture Mapping](databento-fixtures.md),
+  packaged Databento fixtures and the offline certification tests. Do not assign
+  a duplicate implementation. Administrative issue closure is separate from
+  these shipped artifacts; live certification remains open.
+- [Tradovate PR #10](https://github.com/zrack/gex-terminal/pull/10), inspected at
+  `03d5ed80e93452c03a9ccce244cf1e671597f91b`, is an existing contribution for
+  issue #4, not accepted live evidence. Its three-file diff adds a fixture and
+  shape-only tests, not an adapter-to-consumer mapping test. The fixture's
+  descriptive string includes `credentials`, so its own blanket substring
+  assertion against `credential` fails. The entitlement/demo-access assertions
+  need provider-source evidence, and the requested observed payload provenance
+  is not established by labeling a fixture sanitized. No hosted checks were
+  attached at inspection. Request changes within that contribution instead of
+  implementing the same scope in parallel; do not merge or close issue #4 on
+  this evidence. No provider access was attempted during this review.
+
 ## 1. Add Replay Alert Expectations For New Fixtures
 
 Labels: `good first issue`, `help wanted`, `testing`, `replay`
@@ -98,30 +118,6 @@ Verification:
 python -m unittest -v tests.test_provider_fixture_lab
 ```
 
-## 5. Add A Dedicated Synthetic NQ Replay
-
-Labels: `good first issue`, `help wanted`, `replay`, `testing`
-
-Summary:
-Add one small schema-v2 NQ replay whose own rows use the NQ multiplier and a
-declared deterministic structural expectation.
-
-Why it helps:
-The packaged replay catalog is ES-focused. A dedicated NQ fixture would exercise
-symbol and multiplier handling without requiring live data or implying provider
-certification.
-
-Suggested scope:
-- Add a synthetic JSONL replay under `gex_terminal/data/replays/`.
-- Use schema-v2 contract identity, event time, expiry, IV provenance, and the NQ
-  multiplier consistently.
-- Register it in the replay catalog and add one focused validator or Replay Lab
-  expectation.
-- Label the scenario synthetic and avoid copied licensed market data.
-
-Verification:
-
-```bash
-gex-terminal validate-fixture gex_terminal/data/replays/NEW_NQ_FIXTURE.jsonl
-python -m unittest -v tests.test_replay_lab tests.test_release_contract
-```
+The previously proposed dedicated NQ replay is now shipped as
+`nq-research-loop`; see [Demo Lab](demo-lab.md). Choose a distinct regression or
+scenario instead of duplicating its fixture.

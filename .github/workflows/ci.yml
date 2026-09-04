@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -23,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install build twine
+          python -m pip install build twine packaging
           python -m pip install -e .
 
       - name: Compile source
@@ -60,11 +62,23 @@ jobs:
           test "$(/tmp/gex-terminal-wheel-smoke/bin/python -c 'from gex_terminal.config import GexConfig; c = GexConfig.from_env(); print(c.symbol + ":" + c.data_mode)')" = "NQ:replay"
           cd /tmp
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal --version
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal doctor --json
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal --replay-session trend-day --export /tmp/gex-wheel-snapshot.json
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal fixture-lab /tmp/gex-wheel-fixtures.json
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal inject-provider bundled:yfinance-etf-options --export /tmp/gex-wheel-injection.json
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab /tmp/gex-wheel-demo --replay-session gap-fade
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab /tmp/gex-wheel-nq --replay-session nq-research-loop
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab verify /tmp/gex-wheel-nq
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab reproduce /tmp/gex-wheel-nq /tmp/gex-wheel-nq-reproduced
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal support-bundle /tmp/gex-wheel-support.json /tmp/gex-wheel-nq
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal research-backup /tmp/gex-wheel-nq /tmp/gex-wheel-nq-backup
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal research-backup-verify /tmp/gex-wheel-nq-backup
+          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal research-restore /tmp/gex-wheel-nq-backup /tmp/gex-wheel-nq-restored
           FIXTURE_DIR=$(/tmp/gex-terminal-wheel-smoke/bin/python -c 'from gex_terminal.package_data import provider_fixture_dir; print(provider_fixture_dir())')
+          if /tmp/gex-terminal-wheel-smoke/bin/gex-terminal live-population-plan-validate "$FIXTURE_DIR/databento_es_live_population_plan_template.json"; then
+            echo 'Unapproved live-population template must not validate'
+            exit 1
+          fi
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal capture-policy-validate "$FIXTURE_DIR/capture_policy_example.json"
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal databento-replay "$FIXTURE_DIR/databento_mixed_offline_records.jsonl" /tmp/gex-wheel-databento.json --symbol ES --multiplier 50
           /tmp/gex-terminal-wheel-smoke/bin/gex-terminal databento-offline-certify /tmp/gex-wheel-databento-cert.json --symbol ES --multiplier 50
@@ -87,6 +101,14 @@ jobs:
           test -s /tmp/gex-wheel-reproduction/manifest.json
           test -s /tmp/gex-wheel-corpus.json
           ! grep -R -E 'site-packages|/home/runner/work/' /tmp/gex-wheel-snapshot.json /tmp/gex-wheel-fixtures.json /tmp/gex-wheel-injection.json /tmp/gex-wheel-demo
+
+      - name: Verify offline install and recovery lifecycle
+        run: |
+          mkdir -p /tmp/gex-prior-source /tmp/gex-prior-dist
+          git archive v0.4.0 | tar -x -C /tmp/gex-prior-source
+          python -m build --wheel --outdir /tmp/gex-prior-dist /tmp/gex-prior-source
+          GEX_CANDIDATE_VERSION=$(python -c 'import gex_terminal; print(gex_terminal.__version__)')
+          python scripts/verify_distribution_lifecycle.py --previous-wheel /tmp/gex-prior-dist/gex_terminal-0.4.0-py3-none-any.whl --candidate-wheel "/tmp/gex-terminal-dist/gex_terminal-${GEX_CANDIDATE_VERSION}-py3-none-any.whl" --output /tmp/gex-lifecycle.json
 
       - name: Verify tag matches package version
         if: startsWith(github.ref, 'refs/tags/v')

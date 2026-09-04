@@ -3,14 +3,39 @@
 All notable project changes should be recorded here so the README and roadmap
 can stay focused on current usage and future direction.
 
-The source/package version is `0.4.0`. The annotated `v0.4.0` tag identifies the
-reviewed closeout merge. No PyPI publication or hosted GitHub Release is
-claimed.
+The source/package version is `0.5.0`. Release tags identify verified merged
+trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
+Release is claimed.
 
 ## Unreleased
 
+## 0.5.0 - 2026-09-04 — Offline Research Foundation
+
+### Added
+
+- Offline privacy-safe doctor with text/JSON diagnostics, meaningful exit codes,
+  installed-resource checks and a lightweight missing-dependency fallback.
+- Dedicated synthetic NQ ×20 schema-v2 replay and a portable 20-artifact Demo
+  Lab loop with copied input, separated position models, explicit runtime
+  compatibility and verifiable/reproducible review receipts.
+- Guided wheel installation and a repeatable disposable install/upgrade/
+  failed-upgrade/rollback/uninstall check that preserves research byte identity.
+- Redacted local support bundles and private whole-artifact backup, verification
+  and restore. Retention requires a matching verified backup, exact plan
+  confirmation, staged revalidation and bounded recovery; no real user data was
+  deleted during verification.
+- Offline prospective live-population plan/result validation with canonical
+  policy identity and complete failed/missed-attempt accounting. The supplied
+  template intentionally fails until approved declarations are supplied; no
+  live execution or readiness promotion is added.
+- Prepared customer interview/task kit, comparable paper concepts, rights
+  questions and assumption-based first-year economics; no collected customer
+  or pricing evidence is implied.
+
 ### Fixed
 
+- Compact terminal rendering at 140×42 and above, clear guidance below the
+  supported minimum, and state-preserving resize coverage.
 - Experiment v2 manifests now bind complete specification, profile, input,
   implementation and result identities. Reproduction rejects inconsistent or
   unsupported metadata and nonempty output targets; legacy v1 verification is
@@ -40,9 +65,13 @@ claimed.
 - Reprioritized the roadmap around application correctness, offline preflight,
   reuse of existing research packs, and one usable installation path; corrected
   phase dependencies and separated commercial and empirical research tracks.
-- Added a dated application health review with fresh-install and offline gate
-  evidence, open correctness findings, and terminal-size limitations. These are
-  review findings, not implemented fixes.
+- Refreshed the application health review with repair evidence and remaining
+  customer/live boundaries. Shipped work is removed from the roadmap's active
+  implementation checklist; README links to canonical guides and architecture.
+- Corpus verification explicitly labels point-in-time evaluation eligibility
+  not assessed; registration integrity is not empirical-research approval.
+- Source distributions include canonical docs, maintainer lifecycle checks and
+  referenced assets, without local credentials or generated research packs.
 - Refreshed the September 2026 competitive landscape with Nightglass,
   GammaTape, FlashAlpha, current industry evidence, a narrower native-futures
   positioning, and a gated path from research kernel to commercial product.
