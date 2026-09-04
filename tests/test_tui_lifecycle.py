@@ -90,7 +90,10 @@ class TuiRefreshLifecycleTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.wait_for(consumer.stage_started.wait(), 2)
         screen = app.screen
 
-        await asyncio.wait_for(context.__aexit__(None, None, None), 2)
+        # Preserve the ContextVar tokens established by __aenter__: wait_for
+        # would run __aexit__ in a different Task/context on supported Pythons.
+        async with asyncio.timeout(2):
+            await context.__aexit__(None, None, None)
 
         self.assertTrue(consumer.stage_cancelled.is_set())
         self.assertFalse(app.is_running)
@@ -208,7 +211,8 @@ class TuiRefreshLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.wait_for(consumer.stage_started.wait(), 2)
                 screen = app.screen
 
-                await asyncio.wait_for(context.__aexit__(None, None, None), 2)
+                async with asyncio.timeout(2):
+                    await context.__aexit__(None, None, None)
                 self.assertFalse(app.is_running)
                 self.assertFalse(screen.is_running)
                 consumer.release_stage.set()

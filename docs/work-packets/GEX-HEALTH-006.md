@@ -99,3 +99,10 @@ the full 425-test suite successfully. Root integration `d7de7b8` also passed
 425 tests, compilation and documentation links. Accepted under
 [GEX-OFFLINE-001](GEX-OFFLINE-001.md); final rebuilt-package and hosted checks
 remain mandatory before the annotated release tag.
+
+The first hosted repair run (`33925106300`) then caught a test-harness defect:
+wrapping the async context exit in `asyncio.wait_for` moved it into another
+Task, invalidating Textual ContextVar reset tokens. The harness now uses
+`asyncio.timeout` around a same-task exit, preserving the deadline and the
+original teardown assertions. This adjustment changes no application code and
+does not suppress the original regression or relax its acceptance criteria.
