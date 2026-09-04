@@ -13,14 +13,16 @@ Four contracts keep research decisions inspectable:
    models, position-model order, directional coverage, and underlying-age gates.
 2. An **experiment spec** fixes the workflow, input, point-in-time cutoff, data
    split, outcome definition, cost assumptions, and inline model profile.
-3. An **experiment manifest** records package/Python versions and SHA-256
-   identities for the input, profile, and semantic result.
+3. An **experiment manifest** records package/Python/runtime versions and
+   SHA-256 identities for the complete normalized spec, inline profile, input,
+   producing implementation, and semantic result.
 4. A **research corpus** records immutable dataset IDs, source digests, rights,
    redaction, split, outcome, and cost metadata in an append-only hash chain.
 
-The schemas are versioned. Unknown schemas or unsupported model ladders fail
-closed. `predictive_validity` is fixed to `unmeasured` in these offline
-contracts.
+The schemas are versioned. Unknown schemas, runtime contracts, producer
+versions, or unsupported model ladders fail closed. Compatibility is declared
+explicitly; it is not inferred from package-version ordering.
+`predictive_validity` is fixed to `unmeasured` in these offline contracts.
 
 ## Run And Reproduce An Experiment
 
@@ -34,9 +36,41 @@ gex-terminal experiment-reproduce \
   /tmp/gex-experiment/manifest.json /tmp/gex-reproduction
 ```
 
-Reproduction verifies the original input digest and compares a semantic result
-digest that excludes generation timestamps only. A changed input or
-decision-relevant output fails the command.
+New runs emit experiment-manifest v2. Before executing a reproduction, the v2
+reader validates the embedded profile identity, the complete normalized spec
+identity (including split, outcome, costs, and cutoff), mirrored metadata,
+input identity, evidence policy, and producer/runtime compatibility. It then
+compares a semantic result digest that excludes generation timestamps only. A
+changed identity, input, or decision-relevant output fails the command.
+
+The stable experiment identity excludes `generated_at`, the manifest-level
+`source_root` and `spec_reference`, report location, and
+reproduction-operation status. Those fields are location or operation
+metadata, not permission to alter the experiment. The spec's declared input
+reference remains bound; a later rights-aware portable pack must give that
+input a stable logical reference rather than silently rewriting an existing
+experiment.
+
+Run and reproduction targets must be absent or empty. A nonempty directory is
+rejected before the workflow runs, and report/manifest files are created
+exclusively so an existing local artifact is never overwritten.
+
+Legacy v1 manifests from the explicitly supported `0.3.0` and `0.4.0`
+producers remain readable when every field v1 recorded is internally
+consistent. Successful reproduction also requires the current workflow to
+match the recorded semantic result. Additive report fields or corrected
+chronology can therefore make an older result fail; reader compatibility is
+not a promise to preserve a stale numerical hash. Their reproduction status is
+`legacy_partial`: v1 can validate its profile, input, implementation, and
+result, but it stored no complete-spec digest and therefore cannot
+independently prove that split, outcome, or costs were never relabeled. A
+successful legacy reproduction writes a fresh v2 artifact with lineage to the
+exact source-manifest bytes; it never rewrites or upgrades the source record in
+place.
+
+These unkeyed hashes establish internal consistency and content identity, not
+authenticity. Deliberate-tamper protection requires a separate signature or
+external anchor and is not claimed here.
 
 ## Register And Verify A Corpus
 
