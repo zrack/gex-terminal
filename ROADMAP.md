@@ -510,23 +510,16 @@ phase uses them as a gate.
 
 ## Immediate Continuation Point
 
-Finish H4 experiment identity with its reproductions and regressions. Finish
-this correctness sequence before extending the affected research workflows.
+Follow the [Current Work Order](#current-work-order): use the completed
+[Product Validation](docs/product-validation.md) kit with real participants,
+starting with observed offline first use. Record assistance, failed attempts
+and trust defects before routing another engineering slice. Commercial product
+selection remains in Phase 3.
 
-The subsequent `GEX-PREFLIGHT-001` proposal covers the offline diagnostic command
-in Slice 1A. These proposals do not include a database, public API freeze, new
-provider, or UI rewrite, and become active only when individually routed.
-
-In parallel, a separate Phase 0 packet should own the interview protocol,
-two comparable prototypes, acceptance tasks, data-rights questions, commercial
-hypotheses, metric definitions, and qualification or retirement of the hosted
-comparator. The final product-path decision remains in Phase 3. Prepare these
-materials without treating customer commitments or provider answers as given.
-
-The existing credentialed ES observation remains a separate external evidence
-gate under Phase 2. Do not hold customer discovery or offline product design
-hostage to live data, and do not let offline product progress imply live
-readiness.
+Separately, obtain owner approval for the prepared ES observation population
+and use [Live Population Preparation](docs/live-population-prep.md) to validate
+the frozen plan before any authorized live run. Offline product completion
+does not supply credentials, data rights or live-readiness evidence.
 
 Contributor-sized offline tasks remain in
 [Good First Issues](docs/good-first-issues.md), not in this strategic roadmap.
