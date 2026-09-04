@@ -11,6 +11,8 @@ from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Container, Grid, Vertical
 from textual.events import Resize
+from textual.screen import Screen
+from textual.timer import Timer
 from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 
 from gex_terminal.config import GexConfig
@@ -94,6 +96,8 @@ class GexTerminalApp(App):
         self._replay_index = self._initial_replay_index()
         self._replay_browser_open = False
         self._replay_browser_index = self._initial_browser_index()
+        self._refresh_screen_owner: Screen | None = None
+        self._refresh_timer: Timer | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -182,21 +186,36 @@ class GexTerminalApp(App):
         self._render_controls()
         self._render_first_run_guide(self.consumer.runtime_status)
         self._render_status_bar(self.consumer.runtime_status)
-        self.set_interval(self.config.refresh_interval_seconds, self.refresh_terminal_data)
-        self.call_later(self.refresh_terminal_data)
+        screen = self.screen
+        self._refresh_screen_owner = screen
+        self._refresh_timer = screen.set_interval(
+            self.config.refresh_interval_seconds,
+            self.refresh_terminal_data,
+        )
+        screen.call_later(self.refresh_terminal_data)
         self._apply_terminal_size()
 
     def on_resize(self, event: Resize) -> None:
-        if self.is_mounted:
+        screen = self._refresh_screen_owner
+        if (
+            self.is_running
+            and not self._exit
+            and screen is not None
+            and screen.is_running
+            and screen.is_mounted
+        ):
             self._apply_terminal_size((event.size.width, event.size.height))
 
     def _apply_terminal_size(self, size: tuple[int, int] | None = None) -> None:
         width, height = size or self.size
         minimum_width, minimum_height = self.MINIMUM_TERMINAL_SIZE
         supported = width >= minimum_width and height >= minimum_height
-        self.screen.set_class(width < 180 or height < 54, "compact")
-        self.query_one("#dashboard").display = supported
-        message = self.query_one("#minimum-size-message", Static)
+        screen = self._refresh_screen_owner
+        if screen is None:
+            return
+        screen.set_class(width < 180 or height < 54, "compact")
+        screen.query_one("#dashboard").display = supported
+        message = screen.query_one("#minimum-size-message", Static)
         message.display = not supported
         message.update(
             f"Terminal needs at least {minimum_width} × {minimum_height} cells.\n"
@@ -625,28 +644,46 @@ class GexTerminalApp(App):
 
     async def refresh_terminal_data(self) -> None:
         """Poll the consumer and render the latest GEX matrix."""
+        refresh_screen = self._refresh_screen()
+        if refresh_screen is None:
+            return
+
         started = time.perf_counter()
         data = await self.consumer.process_latest_snapshot(
             days_to_expiry=self.config.days_to_expiry,
             expiry_filter=self.config.expiry_filter,
         )
-        self._last_latency_ms = (time.perf_counter() - started) * 1000
-        self._latencies.append(self._last_latency_ms)
-        self._last_refresh_at = self._timestamp()
-        self._render_lifecycle()
-        status = self.consumer.runtime_status
-        self._render_status_bar(status)
-        self._render_quality()
+        latency_ms = (time.perf_counter() - started) * 1000
+        if not self._refresh_screen_is_current(refresh_screen):
+            return
 
         if "error" in data:
+            self._last_latency_ms = latency_ms
+            self._latencies.append(latency_ms)
+            self._last_refresh_at = self._timestamp()
             self._last_data = None
+            status = self.consumer.runtime_status
+            self._render_lifecycle()
+            self._render_status_bar(status)
+            self._render_quality()
             self._render_empty_state(data["error"], status)
             return
 
-        self._last_data = data
-        self._last_breakdown = await self.consumer.process_expiry_breakdown(
+        breakdown = await self.consumer.process_expiry_breakdown(
             days_to_expiry=self.config.days_to_expiry
         )
+        if not self._refresh_screen_is_current(refresh_screen):
+            return
+
+        self._last_latency_ms = latency_ms
+        self._latencies.append(latency_ms)
+        self._last_refresh_at = self._timestamp()
+        self._last_data = data
+        self._last_breakdown = breakdown
+        status = self.consumer.runtime_status
+        self._render_lifecycle()
+        self._render_status_bar(status)
+        self._render_quality()
         self._gex_flow.append(float(data["total_net_gex"]))
         self._record_events(data)
         self._render_metrics(data)
@@ -659,6 +696,26 @@ class GexTerminalApp(App):
         self._render_state_banner(status)
         if self._replay_browser_open:
             self._render_replay_browser()
+
+    def _refresh_screen(self) -> Screen | None:
+        """Return the mounted screen that currently owns refresh rendering."""
+        if not self.is_running or self._exit:
+            return None
+        screen = self._refresh_screen_owner
+        if screen is None or not screen.is_running or not screen.is_mounted:
+            return None
+        return screen if self.screen is screen else None
+
+    def _refresh_screen_is_current(self, screen: Screen) -> bool:
+        """Check refresh ownership after an await without touching a closed stack."""
+        return (
+            self.is_running
+            and not self._exit
+            and self._refresh_screen_owner is screen
+            and screen.is_running
+            and screen.is_mounted
+            and self.screen is screen
+        )
 
     def _render_empty_state(self, reason: str, status: str) -> None:
         self.query_one("#gex-table", DataTable).clear()
