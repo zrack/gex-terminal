@@ -19,11 +19,11 @@
 **Adopted:** 2026-08-19
 
 **Status owner:** Each routed contributor packet owns its bounded slice;
-`GEX-OFFLINE-001` owns the `0.5.0` integration and release. `GEX-HEALTH-001`
+closed `GEX-OFFLINE-001` owns the `0.5.0` integration and release record. `GEX-HEALTH-001`
 through `005` record merged repairs. Closed `GEX-LIVE-001` records `0.4.0`;
 prepared `GEX-LIVE-002` does not authorize or certify live operation.
-Active `GEX-LIVE-PREP-001` owns only offline population preparation for that
-future observation.
+Closed `GEX-LIVE-PREP-001` owns only offline population preparation for that
+future observation. No repository-owned offline implementation packet remains active.
 
 ## Purpose And Entry Boundary
 
@@ -160,3 +160,4 @@ predeclared outcomes, untouched test data, costs, and an observation window.
 | --- | --- | --- | --- | --- | --- |
 | 2026-08-19 | none | `gex-terminal-team-v1` | Initial SAED 1.3 adoption | `GEX-ORC-001` | Adopted for multi-participant release workflow |
 | 2026-08-31 | `GEX-ORC-001` closed | `GEX-LIVE-001` closed | Shipped repository-owned pre-live certification hardening for `0.4.0`; credentialed outcome remains external | none | Contributor and closeout pull requests, merged-tree gate, and annotated tag completed |
+| 2026-09-04 | Correctness and offline product slices | `GEX-OFFLINE-001` closed | Accepted correctness, doctor, portable loop, compact installation, support/recovery and offline live-population preparation for `0.5.0` | none; `GEX-LIVE-002` prepared only | Independent contributor review, hosted checks and verified main; user/live evidence remains external |

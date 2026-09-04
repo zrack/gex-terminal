@@ -6,7 +6,7 @@ method_version: "1.3"
 profile: gex-terminal-team-v1
 adoption_context: team
 change_rigor: L3
-status: ready for contributor review; final combined gate pending support guide
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: pull-request reviewer and hosted CI
@@ -141,11 +141,15 @@ modify plan/result files, migrate user data, or contact an external system.
   new packaged template missing from the doctor resource inventory and the five
   already-declared links to the support owner's not-yet-integrated
   `docs/local-support.md`. The resource inventory was repaired and its focused
-  regression passed. The remaining documentation-link failure belongs to the
-  pending support integration, so this packet does **not** claim a clean full
-  repository pass; the maintainer will run that combined gate after both
-  contributor slices land.
+  regression passed. The support integration subsequently resolved the remaining
+  documentation failure. PR #25 passed all four hosted checks, and clean merged
+  main `830d6a7` passed all 419 tests and 206 documentation links. The final
+  installed wheel rejected the unapproved template as required.
 - No provider adapter, credential lookup, scheduler, capture writer, or network
   execution path was added. No live observation, customer evidence, report-byte
   authentication, predictive result, provider-readiness change, or promotion is
   claimed.
+
+Accepted offline implementation is closed under
+[GEX-OFFLINE-001](GEX-OFFLINE-001.md). The separate `GEX-LIVE-002` packet remains
+prepared and does not grant execution authority.

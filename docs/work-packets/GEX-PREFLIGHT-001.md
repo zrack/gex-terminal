@@ -6,7 +6,7 @@ method_version: "1.3"
 profile: gex-terminal-team-v1
 adoption_context: team
 change_rigor: L3
-status: Ready for integration — contributor evidence passed
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 architecture_authority: project maintainer
@@ -202,3 +202,8 @@ None.
 A successful doctor proves only the reported local preflight facts; it cannot
 prove provider access, market-data quality, live reliability, or predictive
 validity.
+
+Accepted in PR #25 with four passing hosted checks and 419 tests on clean
+merged main `830d6a7`. The final resource inventory contains 31 resources after
+NQ and live-plan preparation integration. Fresh installed-wheel doctor passed;
+[GEX-OFFLINE-001](GEX-OFFLINE-001.md) owns the combined release evidence.

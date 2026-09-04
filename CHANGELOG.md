@@ -62,6 +62,9 @@ Release is claimed.
 
 ### Changed
 
+- Accepted offline engineering through PR #25 after independent review, four
+  hosted checks and 419 tests on clean merged main. Closed contributor packets
+  while keeping customer activation, rights and live observations open.
 - Reprioritized the roadmap around application correctness, offline preflight,
   reuse of existing research packs, and one usable installation path; corrected
   phase dependencies and separated commercial and empirical research tracks.

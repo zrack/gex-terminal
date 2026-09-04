@@ -9,9 +9,9 @@ document owns the dated state assessment and verification limits.
 
 The application is an offline research alpha with corrected result identity,
 fail-closed configuration, isolated replay replacement and verifiable portable
-research packs. All five P1 correctness repairs are merged. Compact-terminal
-support and the offline product foundation are undergoing final integrated
-release verification under [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md).
+research packs. All five P1 correctness repairs, compact-terminal support and
+the offline product foundation are accepted. The release evidence and remaining
+external gates are recorded in [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md).
 
 No credentialed provider observation, real-user activation study, customer
 commitment or commercial pilot was performed. Databento remains
@@ -46,7 +46,7 @@ packets rather than being duplicated here.
 | H3 — Replay writer contamination | Resolved: cancel and await prior writer before reset; full interactive CLI regressions for fixed/event clocks and failure | [GEX-HEALTH-003](work-packets/GEX-HEALTH-003.md) |
 | H4 — Experiment metadata relabeling | Resolved: complete v2 identity before reproduction; legacy partial status; reject unknown/inconsistent fields and nonempty targets | [GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md) |
 | H5 — Rejected-input chronology | Resolved: analytical points follow accepted updates; raw input audit separated; snapshot/model time agree | [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md) |
-| H6 — Clipped small terminal | Implemented: visibility checks at supported sizes, explicit minimum message below them and state-preserving resize | [GEX-INSTALL-001](work-packets/GEX-INSTALL-001.md) |
+| H6 — Clipped small terminal | Resolved: visibility checks at supported sizes, explicit minimum message below them and state-preserving resize | [GEX-INSTALL-001](work-packets/GEX-INSTALL-001.md) |
 
 These are scoped regression results, not a claim that the application has no
 other defects. Source and tests were inspected together; runtime boundaries
@@ -86,11 +86,14 @@ Package dependency downloads are not market-data connections.
 | Cross-version pack | Actual 0.4.0 contributor receipt verified/reproduced under 0.5.0 with matching source/model/content | Same Python 3.12 and NumPy/Textual runtime; original tagged 0.4.0 legacy packs are not upgraded |
 | Doctor contribution | 52 focused / 335 branch tests, distributions/Twine, isolated normal/invalid/missing-base checks | Branch baseline differs; final integrated total below |
 | Compact terminal | Screenshots inspected at 140×42 and 80×24; visibility/resize regressions passed | Not a user study |
-| Integrated release branch | 419 tests, compilation and 202 local documentation links passed; numerical, property, offline-provider, fault and 500-contract performance gates passed | Offline implementation evidence only; hosted/merged-main closeout pending |
+| Integrated release | PR #25 merged as `830d6a7`; clean pulled main passed 419 tests, compilation and 206 documentation links; numerical, property, offline-provider, fault and 500-contract performance gates passed | Offline implementation evidence only |
 | Distribution lifecycle | Complete feature wheel passed build/Twine and 0.4.0 → 0.5.0 install/upgrade/corrupt-update/rollback/uninstall; all 14 research-file byte identities preserved | macOS ARM64/Python 3.12.13; no arbitrary interrupted-install guarantee |
+| Hosted release checks | All four PR #25 Python 3.11/3.12 Linux checks passed, including full tests, fresh-wheel commands and recovery lifecycle | Hosted software verification, not live operation |
+| Independent installed wheel | Full command matrix passed in a fresh Python 3.14.4 environment; NQ identities, redacted support and private backup/restore verified | Additional command smoke only; full-suite baseline remains 3.11/3.12 |
 
-The complete final release gate and clean merged-tree evidence must be recorded
-before tagging. Follow [Contributing](../CONTRIBUTING.md) for repeatable commands,
+The release closeout and annotated tag identify the final verified merged tree;
+[GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) records acceptance without
+promoting the external gates. Follow [Contributing](../CONTRIBUTING.md) for repeatable commands,
 [First Run](first-run.md) for installation, and the individual guides for
 artifact contracts. Run review commands in new scratch directories so existing
 research cannot be overwritten. No dependency vulnerability audit or external
