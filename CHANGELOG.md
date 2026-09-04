@@ -11,6 +11,11 @@ claimed.
 
 ### Fixed
 
+- Replay reports now create analytical transitions only for accepted consumer
+  updates, align snapshot time with model as-of, and separate raw input audit
+  timestamps from accepted-state chronology. Untimed input is explicitly
+  processing-time evidence, not observed market time.
+
 - Replay selection now settles the previous CLI writer before resetting state;
   active fixed-delay/event-clock streams cannot contaminate a replacement
   session. Failed writers block replacement and remain visible at shutdown.

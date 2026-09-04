@@ -12,7 +12,6 @@ from gex_terminal.adapters.replay import ReplayAdapter
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
-from gex_terminal.market_data_adapter import dumps_normalized_message
 from gex_terminal.regime import build_regime_map
 from gex_terminal.replay_catalog import (
     ReplaySession,
@@ -78,8 +77,10 @@ async def analyze_replay_session(
     alerts: list[dict[str, Any]] = []
     timeline: list[dict[str, Any]] = []
     phases: set[str] = set()
+    raw_phases: set[str] = set()
     quality_cases: set[str] = set()
     timestamps: list[str] = []
+    raw_timestamps: list[str] = []
     previous_point: dict[str, Any] | None = None
 
     consumer.mark_connected()
@@ -89,13 +90,22 @@ async def analyze_replay_session(
     else:
         loaded_messages = [dict(message) for message in messages]
     for index, message in enumerate(loaded_messages, start=1):
-        _record_message_metadata(message, phases, timestamps)
+        _record_message_metadata(message, raw_phases, raw_timestamps)
         quality_case = str(message.get("quality_case", "")).strip()
         if quality_case and quality_case not in quality_cases:
             quality_cases.add(quality_case)
             alerts.append(_quality_alert(session.name, message, quality_case))
 
-        await consumer.update_market_state(dumps_normalized_message(message))
+        # The consumer owns acceptance; pre-validation here would bypass its
+        # malformed counters and stop an otherwise reviewable input audit.
+        accepted = await consumer.update_market_state(json.dumps(message))
+        if not accepted:
+            continue
+        phase = str(message.get("session_phase", "")).strip()
+        if phase:
+            phases.add(phase)
+        if consumer.market_time is not None:
+            timestamps.append(consumer.market_time.isoformat().replace("+00:00", "Z"))
         if consumer.current_spot == 0.0 or not consumer.chain_state:
             continue
 
@@ -142,7 +152,7 @@ async def analyze_replay_session(
         data=data,
         chain_state=consumer.chain_state,
         expiry_breakdown=breakdown,
-        timestamp=timestamps[-1] if timestamps else None,
+        timestamp=data["as_of"],
     )
     snapshot["replay_session"] = {
         "name": session.name,
@@ -152,6 +162,15 @@ async def analyze_replay_session(
         "phases": sorted(phases),
         "first_timestamp": timestamps[0] if timestamps else "",
         "last_timestamp": timestamps[-1] if timestamps else "",
+        "time_basis": "accepted_market_time" if timestamps else "processing_time",
+    }
+    snapshot["raw_input_audit"] = {
+        "message_count": len(loaded_messages),
+        "accepted_count": consumer.message_count,
+        "first_timestamp": raw_timestamps[0] if raw_timestamps else "",
+        "last_timestamp": raw_timestamps[-1] if raw_timestamps else "",
+        "phases": sorted(raw_phases),
+        "semantics": "input metadata only; not accepted market-state chronology",
     }
     snapshot["alerts"] = alerts
     snapshot["feed_quality"] = consumer.feed_quality_snapshot()
@@ -428,7 +447,11 @@ def _timeline_point(
     return {
         "session": session_name,
         "message_index": message_index,
-        "timestamp": _message_time(message),
+        "timestamp": data["as_of"],
+        "input_event_time": _message_time(message),
+        "time_basis": (
+            "accepted_market_time" if consumer.market_time is not None else "processing_time"
+        ),
         "phase": message.get("session_phase", ""),
         "spot": float(consumer.current_spot),
         "total_net_gex": float(data["total_net_gex"]),

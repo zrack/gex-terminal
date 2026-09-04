@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: ready for contributor review
+status: merged; clean-main verification pending
 packet_owner: project maintainer
 baseline: 4d58f89
 branch: codex/gex-health-003-replay-ownership
@@ -39,4 +39,6 @@ merge to recover prior behavior; no artifact migration occurs.
 - 19 focused replay/terminal/capture tests passed, including full CLI ownership
   regressions for both replay clocks and failed-source preservation.
 - All 316 tests, source compilation, and diff hygiene passed on the branch.
-- Hosted checks and clean merged-main verification remain pending.
+- [PR #21](https://github.com/zrack/gex-terminal/pull/21) passed all four hosted
+  Python 3.11/3.12 checks and merged as `ba6319203f41f47b549f3637d792cf1f3daed57a`.
+  Clean-main verification is recorded at the next integration boundary.

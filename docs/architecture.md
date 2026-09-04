@@ -184,6 +184,9 @@ five paths:
   integrity-checked captures enter through replay adapters and event-time
   controls. A capture cannot switch replay streams mid-file. Live capture
   additionally passes the capture-policy gate before provider startup.
+  Consumer acceptance determines analytical timeline membership; rejected input
+  remains only in counters/raw-input audit. Snapshot as-of follows accepted
+  state, not the final raw record's timestamp.
 - **Provider-shaped intake:** provider injection, fixture labs, and offline
   Databento certification reuse production mapping without opening a live
   connection or promoting readiness.
