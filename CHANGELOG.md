@@ -11,6 +11,11 @@ claimed.
 
 ### Fixed
 
+- Numeric configuration now fails closed across environment, direct construction
+  and CLI/UI replacement, with secret-safe errors and stale-threshold guards.
+  Offline injection/fixture reports now label replay origin and no-network
+  evidence instead of live connection health.
+
 - Replay reports now create analytical transitions only for accepted consumer
   updates, align snapshot time with model as-of, and separate raw input audit
   timestamps from accepted-state chronology. Untimed input is explicitly

@@ -464,18 +464,18 @@ class GexTerminalApp(App):
     ) -> None:
         updates: dict[str, float | int] = {}
         if days_to_expiry is not None:
-            updates["days_to_expiry"] = float(days_to_expiry)
+            updates["days_to_expiry"] = days_to_expiry
         if risk_free_rate is not None:
-            updates["risk_free_rate"] = float(risk_free_rate)
-            self.consumer.risk_free_rate = float(risk_free_rate)
+            updates["risk_free_rate"] = risk_free_rate
         if contract_multiplier is not None:
-            updates["contract_multiplier"] = int(contract_multiplier)
-            self.consumer.engine.multiplier = int(contract_multiplier)
+            updates["contract_multiplier"] = contract_multiplier
 
         if not updates:
             return
 
         self.config = replace(self.config, **updates)
+        self.consumer.risk_free_rate = self.config.risk_free_rate
+        self.consumer.engine.multiplier = self.config.contract_multiplier
         self._event(
             "assumptions -> "
             f"{self.config.days_to_expiry:g}DTE, "

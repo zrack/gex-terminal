@@ -23,6 +23,16 @@ class OfflineCertificationExtensionTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(faults["result"]["passed"])
         self.assertFalse(faults["result"]["live_transport_certified"])
         self.assertEqual(properties["result"]["predictive_validity"], "unmeasured")
+        lifecycle = next(
+            case
+            for case in faults["cases"]
+            if case["name"] == "disconnect_reconnect_subscription_failure"
+        )
+        self.assertEqual(
+            lifecycle["states"],
+            ["DISCONNECTED", "CONNECTED", "DISCONNECTED", "CONNECTED"],
+        )
+        self.assertFalse(lifecycle["live_transport_certified"])
 
     async def test_generated_performance_budget_is_explicit(self):
         report = await build_performance_report(
