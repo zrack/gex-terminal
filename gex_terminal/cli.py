@@ -17,6 +17,13 @@ from gex_terminal.batch_comparison import (
     build_batch_comparison,
     write_batch_comparison,
 )
+from gex_terminal.artifact_lifecycle import (
+    apply_retention_plan,
+    create_private_backup,
+    create_retention_plan,
+    restore_private_backup,
+    verify_private_backup,
+)
 from gex_terminal.capture_governance import (
     CapturePolicyError,
     capture_policy_identity,
@@ -45,6 +52,7 @@ from gex_terminal.fixture_validator import (
 )
 from gex_terminal.market_data_adapter import AdapterConfigurationError
 from gex_terminal.logging_config import LOG_LEVELS, configure_logging
+from gex_terminal.local_support import build_support_bundle, write_support_bundle
 from gex_terminal.model_evidence import (
     build_model_evidence_report,
     write_model_evidence_report,
@@ -140,6 +148,31 @@ async def main():
 
     if args.command == "capture-policy-validate":
         capture_policy_validate_command(args.command_path)
+        return
+
+    if args.command == "support-bundle":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        support_bundle_command(config, args)
+        return
+
+    if args.command == "research-backup":
+        research_backup_command(args)
+        return
+
+    if args.command == "research-backup-verify":
+        research_backup_verify_command(args)
+        return
+
+    if args.command == "research-restore":
+        research_restore_command(args)
+        return
+
+    if args.command == "research-retention-plan":
+        research_retention_plan_command(args)
+        return
+
+    if args.command == "research-retention-apply":
+        research_retention_apply_command(args)
         return
 
     if args.command == "validate-fixture":
@@ -957,6 +990,124 @@ def model_evidence_command(output_path: str) -> None:
         raise SystemExit(1)
 
 
+def support_bundle_command(config: GexConfig, args: argparse.Namespace) -> None:
+    if not args.command_path:
+        raise SystemExit(
+            "Usage: gex-terminal support-bundle OUTPUT.json [ARTIFACT_DIR ...]"
+        )
+    try:
+        bundle = build_support_bundle(config, artifact_dirs=args.command_args)
+        target = write_support_bundle(bundle, args.command_path)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved redacted support bundle to {target} "
+        f"(artifacts={len(bundle['artifacts'])}, raw_paths=False, logs=False)"
+    )
+
+
+def research_backup_command(args: argparse.Namespace) -> None:
+    if not args.command_path or len(args.command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal research-backup SOURCE_DIR BACKUP_DIR"
+        )
+    try:
+        report = create_private_backup(args.command_path, args.command_args[0])
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']}, "
+        f"manifest_sha256={report['manifest_sha256']})"
+    )
+
+
+def research_backup_verify_command(args: argparse.Namespace) -> None:
+    if not args.command_path or getattr(args, "command_args", ()):
+        raise SystemExit(
+            "Usage: gex-terminal research-backup-verify BACKUP_DIR"
+        )
+    try:
+        report = verify_private_backup(args.command_path)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']}, "
+        f"manifest_sha256={report['manifest_sha256']})"
+    )
+
+
+def research_restore_command(args: argparse.Namespace) -> None:
+    if not args.command_path or len(args.command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal research-restore BACKUP_DIR DESTINATION_DIR"
+        )
+    try:
+        report = restore_private_backup(args.command_path, args.command_args[0])
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup restored and verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']})"
+    )
+
+
+def research_retention_plan_command(args: argparse.Namespace) -> None:
+    if (
+        not args.command_path
+        or len(args.command_args) < 2
+        or not args.retention_backups
+        or len(args.retention_backups) != len(args.command_args) - 1
+    ):
+        raise SystemExit(
+            "Usage: gex-terminal research-retention-plan OUTPUT.json "
+            "CUTOFF_UTC ARTIFACT_DIR [ARTIFACT_DIR ...] "
+            "--retention-backup BACKUP_DIR [--retention-backup BACKUP_DIR ...]"
+        )
+    try:
+        plan = create_retention_plan(
+            args.command_args[1:],
+            args.command_args[0],
+            args.command_path,
+            backup_dirs=args.retention_backups,
+        )
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    deletions = sum(
+        target["action"] == "delete_whole_group" for target in plan["targets"]
+    )
+    print(
+        "Saved dry-run retention plan "
+        f"(targets={len(plan['targets'])}, deletions={deletions}, "
+        f"plan_sha256={plan['plan_sha256']})"
+    )
+
+
+def research_retention_apply_command(args: argparse.Namespace) -> None:
+    if (
+        not args.command_path
+        or not args.confirm_plan_sha256
+        or getattr(args, "command_args", ())
+    ):
+        raise SystemExit(
+            "Usage: gex-terminal research-retention-apply PLAN.json "
+            "--confirm-plan-sha256 SHA256"
+        )
+    try:
+        receipt = apply_retention_plan(
+            args.command_path,
+            confirmation=args.confirm_plan_sha256,
+        )
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Applied unchanged retention plan "
+        f"(deleted={receipt['deleted_count']}, retained={receipt['retained_count']}, "
+        f"plan_sha256={receipt['plan_sha256']})"
+    )
+
+
 async def experiment_run_command(args: argparse.Namespace) -> None:
     if not args.command_path or not args.command_args:
         raise SystemExit("Usage: gex-terminal experiment-run SPEC.json OUTPUT_DIR")
@@ -1192,6 +1343,12 @@ def parse_args() -> argparse.Namespace:
             "provider-fault-certify",
             "performance-certify",
             "capture-policy-validate",
+            "support-bundle",
+            "research-backup",
+            "research-backup-verify",
+            "research-restore",
+            "research-retention-plan",
+            "research-retention-apply",
         ),
         help="Optional utility command.",
     )
@@ -1413,6 +1570,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--corpus-id",
         help="Stable corpus identifier for corpus-init.",
+    )
+    parser.add_argument(
+        "--confirm-plan-sha256",
+        help=(
+            "Exact SHA-256 printed by research-retention-plan. Required for the "
+            "separate destructive apply command."
+        ),
+    )
+    parser.add_argument(
+        "--retention-backup",
+        dest="retention_backups",
+        action="append",
+        default=[],
+        metavar="BACKUP_DIR",
+        help=(
+            "Verified private backup paired by order with each artifact passed to "
+            "research-retention-plan. Repeat once per target."
+        ),
     )
     parser.add_argument(
         "--performance-contracts",
