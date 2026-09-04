@@ -21,6 +21,7 @@ status checklists into multiple files.
 | Databento mapping | [Databento Fixture Mapping](databento-fixtures.md) | Provider-specific requests, record mapping, certification policy, and lifecycle evidence semantics |
 | Offline provider evidence | [Offline Validation](offline-validation.md) | Replay, temporal, adversarial, and scripted-lifecycle checks plus their proof ceiling |
 | Capture safety | [Capture Governance](capture-governance.md) | Pre-capture rights, retention, redaction, research-use decisions, and logging safeguards |
+| Live observation preparation | [Live Population Preparation](live-population-prep.md) | Offline population preregistration, canonical identities, full-result accounting, and external authority gates |
 | Research authority | [Research Governance](research-governance.md) | Model profiles, manifests, corpus gates, split identity, and evidence ladder |
 | Contribution workflow | [Contributing](../CONTRIBUTING.md) | Setup, verification commands, development rules, and pull-request checklist |
 | Change governance | [SAED Adoption Profile](SAED_ADOPTION_PROFILE.md) | Change rigor, authority, invariants, active-packet rules, and release evidence |
@@ -28,10 +29,12 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. [GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md) owns experiment-identity
-integration; independent preflight, support, installation and research-loop
-slices are isolated on their contributor branches. `GEX-HEALTH-001`, `002`,
-`003`, and `005` record merged correctness repairs.
+active. [GEX-LIVE-PREP-001](work-packets/GEX-LIVE-PREP-001.md) owns the bounded
+offline live-population contract. [GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md)
+owns experiment-identity integration; independent preflight, support,
+installation and research-loop slices are isolated on their contributor
+branches. `GEX-HEALTH-001`, `002`, `003`, and `005` record merged correctness
+repairs.
 
 ## Start Here By Goal
 
@@ -75,6 +78,8 @@ slices are isolated on their contributor branches. `GEX-HEALTH-001`, `002`,
 - [Market-Data Adapters](adapters.md) — shared contract and provider selection.
 - [Databento Fixture Mapping](databento-fixtures.md) — Databento-specific mapping
   and live-certification boundary.
+- [Live Population Preparation](live-population-prep.md) — freeze and validate a
+  prospective ES population without contacting a provider.
 - [Provider Injection](provider-injection.md) — offline provider-shaped samples.
 - [Captured Sessions](captured-sessions.md) — sanitized normalized captures.
 
@@ -91,6 +96,8 @@ slices are isolated on their contributor branches. `GEX-HEALTH-001`, `002`,
 - [GEX-LIVE-001](work-packets/GEX-LIVE-001.md) — closed `0.4.0` pre-live
   hardening and release record; credentialed validation remains external
   follow-on work.
+- [GEX-LIVE-PREP-001](work-packets/GEX-LIVE-PREP-001.md) — active offline
+  preregistration and result-manifest contract; no live execution is authorized.
 
 ## Editing Rules
 

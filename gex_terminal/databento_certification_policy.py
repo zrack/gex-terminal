@@ -7,6 +7,8 @@ amount of evidence required to establish predictive validity.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from dataclasses import asdict, dataclass
 from numbers import Real
@@ -15,6 +17,10 @@ from typing import Any, Mapping
 
 CERTIFICATION_POLICY_SCHEMA = "gex-terminal.databento-certification-policy.v1"
 CERTIFICATION_POLICY_VERSION = 1
+CERTIFICATION_POLICY_IDENTITY_SCHEMA = (
+    "gex-terminal.databento-certification-policy-identity.v1"
+)
+CERTIFICATION_POLICY_CANONICALIZATION = "gex-terminal.canonical-json.v1"
 CANONICAL_CONTRACT_MULTIPLIERS = {"ES": 50.0, "NQ": 20.0}
 
 
@@ -167,6 +173,31 @@ class DatabentoCertificationPolicy:
             ),
             "thresholds": self.thresholds.to_dict(),
         }
+
+
+def certification_policy_identity(
+    policy: DatabentoCertificationPolicy,
+) -> dict[str, str | int]:
+    """Return a canonical identity for the complete registered policy content."""
+    if not isinstance(policy, DatabentoCertificationPolicy):
+        raise ValueError(
+            "certification policy identity requires DatabentoCertificationPolicy"
+        )
+    encoded = json.dumps(
+        policy.to_dict(),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return {
+        "schema": CERTIFICATION_POLICY_IDENTITY_SCHEMA,
+        "canonicalization": CERTIFICATION_POLICY_CANONICALIZATION,
+        "policy_schema": policy.schema,
+        "policy_id": policy.policy_id,
+        "policy_version": policy.version,
+        "sha256": hashlib.sha256(encoded).hexdigest(),
+    }
 
 
 def _prelive_thresholds() -> DatabentoCertificationThresholds:

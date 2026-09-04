@@ -21,7 +21,8 @@
 **Status owner:** Each routed contributor packet owns its bounded slice;
 `GEX-HEALTH-004` owns experiment-identity integration, and
 `GEX-HEALTH-001`/`002`/`003`/`005` record merged repairs. Closed `GEX-LIVE-001`
-records the `0.4.0` repository release.
+records the `0.4.0` repository release. Active `GEX-LIVE-PREP-001` owns offline
+live-population preparation and does not authorize external observation.
 
 ## Purpose And Entry Boundary
 

@@ -3,17 +3,43 @@ import unittest
 from dataclasses import replace
 
 from gex_terminal.databento_certification_policy import (
+    CERTIFICATION_POLICY_CANONICALIZATION,
+    CERTIFICATION_POLICY_IDENTITY_SCHEMA,
     CERTIFICATION_POLICY_SCHEMA,
     DatabentoCertificationPolicy,
     DatabentoCertificationThresholds,
     ES_PRELIVE_V1,
     NQ_PRELIVE_V1,
+    certification_policy_identity,
     resolve_databento_certification_policy,
     validate_contract_multiplier,
 )
 
 
 class DatabentoCertificationPolicyTests(unittest.TestCase):
+    def test_policy_identity_hashes_the_complete_canonical_policy(self):
+        identity = certification_policy_identity(ES_PRELIVE_V1)
+        changed = replace(
+            ES_PRELIVE_V1,
+            policy_id="comparison-es-policy-v1",
+            thresholds=replace(
+                ES_PRELIVE_V1.thresholds,
+                minimum_provider_frames=(
+                    ES_PRELIVE_V1.thresholds.minimum_provider_frames + 1
+                ),
+            ),
+        )
+
+        self.assertEqual(identity["schema"], CERTIFICATION_POLICY_IDENTITY_SCHEMA)
+        self.assertEqual(
+            identity["canonicalization"], CERTIFICATION_POLICY_CANONICALIZATION
+        )
+        self.assertEqual(identity["policy_schema"], CERTIFICATION_POLICY_SCHEMA)
+        self.assertEqual(len(identity["sha256"]), 64)
+        self.assertNotEqual(
+            identity["sha256"], certification_policy_identity(changed)["sha256"]
+        )
+
     def test_default_profiles_are_versioned_and_symbol_scoped(self):
         es = resolve_databento_certification_policy(symbol="es")
         nq = resolve_databento_certification_policy(symbol="NQ")

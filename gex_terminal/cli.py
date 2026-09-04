@@ -47,6 +47,14 @@ from gex_terminal.fixture_validator import (
 )
 from gex_terminal.market_data_adapter import AdapterConfigurationError
 from gex_terminal.logging_config import LOG_LEVELS, configure_logging
+from gex_terminal.live_population_contract import (
+    LIVE_POPULATION_RESULT_SCHEMA,
+    LivePopulationContractError,
+    live_population_plan_identity,
+    live_population_result_identity,
+    load_live_population_plan,
+    load_live_population_result_manifest,
+)
 from gex_terminal.model_evidence import (
     build_model_evidence_report,
     write_model_evidence_report,
@@ -143,6 +151,17 @@ async def main():
 
     if args.command == "capture-policy-validate":
         capture_policy_validate_command(args.command_path)
+        return
+
+    if args.command == "live-population-plan-validate":
+        live_population_plan_validate_command(args.command_path)
+        return
+
+    if args.command == "live-population-results-validate":
+        live_population_results_validate_command(
+            args.command_path,
+            args.command_args,
+        )
         return
 
     if args.command == "validate-fixture":
@@ -1253,6 +1272,8 @@ def parse_args() -> argparse.Namespace:
             "provider-fault-certify",
             "performance-certify",
             "capture-policy-validate",
+            "live-population-plan-validate",
+            "live-population-results-validate",
         ),
         help="Optional utility command.",
     )
@@ -1640,6 +1661,44 @@ def capture_policy_validate_command(path: str | None) -> None:
     print(
         "Capture policy valid: "
         f"{identity['policy_id']} ({identity['schema']}, sha256={identity['sha256']})"
+    )
+
+
+def live_population_plan_validate_command(path: str | None) -> None:
+    if not path:
+        raise SystemExit(
+            "Usage: gex-terminal live-population-plan-validate PLAN.json"
+        )
+    try:
+        identity = live_population_plan_identity(load_live_population_plan(path))
+    except LivePopulationContractError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Live population plan valid: "
+        f"{identity['population_id']} "
+        f"({identity['plan_schema']}, sha256={identity['sha256']})"
+    )
+
+
+def live_population_results_validate_command(
+    plan_path: str | None,
+    command_args: list[str],
+) -> None:
+    if not plan_path or len(command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal live-population-results-validate "
+            "PLAN.json RESULTS.json"
+        )
+    try:
+        plan = load_live_population_plan(plan_path)
+        result = load_live_population_result_manifest(plan_path, command_args[0])
+        identity = live_population_result_identity(plan, result)
+    except LivePopulationContractError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Live population results valid: "
+        f"{identity['population_id']} "
+        f"({LIVE_POPULATION_RESULT_SCHEMA}, sha256={identity['sha256']})"
     )
 
 
