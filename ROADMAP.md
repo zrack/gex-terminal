@@ -7,8 +7,8 @@ This file contains planned and deferred work only. Shipped work belongs in
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
 Priorities reviewed September 4, 2026 against application version `0.4.0`.
-The instrument-identity repair is routed under `GEX-HEALTH-001`; remaining
-correctness work is H2–H5, followed by offline preflight. The phases below remain
+Remaining correctness work is H2 configuration/health, H4 experiment identity,
+and H5 accepted-event chronology, followed by offline preflight. The phases below remain
 conditional plans. [Application Review](docs/application-review.md) owns the
 dated health evidence and open findings.
 
@@ -21,7 +21,7 @@ an accepted work packet owns implementation status.
 
 | Order | Work | Why now | Completion evidence |
 | --- | --- | --- | --- |
-| 1 — Correctness | Close H2–H5: configuration/health, replay isolation, experiment identity, and accepted-event chronology | A useful product must preserve the identity and validity of the result before adding delivery features | Each accepted finding has a minimal reproduction, a focused regression, and an explicit rejection or correct result through the public workflow |
+| 1 — Correctness | Close H2, H4, and H5: configuration/health, experiment identity, and accepted-event chronology | A useful product must preserve the identity and validity of the result before adding delivery features | Each accepted finding has a minimal reproduction, a focused regression, and an explicit rejection or correct result through the public workflow |
 | 2 — Offline preflight | Add an offline `doctor` command and repair any demonstrated install/configuration failures | Users and contributors need to distinguish a broken environment from an unsupported provider | Text/JSON diagnostics work from an installed wheel outside the checkout; invalid base configuration fails; absent optional providers are explained; no connection or secret disclosure occurs |
 | 3 — Complete one research loop | Extend the existing Demo Lab with model comparison and a reproducible review receipt; add a synthetic NQ fixture where needed | Existing replay, export, journal, and experiment tools already provide most of the machinery | One authorized session yields a portable pack with source/model/quality identity, separated position models, and a reproducible result |
 | 4 — Make it usable on a fresh machine | Deliver one guided install and replay journey for the first user segment | Observed activation matters more than another command or panel | One selected distribution path passes install/upgrade checks and users complete the scoped journey without developer help |
@@ -564,8 +564,7 @@ phase uses them as a gate.
 
 ## Immediate Continuation Point
 
-After the `GEX-HEALTH-001` identity slice closes, route H2 health/configuration,
-H3 replay lifecycle, H4 experiment identity, and H5 event chronology as separate
+Finish H2 health/configuration, H4 experiment identity, and H5 event chronology as separate
 bounded repair slices with their own reproductions and regressions. Finish
 this correctness sequence before extending the affected research workflows.
 

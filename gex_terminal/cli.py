@@ -381,6 +381,7 @@ async def main():
         consumer=state_consumer,
         config=config,
         allow_replay_switching=capture_writer is None,
+        source_task=stream_task,
     )
     app_failed = False
     try:
