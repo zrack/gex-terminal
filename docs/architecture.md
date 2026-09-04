@@ -217,8 +217,12 @@ Generated output stays local by default under ignored folders such as
 
 Provider readiness is not runtime connection status. The readiness vocabulary
 is `offline-certified`, `delayed`, `scaffold`, `live-uncertified`, and
-`live-certified`. Runtime state remains `SIM`, `LIVE`, `STALE`, or
-`DISCONNECTED`; a live connection never promotes readiness by itself.
+`live-certified`. Runtime state includes `SIM`, `REPLAY`, `CONNECTED`, `LIVE`,
+`STALE`, and `DISCONNECTED`; a live connection never promotes readiness by itself.
+Provider-shaped injection is `REPLAY` with a disconnected transport and explicit
+offline/no-network origin. Scripted fault tests may model live transitions, but
+remain marked as simulations. Frozen `GexConfig` validates numeric values at
+construction/replacement; UI updates validate before publishing state changes.
 
 ## State Ownership
 

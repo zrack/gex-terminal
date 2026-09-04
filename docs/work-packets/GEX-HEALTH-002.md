@@ -167,6 +167,12 @@ None.
 
 ## Evidence
 
+Integration at `main@813bb24` preserved H1 multiplier identity, H3 writer
+ownership, and H5 chronology. An additional regression validates UI assumption
+changes before publishing engine mutations. All 333 integrated tests,
+compilation, diff hygiene, and the 7/7 provider-fault gate passed. Hosted checks
+and clean-main verification remain pending at this integration commit.
+
 Repository evidence on the isolated contributor branch:
 
 - Focused configuration, CLI, feed-quality, injection, fixture-lab,

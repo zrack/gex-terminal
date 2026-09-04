@@ -82,7 +82,16 @@ and [`yfinance_adapter.py`](../gex_terminal/adapters/yfinance_adapter.py).
 Repair acceptance also requires exports to distinguish fallback assumptions
 from the actual row multipliers, including mixed-contract cases.
 
-### H2 — P1: Health output can misrepresent offline or stale inputs
+### H2 — Resolved: Fail-closed configuration and truthful offline health
+
+Repair: every configuration construction/replacement validates numeric domain
+and finiteness; malformed environment/CLI values fail without raw-value echo.
+Consumer and feed-quality entry points defend stale thresholds. UI assumption
+changes validate before mutating the engine. Injection exports and fixture-lab
+reports explicitly carry offline/no-network origin, `REPLAY`, `DISCONNECTED`,
+and simulated/degraded health. Scripted live-lifecycle fault tests remain
+unchanged. See [GEX-HEALTH-002](work-packets/GEX-HEALTH-002.md). The following
+describes the original defect.
 
 The normal offline command
 `inject-provider bundled:yfinance-etf-options --export spy.json` emits

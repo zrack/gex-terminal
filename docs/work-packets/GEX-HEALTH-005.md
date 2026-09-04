@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: ready for contributor review
+status: closed
 packet_owner: project maintainer
 branch: codex/gex-health-005-accepted-chronology
 created: 2026-09-04
@@ -40,4 +40,6 @@ Revert the merge for code recovery. Existing artifacts are not rewritten.
   separate late rejected input from model time and persist that boundary through
   the journal workflow.
 - All 320 tests, compileall, diff hygiene and numerical model evidence passed.
-- Hosted checks and clean merged-main verification remain pending.
+- [PR #22](https://github.com/zrack/gex-terminal/pull/22) passed all four hosted
+  checks and merged as `813bb24`. Clean merged main passed all 320 tests and
+  source compilation with no working-tree changes.
