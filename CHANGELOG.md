@@ -11,6 +11,13 @@ claimed.
 
 ### Changed
 
+- Refreshed the September 2026 competitive landscape with Nightglass,
+  GammaTape, FlashAlpha, current industry evidence, a narrower native-futures
+  positioning, and a gated path from research kernel to commercial product.
+- Expanded the product vision and roadmap around a bring-your-own-data desktop
+  hypothesis, a comparable hosted-cockpit alternative, customer validation,
+  distributable offline workflows, bounded live certification, design-partner
+  evidence, governed outcome research, and commercial exit criteria.
 - Updated GitHub CI to the Node 24-based `actions/checkout@v7` and
   `actions/setup-python@v7` releases after the hosted runner reported the older
   Node 20 action runtimes as deprecated.
