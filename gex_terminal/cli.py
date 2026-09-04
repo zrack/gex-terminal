@@ -36,6 +36,8 @@ from gex_terminal.databento_offline import (
 from gex_terminal.demo_lab import (
     DEFAULT_DEMO_SESSION,
     build_demo_lab,
+    reproduce_demo_lab,
+    verify_demo_lab,
 )
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.experiment_manifest import reproduce_experiment, run_experiment
@@ -565,7 +567,43 @@ async def export_provider_fixture_lab(config: GexConfig, output_path: str) -> No
 
 async def export_demo_lab(config: GexConfig, args: argparse.Namespace) -> None:
     """Generate the offline demo pack for GitHub and contributor onboarding."""
+    action = args.command_path
+    if action == "verify":
+        if len(args.command_args) != 1:
+            raise SystemExit("Usage: gex-terminal demo-lab verify PACK")
+        try:
+            report = verify_demo_lab(args.command_args[0])
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        print(
+            f"Verified Demo Lab pack {report['pack']} "
+            f"({report['artifact_count']} artifacts, content={report['content_sha256']})"
+        )
+        return
+    if action == "reproduce":
+        if len(args.command_args) != 2:
+            raise SystemExit("Usage: gex-terminal demo-lab reproduce PACK OUTPUT")
+        try:
+            result = await reproduce_demo_lab(
+                args.command_args[0],
+                args.command_args[1],
+                screenshot_width=args.screenshot_width,
+                screenshot_height=args.screenshot_height,
+            )
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        verification = result["verification"]
+        print(
+            f"Reproduced and verified Demo Lab pack at {args.command_args[1]} "
+            f"({verification['artifact_count']} artifacts)"
+        )
+        return
     output_dir = args.command_path or "demo_lab"
+    if args.command_args:
+        raise SystemExit(
+            "Usage: gex-terminal demo-lab [OUTPUT] [--replay-session NAME], "
+            "or demo-lab {verify,reproduce}"
+        )
     session_name = args.replay_session or DEFAULT_DEMO_SESSION
     try:
         manifest = await build_demo_lab(

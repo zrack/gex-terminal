@@ -1,7 +1,16 @@
+import csv
+import io
+import tempfile
 import unittest
+from pathlib import Path
 
 from gex_terminal.config import GexConfig
-from gex_terminal.position_model_comparison import build_position_model_comparison
+from gex_terminal.position_model_comparison import (
+    build_position_model_comparison,
+    position_model_comparison_to_csv,
+    position_model_comparison_to_markdown,
+    write_position_model_comparison,
+)
 
 
 def _config():
@@ -46,6 +55,27 @@ class PositionModelComparisonTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(report["vintage_control"]["future_messages_rejected"], 1)
         self.assertEqual(report["result"]["predictive_validity"], "unmeasured")
         self.assertEqual(report["models"]["open_interest"]["position_sources"], ["open_interest"])
+
+        markdown = position_model_comparison_to_markdown(report)
+        csv_rows = list(csv.DictReader(io.StringIO(position_model_comparison_to_csv(report))))
+        self.assertIn("Models may be summed: `false`", markdown)
+        self.assertIn("Differences, Not Combined Exposure", markdown)
+        self.assertIn("Evidence ceiling:", markdown)
+        self.assertEqual(
+            {row["name"] for row in csv_rows if row["record_type"] == "model"},
+            {"open_interest", "raw_trade_volume", "directionalized_trade_volume"},
+        )
+        self.assertIn("models_may_not_be_summed", {
+            row["name"] for row in csv_rows if row["record_type"] == "limitation"
+        })
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for suffix in ("json", "csv", "md"):
+                target = write_position_model_comparison(
+                    report,
+                    Path(tmp) / f"position-comparison.{suffix}",
+                )
+                self.assertTrue(target.exists())
 
 
 if __name__ == "__main__":
