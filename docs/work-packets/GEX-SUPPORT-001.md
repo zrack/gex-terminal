@@ -115,13 +115,21 @@ operate on non-synthetic user data during implementation.
   binding, tamper and partial-copy rejection, all-target preflight, quarantine
   rollback, replacement-path survival, redaction, bounds, and separate CLI
   confirmation.
-- Full unit discovery on the isolated feature branch: 330 tests passed with no
-  failures. Source compilation completed without errors and `git diff --check`
-  passed.
+- The combined doctor, Demo Lab, live-preparation, and support/lifecycle gate:
+  69 tests passed. Full unit discovery after the coordinating closeout merge:
+  419 tests passed with no failures. Source compilation completed without
+  errors and `git diff --check` passed.
 - All filesystem mutations used synthetic temporary research directories.
-  The doctor report was injected through its stable offline schema and Demo Lab
-  identity was exercised through the stable verifier boundary pending the
-  coordinating branch merge that supplies those independently owned modules.
+  The support bundle consumed the stable offline doctor schema. Independent
+  review also generated a current 20-file Demo Lab pack and passed inspect,
+  private backup, verify, and restore with the same content identity.
+- A public CLI smoke generated that pack and a redacted support bundle, backed
+  it up, verified and restored it, then planned and applied confirmation-gated
+  retention to the disposable restore. The original and verified backup
+  remained present, and the shareable JSON contained no selected local path.
+- The `0.5.0` wheel built and passed `twine check`. A no-dependency isolated
+  wheel import then ran `--version`, support-bundle, backup, and verification
+  against the real Demo Lab pack successfully.
 - No provider credentials, live data, user research, licensed capture store,
   package uninstall, authenticity claim, or deletion outside disposable
   temporary directories was exercised.
