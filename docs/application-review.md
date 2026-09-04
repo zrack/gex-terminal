@@ -163,7 +163,14 @@ identity. Test profile, split, outcome, cost, and implementation compatibility
 independently from input/result parity. These checks establish internal
 consistency; authenticity still requires separate signed or anchored evidence.
 
-### H5 — P1: Dropped events can advance replay report timestamps
+### H5 — Resolved: Replay chronology follows accepted state
+
+Repair: consumer updates return explicit acceptance. Replay reports skip
+analytical points for rejected input, retain a separate raw-input audit, and
+align snapshot time with model as-of. Regressions cover off-symbol, malformed,
+duplicate, conflicting-identity and regressed-time records, untimed legacy
+labels, and journal persistence. [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md)
+owns verification. The following describes the original defect.
 
 [`analyze_replay_session`](../gex_terminal/replay_lab.py) records incoming
 metadata before consumer validation and creates a timeline point after each

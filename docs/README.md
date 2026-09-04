@@ -28,10 +28,10 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. [GEX-HEALTH-003](work-packets/GEX-HEALTH-003.md) owns replay-lifecycle
-repair; independent configuration and experiment repairs are isolated on their
-own contributor branches. [GEX-HEALTH-001](work-packets/GEX-HEALTH-001.md)
-records the merged instrument-identity repair.
+active. [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md) owns accepted-event
+chronology; independent configuration, experiment, and research-loop slices
+are isolated on their contributor branches. Merged identity and replay-lifecycle
+repairs are recorded in `GEX-HEALTH-001` and `GEX-HEALTH-003`.
 
 ## Start Here By Goal
 

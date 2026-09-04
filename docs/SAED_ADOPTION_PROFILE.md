@@ -19,8 +19,8 @@
 **Adopted:** 2026-08-19
 
 **Status owner:** Each routed contributor packet owns its bounded slice;
-`GEX-HEALTH-003` owns replay lifecycle, and `GEX-HEALTH-001` records the merged
-identity repair. Closed `GEX-LIVE-001` records the `0.4.0` repository release.
+`GEX-HEALTH-005` owns chronology, and `GEX-HEALTH-001`/`003` record merged
+repairs. Closed `GEX-LIVE-001` records the `0.4.0` repository release.
 
 ## Purpose And Entry Boundary
 

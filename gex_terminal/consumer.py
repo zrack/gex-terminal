@@ -235,13 +235,14 @@ class StatefulGexConsumer:
         snapshot["fallback_iv_tick_count"] = self.fallback_iv_tick_count
         return snapshot
 
-    async def update_market_state(self, raw_message: str):
+    async def update_market_state(self, raw_message: str) -> bool:
         """
         Parse one normalized message and update contract-aware market state.
 
         Schema-v1 option messages are treated as incremental legacy events.
         Schema-v2 messages carry stable identity and declare whether ``volume``
         is an incremental trade size or a cumulative counter.
+        Return True only when this message changes accepted market state.
         """
         try:
             data = json.loads(raw_message)
@@ -252,7 +253,7 @@ class StatefulGexConsumer:
             if data.get("type") == "underlying_tick":
                 if data.get("symbol") != self.target_underlying:
                     self.dropped_message_count += 1
-                    return
+                    return False
                 async with self.state_lock:
                     self.current_spot = float(data["price"])
                     if self.session_open == 0.0:
@@ -262,7 +263,7 @@ class StatefulGexConsumer:
                             self.market_time = event_time
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
-                return
+                return True
 
             # 2. Update Options Traded Volume
             if data.get("type") == "options_volume_tick":
@@ -272,12 +273,12 @@ class StatefulGexConsumer:
                 )
                 if contract["symbol"] != self.target_underlying:
                     self.dropped_message_count += 1
-                    return
+                    return False
 
                 async with self.state_lock:
                     if contract["schema_version"] >= 2:
                         if not self._update_v2_contract_locked(contract, data):
-                            return
+                            return False
                         if contract.get("iv_source") == "configured_default":
                             self.fallback_iv_tick_count += 1
                         self._v2_option_count += 1
@@ -289,13 +290,14 @@ class StatefulGexConsumer:
                             self.market_time = event_time
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
-                return
+                return True
 
             self.dropped_message_count += 1
 
         except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
             self.malformed_message_count += 1
             LOGGER.error("Failed parsing normalized market-data message: %s", e)
+        return False
 
     def _update_v1_projection_locked(
         self,
