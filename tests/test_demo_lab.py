@@ -44,8 +44,8 @@ class DemoLabTests(unittest.IsolatedAsyncioTestCase):
                 replace(_config(), symbol="NQ", contract_multiplier=20),
                 output_dir,
                 replay_session_name="zero-gamma-flip",
-                screenshot_width=120,
-                screenshot_height=36,
+                screenshot_width=140,
+                screenshot_height=42,
             )
 
             self.assertEqual(manifest["schema"], DEMO_LAB_SCHEMA)
