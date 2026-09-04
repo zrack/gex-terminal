@@ -8,6 +8,13 @@ This does not prove live entitlements, current provider field drift, or real
 network reconnect behavior. It does prove that captured or documented samples
 can become inspectable GEX state.
 
+Injection is represented as completed local replay: returned artifacts record
+`source_kind=offline_provider_fixture`, `network_used=false`, runtime status
+`REPLAY`, and connection state `DISCONNECTED`. A clean fixture has `simulated`
+health; parser, mapping, or model-quality counters can still make it `degraded`.
+The named provider identifies the mapping under test, not an observed live
+connection or provider-readiness result.
+
 ## Provider Fixture Workbench
 
 Run every bundled provider-shaped fixture through the offline workbench:
@@ -23,6 +30,9 @@ metadata join, Databento GLBX-style fixtures, a yfinance ETF option-chain sample
 and a Cboe-style option quote CSV. Use it before and after adapter changes to
 produce one shareable pass/fail scorecard with health counters, computed gamma
 wall, strike-profile flip/compatibility level, and saved snapshot baselines.
+`Passed` means the fixture produced a computable mapping and snapshot. The
+scorecard counts `simulated`, `degraded`, and any genuinely `healthy` result
+separately, so a mapping pass is never presented as live-provider health.
 
 The checked-in example output is available at
 [docs/examples/provider_fixture_lab.md](examples/provider_fixture_lab.md).
@@ -108,10 +118,14 @@ The command prints a compact operator summary with:
 - dropped payload count
 - subscription status
 - subscribed symbol count
-- health state
+- offline source kind and whether a network was used
+- runtime mode, completion connection state, and health state
 
 Use `--export .json`, `--export .csv`, or `--export .md` to save the full
-snapshot, including `provider_injection` metadata and `feed_quality` counters.
+snapshot. `provider_injection` preserves provider/format mapping provenance,
+fixture paths, `source_kind`, `network_used`, `mapping_status`, and normalized
+message count. `feed_quality` separately preserves runtime status/mode,
+connection state, health, subscription evidence, and quality counters.
 
 The `bundled:NAME` selector resolves resources inside either the source package
 or installed wheel. Pass a filesystem path, `--metadata`, and
