@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: ready_for_integration
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: pull-request reviewer and hosted CI
@@ -133,3 +133,9 @@ operate on non-synthetic user data during implementation.
 - No provider credentials, live data, user research, licensed capture store,
   package uninstall, authenticity claim, or deletion outside disposable
   temporary directories was exercised.
+
+Accepted in PR #25 after independent safety review found no remaining P1/P2,
+four hosted checks passed and clean merged main `830d6a7` passed 419 tests.
+The final wheel independently passed redacted support, private backup,
+verification and restore; identities and owner-only modes matched.
+[GEX-OFFLINE-001](GEX-OFFLINE-001.md) owns the combined release record.

@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 packet_owner: project maintainer
 branch: codex/gex-install-001-guided-terminal
 created: 2026-09-04
@@ -54,5 +54,14 @@ identities. Source and wheel distributions passed build/Twine. A regular wheel
 replaced the locally broken editable launcher, and version/doctor succeeded.
 Independent review added wheel digests/version ordering, working-app checks
 after failed upgrade and complete metadata/launcher absence after uninstall.
-The exact final build and hosted lifecycle still require verification before
-closure. A corrupt-wheel test is not arbitrary interrupted-upgrade recovery.
+The complete feature wheel then passed that final lifecycle locally; all four
+PR #25 Linux Python 3.11/3.12 hosted checks also passed it. Clean merged main
+`830d6a7` passed 419 tests. [GEX-OFFLINE-001](GEX-OFFLINE-001.md) owns the final
+release record. A corrupt-wheel test is not arbitrary interrupted-upgrade
+recovery, and real-user activation remains unmeasured.
+
+Reopened at the PR #26 release gate after hosted tests exposed an in-flight
+refresh accessing removed terminal widgets. The independently reviewed
+[GEX-HEALTH-006](GEX-HEALTH-006.md) repair then passed all 425 integrated tests;
+the release process rebuilds distributions and reruns hosted/clean-main gates
+before tagging. The pre-repair candidate is not the released artifact.

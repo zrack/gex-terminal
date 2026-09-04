@@ -34,6 +34,11 @@ Release is claimed.
 
 ### Fixed
 
+- Terminal refresh callbacks now belong to the dashboard screen and revalidate
+  ownership after asynchronous work, preventing render/cache publication after
+  shutdown, quit or screen replacement. Resize remains dashboard-bound behind
+  overlays. Six deterministic regressions raise the full suite to 425 tests;
+  genuine mounted rendering errors remain visible.
 - Compact terminal rendering at 140×42 and above, clear guidance below the
   supported minimum, and state-preserving resize coverage.
 - Experiment v2 manifests now bind complete specification, profile, input,
@@ -62,6 +67,9 @@ Release is claimed.
 
 ### Changed
 
+- Accepted offline engineering through PR #25 after independent review, four
+  hosted checks and 419 tests on clean merged main. Closed contributor packets
+  while keeping customer activation, rights and live observations open.
 - Reprioritized the roadmap around application correctness, offline preflight,
   reuse of existing research packs, and one usable installation path; corrected
   phase dependencies and separated commercial and empirical research tracks.

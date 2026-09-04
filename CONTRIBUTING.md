@@ -154,7 +154,8 @@ changes before implementation, name a work packet for L2/L3 work, preserve its
 baseline and evidence ceiling, and close technical shipment separately from
 external outcome validation. Use a `codex/` feature branch, focused named-file
 commits, a pull request, hosted checks, merge, and a clean post-merge test for a
-release slice. The closed
+release slice. The closed [GEX-OFFLINE-001 packet](docs/work-packets/GEX-OFFLINE-001.md)
+records the `0.5.0` offline product integration and release evidence. The closed
 [GEX-LIVE-001 packet](docs/work-packets/GEX-LIVE-001.md) records that complete
 workflow for the `0.4.0` pre-live hardening slice. The earlier
 [GEX-ORC-001 packet](docs/work-packets/GEX-ORC-001.md) remains a structural

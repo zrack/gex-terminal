@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: ready for contributor review
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: pull-request reviewer and hosted CI
@@ -129,5 +129,8 @@ overwrite a reproduction target.
   reproduced it, and verified the reproduction. Source, model-profile, and all
   five decision-content hashes matched; a path scan found no checkout or source
   archive absolute path.
-- Hosted checks and independent contributor review remain merge gates and are
-  not claimed by this packet.
+- Accepted in PR #25 after independent review and four passing hosted checks.
+  Clean merged main `830d6a7` passed 419 tests; the final installed wheel passed
+  NQ verification/reproduction and backup/restore with preserved identities.
+  [GEX-OFFLINE-001](GEX-OFFLINE-001.md) owns combined release evidence, including
+  the separately verified 0.4.0-contributor to 0.5.0 compatibility boundary.

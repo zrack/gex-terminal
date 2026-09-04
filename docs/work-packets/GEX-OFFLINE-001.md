@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 packet_owner: project maintainer
 branch: codex/gex-offline-product-closeout
 created: 2026-09-04
@@ -71,7 +71,54 @@ research migration is introduced by this release.
   Destructive tests used disposable synthetic groups only, with verified
   recovery copies. No actual user research or credentials were deleted.
 
-Final fresh-wheel command review, hosted checks and clean merged-main release
-closeout remain required before the annotated tag. Preparation documents are
-deliverables, not evidence that external customer, licensing or live-operation
-gates have passed.
+## Accepted integration and release record
+
+### Resolved release-blocking amendment
+
+The PR #26 closeout gate exposed a terminal refresh/teardown race in hosted run
+`33923631319`: an in-flight timer attempted to render after dashboard widgets
+were removed. The Python 3.12 test job failed; the 3.11 job was cancelled during
+wheel checks by matrix fail-fast, while branch checks passed. Release/tagging
+paused and the pre-repair candidate was set aside. The independently reviewed
+[GEX-HEALTH-006](GEX-HEALTH-006.md) repair landed in integration `d7de7b8`;
+all 425 tests, compilation and 215 links passed. Deterministic old-code failures
+at both await boundaries now pass without suppressing genuine render errors.
+Final distribution and hosted gates must use the repaired tree, not the
+superseded candidate. Git checks and the annotated release tag identify that
+verified final tree.
+
+- [PR #25](https://github.com/zrack/gex-terminal/pull/25) merged as
+  `830d6a7eddbec74001abe8f59b5bcecbc7631ba5` after all four hosted checks passed.
+  Linux Python 3.11/3.12 each passed tests, wheel commands and the full
+  installation/recovery lifecycle on both branch and pull-request checks.
+- Clean pulled main at that merge passed all 419 tests, compilation, patch
+  hygiene and 206 local documentation links. The earlier support-guide/resource
+  integration failures are resolved; they are not outstanding release defects.
+- An independent fresh Python 3.14.4 environment also passed the complete
+  installed-wheel command matrix with filtered environment and isolated import,
+  including doctor, NQ verify/reproduce, support, private backup/restore,
+  experiments, corpus and all offline gates. The unapproved population template
+  failed as required. This additional command smoke does not extend the declared
+  Python 3.11/3.12 full-suite support baseline.
+- NQ reproduction preserved source, profile and semantic identities; restore
+  preserved the original receipt and all content. Private directories/files
+  were `0700`/`0600`; redacted support output contained no selected local path.
+  An actual 0.4.0 contributor receipt also verified/reproduced under 0.5.0 with
+  matching identities on its supported runtime; legacy packs from the original
+  tagged 0.4.0 release are not silently upgraded to this receipt contract.
+  Independent application, safety and documentation review found no remaining
+  P1/P2 findings in this scope.
+- This closeout follows the same checked PR and clean-main verification cycle;
+  its local gate passed 425 tests after the shutdown repair, compilation and
+  documentation links. Release identity is established by the annotated
+  `v0.5.0` tag only after this closeout passes its PR and clean-main verification
+  cycle; no existing tag is moved and no PyPI/hosted Release
+  publication is included. Git and hosted checks own final ref/run identities.
+
+All authorized offline implementation and the observed shutdown repair are
+accepted. The subsequent product work is
+[Roadmap](../../ROADMAP.md#current-work-order) observed first use,
+customer/rights/economics decisions and separately authorized ES observations.
+Preparation is not evidence those external gates passed. `GEX-LIVE-002` remains
+prepared with execution authority false; Databento remains `live-uncertified`
+and predictive validity remains `unmeasured`.
