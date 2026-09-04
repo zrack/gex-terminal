@@ -10,6 +10,7 @@ status checklists into multiple files.
 | --- | --- | --- |
 | Project front door | [README](../README.md) | Positioning, evidence boundary, install, quick start, and links to detailed guides |
 | Current system | [Architecture](architecture.md) | Repository map, component responsibilities, runtime flows, state ownership, and verification map |
+| Application health | [Application Review](application-review.md) | Latest dated state assessment, open review findings, reproductions, and verification limits |
 | Planned work | [Roadmap](../ROADMAP.md) | Now/next/later sequencing, dependencies, and exit criteria for work not yet shipped |
 | Shipped history | [Changelog](../CHANGELOG.md) | Released or merged capabilities and version history |
 | Durable direction | [Product Vision](product-vision.md) | Target users, product outcomes, and non-goals without implementation status |
@@ -35,6 +36,8 @@ active. No work packet is active after the `0.4.0` release closeout.
 
 - [Architecture](architecture.md) — layers, data flow, state ownership, and
   verification.
+- [Application Review](application-review.md) — current health evidence and
+  open correctness/usability findings.
 - [Market-Data Adapters](adapters.md) — normalized messages and provider paths.
 - [Model Assumptions](model-assumptions.md) — GEX definitions and limitations.
 - [Export Formats](exports.md) — snapshot, overlay, comparison, and certification
