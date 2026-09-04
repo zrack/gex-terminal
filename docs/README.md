@@ -33,7 +33,7 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) owns the
+active. Closed [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) owns the
 offline release record; the closed preflight, support, installation and
 research-loop packets own their contributor evidence. `GEX-HEALTH-001` through `005` record
 merged correctness repairs. [GEX-LIVE-002](work-packets/GEX-LIVE-002.md) is
@@ -104,7 +104,7 @@ offline live-population contract that supports that later external gate.
 - [GEX-LIVE-001](work-packets/GEX-LIVE-001.md) — closed `0.4.0` pre-live
   hardening and release record; credentialed validation remains external
   follow-on work.
-- [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) — `0.5.0` offline
+- [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) — closed `0.5.0` offline
   product integration, verification and release record.
 - [GEX-LIVE-PREP-001](work-packets/GEX-LIVE-PREP-001.md) — closed offline
   preregistration and result-manifest contract; no live execution is authorized.

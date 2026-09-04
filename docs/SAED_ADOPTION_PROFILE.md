@@ -19,12 +19,13 @@
 **Adopted:** 2026-08-19
 
 **Status owner:** Each routed contributor packet owns its bounded slice;
-active `GEX-OFFLINE-001` owns the `0.5.0` integration and release record. `GEX-HEALTH-001`
+closed `GEX-OFFLINE-001` owns the `0.5.0` integration and release record. `GEX-HEALTH-001`
 through `005` record merged repairs. Closed `GEX-LIVE-001` records `0.4.0`;
 prepared `GEX-LIVE-002` does not authorize or certify live operation.
 Closed `GEX-LIVE-PREP-001` owns only offline population preparation for that
-future observation. `GEX-HEALTH-006` and reopened `GEX-INSTALL-001` cover the
-release-blocking terminal shutdown regression found by the final hosted gate.
+future observation. Closed `GEX-HEALTH-006` and `GEX-INSTALL-001` also record the
+terminal shutdown regression and repair found by the final hosted gate. No
+repository-owned offline implementation packet remains active.
 
 ## Purpose And Entry Boundary
 

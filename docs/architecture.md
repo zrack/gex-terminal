@@ -100,6 +100,13 @@ and controls, with scrolling for explanatory cards. Below the declared minimum,
 an explicit message replaces the clipped dashboard; resizing restores it
 without resetting market state. The large layout exposes the additional sidebar.
 
+The dashboard screen owns its periodic and initial refresh callbacks. Refresh
+work captures that owner and checks it again after snapshot and expiry awaits;
+quit, teardown or another current screen prevents cache/UI publication. Resize
+updates the captured dashboard even behind an overlay. Genuine render errors
+on the current mounted dashboard still propagate; replay-writer ownership is
+a separate boundary.
+
 ## Live Provider Flow
 
 ```text

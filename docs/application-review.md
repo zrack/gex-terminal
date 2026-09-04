@@ -10,10 +10,9 @@ document owns the dated state assessment and verification limits.
 The application is an offline research alpha with corrected result identity,
 fail-closed configuration, isolated replay replacement and verifiable portable
 research packs. All five P1 correctness repairs, compact-terminal support and
-the offline product foundation passed their integration checks. The final
-closeout gate then exposed a terminal shutdown race: an in-flight refresh can
-access removed widgets. Release/tagging is paused for the `GEX-HEALTH-006`
-repair and renewed verification. The release evidence and remaining
+the offline product foundation are accepted. Final hosted verification exposed
+a terminal shutdown race, now corrected through `GEX-HEALTH-006` with six
+deterministic lifecycle regressions and 425 passing tests. The release evidence and remaining
 external gates are recorded in [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md).
 
 No credentialed provider observation, real-user activation study, customer
@@ -50,6 +49,7 @@ packets rather than being duplicated here.
 | H4 — Experiment metadata relabeling | Resolved: complete v2 identity before reproduction; legacy partial status; reject unknown/inconsistent fields and nonempty targets | [GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md) |
 | H5 — Rejected-input chronology | Resolved: analytical points follow accepted updates; raw input audit separated; snapshot/model time agree | [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md) |
 | H6 — Clipped small terminal | Resolved: visibility checks at supported sizes, explicit minimum message below them and state-preserving resize | [GEX-INSTALL-001](work-packets/GEX-INSTALL-001.md) |
+| H7 — Refresh after screen teardown | Resolved: screen-owned callbacks, exact-owner checks after both awaits, no cache/UI publication after quit/teardown; resize remains owner-bound behind overlays | [GEX-HEALTH-006](work-packets/GEX-HEALTH-006.md) |
 
 These are scoped regression results, not a claim that the application has no
 other defects. Source and tests were inspected together; runtime boundaries
@@ -92,6 +92,7 @@ Package dependency downloads are not market-data connections.
 | Integrated release | PR #25 merged as `830d6a7`; clean pulled main passed 419 tests, compilation and 206 documentation links; numerical, property, offline-provider, fault and 500-contract performance gates passed | Offline implementation evidence only |
 | Distribution lifecycle | Complete feature wheel passed build/Twine and 0.4.0 → 0.5.0 install/upgrade/corrupt-update/rollback/uninstall; all 14 research-file byte identities preserved | macOS ARM64/Python 3.12.13; no arbitrary interrupted-install guarantee |
 | Hosted release checks | All four PR #25 Python 3.11/3.12 Linux checks passed, including full tests, fresh-wheel commands and recovery lifecycle | Hosted software verification, not live operation |
+| Final lifecycle repair | PR #26 initially exposed the shutdown race on 3.12; 3.11 was fail-fast-cancelled. Independently reviewed repair and root integration each passed 425 tests | Initial green checkpoints do not erase the observed failure; final tag requires repaired-tree hosted/package checks |
 | Independent installed wheel | Full command matrix passed in a fresh Python 3.14.4 environment; NQ identities, redacted support and private backup/restore verified | Additional command smoke only; full-suite baseline remains 3.11/3.12 |
 
 The release closeout and annotated tag identify the final verified merged tree;

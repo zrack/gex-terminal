@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 packet_owner: project maintainer
 branch: codex/gex-offline-product-closeout
 created: 2026-09-04
@@ -73,16 +73,19 @@ research migration is introduced by this release.
 
 ## Accepted integration and release record
 
-### Release-blocking amendment
+### Resolved release-blocking amendment
 
 The PR #26 closeout gate exposed a terminal refresh/teardown race in hosted run
 `33923631319`: an in-flight timer attempted to render after dashboard widgets
 were removed. The Python 3.12 test job failed; the 3.11 job was cancelled during
-wheel checks by matrix fail-fast, while branch checks passed. The release and
-tag are paused; `GEX-HEALTH-006` owns a deterministic
-regression and bounded lifecycle repair. Earlier passing evidence remains a
-checkpoint, not final release acceptance. Rebuild and revalidate distributions
-after the repair; do not reuse the pre-repair wheel as the released artifact.
+wheel checks by matrix fail-fast, while branch checks passed. Release/tagging
+paused and the pre-repair candidate was set aside. The independently reviewed
+[GEX-HEALTH-006](GEX-HEALTH-006.md) repair landed in integration `d7de7b8`;
+all 425 tests, compilation and 215 links passed. Deterministic old-code failures
+at both await boundaries now pass without suppressing genuine render errors.
+Final distribution and hosted gates must use the repaired tree, not the
+superseded candidate. Git checks and the annotated release tag identify that
+verified final tree.
 
 - [PR #25](https://github.com/zrack/gex-terminal/pull/25) merged as
   `830d6a7eddbec74001abe8f59b5bcecbc7631ba5` after all four hosted checks passed.
@@ -105,16 +108,16 @@ after the repair; do not reuse the pre-repair wheel as the released artifact.
   tagged 0.4.0 release are not silently upgraded to this receipt contract.
   Independent application, safety and documentation review found no remaining
   P1/P2 findings in this scope.
-- This documentation closeout follows the same checked PR and clean-main
-  verification cycle; its local gate passed 419 tests, compilation and all 215
+- This closeout follows the same checked PR and clean-main verification cycle;
+  its local gate passed 425 tests after the shutdown repair, compilation and
   documentation links. Release identity is established by the annotated
   `v0.5.0` tag only after this closeout passes its PR and clean-main verification
   cycle; no existing tag is moved and no PyPI/hosted Release
   publication is included. Git and hosted checks own final ref/run identities.
 
-All previously scoped offline implementation is accepted; the newly observed
-terminal shutdown defect must close before release. The subsequent product work is
-work is [Roadmap](../../ROADMAP.md#current-work-order) observed first use,
+All authorized offline implementation and the observed shutdown repair are
+accepted. The subsequent product work is
+[Roadmap](../../ROADMAP.md#current-work-order) observed first use,
 customer/rights/economics decisions and separately authorized ES observations.
 Preparation is not evidence those external gates passed. `GEX-LIVE-002` remains
 prepared with execution authority false; Databento remains `live-uncertified`
