@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: merged; clean-main verification pending
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: pull-request reviewer and hosted CI
@@ -67,4 +67,5 @@ implementation; no stored artifacts are migrated or overwritten.
   cases are covered by public-workflow tests.
 - [PR #20](https://github.com/zrack/gex-terminal/pull/20) passed all four
   Python 3.11/3.12 hosted checks, including installed-wheel smoke, and merged.
-  Clean-main verification is recorded at the next integration boundary.
+  Clean main at `e613e26387549a34c74a836bc885683ee8008c74` passed all 314
+  tests and source compilation with no local changes.
