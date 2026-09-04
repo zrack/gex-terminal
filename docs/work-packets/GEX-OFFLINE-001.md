@@ -51,5 +51,27 @@ research migration is introduced by this release.
 
 ## Evidence
 
-Pending final integration. Preparation documents are deliverables, not evidence
-that external customer, licensing or live-operation gates have passed.
+- Correctness PRs #20–#24 merged independently with four hosted checks each;
+  baseline main `2029f29` passed 344 tests before the offline product integration.
+- Contributor histories for preflight, portable research, live preparation and
+  support were preserved with merge commits. Integrated checkpoint `75441ef`
+  passed all 419 tests and compilation. All 202 local links in 51 Markdown
+  documents resolved; patch hygiene passed.
+- Numerical gate passed; model properties 7/7 and provider faults 7/7 passed.
+  Offline Databento certification and the default-budget 500-contract generated
+  performance check passed. None used live transport or measured live capacity.
+- Complete feature wheel and source distribution built and passed Twine. Wheel
+  SHA-256: `5521e3adcd552f1579713e63e61bab20a5854195931a10d0a9d785a23ae7919b`.
+- On macOS ARM64/Python 3.12.13, retained tagged `0.4.0` → `0.5.0` install,
+  upgrade, corrupt-wheel rejection, working rollback, reinstall and uninstall
+  passed. All 14 separately stored synthetic research files retained identical
+  bytes; import, distribution metadata and launcher were absent after uninstall.
+- Independent support review cleared the exact-topology, private-permission,
+  verified-backup binding and quarantine/replacement-path safety boundaries.
+  Destructive tests used disposable synthetic groups only, with verified
+  recovery copies. No actual user research or credentials were deleted.
+
+Final fresh-wheel command review, hosted checks and clean merged-main release
+closeout remain required before the annotated tag. Preparation documents are
+deliverables, not evidence that external customer, licensing or live-operation
+gates have passed.

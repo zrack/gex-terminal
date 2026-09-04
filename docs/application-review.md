@@ -29,8 +29,9 @@ evidence is observed use of the offline loop, not another broad feature layer.
 | Preflight | Offline doctor checks package, resources, config, provider structure and temporary storage with text/JSON exit status | No live authentication, entitlements, SDK behavior or market-quality check |
 | Distribution | Reviewed wheel path, cross-version pack check, lifecycle harness and guided journey | Customer distribution choice and observed activation remain open |
 | Local launcher | Regular 0.5.0 wheel replaces the faulty editable install; version and doctor succeed | The original macOS hidden `.pth` condition is diagnosed, not claimed permanently fixed for editable installs |
-| Support and lifecycle | Explicitly scoped diagnostics and private artifact lifecycle are being integrated | No general database, automatic migration or licensed-capture lifecycle claim |
+| Support and lifecycle | Redacted diagnostics; verified owner-only backup/restore; whole-group retention bound to a verified backup and exact confirmation | POSIX safety support only; no general database, automatic migration or licensed-capture lifecycle claim |
 | Product preparation | Study kit, matched paper concepts, scorecard, rights questions and scenario worksheet prepared | No demand, price, margin, license or conversion measurement |
+| Live preparation | Strict local plan/result contracts bind a declared 12-slot ES population, policy/runtime identity and failed/missed attempts | No execution, report-byte authentication, complete-history proof or external authority |
 | Live readiness | Databento uncertified; Tradovate/IBKR scaffolded; yfinance delayed | No supported recurring live operating envelope |
 
 ## Findings and repair evidence
@@ -85,7 +86,8 @@ Package dependency downloads are not market-data connections.
 | Cross-version pack | Actual 0.4.0 contributor receipt verified/reproduced under 0.5.0 with matching source/model/content | Same Python 3.12 and NumPy/Textual runtime; original tagged 0.4.0 legacy packs are not upgraded |
 | Doctor contribution | 52 focused / 335 branch tests, distributions/Twine, isolated normal/invalid/missing-base checks | Branch baseline differs; final integrated total below |
 | Compact terminal | Screenshots inspected at 140×42 and 80×24; visibility/resize regressions passed | Not a user study |
-| Release gates | Pending final integrated gate record in GEX-OFFLINE-001 | Do not treat preparation as a passed release |
+| Integrated release branch | 419 tests, compilation and 202 local documentation links passed; numerical, property, offline-provider, fault and 500-contract performance gates passed | Offline implementation evidence only; hosted/merged-main closeout pending |
+| Distribution lifecycle | Complete feature wheel passed build/Twine and 0.4.0 → 0.5.0 install/upgrade/corrupt-update/rollback/uninstall; all 14 research-file byte identities preserved | macOS ARM64/Python 3.12.13; no arbitrary interrupted-install guarantee |
 
 The complete final release gate and clean merged-tree evidence must be recorded
 before tagging. Follow [Contributing](../CONTRIBUTING.md) for repeatable commands,

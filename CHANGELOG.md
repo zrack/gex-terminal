@@ -20,6 +20,14 @@ Release is claimed.
   compatibility and verifiable/reproducible review receipts.
 - Guided wheel installation and a repeatable disposable install/upgrade/
   failed-upgrade/rollback/uninstall check that preserves research byte identity.
+- Redacted local support bundles and private whole-artifact backup, verification
+  and restore. Retention requires a matching verified backup, exact plan
+  confirmation, staged revalidation and bounded recovery; no real user data was
+  deleted during verification.
+- Offline prospective live-population plan/result validation with canonical
+  policy identity and complete failed/missed-attempt accounting. The supplied
+  template intentionally fails until approved declarations are supplied; no
+  live execution or readiness promotion is added.
 - Prepared customer interview/task kit, comparable paper concepts, rights
   questions and assumption-based first-year economics; no collected customer
   or pricing evidence is implied.

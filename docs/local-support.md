@@ -139,8 +139,9 @@ Root, home, repository, overlapping, broad, unrecognized, symlinked, and
 credential-file targets are refused. Create a new plan after any intentional
 artifact change.
 
-If staging or revalidation fails, every staged name is moved back before the
-command exits. If filesystem deletion itself is interrupted, a hidden
+If staging or revalidation fails, rollback attempts to move each staged name
+back without overwriting a replacement. A failed rollback reports the remaining
+quarantine paths for operator recovery. If filesystem deletion is interrupted, a hidden
 `.gex-terminal-retention-*` quarantine may remain beside the original target;
 do not treat the operation as complete. Inspect and recover that private tree
 before creating another plan.
@@ -148,12 +149,14 @@ before creating another plan.
 ## Credentials and uninstall
 
 Credentials remain in the existing operator-controlled environment or `.env`
-workflow. These lifecycle commands never read, copy, report, rotate, or delete
-credential files. Remove an exported value from the current shell using the
+workflow. Backup, restore and retention do not load configuration or copy,
+rotate or delete credential files. Support and doctor load normal configuration
+for shape/readiness checks and redaction, but do not emit its values or contact
+a provider. Remove an exported value from the current shell using the
 shell's environment-removal command, and edit or delete an operator-owned
-`.env` file explicitly if that is where the value was stored. Confirm removal
-using the offline doctor; the doctor checks shape/readiness only and does not
-validate a secret against a provider.
+`.env` file explicitly if that is where the value was stored. Review the
+operator-controlled stores directly; doctor checks shape/readiness only and
+does not prove secret erasure, revocation or validity against a provider.
 
 The current provider credential variables are `DATABENTO_API_KEY` and
 `TRADOVATE_NAME`, `TRADOVATE_PASSWORD`, `TRADOVATE_APP_ID`, `TRADOVATE_CID`,
