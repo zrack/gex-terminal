@@ -39,6 +39,9 @@ class ProviderInjectorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(snapshot["feed_quality"]["frame_count"], 3)
         self.assertEqual(snapshot["feed_quality"]["parse_error_count"], 1)
         self.assertEqual(snapshot["feed_quality"]["dropped_count"], 1)
+        self.assertEqual(snapshot["feed_quality"]["data_mode"], "REPLAY")
+        self.assertEqual(snapshot["feed_quality"]["connection_state"], "DISCONNECTED")
+        self.assertIn("simulated local feed", snapshot["feed_quality"]["notes"])
         self.assertIn("gamma_wall", snapshot["metrics"])
         self.assertIn("Zero gamma", provider_injection_summary(snapshot))
 
@@ -76,7 +79,34 @@ class ProviderInjectorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(snapshot["symbol"], "SPY")
         self.assertEqual(snapshot["spot"], 512.34)
         self.assertEqual(strikes, [505.0, 510.0, 515.0])
+        self.assertEqual(snapshot["contract_multiplier"], 50)
+        self.assertEqual(snapshot["contract_multiplier_semantics"], "configured_fallback")
+        self.assertEqual(snapshot["effective_contract_multiplier"], 100.0)
+        provenance = snapshot["model"]["multiplier_provenance"]
+        self.assertEqual(provenance["effective_multipliers"], [100.0])
+        self.assertEqual(provenance["fallback_row_count"], 0)
+        self.assertTrue(all(row["source"] == "contract" for row in provenance["rows"]))
         self.assertEqual(snapshot["feed_quality"]["subscription_status"], "subscribed")
+        self.assertEqual(
+            snapshot["provider_injection"]["source_kind"],
+            "offline_provider_fixture",
+        )
+        self.assertIs(snapshot["provider_injection"]["network_used"], False)
+        self.assertEqual(snapshot["provider_injection"]["mapping_status"], "computed")
+        self.assertEqual(snapshot["feed_quality"]["status"], "REPLAY")
+        self.assertEqual(snapshot["feed_quality"]["data_mode"], "REPLAY")
+        self.assertEqual(snapshot["feed_quality"]["connection_state"], "DISCONNECTED")
+        self.assertEqual(snapshot["feed_quality"]["health"], "simulated")
+        self.assertIn("simulated local feed", snapshot["feed_quality"]["notes"])
+
+        summary = provider_injection_summary(snapshot)
+        self.assertIn("Source: offline provider fixture  Network used: no", summary)
+        self.assertIn("Mapping: computed", summary)
+        self.assertIn("Runtime: REPLAY", summary)
+        self.assertIn("Connection: DISCONNECTED", summary)
+        self.assertIn("Health: simulated", summary)
+        self.assertNotIn("Runtime: LIVE", summary)
+        self.assertNotIn("Health: healthy", summary)
 
     async def test_cboe_option_quotes_csv_fixture_injection(self):
         snapshot = await inject_provider_fixture(

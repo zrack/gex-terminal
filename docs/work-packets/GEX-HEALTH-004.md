@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: ready_for_integration
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: pull-request reviewer and hosted CI
@@ -87,6 +87,11 @@ with its originating release or rerun from its original spec and input as a new
 v2 experiment.
 
 ## Evidence
+
+Integration on `main@51ad3a2` preserves all four preceding correctness repairs.
+All 344 integrated tests, source compilation and diff hygiene pass. PR #24
+merged as `2029f29` after all four hosted Python 3.11/3.12 checks passed.
+Clean merged main passed all 344 tests and compilation.
 
 - `tests.test_experiment_manifest`: 15 tests passed, including complete v2
   identity, legacy partial identity, predictive-validity and unknown-field

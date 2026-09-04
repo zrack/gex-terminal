@@ -18,8 +18,12 @@
 
 **Adopted:** 2026-08-19
 
-**Status owner:** No active work packet; closed packet `GEX-LIVE-001` records
-the `0.4.0` repository release
+**Status owner:** Each routed contributor packet owns its bounded slice;
+`GEX-OFFLINE-001` owns the `0.5.0` integration and release. `GEX-HEALTH-001`
+through `005` record merged repairs. Closed `GEX-LIVE-001` records `0.4.0`;
+prepared `GEX-LIVE-002` does not authorize or certify live operation.
+Active `GEX-LIVE-PREP-001` owns only offline population preparation for that
+future observation.
 
 ## Purpose And Entry Boundary
 

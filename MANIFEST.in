@@ -1,0 +1,7 @@
+include CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md ROADMAP.md
+include .env.example main.py
+recursive-include docs *.md
+recursive-include scripts *.py
+recursive-include assets *.md *.svg *.png
+recursive-include tests *.py
+global-exclude __pycache__ *.py[cod]

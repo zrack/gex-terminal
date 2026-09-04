@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import json
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Iterable
@@ -13,10 +14,6 @@ from gex_terminal.adapters.registry import (
     build_market_data_adapter,
     effective_provider,
 )
-from gex_terminal.batch_comparison import (
-    build_batch_comparison,
-    write_batch_comparison,
-)
 from gex_terminal.artifact_lifecycle import (
     apply_retention_plan,
     create_private_backup,
@@ -24,12 +21,16 @@ from gex_terminal.artifact_lifecycle import (
     restore_private_backup,
     verify_private_backup,
 )
+from gex_terminal.batch_comparison import (
+    build_batch_comparison,
+    write_batch_comparison,
+)
 from gex_terminal.capture_governance import (
     CapturePolicyError,
     capture_policy_identity,
     load_capture_policy,
 )
-from gex_terminal.config import GexConfig
+from gex_terminal.config import ConfigValidationError, GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.databento_certification import (
     build_databento_certification_report,
@@ -43,6 +44,13 @@ from gex_terminal.databento_offline import (
 from gex_terminal.demo_lab import (
     DEFAULT_DEMO_SESSION,
     build_demo_lab,
+    reproduce_demo_lab,
+    verify_demo_lab,
+)
+from gex_terminal.doctor import (
+    build_doctor_report,
+    doctor_report_to_json,
+    doctor_report_to_text,
 )
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.experiment_manifest import reproduce_experiment, run_experiment
@@ -51,8 +59,16 @@ from gex_terminal.fixture_validator import (
     validate_fixture,
 )
 from gex_terminal.market_data_adapter import AdapterConfigurationError
-from gex_terminal.logging_config import LOG_LEVELS, configure_logging
+from gex_terminal.live_population_contract import (
+    LIVE_POPULATION_RESULT_SCHEMA,
+    LivePopulationContractError,
+    live_population_plan_identity,
+    live_population_result_identity,
+    load_live_population_plan,
+    load_live_population_result_manifest,
+)
 from gex_terminal.local_support import build_support_bundle, write_support_bundle
+from gex_terminal.logging_config import LOG_LEVELS, configure_logging
 from gex_terminal.model_evidence import (
     build_model_evidence_report,
     write_model_evidence_report,
@@ -92,6 +108,7 @@ from gex_terminal.provider_fixture_lab import (
 )
 from gex_terminal.replay_catalog import (
     bundled_replay_sessions,
+    config_for_replay_session,
     replay_session_for_name,
     replay_session_names,
 )
@@ -141,6 +158,23 @@ from gex_terminal.tradovate_certification import (
 
 async def main():
     args = parse_args()
+    if args.command == "doctor":
+        if args.command_path or args.command_args:
+            print("Usage: gex-terminal doctor [--json]", file=sys.stderr)
+            raise SystemExit(2)
+        try:
+            config = apply_cli_overrides(GexConfig.from_env(), args)
+        except ConfigValidationError as exc:
+            report = build_doctor_report(config_error=exc)
+        else:
+            report = build_doctor_report(config)
+        print(
+            doctor_report_to_json(report)
+            if args.json
+            else doctor_report_to_text(report)
+        )
+        raise SystemExit(int(report["summary"]["exit_code"]))
+
     try:
         configure_logging(args.log_level)
     except ValueError as exc:
@@ -173,6 +207,17 @@ async def main():
 
     if args.command == "research-retention-apply":
         research_retention_apply_command(args)
+        return
+
+    if args.command == "live-population-plan-validate":
+        live_population_plan_validate_command(args.command_path)
+        return
+
+    if args.command == "live-population-results-validate":
+        live_population_results_validate_command(
+            args.command_path,
+            args.command_args,
+        )
         return
 
     if args.command == "validate-fixture":
@@ -413,6 +458,7 @@ async def main():
         consumer=state_consumer,
         config=config,
         allow_replay_switching=capture_writer is None,
+        source_task=stream_task,
     )
     app_failed = False
     try:
@@ -465,6 +511,11 @@ async def _shutdown_runtime_tasks(
 
 
 async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
+    if str(consumer.target_underlying).strip().upper() != "ES":
+        raise SystemExit(
+            "Seeded demo data is available only for ES; "
+            "use --symbol ES or select a catalog replay built for the requested symbol."
+        )
     consumer.current_spot = 5943.25
     consumer.session_open = 5904.50
     seed_rows: Iterable[tuple[int, int, int, float]] = (
@@ -591,7 +642,43 @@ async def export_provider_fixture_lab(config: GexConfig, output_path: str) -> No
 
 async def export_demo_lab(config: GexConfig, args: argparse.Namespace) -> None:
     """Generate the offline demo pack for GitHub and contributor onboarding."""
+    action = args.command_path
+    if action == "verify":
+        if len(args.command_args) != 1:
+            raise SystemExit("Usage: gex-terminal demo-lab verify PACK")
+        try:
+            report = verify_demo_lab(args.command_args[0])
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        print(
+            f"Verified Demo Lab pack {report['pack']} "
+            f"({report['artifact_count']} artifacts, content={report['content_sha256']})"
+        )
+        return
+    if action == "reproduce":
+        if len(args.command_args) != 2:
+            raise SystemExit("Usage: gex-terminal demo-lab reproduce PACK OUTPUT")
+        try:
+            result = await reproduce_demo_lab(
+                args.command_args[0],
+                args.command_args[1],
+                screenshot_width=args.screenshot_width,
+                screenshot_height=args.screenshot_height,
+            )
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        verification = result["verification"]
+        print(
+            f"Reproduced and verified Demo Lab pack at {args.command_args[1]} "
+            f"({verification['artifact_count']} artifacts)"
+        )
+        return
     output_dir = args.command_path or "demo_lab"
+    if args.command_args:
+        raise SystemExit(
+            "Usage: gex-terminal demo-lab [OUTPUT] [--replay-session NAME], "
+            "or demo-lab {verify,reproduce}"
+        )
     session_name = args.replay_session or DEFAULT_DEMO_SESSION
     try:
         manifest = await build_demo_lab(
@@ -1305,8 +1392,36 @@ async def compute_snapshot(
     return snapshot, consumer, data
 
 
+def _safe_float_argument(value: str) -> float:
+    """Parse a CLI number without echoing a rejected raw value."""
+    try:
+        return float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise argparse.ArgumentTypeError("must be numeric") from None
+
+
+def _safe_integer_argument(value: str) -> int:
+    """Parse a CLI integer without echoing a rejected raw value."""
+    try:
+        return int(value)
+    except (OverflowError, TypeError, ValueError):
+        raise argparse.ArgumentTypeError("must be an integer") from None
+
+
+class _RedactingArgumentParser(argparse.ArgumentParser):
+    """Keep rejected command-line values out of public parser errors."""
+
+    def error(self, message: str) -> None:
+        if "invalid choice:" in message:
+            prefix = message.split("invalid choice:", 1)[0].rstrip()
+            message = f"{prefix} invalid choice; use --help to see supported values"
+        elif message.startswith("unrecognized arguments:"):
+            message = "unrecognized arguments; use --help to see supported values"
+        super().error(message)
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+    parser = _RedactingArgumentParser(
         description="Intraday GEX imbalance terminal",
     )
     parser.add_argument(
@@ -1349,6 +1464,9 @@ def parse_args() -> argparse.Namespace:
             "research-restore",
             "research-retention-plan",
             "research-retention-apply",
+            "live-population-plan-validate",
+            "live-population-results-validate",
+            "doctor",
         ),
         help="Optional utility command.",
     )
@@ -1391,8 +1509,13 @@ def parse_args() -> argparse.Namespace:
         help="List available market-data providers and exit.",
     )
     parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the doctor report as versioned JSON.",
+    )
+    parser.add_argument(
         "--multiplier",
-        type=int,
+        type=_safe_integer_argument,
         help="Contract multiplier. Overrides GEX_CONTRACT_MULTIPLIER.",
     )
     parser.add_argument(
@@ -1401,7 +1524,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--refresh",
-        type=float,
+        type=_safe_float_argument,
         help="UI refresh interval in seconds. Overrides GEX_REFRESH_INTERVAL_SECONDS.",
     )
     parser.add_argument(
@@ -1442,7 +1565,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--replay-delay",
-        type=float,
+        type=_safe_float_argument,
         help="Delay between replay messages in seconds. Overrides GEX_REPLAY_DELAY_SECONDS.",
     )
     parser.add_argument(
@@ -1452,12 +1575,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--replay-speed",
-        type=float,
+        type=_safe_float_argument,
         help="Event-time replay speed multiplier. Overrides GEX_REPLAY_SPEED.",
     )
     parser.add_argument(
         "--replay-max-gap",
-        type=float,
+        type=_safe_float_argument,
         help="Optional maximum source-time gap before replay-speed scaling.",
     )
     parser.add_argument(
@@ -1551,19 +1674,19 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--certification-duration",
-        type=float,
+        type=_safe_float_argument,
         default=10.0,
         help="Seconds to observe a provider certification stream. Default: 10.",
     )
     parser.add_argument(
         "--max-underlying-age",
-        type=float,
+        type=_safe_float_argument,
         default=2.0,
         help="Maximum seconds between futures midpoint and option trade for IV inversion. Default: 2.",
     )
     parser.add_argument(
         "--max-option-contracts",
-        type=int,
+        type=_safe_integer_argument,
         default=12,
         help="Maximum option subscriptions during Tradovate certification. Default: 12.",
     )
@@ -1591,25 +1714,25 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--performance-contracts",
-        type=int,
+        type=_safe_integer_argument,
         default=500,
         help="Generated option contracts for performance-certify. Default: 500.",
     )
     parser.add_argument(
         "--minimum-ingest-rps",
-        type=float,
+        type=_safe_float_argument,
         default=50.0,
         help="Minimum generated ingest records/second. Default: 50.",
     )
     parser.add_argument(
         "--maximum-snapshot-ms",
-        type=float,
+        type=_safe_float_argument,
         default=1000.0,
         help="Maximum generated snapshot milliseconds. Default: 1000.",
     )
     parser.add_argument(
         "--maximum-peak-mb",
-        type=float,
+        type=_safe_float_argument,
         default=256.0,
         help="Maximum generated-chain peak memory in MiB. Default: 256.",
     )
@@ -1620,13 +1743,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--screenshot-width",
-        type=int,
+        type=_safe_integer_argument,
         default=180,
         help="Terminal columns for --screenshot export. Default: 180.",
     )
     parser.add_argument(
         "--screenshot-height",
-        type=int,
+        type=_safe_integer_argument,
         default=54,
         help="Terminal rows for --screenshot export. Default: 54.",
     )
@@ -1689,7 +1812,18 @@ def apply_cli_overrides(config: GexConfig, args: argparse.Namespace) -> GexConfi
     if args.strict_event_time:
         updates["strict_event_time"] = True
 
-    return replace(config, **updates) if updates else config
+    updated = replace(config, **updates) if updates else config
+    if args.replay_session:
+        try:
+            return config_for_replay_session(
+                updated,
+                session,
+                explicit_symbol=args.symbol,
+                explicit_multiplier=args.multiplier,
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+    return updated
 
 
 def _symbols_with_target(symbols: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:
@@ -1701,15 +1835,15 @@ def validate_data_mode(data_mode: str) -> None:
     supported_modes = {"demo", "replay", "live"}
     if data_mode not in supported_modes:
         raise SystemExit(
-            f"Unsupported GEX_DATA_MODE '{data_mode}'. Expected one of: demo, replay, live"
+            "Unsupported GEX_DATA_MODE. Expected one of: demo, replay, live"
         )
 
 
 def validate_provider(config: GexConfig) -> None:
     if effective_provider(config) not in available_provider_names():
         raise SystemExit(
-            f"Unsupported GEX_DATA_PROVIDER '{config.data_provider}'. "
-            f"Expected one of: {', '.join(available_provider_names())}"
+            "Unsupported GEX_DATA_PROVIDER. Expected one of: "
+            f"{', '.join(available_provider_names())}"
         )
 
 
@@ -1743,6 +1877,44 @@ def capture_policy_validate_command(path: str | None) -> None:
     print(
         "Capture policy valid: "
         f"{identity['policy_id']} ({identity['schema']}, sha256={identity['sha256']})"
+    )
+
+
+def live_population_plan_validate_command(path: str | None) -> None:
+    if not path:
+        raise SystemExit(
+            "Usage: gex-terminal live-population-plan-validate PLAN.json"
+        )
+    try:
+        identity = live_population_plan_identity(load_live_population_plan(path))
+    except LivePopulationContractError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Live population plan valid: "
+        f"{identity['population_id']} "
+        f"({identity['plan_schema']}, sha256={identity['sha256']})"
+    )
+
+
+def live_population_results_validate_command(
+    plan_path: str | None,
+    command_args: list[str],
+) -> None:
+    if not plan_path or len(command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal live-population-results-validate "
+            "PLAN.json RESULTS.json"
+        )
+    try:
+        plan = load_live_population_plan(plan_path)
+        result = load_live_population_result_manifest(plan_path, command_args[0])
+        identity = live_population_result_identity(plan, result)
+    except LivePopulationContractError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Live population results valid: "
+        f"{identity['population_id']} "
+        f"({LIVE_POPULATION_RESULT_SCHEMA}, sha256={identity['sha256']})"
     )
 
 
@@ -1796,7 +1968,10 @@ def _session_store_source_name(config: GexConfig, args: argparse.Namespace) -> s
 
 
 def main_sync() -> None:
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except ConfigValidationError as exc:
+        raise SystemExit(f"Configuration error: {exc}") from None
 
 
 if __name__ == "__main__":

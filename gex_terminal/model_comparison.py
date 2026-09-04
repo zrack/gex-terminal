@@ -141,6 +141,17 @@ def build_model_comparison_report(snapshot: Mapping[str, Any]) -> dict[str, Any]
                 "model_disagreement_only; not evidence of forecasting value"
             ),
         },
+        "limitations": {
+            "models_may_not_be_summed": True,
+            "participant_classification": "unobserved",
+            "opening_closing_classification": "unobserved",
+            "predictive_validity": "unmeasured",
+            "live_provider_certified": False,
+        },
+        "evidence_ceiling": (
+            "parallel raw-versus-directional trade-volume proxy comparison only; "
+            "not dealer inventory, prediction, execution, or profitability evidence"
+        ),
     }
 
 
@@ -164,6 +175,8 @@ def model_comparison_to_csv(report: Mapping[str, Any]) -> str:
         writer.writerow({"record_type": "metric", "name": name, "value": value})
     for row in report["strikes"]:
         writer.writerow({"record_type": "strike", **row})
+    for name, value in report.get("limitations", {}).items():
+        writer.writerow({"record_type": "limitation", "name": name, "value": value})
     return output.getvalue()
 
 
@@ -180,7 +193,10 @@ def model_comparison_to_markdown(report: Mapping[str, Any]) -> str:
         f"- Alternate status: `{alternate['status']}`",
         f"- Direction coverage: `{float(metrics['directional_coverage']):.1%}`",
         f"- Participant classification: `{alternate['participant_classification']}`",
+        f"- Opening/closing classification: `{alternate['opening_closing_classification']}`",
         "- Predictive validity: `unmeasured`",
+        "- Live provider certified: `false`",
+        "- Models may be summed: `false`",
     ]
     if alternate["status"] == "available":
         lines.extend([
@@ -214,6 +230,13 @@ def model_comparison_to_markdown(report: Mapping[str, Any]) -> str:
             "The comparison is intentionally unscored because no usable trade-side "
             "coverage was present. The default model remains available and unchanged.",
         ])
+    lines.extend([
+        "",
+        "The raw and directionalized views are parallel proxies and must not be",
+        "added into a single exposure estimate.",
+        "",
+        f"Evidence ceiling: {report['evidence_ceiling']}",
+    ])
     return "\n".join(lines) + "\n"
 
 

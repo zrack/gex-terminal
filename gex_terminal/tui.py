@@ -10,12 +10,17 @@ from typing import Iterable
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Container, Grid, Vertical
+from textual.events import Resize
 from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
-from gex_terminal.replay_catalog import ReplaySession, bundled_replay_sessions
+from gex_terminal.replay_catalog import (
+    ReplaySession,
+    bundled_replay_sessions,
+    config_for_replay_session,
+)
 from gex_terminal.regime import build_regime_map
 from gex_terminal.provider_readiness import runtime_provider_readiness
 from gex_terminal.snapshot import build_snapshot, write_snapshot
@@ -28,6 +33,7 @@ class GexTerminalApp(App):
     TITLE = "Intraday GEX Imbalance Terminal"
     CSS_PATH = str(Path(__file__).with_name("gex_terminal.tcss"))
     FIRST_RUN_REPLAY = "zero-gamma-flip"
+    MINIMUM_TERMINAL_SIZE = (140, 42)
 
     BINDINGS = [
         ("q", "quit", "Quit"),
@@ -60,11 +66,14 @@ class GexTerminalApp(App):
         config: GexConfig | None = None,
         *,
         allow_replay_switching: bool = True,
+        source_task: asyncio.Task | None = None,
     ):
         super().__init__()
         self.consumer = consumer
         self.config = config or GexConfig.from_env()
         self.allow_replay_switching = bool(allow_replay_switching)
+        self._source_task = source_task
+        self._replay_transition_lock = asyncio.Lock()
         self._gex_flow: deque[float] = deque(maxlen=36)
         self._latencies: deque[float] = deque(maxlen=36)
         self._events: deque[str] = deque(maxlen=7)
@@ -88,6 +97,7 @@ class GexTerminalApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
+        yield Static("", id="minimum-size-message")
 
         with Grid(id="dashboard"):
             with Vertical(id="sidebar"):
@@ -174,6 +184,26 @@ class GexTerminalApp(App):
         self._render_status_bar(self.consumer.runtime_status)
         self.set_interval(self.config.refresh_interval_seconds, self.refresh_terminal_data)
         self.call_later(self.refresh_terminal_data)
+        self._apply_terminal_size()
+
+    def on_resize(self, event: Resize) -> None:
+        if self.is_mounted:
+            self._apply_terminal_size((event.size.width, event.size.height))
+
+    def _apply_terminal_size(self, size: tuple[int, int] | None = None) -> None:
+        width, height = size or self.size
+        minimum_width, minimum_height = self.MINIMUM_TERMINAL_SIZE
+        supported = width >= minimum_width and height >= minimum_height
+        self.screen.set_class(width < 180 or height < 54, "compact")
+        self.query_one("#dashboard").display = supported
+        message = self.query_one("#minimum-size-message", Static)
+        message.display = not supported
+        message.update(
+            f"Terminal needs at least {minimum_width} × {minimum_height} cells.\n"
+            f"Current size: {width} × {height}. Enlarge the window or reduce the font size.\n\n"
+            "Offline reports work without the dashboard:\n"
+            "gex-terminal demo-lab my-research\n\nPress q to quit."
+        )
 
     async def action_refresh_terminal_data(self) -> None:
         await self.refresh_terminal_data()
@@ -284,8 +314,16 @@ class GexTerminalApp(App):
         self._render_events()
 
     async def _load_replay_session(self, session: ReplaySession) -> None:
+        async with self._replay_transition_lock:
+            await self._replace_replay_session(session)
+
+    async def _replace_replay_session(self, session: ReplaySession) -> None:
         if not self.allow_replay_switching:
             self._event("replay load blocked -> active session capture")
+            self._render_events()
+            return
+        if self.config.data_mode.lower() not in {"demo", "replay"}:
+            self._event("replay load blocked -> live source owns this session")
             self._render_events()
             return
         try:
@@ -295,15 +333,23 @@ class GexTerminalApp(App):
             self._render_events()
             return
 
-        symbol = "ES"
+        replay_config = config_for_replay_session(self.config, session)
+        if self._source_task is not None:
+            self._source_task.cancel()
+            try:
+                await self._source_task
+            except asyncio.CancelledError:
+                # Only a settled writer may be replaced. Caller cancellation
+                # must still propagate, rather than resetting state on exit.
+                if asyncio.current_task().cancelling():
+                    raise
+            except Exception:
+                self._event("replay load blocked -> previous source failed; restart the session")
+                self._render_events()
+                return
+            self._source_task = None
         self.config = replace(
-            self.config,
-            symbol=symbol,
-            symbols=self._symbols_with_target(self.config.symbols, symbol),
-            data_mode="replay",
-            data_provider="replay",
-            contract_multiplier=50,
-            replay_path=session.path,
+            replay_config,
             replay_delay_seconds=0.0,
             expiry_filter="all",
         )
@@ -311,7 +357,7 @@ class GexTerminalApp(App):
         self.consumer.engine.multiplier = self.config.contract_multiplier
         await self.consumer.reset_state(
             data_mode="replay",
-            target_underlying=symbol,
+            target_underlying=self.config.symbol,
             risk_free_rate=self.config.risk_free_rate,
             stale_after_seconds=self.config.stale_after_seconds,
         )
@@ -441,18 +487,18 @@ class GexTerminalApp(App):
     ) -> None:
         updates: dict[str, float | int] = {}
         if days_to_expiry is not None:
-            updates["days_to_expiry"] = float(days_to_expiry)
+            updates["days_to_expiry"] = days_to_expiry
         if risk_free_rate is not None:
-            updates["risk_free_rate"] = float(risk_free_rate)
-            self.consumer.risk_free_rate = float(risk_free_rate)
+            updates["risk_free_rate"] = risk_free_rate
         if contract_multiplier is not None:
-            updates["contract_multiplier"] = int(contract_multiplier)
-            self.consumer.engine.multiplier = int(contract_multiplier)
+            updates["contract_multiplier"] = contract_multiplier
 
         if not updates:
             return
 
         self.config = replace(self.config, **updates)
+        self.consumer.risk_free_rate = self.config.risk_free_rate
+        self.consumer.engine.multiplier = self.config.contract_multiplier
         self._event(
             "assumptions -> "
             f"{self.config.days_to_expiry:g}DTE, "
@@ -1128,12 +1174,6 @@ class GexTerminalApp(App):
     @staticmethod
     def _sort_rows(rows, sort_mode):
         return sort_rows(rows, sort_mode)
-
-    @staticmethod
-    def _symbols_with_target(symbols: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:
-        cleaned = tuple(symbol for symbol in symbols if symbol != target_symbol)
-        return (target_symbol, *cleaned)[:4]
-
 
 async def run_mock_session():
     """Boot the math engine, consumer state machine, and terminal together."""

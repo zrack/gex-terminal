@@ -61,6 +61,26 @@ class FeedQualitySnapshotTests(unittest.TestCase):
         self.assertEqual(snapshot.health, "degraded")
         self.assertIn("malformed payloads recorded", snapshot.notes)
 
+    def test_invalid_stale_threshold_fails_closed(self):
+        for threshold in (float("nan"), float("inf"), 0.0, -1.0):
+            with self.subTest(threshold=threshold):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "stale_after_seconds must be finite and greater than 0",
+                ):
+                    build_feed_quality_snapshot(
+                        status="LIVE",
+                        data_mode="LIVE",
+                        connection_state="CONNECTED",
+                        message_count=1,
+                        malformed_count=0,
+                        dropped_count=0,
+                        entitlement_error_count=0,
+                        last_message_age_seconds=86_400.0,
+                        last_snapshot_age_seconds=86_400.0,
+                        stale_after_seconds=threshold,
+                    )
+
 
 class ConsumerFeedQualityTests(unittest.IsolatedAsyncioTestCase):
     async def test_consumer_counts_ok_malformed_and_dropped_payloads(self):
@@ -85,6 +105,43 @@ class ConsumerFeedQualityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(quality["dropped_count"], 1)
         self.assertEqual(quality["malformed_count"], 1)
         self.assertEqual(quality["health"], "degraded")
+
+    async def test_consumer_rejects_invalid_health_inputs_before_state_mutation(self):
+        for field, value in (
+            ("risk_free_rate", float("nan")),
+            ("stale_after_seconds", float("nan")),
+            ("stale_after_seconds", float("inf")),
+            ("stale_after_seconds", 0.0),
+        ):
+            with self.subTest(field=field, value=value):
+                with self.assertRaisesRegex(ValueError, field):
+                    StatefulGexConsumer(
+                        IntradayGexEngine(),
+                        **{field: value},
+                    )
+
+        consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="live")
+        consumer.current_spot = 5_943.25
+        with self.assertRaisesRegex(ValueError, "stale_after_seconds"):
+            await consumer.reset_state(stale_after_seconds=float("nan"))
+
+        self.assertEqual(consumer.current_spot, 5_943.25)
+        self.assertEqual(consumer.data_mode, "LIVE")
+
+    async def test_one_day_old_live_source_reports_stale_with_valid_threshold(self):
+        consumer = StatefulGexConsumer(
+            IntradayGexEngine(),
+            data_mode="live",
+            stale_after_seconds=10.0,
+        )
+        consumer.mark_connected()
+        consumer.last_message_at = time.monotonic() - 86_400.0
+
+        quality = consumer.feed_quality_snapshot(now=time.monotonic())
+
+        self.assertEqual(consumer.runtime_status, "STALE")
+        self.assertTrue(quality["stale"])
+        self.assertEqual(quality["health"], "stale")
 
 
 if __name__ == "__main__":

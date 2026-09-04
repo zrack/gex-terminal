@@ -1,8 +1,9 @@
 """Bundled replay-session catalog for no-credential research workflows."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
+from gex_terminal.config import GexConfig
 from gex_terminal.package_data import replay_data_path
 
 
@@ -13,6 +14,12 @@ class ReplaySession:
     label: str
     description: str
     public_ref: str | None = None
+    symbol: str = "ES"
+    contract_multiplier: int = 50
+    source_kind: str = "synthetic_fixture"
+    rights_status: str = "owned"
+    redistributable: bool = True
+    research_loop: bool = False
 
     @property
     def source_ref(self) -> str:
@@ -81,6 +88,18 @@ REPLAY_SESSIONS: tuple[ReplaySession, ...] = (
         label="Quality Stress",
         description="Valid replay fixture with off-symbol drops and partial chain coverage.",
     ),
+    ReplaySession(
+        name="nq-research-loop",
+        path=str(replay_data_path("nq_research_loop_v2.jsonl")),
+        label="NQ Portable Research Loop",
+        description=(
+            "Synthetic NQ schema-v2 session with separate open interest, raw "
+            "trade volume, and aggressor-direction evidence."
+        ),
+        symbol="NQ",
+        contract_multiplier=20,
+        research_loop=True,
+    ),
 )
 
 
@@ -99,6 +118,55 @@ def replay_session_for_name(name: str) -> ReplaySession:
             return session
     expected = ", ".join(replay_session_names())
     raise KeyError(f"Unknown replay session '{name}'. Expected one of: {expected}")
+
+
+def config_for_replay_session(
+    config: GexConfig,
+    session: ReplaySession,
+    *,
+    explicit_symbol: str | None = None,
+    explicit_multiplier: int | None = None,
+) -> GexConfig:
+    """Apply catalog-owned replay identity and reject explicit conflicts.
+
+    Environment defaults may describe another workflow, so the selected catalog
+    session owns its symbol and multiplier.  A symbol or multiplier supplied
+    explicitly for the same invocation is different: accepting a conflict would
+    silently mislabel the replay, so it fails before any state is built.
+    """
+    symbol = str(session.symbol).strip().upper()
+    multiplier = session.contract_multiplier
+    if not symbol:
+        raise ValueError(f"Replay session '{session.name}' has no catalog symbol")
+    if type(multiplier) is not int or multiplier <= 0:
+        raise ValueError(
+            f"Replay session '{session.name}' has an invalid catalog multiplier"
+        )
+
+    if explicit_symbol is not None:
+        requested_symbol = str(explicit_symbol).strip().upper()
+        if requested_symbol != symbol:
+            raise ValueError(
+                f"Replay session '{session.name}' requires symbol {symbol}; "
+                "the explicit symbol override conflicts with its catalog identity"
+            )
+    if explicit_multiplier is not None:
+        if type(explicit_multiplier) is not int or explicit_multiplier != multiplier:
+            raise ValueError(
+                f"Replay session '{session.name}' requires contract multiplier {multiplier}; "
+                "the explicit multiplier override conflicts with its catalog identity"
+            )
+
+    symbols = (symbol, *(candidate for candidate in config.symbols if candidate != symbol))
+    return replace(
+        config,
+        symbol=symbol,
+        symbols=tuple(symbols[:4]),
+        data_mode="replay",
+        data_provider="replay",
+        contract_multiplier=multiplier,
+        replay_path=session.path,
+    )
 
 
 def replay_session_path(name: str) -> Path:

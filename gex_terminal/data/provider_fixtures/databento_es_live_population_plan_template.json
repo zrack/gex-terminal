@@ -1,0 +1,161 @@
+{
+  "schema": "gex-terminal.databento-live-population-plan.v1",
+  "canonicalization": "gex-terminal.canonical-json.v1",
+  "population_id": "REPLACE_WITH_POPULATION_ID",
+  "target": {
+    "provider": "databento",
+    "dataset": "GLBX.MDP3",
+    "symbol": "ES",
+    "canonical_contract_multiplier": 50.0
+  },
+  "certification_policy": {
+    "schema": "gex-terminal.databento-certification-policy-identity.v1",
+    "canonicalization": "gex-terminal.canonical-json.v1",
+    "policy_schema": "gex-terminal.databento-certification-policy.v1",
+    "policy_id": "databento-es-prelive-v1",
+    "policy_version": 1,
+    "sha256": "41e2d96f7024ec2d6317b0f704205f27bd10a11853d0d31879581fb8e58b555d"
+  },
+  "runtime": {
+    "gex_terminal_version": "REPLACE_WITH_GEX_TERMINAL_VERSION",
+    "python_version": "REPLACE_WITH_PYTHON_VERSION",
+    "provider_sdk_version": "REPLACE_WITH_DATABENTO_SDK_VERSION",
+    "operating_system": "REPLACE_WITH_OPERATING_SYSTEM_AND_VERSION",
+    "architecture": "REPLACE_WITH_ARCHITECTURE"
+  },
+  "authority": {
+    "operator_alias": "REPLACE_WITH_OPERATOR_ALIAS",
+    "reviewer_alias": "REPLACE_WITH_REVIEWER_ALIAS",
+    "approval_reference": "REPLACE_WITH_OWNER_APPROVAL_REFERENCE",
+    "entitlement_scope": "REPLACE_WITH_REDACTED_ENTITLEMENT_SCOPE",
+    "rights_reference": "REPLACE_WITH_RIGHTS_DECISION_REFERENCE",
+    "retention_reference": "REPLACE_WITH_RETENTION_DECISION_REFERENCE",
+    "read_only_provider_access": true,
+    "raw_capture": false
+  },
+  "timing": {
+    "timezone": "UTC",
+    "clock_source": "REPLACE_WITH_CLOCK_SOURCE",
+    "exchange_calendar_source": "REPLACE_WITH_EXCHANGE_CALENDAR_SOURCE_AND_VERSION",
+    "stale_response": "REPLACE_WITH_PREDECLARED_STALE_RESPONSE"
+  },
+  "lineage": {
+    "status": "first_population",
+    "prior_population_id": null,
+    "prior_result_manifest_sha256": null
+  },
+  "coverage_limitations": [
+    "Calendar labels are operator declarations and do not establish a market regime."
+  ],
+  "planned_slots": [
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_01",
+      "window": "regular_open",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_01",
+      "start_utc": "REPLACE_WITH_UTC_START_01",
+      "end_utc": "REPLACE_WITH_UTC_END_01",
+      "calendar_context": "ordinary",
+      "restart_observation": true
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_02",
+      "window": "midday",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_02",
+      "start_utc": "REPLACE_WITH_UTC_START_02",
+      "end_utc": "REPLACE_WITH_UTC_END_02",
+      "calendar_context": "ordinary",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_03",
+      "window": "regular_close",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_03",
+      "start_utc": "REPLACE_WITH_UTC_START_03",
+      "end_utc": "REPLACE_WITH_UTC_END_03",
+      "calendar_context": "ordinary",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_04",
+      "window": "globex",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_04",
+      "start_utc": "REPLACE_WITH_UTC_START_04",
+      "end_utc": "REPLACE_WITH_UTC_END_04",
+      "calendar_context": "ordinary",
+      "restart_observation": true
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_05",
+      "window": "regular_open",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_05",
+      "start_utc": "REPLACE_WITH_UTC_START_05",
+      "end_utc": "REPLACE_WITH_UTC_END_05",
+      "calendar_context": "ordinary",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_06",
+      "window": "midday",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_06",
+      "start_utc": "REPLACE_WITH_UTC_START_06",
+      "end_utc": "REPLACE_WITH_UTC_END_06",
+      "calendar_context": "ordinary",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_07",
+      "window": "regular_close",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_07",
+      "start_utc": "REPLACE_WITH_UTC_START_07",
+      "end_utc": "REPLACE_WITH_UTC_END_07",
+      "calendar_context": "ordinary",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_08",
+      "window": "globex",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_08",
+      "start_utc": "REPLACE_WITH_UTC_START_08",
+      "end_utc": "REPLACE_WITH_UTC_END_08",
+      "calendar_context": "scheduled_event",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_09",
+      "window": "regular_open",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_09",
+      "start_utc": "REPLACE_WITH_UTC_START_09",
+      "end_utc": "REPLACE_WITH_UTC_END_09",
+      "calendar_context": "scheduled_event",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_10",
+      "window": "midday",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_10",
+      "start_utc": "REPLACE_WITH_UTC_START_10",
+      "end_utc": "REPLACE_WITH_UTC_END_10",
+      "calendar_context": "scheduled_event",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_11",
+      "window": "regular_close",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_11",
+      "start_utc": "REPLACE_WITH_UTC_START_11",
+      "end_utc": "REPLACE_WITH_UTC_END_11",
+      "calendar_context": "other",
+      "restart_observation": false
+    },
+    {
+      "run_id": "REPLACE_WITH_RUN_ID_12",
+      "window": "globex",
+      "trading_date": "REPLACE_WITH_TRADING_DATE_12",
+      "start_utc": "REPLACE_WITH_UTC_START_12",
+      "end_utc": "REPLACE_WITH_UTC_END_12",
+      "calendar_context": "other",
+      "restart_observation": false
+    }
+  ],
+  "evidence_ceiling": "offline structural validation only; no execution authority, live-provider observation, report-authenticity, provider-readiness, predictive, execution, or profitability claim"
+}

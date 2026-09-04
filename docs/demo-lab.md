@@ -1,64 +1,127 @@
 # Demo Lab
 
-Demo Lab generates a complete no-credential demo pack from bundled replay and
-provider fixture data. It is meant for GitHub screenshots, issue attachments,
-contributor onboarding, and quick offline verification before live data is
-available.
+Demo Lab is the portable, no-credential review loop. It packages one bundled
+synthetic replay, the resulting research views, and a versioned review receipt
+into a self-contained folder. The public contract is the CLI and the versioned
+artifacts; Python helpers remain experimental.
 
-Both datasets are installed package resources, so the named workflow works from
-outside a source checkout.
+Both replay and provider-fixture inputs are installed package resources, so the
+workflow works outside a source checkout. It does not establish live-provider
+readiness, dealer inventory, predictive validity, execution quality, or
+profitability.
 
-## Run It
+## Generate
+
+Generate the default ES pack:
 
 ```bash
 gex-terminal demo-lab demo_lab
 ```
 
-Use a different replay session:
+Generate the complete NQ research loop:
 
 ```bash
-gex-terminal demo-lab demo_lab --replay-session gap-fade
-gex-terminal demo-lab demo_lab --replay-session zero-gamma-flip
+gex-terminal demo-lab nq_demo_lab --replay-session nq-research-loop
 ```
 
-The default session is `zero-gamma-flip` because it shows the market-structure
-boundary behavior more clearly than the compact demo fixture.
+`nq-research-loop` is a dedicated synthetic NQ replay with contract multiplier
+20, normalized schema-v2 messages, exact event and expiry times, open-interest
+rows, incremental trade rows, and trade-direction provenance. It exists to make
+the full offline comparison reviewable without licensed data.
 
-The interactive terminal uses the same preference for first-run polish:
-`gex-terminal --demo` offers `zero-gamma-flip` as the first in-app replay when
-the user presses `p`. The replay browser can be captured for README or issue
-screenshots with:
+The default remains `zero-gamma-flip` for first-run visual continuity. Other
+catalog sessions may be selected with `--replay-session NAME`.
+
+## Review Sequence
+
+The generated README follows one path:
+
+1. **Today** — inspect the final synthetic snapshot.
+2. **Explain** — inspect the source and bound model assumptions.
+3. **Compare** — review OI, raw trade-volume, and directionalized trade-volume
+   proxies separately. These values may not be summed.
+4. **Replay** — run the copied `inputs/replay.jsonl` or reproduce the pack.
+5. **Review** — verify source, runtime, semantic content, and artifact integrity.
+
+Verify a pack before using or sharing it:
 
 ```bash
-gex-terminal --demo --screenshot assets/gex-terminal-onboarding.svg --screenshot-view replay-browser
+gex-terminal demo-lab verify demo_lab
 ```
+
+Reproduce it into a new, empty directory:
+
+```bash
+gex-terminal demo-lab reproduce demo_lab reproduced_demo_lab
+```
+
+Reproduction uses the copied replay as its data source, reconstructs the bound
+model profile, regenerates the pack, verifies the result, and compares all bound
+decision-content hashes. It does not read the catalog's original replay file.
+The source pack and output directory must be separate.
+
+## Receipt And Failure Rules
+
+`review-receipt.json` records:
+
+- source byte hash, catalog identity, schema versions, event range, position and
+  direction sources, and explicit synthetic redistribution status;
+- complete model profile and model-profile hash;
+- application version, Python major/minor runtime, and bound dependency versions;
+- stable replay/provider quality summaries and the evidence ceiling;
+- semantic hashes for the decision artifacts and byte hashes for every other
+file in that exact pack; and
+- a self-hash for the receipt.
+
+These are unkeyed integrity hashes, not a signature or independent proof of
+authenticity. Source rights are the catalog declaration recorded by the pack.
+
+Verification fails closed when an input or artifact changes; a file is missing,
+extra, renamed, or symbolic; a path escapes the pack; symbol, multiplier, model,
+or catalog identity conflicts; or an artifact, application, runtime, normalized
+input, or receipt schema is incompatible. The strict inventory means notes or
+other additions belong beside the pack, not inside it.
+
+Named elapsed-time and latency fields are omitted from semantic identity because
+they vary between executions. Raw byte hashes still bind those files within the
+exact pack, and generation time remains part of semantic identity.
+
+Producer and reader compatibility is an explicit allowlist, never an inference
+from version ordering. The current source table is:
+
+| Contract | Accepted producer | Accepted reader |
+| --- | --- | --- |
+| Review receipt v1 / runtime v1 | `0.4.0`, `0.5.0` | `0.5.0` |
+
+The 0.4.0 contributor implementation accepted only 0.4.0 producers. This
+0.5.0 release also accepts its receipts when exact runtime and semantic results
+match. The original tagged 0.4.0 release did not produce these receipts; its
+legacy Demo Lab packs are not silently upgraded. Unknown versions remain
+rejected. Python major/minor and pinned NumPy/Textual versions must match the
+recorded runtime; cross-Python reproduction is not promised.
 
 ## Output Folder
 
-The command writes:
-
 | File | Purpose |
 | --- | --- |
-| `README.md` | Human-readable guide to the generated pack. |
-| `manifest.json` | Machine-readable artifact index and top-line metrics. |
-| `gex-terminal-color.svg` | Color preview generated from real replay snapshot values. |
-| `terminal-screenshot.svg` | Color-themed Textual terminal capture after replaying the session. |
-| `snapshot.json` | Snapshot schema v2 with metrics, strikes, expiries, model provenance, and feed quality. |
-| `snapshot.md` | Human-readable snapshot summary. |
-| `tradingview-overlay.json` | Portable chart levels and bands. |
-| `tradingview-overlay.csv` | Spreadsheet-friendly chart levels and bands. |
-| `replay_lab.md` | Replay Lab report for the selected session. |
-| `replay_lab.json` | Replay Lab JSON baseline. |
-| `provider_fixture_lab.md` | Provider Fixture Lab scorecard. |
-| `provider_fixture_lab.json` | Provider Fixture Lab JSON baseline. |
+| `README.md` | Portable Today → Explain → Compare → Replay → Review guide. |
+| `manifest.json` | Artifact inventory, source/model identity, top-line metrics, and limitations. |
+| `review-receipt.json` | Source, runtime, content, artifact, and evidence-ceiling integrity receipt. |
+| `inputs/replay.jsonl` | Exact authorized synthetic replay copied into the pack. |
+| `gex-terminal-color.svg` | Color preview generated from replay snapshot values. |
+| `terminal-screenshot.svg` | Textual terminal capture after replaying the session. |
+| `snapshot.json`, `snapshot.md` | Machine-readable and human-readable final snapshot. |
+| `tradingview-overlay.json`, `.csv` | Portable chart levels and bands. |
+| `replay_lab.json`, `.md` | Selected-session replay analysis. |
+| `provider_fixture_lab.json`, `.md` | Bundled provider-shaped fixture scorecard. |
+| `model-comparison.json`, `.md`, `.csv` | Raw versus directionalized trade-volume comparison. |
+| `position-model-comparison.json`, `.md`, `.csv` | Separated OI/raw/directional proxy ladder and differences. |
 
-`demo_lab/` and `demo_pack/` are ignored by Git by default so local generated
-packs do not get staged accidentally.
+Generated `demo_lab/` and `demo_pack/` folders are ignored by Git by default.
 
-## Refresh The README Preview
+## Contributor Preview
 
-The README front image is a generated color SVG. To refresh it from the current
-code path:
+To refresh repository preview assets from the existing ES visual path:
 
 ```bash
 gex-terminal demo-lab /tmp/gex_terminal_demo_lab --replay-session zero-gamma-flip
@@ -66,20 +129,7 @@ cp /tmp/gex_terminal_demo_lab/gex-terminal-color.svg assets/gex-terminal-demo-la
 gex-terminal --demo --screenshot assets/gex-terminal-onboarding.svg --screenshot-view replay-browser
 ```
 
-The asset uses offline replay data only. It should not contain live provider
-payloads, credentials, account identifiers, or proprietary data.
-
-## Why This Exists
-
-The terminal itself is the product, but contributors and GitHub visitors need a
-fast way to understand the workflow without installing a live feed. Demo Lab
-packages the most important offline proof points in one place:
-
-- Visual preview for the repository page.
-- Color-themed terminal capture for UI review.
-- Snapshot and overlay exports for trader review.
-- Replay Lab report for model behavior.
-- Provider Fixture Lab report for adapter-path confidence.
-
-These are deterministic software-path artifacts. They do not certify live
-provider transport or predictive market validity.
+The interactive terminal uses the same first-run session: start
+`gex-terminal --demo`, press `p`, and select a replay. Pack inputs and generated
+assets must never contain credentials, account identifiers, private payloads, or
+licensed data without explicit redistribution rights.
