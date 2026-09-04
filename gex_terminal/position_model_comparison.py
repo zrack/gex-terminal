@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -96,6 +98,14 @@ async def build_position_model_comparison(
             "predictive_validity": "unmeasured",
             "models_may_not_be_summed": True,
         },
+        "limitations": {
+            "models_may_not_be_summed": True,
+            "participant_classification": "unobserved",
+            "opening_closing_classification": "unobserved",
+            "oi_publication_lag": "must_be_represented_in_event_time",
+            "predictive_validity": "unmeasured",
+            "live_provider_certified": False,
+        },
         "evidence_ceiling": (
             "point-in-time proxy comparison only; OI publication lag must be supplied "
             "in event_time and no source establishes dealer inventory"
@@ -117,10 +127,111 @@ def write_position_model_comparison(
 ) -> Path:
     target = Path(output_path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    if target.suffix.lower() not in {"", ".json"}:
-        raise ValueError("Position-model comparison output must be JSON")
-    target.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    suffix = target.suffix.lower()
+    if suffix in {"", ".json"}:
+        contents = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    elif suffix in {".md", ".markdown"}:
+        contents = position_model_comparison_to_markdown(report)
+    elif suffix == ".csv":
+        contents = position_model_comparison_to_csv(report)
+    else:
+        raise ValueError(
+            "Position-model comparison output must end in .json, .csv, or .md"
+        )
+    target.write_text(contents, encoding="utf-8")
     return target
+
+
+def position_model_comparison_to_markdown(report: Mapping[str, Any]) -> str:
+    """Render the separated position-model ladder without implying combination."""
+    models = report["models"]
+    lines = [
+        "# Point-in-Time Position Model Comparison",
+        "",
+        f"- As of: `{report['as_of']}`",
+        f"- Result: `{report['result']['status']}`",
+        "- Models may be summed: `false`",
+        "- Participant classification: `unobserved`",
+        "- Opening/closing classification: `unobserved`",
+        "- Predictive validity: `unmeasured`",
+        "- Live provider certified: `false`",
+        "",
+        "## Separate Proxy Views",
+        "",
+        "| Model | Status | Total Net GEX | Gamma Wall | Zero Gamma | Coverage |",
+        "| --- | --- | ---: | ---: | ---: | ---: |",
+    ]
+    for name in (
+        "open_interest",
+        "raw_trade_volume",
+        "directionalized_trade_volume",
+    ):
+        model = models[name]
+        lines.append(
+            f"| `{name}` | `{model.get('status', 'unavailable')}` | "
+            f"{_optional_money(model.get('total_net_gex'))} | "
+            f"{_optional_number(model.get('gamma_wall'))} | "
+            f"{_optional_number(model.get('zero_gamma'))} | "
+            f"{_optional_percent(model.get('directional_coverage'))} |"
+        )
+    lines.extend([
+        "",
+        "## Differences, Not Combined Exposure",
+        "",
+        f"- OI minus raw net GEX: `{_optional_money(report['differences']['oi_minus_raw_total_net_gex'])}`",
+        f"- OI/raw gamma-wall distance: `{_optional_number(report['differences']['oi_raw_gamma_wall_distance'])}`",
+        f"- Directionalized minus raw net GEX: `{_optional_money(report['differences']['raw_directional_total_net_gex_delta'])}`",
+        "",
+        "These are side-by-side proxy differences. They must not be added into a",
+        "single exposure estimate. OI timing reflects the supplied event time and",
+        "does not establish dealer inventory or whether positions opened or closed.",
+        "",
+        f"Evidence ceiling: {report['evidence_ceiling']}",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def position_model_comparison_to_csv(report: Mapping[str, Any]) -> str:
+    """Render model and limitation rows for portable spreadsheet review."""
+    output = io.StringIO()
+    fieldnames = (
+        "record_type",
+        "name",
+        "status",
+        "value",
+        "total_net_gex",
+        "gamma_wall",
+        "zero_gamma",
+        "directional_coverage",
+        "notes",
+    )
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    for name in (
+        "open_interest",
+        "raw_trade_volume",
+        "directionalized_trade_volume",
+    ):
+        model = report["models"][name]
+        writer.writerow({
+            "record_type": "model",
+            "name": name,
+            "status": model.get("status"),
+            "total_net_gex": model.get("total_net_gex"),
+            "gamma_wall": model.get("gamma_wall"),
+            "zero_gamma": model.get("zero_gamma"),
+            "directional_coverage": model.get("directional_coverage"),
+        })
+    for name, value in report["differences"].items():
+        writer.writerow({"record_type": "difference", "name": name, "value": value})
+    for name, value in report["limitations"].items():
+        writer.writerow({
+            "record_type": "limitation",
+            "name": name,
+            "value": value,
+            "notes": report["evidence_ceiling"] if name == "predictive_validity" else "",
+        })
+    return output.getvalue()
 
 
 async def _snapshot_for_messages(
@@ -192,3 +303,26 @@ def _directional_summary(snapshot: Mapping[str, Any] | None) -> dict[str, Any]:
         "directional_coverage": model["directional_coverage"],
         "participant_classification": "unobserved",
     }
+
+
+def _optional_money(value: Any) -> str:
+    if value is None:
+        return "--"
+    numeric = float(value)
+    sign = "+" if numeric >= 0 else "-"
+    absolute = abs(numeric)
+    if absolute >= 1_000_000_000:
+        return f"{sign}{absolute / 1_000_000_000:.2f}B"
+    if absolute >= 1_000_000:
+        return f"{sign}{absolute / 1_000_000:.2f}M"
+    if absolute >= 1_000:
+        return f"{sign}{absolute / 1_000:.1f}K"
+    return f"{sign}{absolute:.0f}"
+
+
+def _optional_number(value: Any) -> str:
+    return "--" if value is None else f"{float(value):,.1f}"
+
+
+def _optional_percent(value: Any) -> str:
+    return "--" if value is None else f"{float(value):.1%}"

@@ -14,6 +14,7 @@ from gex_terminal.replay_catalog import (
     replay_session_for_name,
 )
 from gex_terminal.session_store import load_session_records
+from gex_terminal.demo_lab_receipt import inspect_portable_replay, load_portable_replay
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -73,12 +74,35 @@ class ReplayCatalogTests(unittest.TestCase):
         self.assertEqual(session.symbol, "ES")
         self.assertEqual(session.contract_multiplier, 50)
 
-    def test_bundled_sessions_declare_es_identity(self):
+    def test_bundled_sessions_declare_catalog_identity(self):
         self.assertTrue(bundled_replay_sessions())
         for session in bundled_replay_sessions():
             with self.subTest(session=session.name):
-                self.assertEqual(session.symbol, "ES")
-                self.assertEqual(session.contract_multiplier, 50)
+                expected = ("NQ", 20) if session.name == "nq-research-loop" else ("ES", 50)
+                self.assertEqual(
+                    (session.symbol, session.contract_multiplier),
+                    expected,
+                )
+
+    def test_nq_research_loop_has_exact_schema_v2_position_evidence(self):
+        session = replay_session_for_name("nq-research-loop")
+        observations = inspect_portable_replay(
+            load_portable_replay(session.path),
+            session=session,
+        )
+
+        self.assertEqual(session.symbol, "NQ")
+        self.assertEqual(session.contract_multiplier, 20)
+        self.assertTrue(session.research_loop)
+        self.assertEqual(observations["normalized_schema_versions"], [2])
+        self.assertEqual(
+            observations["position_sources"],
+            ["open_interest", "trade_volume"],
+        )
+        self.assertEqual(observations["direction_sources"], ["provider"])
+        self.assertEqual(observations["missing_event_time_count"], 0)
+        self.assertEqual(observations["missing_received_time_count"], 0)
+        self.assertEqual(observations["missing_expiry_time_count"], 0)
 
     def test_catalog_identity_replaces_ambient_workflow_defaults(self):
         session = replay_session_for_name("trend-day")

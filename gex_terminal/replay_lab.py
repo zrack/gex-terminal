@@ -30,28 +30,52 @@ MAJOR_EXPOSURE_DELTA_FLOOR = 250_000_000.0
 async def build_replay_lab_report(
     config: GexConfig,
     session_names: Iterable[str] | None = None,
+    *,
+    sessions: Iterable[ReplaySession] | None = None,
 ) -> dict[str, Any]:
     """Run replay sessions offline and assemble an explainable research report."""
-    sessions = _selected_sessions(session_names)
+    if session_names is not None and sessions is not None:
+        raise ValueError("select replay sessions by name or object, not both")
+    selected_sessions = (
+        tuple(sessions) if sessions is not None else _selected_sessions(session_names)
+    )
     session_reports = [
         await analyze_replay_session(session, config)
-        for session in sessions
+        for session in selected_sessions
     ]
-    report_symbol = sessions[0].symbol if sessions else config.symbol
-    report_multiplier = (
-        sessions[0].contract_multiplier if sessions else config.contract_multiplier
-    )
+    instruments = _instrument_groups(session_reports)
+    single_instrument = instruments[0] if len(instruments) == 1 else None
     return {
         "schema": "gex-terminal.replay-lab.v1",
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "symbol": report_symbol,
+        "symbol": single_instrument["symbol"] if single_instrument else None,
+        "instruments": instruments,
         "sessions": session_reports,
         "comparisons": compare_replay_sessions(session_reports),
-        "leaderboard": build_replay_leaderboard(session_reports),
+        "leaderboard": (
+            build_replay_leaderboard(session_reports) if single_instrument else {}
+        ),
+        "leaderboards": [
+            {
+                "symbol": instrument["symbol"],
+                "contract_multiplier": instrument["contract_multiplier"],
+                "leaderboard": build_replay_leaderboard([
+                    report
+                    for report in session_reports
+                    if _report_identity(report)
+                    == (instrument["symbol"], instrument["contract_multiplier"])
+                ]),
+            }
+            for instrument in instruments
+        ],
         "inputs": {
             "days_to_expiry": float(config.days_to_expiry),
             "risk_free_rate": float(config.risk_free_rate),
-            "contract_multiplier": int(report_multiplier),
+            "contract_multiplier": (
+                int(single_instrument["contract_multiplier"])
+                if single_instrument
+                else None
+            ),
         },
     }
 
@@ -162,6 +186,8 @@ async def analyze_replay_session(
         "label": session.label,
         "path": session.source_ref,
         "description": session.description,
+        "symbol": replay_config.symbol,
+        "contract_multiplier": replay_config.contract_multiplier,
         "message_count": len(loaded_messages),
         "snapshot_count": len(timeline),
         "phase_count": len(phases),
@@ -194,13 +220,17 @@ async def analyze_replay_session(
 
 
 def compare_replay_sessions(session_reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Compare final saved snapshots in catalog order."""
+    """Compare final snapshots only within the same instrument identity."""
     comparisons = []
-    previous = None
+    previous_by_instrument: dict[tuple[str, int], dict[str, Any]] = {}
     for report in session_reports:
         current = report["summary"]
+        identity = _report_identity(report)
+        previous = previous_by_instrument.get(identity)
         if previous is not None:
             comparisons.append({
+                "symbol": identity[0],
+                "contract_multiplier": identity[1],
                 "from_session": previous["name"],
                 "to_session": current["name"],
                 "spot_delta": current["spot"] - previous["spot"],
@@ -209,7 +239,7 @@ def compare_replay_sessions(session_reports: list[dict[str, Any]]) -> list[dict[
                 "zero_gamma_delta": current["zero_gamma"] - previous["zero_gamma"],
                 "alert_count_delta": current["alert_count"] - previous["alert_count"],
             })
-        previous = current
+        previous_by_instrument[identity] = current
     return comparisons
 
 
@@ -235,52 +265,70 @@ def build_replay_leaderboard(session_reports: list[dict[str, Any]]) -> dict[str,
 
 
 def replay_lab_to_markdown(report: dict[str, Any]) -> str:
+    identity_label = (
+        report["symbol"]
+        if report.get("symbol")
+        else "mixed (grouped; no cross-instrument deltas)"
+    )
+    multiplier = report["inputs"]["contract_multiplier"]
     lines = [
         "# Replay Research Lab",
         "",
         f"- Generated: `{report['generated_at']}`",
-        f"- Symbol: `{report['symbol']}`",
+        f"- Symbol: `{identity_label}`",
         f"- Sessions analyzed: `{len(report['sessions'])}`",
         f"- Days to expiry: `{report['inputs']['days_to_expiry']:g}`",
-        f"- Contract multiplier: `{report['inputs']['contract_multiplier']}`",
+        f"- Contract multiplier: `{multiplier if multiplier is not None else 'varies by instrument'}`",
+    ]
+    if report.get("symbol") is None:
+        lines.extend([
+            "",
+            "Multiple instrument identities are grouped independently; no ES-to-NQ "
+            "or cross-multiplier deltas are calculated.",
+        ])
+    lines.extend([
         "",
         "## Lab Dashboard",
         "",
-        "| Session | Spot | Session Chg | Net GEX | Gamma Wall | Zero Gamma | Regime | Alerts |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | --- | ---: |",
-    ]
+        "| Session | Instrument | Spot | Session Chg | Net GEX | Gamma Wall | Zero Gamma | Regime | Alerts |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: |",
+    ])
     for session in report["sessions"]:
         summary = session["summary"]
         lines.append(
-            f"| {summary['label']} | {summary['spot']:,.2f} | "
+            f"| {summary['label']} | {summary['symbol']} × {summary['contract_multiplier']} | "
+            f"{summary['spot']:,.2f} | "
             f"{summary['session_change']:+,.2f} | {_money(summary['total_net_gex'])} | "
             f"{summary['gamma_wall']:,.1f} | {summary['zero_gamma']:,.1f} | "
             f"{summary['regime_label']} | {summary['alert_count']} |"
         )
 
-    leaderboard = report.get("leaderboard", {})
-    if leaderboard:
-        lines.extend([
-            "",
-            "## Leaderboard",
-            "",
-            f"- Largest absolute net GEX: `{leaderboard['largest_absolute_net_gex']}`",
-            f"- Most alerts: `{leaderboard['most_alerts']}`",
-            f"- Tightest concentration: `{leaderboard['tightest_concentration']}`",
-            f"- Largest spot move: `{leaderboard['largest_spot_move']}`",
-        ])
+    leaderboards = report.get("leaderboards") or []
+    if leaderboards:
+        lines.extend(["", "## Leaderboard", ""])
+        for group in leaderboards:
+            leaderboard = group["leaderboard"]
+            lines.extend([
+                f"### {group['symbol']} (multiplier {group['contract_multiplier']})",
+                "",
+                f"- Largest absolute net GEX: `{leaderboard['largest_absolute_net_gex']}`",
+                f"- Most alerts: `{leaderboard['most_alerts']}`",
+                f"- Tightest concentration: `{leaderboard['tightest_concentration']}`",
+                f"- Largest spot move: `{leaderboard['largest_spot_move']}`",
+                "",
+            ])
 
     if report.get("comparisons"):
         lines.extend([
             "",
             "## Session Comparison",
             "",
-            "| From | To | Spot Δ | Net GEX Δ | Wall Δ | Zero Δ | Alert Δ |",
-            "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
+            "| Symbol | From | To | Spot Δ | Net GEX Δ | Wall Δ | Zero Δ | Alert Δ |",
+            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
         ])
         for row in report["comparisons"]:
             lines.append(
-                f"| {row['from_session']} | {row['to_session']} | "
+                f"| {row['symbol']} | {row['from_session']} | {row['to_session']} | "
                 f"{row['spot_delta']:+,.2f} | {_money(row['net_gex_delta'])} | "
                 f"{row['gamma_wall_delta']:+,.1f} | {row['zero_gamma_delta']:+,.1f} | "
                 f"{row['alert_count_delta']:+d} |"
@@ -332,6 +380,8 @@ def replay_lab_to_csv(report: dict[str, Any]) -> str:
         "total_net_gex",
         "gamma_wall",
         "zero_gamma",
+        "symbol",
+        "contract_multiplier",
         "message",
     )
     writer = csv.DictWriter(output, fieldnames=fieldnames)
@@ -342,6 +392,8 @@ def replay_lab_to_csv(report: dict[str, Any]) -> str:
             "record_type": "session",
             "session": summary["name"],
             "label": summary["label"],
+            "symbol": summary["symbol"],
+            "contract_multiplier": summary["contract_multiplier"],
             "spot": summary["spot"],
             "session_change": summary["session_change"],
             "total_net_gex": summary["total_net_gex"],
@@ -355,6 +407,8 @@ def replay_lab_to_csv(report: dict[str, Any]) -> str:
                 "session": alert["session"],
                 "name": alert["type"],
                 "severity": alert["severity"],
+                "symbol": summary["symbol"],
+                "contract_multiplier": summary["contract_multiplier"],
                 "spot": alert.get("spot"),
                 "gamma_wall": alert.get("gamma_wall"),
                 "zero_gamma": alert.get("zero_gamma"),
@@ -365,6 +419,8 @@ def replay_lab_to_csv(report: dict[str, Any]) -> str:
             "record_type": "comparison",
             "session": row["to_session"],
             "name": row["from_session"],
+            "symbol": row["symbol"],
+            "contract_multiplier": row["contract_multiplier"],
             "spot": row["spot_delta"],
             "total_net_gex": row["net_gex_delta"],
             "gamma_wall": row["gamma_wall_delta"],
@@ -394,6 +450,27 @@ def _selected_sessions(session_names: Iterable[str] | None) -> tuple[ReplaySessi
     if session_names is None:
         return bundled_replay_sessions()
     return tuple(replay_session_for_name(name) for name in session_names)
+
+
+def _report_identity(report: dict[str, Any]) -> tuple[str, int]:
+    summary = report["summary"]
+    return str(summary["symbol"]), int(summary["contract_multiplier"])
+
+
+def _instrument_groups(session_reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, int], list[str]] = {}
+    for report in session_reports:
+        identity = _report_identity(report)
+        grouped.setdefault(identity, []).append(str(report["summary"]["name"]))
+    return [
+        {
+            "symbol": symbol,
+            "contract_multiplier": multiplier,
+            "session_count": len(names),
+            "sessions": names,
+        }
+        for (symbol, multiplier), names in grouped.items()
+    ]
 
 
 def _message_time(message: dict[str, Any]) -> str:
