@@ -60,6 +60,7 @@ REQUIRED_BUNDLED_RESOURCES: tuple[str, ...] = (
     "data/provider_fixtures/capture_policy_example.json",
     "data/provider_fixtures/cboe_option_quotes_sample.csv",
     "data/provider_fixtures/corpus_item_metadata_example.json",
+    "data/provider_fixtures/databento_es_live_population_plan_template.json",
     "data/provider_fixtures/databento_definition_records.json",
     "data/provider_fixtures/databento_mixed_offline_records.jsonl",
     "data/provider_fixtures/databento_normalized_expected.jsonl",

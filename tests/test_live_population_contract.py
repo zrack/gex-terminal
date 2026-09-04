@@ -411,11 +411,11 @@ class LivePopulationResultTests(unittest.TestCase):
 
         runtime = _valid_results(plan)
         runtime["observations"][0]["runtime"]["python_version"] = "3.12.12"
-        mutations["runtime"] = runtime
+        mutations["runtime counted as pass"] = runtime
 
         policy = _valid_results(plan)
         policy["observations"][0]["certification_policy_sha256"] = "0" * 64
-        mutations["policy"] = policy
+        mutations["policy counted as pass"] = policy
 
         short_pass = _valid_results(plan)
         short_pass["observations"][0][
@@ -433,7 +433,45 @@ class LivePopulationResultTests(unittest.TestCase):
                 with self.assertRaises(LivePopulationContractError):
                     validate_live_population_result_manifest(plan, results)
 
-    def test_failed_runs_require_notes_and_policy_failures_require_report(self):
+    def test_actual_runtime_and_policy_drift_remain_in_failed_population(self):
+        plan = _valid_plan()
+
+        runtime_drift = _valid_results(plan)
+        runtime_drift["observations"][0]["runtime"]["python_version"] = "3.12.12"
+        runtime_drift["observations"][0].update(
+            {
+                "outcome": "environment_failure",
+                "report": {"status": "not_produced", "sha256": None},
+                "redacted_notes": "Actual runtime differed from the frozen plan.",
+            }
+        )
+        normalized = validate_live_population_result_manifest(plan, runtime_drift)
+        self.assertEqual(
+            normalized["observations"][0]["runtime"]["python_version"],
+            "3.12.12",
+        )
+
+        policy_drift = _valid_results(plan)
+        policy_drift["observations"][0].update(
+            {
+                "outcome": "policy_failure",
+                "certification_policy_sha256": "0" * 64,
+                "report": {"status": "not_produced", "sha256": None},
+                "redacted_notes": "Actual policy differed from the frozen plan.",
+            }
+        )
+        normalized = validate_live_population_result_manifest(plan, policy_drift)
+        self.assertEqual(
+            normalized["observations"][0]["certification_policy_sha256"],
+            "0" * 64,
+        )
+
+        wrong_category = copy.deepcopy(runtime_drift)
+        wrong_category["observations"][0]["outcome"] = "entitlement_failure"
+        with self.assertRaisesRegex(LivePopulationContractError, "environment"):
+            validate_live_population_result_manifest(plan, wrong_category)
+
+    def test_failed_runs_require_notes_and_evaluated_policy_failures_require_report(self):
         plan = _valid_plan()
         no_notes = _valid_results(plan)
         no_notes["observations"][0]["outcome"] = "entitlement_failure"

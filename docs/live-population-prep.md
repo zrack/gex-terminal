@@ -60,8 +60,9 @@ For an initial population, keep:
 After a failed or completed population, a successor must instead declare
 `successor_population`, the prior population ID, and the exact SHA-256 printed
 when its complete result manifest validated. This is an immutable lineage link;
-it prevents a later population from silently replacing the prior manifest. It
-does not independently prove that the referenced file was complete or genuine.
+it binds the successor's declaration of the previous identity. The validator
+does not prove that the prior file exists, that the chain is complete, or that
+an earlier population was not omitted. Promotion review must verify all three.
 
 Validate locally:
 
@@ -133,13 +134,20 @@ outcomes are `passed`, `authentication_failure`, `entitlement_failure`,
 `policy_failure`, `payload_failure`, `temporal_failure`, `lifecycle_failure`,
 `operator_interruption`, `environment_failure`, and `missed`.
 
-- Every non-missed attempt records actual UTC start/stop, the exact planned
-  runtime, the policy digest, and report state.
+- Every non-missed attempt records actual UTC start/stop, the runtime and policy
+  actually used, and report state.
 - A pass must cover its complete planned window and include a report digest:
   the operator starts no later than the planned start and stops no earlier than
   the planned end. Actual timestamps retain seconds and fractional seconds; the
-  validator does not round them to the planned minute boundary.
-- A policy failure retains the failing report digest.
+  validator does not round them to the planned minute boundary. A pass also
+  requires an exact runtime and policy match to the frozen plan.
+- Runtime drift remains in the population as `environment_failure`; policy
+  identity drift remains as `policy_failure`. Record the actual values and
+  explain the drift in redacted notes rather than relabeling the attempt or
+  calling it missed.
+- A policy failure under the planned policy retains the failing report digest.
+  A mismatched policy may fail before report production and records that state
+  explicitly.
 - Other failed attempts may declare `not_produced` with a null report digest,
   but require redacted notes.
 - A missed window has null actual runtime/policy values, no produced report, and

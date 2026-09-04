@@ -669,22 +669,20 @@ def _validate_observation(
     runtime = _validate_runtime(
         observation.get("runtime"), "population result runtime"
     )
-    if runtime != plan["runtime"]:
-        raise LivePopulationContractError(
-            "population result runtime does not match the frozen plan"
-        )
+    runtime_matches = runtime == plan["runtime"]
     policy_sha256 = _required_sha256(
         observation.get("certification_policy_sha256"),
         "population result certification_policy_sha256",
     )
-    if not hmac.compare_digest(
+    policy_matches = hmac.compare_digest(
         policy_sha256, plan["certification_policy"]["sha256"]
-    ):
-        raise LivePopulationContractError(
-            "population result certification policy does not match the frozen plan"
-        )
+    )
 
     if outcome == "passed":
+        if not runtime_matches or not policy_matches:
+            raise LivePopulationContractError(
+                "a passed run must match the frozen runtime and policy"
+            )
         planned_start = _parse_validated_utc(planned_slot["start_utc"])
         planned_end = _parse_validated_utc(planned_slot["end_utc"])
         if actual_start > planned_start or actual_stop < planned_end:
@@ -693,7 +691,27 @@ def _validate_observation(
             )
         if report["status"] != "produced":
             raise LivePopulationContractError("a passed run requires a report digest")
-    elif outcome == "policy_failure" and report["status"] != "produced":
+    elif not runtime_matches and policy_matches and outcome != "environment_failure":
+        raise LivePopulationContractError(
+            "runtime drift must be retained as an environment failure"
+        )
+    elif runtime_matches and not policy_matches and outcome != "policy_failure":
+        raise LivePopulationContractError(
+            "policy drift must be retained as a policy failure"
+        )
+    elif (
+        not runtime_matches
+        and not policy_matches
+        and outcome not in {"environment_failure", "policy_failure"}
+    ):
+        raise LivePopulationContractError(
+            "runtime and policy drift require an explicit configuration failure outcome"
+        )
+    if (
+        outcome == "policy_failure"
+        and policy_matches
+        and report["status"] != "produced"
+    ):
         raise LivePopulationContractError(
             "a policy failure requires the failing report digest"
         )
