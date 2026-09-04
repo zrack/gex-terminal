@@ -9,6 +9,13 @@ claimed.
 
 ## Unreleased
 
+### Fixed
+
+- Bound bundled replay workflows to catalog instrument identity and rejected
+  unsupported symbol labels on the seeded ES demo. Snapshot exports now
+  distinguish the configured fallback multiplier from actual selected-contract
+  multipliers, including heterogeneous inputs.
+
 ### Changed
 
 - Reprioritized the roadmap around application correctness, offline preflight,

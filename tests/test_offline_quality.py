@@ -7,6 +7,22 @@ from gex_terminal.offline_quality import apply_quality_scenario
 
 
 class OfflineQualityTests(unittest.IsolatedAsyncioTestCase):
+    async def test_non_es_seed_rejects_before_mutating_consumer_state(self):
+        consumer = StatefulGexConsumer(
+            IntradayGexEngine(multiplier=20),
+            target_underlying="NQ",
+            data_mode="demo",
+            stale_after_seconds=10.0,
+        )
+
+        with self.assertRaisesRegex(SystemExit, "available only for ES"):
+            await seed_demo_session(consumer)
+
+        self.assertEqual(consumer.current_spot, 0.0)
+        self.assertEqual(consumer.session_open, 0.0)
+        self.assertEqual(consumer.chain_state, {})
+        self.assertEqual(consumer.message_count, 0)
+
     async def test_all_scenario_simulates_stale_dropped_partial_and_latency(self):
         consumer = StatefulGexConsumer(
             IntradayGexEngine(multiplier=50),

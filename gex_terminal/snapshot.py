@@ -63,6 +63,14 @@ def build_snapshot(
     imbalance = call_total / put_total_abs if put_total_abs else 0.0
 
     directionalized = data.get("directionalized")
+    multiplier_provenance = data.get("multiplier_provenance", {
+        "status": "unreported", "effective_multipliers": [],
+        "fallback_row_count": None, "rows": [],
+    })
+    effective_multipliers = list(multiplier_provenance["effective_multipliers"])
+    calculation_fallback = multiplier_provenance.get("configured_fallback_multiplier")
+    if calculation_fallback is not None and float(contract_multiplier) != calculation_fallback:
+        raise ValueError("Snapshot multiplier does not match the calculation fallback")
     return {
         "schema": "gex-terminal.snapshot.v2",
         "timestamp": timestamp or datetime.now().isoformat(timespec="seconds"),
@@ -72,6 +80,10 @@ def build_snapshot(
         "session_change": float(spot - session_open) if session_open else 0.0,
         "days_to_expiry": float(days_to_expiry),
         "contract_multiplier": int(contract_multiplier),
+        "contract_multiplier_semantics": "configured_fallback",
+        "effective_contract_multiplier": (
+            effective_multipliers[0] if len(effective_multipliers) == 1 else None
+        ),
         "risk_free_rate": float(risk_free_rate),
         "metrics": {
             "total_net_gex": float(data["total_net_gex"]),
@@ -98,6 +110,8 @@ def build_snapshot(
             ],
         },
         "model": {
+            "configured_contract_multiplier": int(contract_multiplier),
+            "multiplier_provenance": multiplier_provenance,
             "schema_version": SNAPSHOT_SCHEMA_VERSION,
             "model_version": MODEL_VERSION,
             "normalized_schema_versions": list(

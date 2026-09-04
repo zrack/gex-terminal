@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.snapshot import build_snapshot
 
 
 class StatefulGexConsumerLifecycleTests(unittest.IsolatedAsyncioTestCase):
@@ -51,6 +52,74 @@ class StatefulGexConsumerLifecycleTests(unittest.IsolatedAsyncioTestCase):
         consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="demo")
 
         self.assertEqual(consumer.runtime_status, "SIM")
+
+    async def test_snapshot_preserves_mixed_multiplier_rows_and_fallback(self):
+        consumer = StatefulGexConsumer(IntradayGexEngine(multiplier=50), data_mode="replay")
+        await consumer.update_market_state(json.dumps({
+            "type": "underlying_tick", "symbol": "ES", "price": 5950,
+        }))
+        for index, multiplier in enumerate((100, 20, None)):
+            message = self._v2_option(contract_id=f"contract-{index}", strike=5900 + index * 50)
+            if multiplier is not None:
+                message["contract_multiplier"] = multiplier
+            await consumer.update_market_state(json.dumps(message))
+        data = await consumer.process_latest_snapshot(0.25)
+        snapshot = build_snapshot(
+            symbol="ES", spot=5950, session_open=5950, days_to_expiry=0.25,
+            contract_multiplier=50, risk_free_rate=0.045,
+            data=data, chain_state=consumer.chain_state,
+        )
+        self.assertIsNone(snapshot["effective_contract_multiplier"])
+        provenance = snapshot["model"]["multiplier_provenance"]
+        self.assertEqual(provenance["effective_multipliers"], [20.0, 50.0, 100.0])
+        self.assertEqual(provenance["fallback_row_count"], 1)
+        self.assertEqual(
+            {row["contract_id"]: (row["multiplier"], row["source"]) for row in provenance["rows"]},
+            {"contract-0": (100.0, "contract"), "contract-1": (20.0, "contract"),
+             "contract-2": (50.0, "configured_fallback")},
+        )
+
+    async def test_legacy_snapshot_reports_actual_configured_multiplier(self):
+        consumer = StatefulGexConsumer(IntradayGexEngine(multiplier=20), data_mode="replay")
+        await consumer.update_market_state(json.dumps({
+            "type": "underlying_tick", "symbol": "ES", "price": 5950,
+        }))
+        await consumer.update_market_state(json.dumps({
+            "type": "options_volume_tick", "strike": 5950,
+            "option_type": "C", "volume": 10, "iv": 0.2,
+        }))
+        data = await consumer.process_latest_snapshot(0.25)
+        self.assertEqual(data["multiplier_provenance"], {
+            "status": "configured_fallback", "effective_multipliers": [20.0],
+            "configured_fallback_multiplier": 20.0,
+            "fallback_row_count": 1, "rows": [],
+        })
+        with self.assertRaisesRegex(ValueError, "calculation fallback"):
+            build_snapshot(
+                symbol="ES", spot=5950, session_open=5950, days_to_expiry=0.25,
+                contract_multiplier=50, risk_free_rate=0.045,
+                data=data, chain_state=consumer.chain_state,
+            )
+
+    async def test_contract_multiplier_enrichment_is_preserved_and_conflicts_rejected(self):
+        consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="replay")
+        first = self._v2_option(sequence=1)
+        await consumer.update_market_state(json.dumps(first))
+        enriched = {**first, "sequence": 2, "contract_multiplier": 50}
+        await consumer.update_market_state(json.dumps(enriched))
+        await consumer.update_market_state(json.dumps({**first, "sequence": 3}))
+        state = next(iter(consumer.contract_state.values()))
+        self.assertEqual(state["contract_multiplier"], 50)
+        self.assertEqual(state["accumulated_volume"], 300)
+        for source in ("trade_volume", "open_interest"):
+            await consumer.update_market_state(json.dumps({
+                **enriched, "sequence": 4, "contract_multiplier": 100,
+                "position_source": source,
+            }))
+        self.assertEqual(consumer.malformed_message_count, 2)
+        self.assertEqual(len(consumer.contract_state), 1)
+        self.assertEqual(state["contract_multiplier"], 50)
+        self.assertEqual(state["accumulated_volume"], 300)
 
     def test_live_mode_reports_live_after_recent_message(self):
         consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="live")

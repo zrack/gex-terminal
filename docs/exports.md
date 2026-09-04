@@ -46,6 +46,20 @@ version, and semantic output through the governed experiment/corpus workflow.
 Schema v2 also records model version, normalized schemas, pricing models,
 position sources, selected/expired contract counts, expiry filter, units, day
 count, aggregation, as-of time, and compatibility-field semantics.
+The compatibility `contract_multiplier` field is the **configured fallback**,
+not a claim about every contract. `contract_multiplier_semantics` labels that
+meaning explicitly. `effective_contract_multiplier` is the actual value when
+all selected inputs use one multiplier, otherwise null. The model's
+`multiplier_provenance` records distinct effective values, fallback-row count,
+and selected contract identities with each row's multiplier and source.
+Legacy calculation uses the configured fallback; old caller-supplied engine
+results without this evidence are labeled `unreported`. Markdown and CSV carry
+the same distinction. This is an additive snapshot-v2 extension; consumers
+needing actual inputs must use the new provenance rather than the legacy alias.
+Snapshot construction rejects a fallback argument inconsistent with the
+calculation's recorded fallback. Known contract multipliers are immutable across
+updates and position sources: missing metadata may be enriched, while later
+omissions preserve a known value. Conflicting updates are rejected.
 When schema-v2 trade direction is present, snapshots also include the parallel
 `directionalized` matrix, known/unknown volume coverage, direction sources, and
 the explicit participant/open-close evidence limits.

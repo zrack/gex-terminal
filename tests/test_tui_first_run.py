@@ -1,5 +1,6 @@
 import unittest
 import json
+from dataclasses import replace
 
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
@@ -34,7 +35,7 @@ class FirstRunTerminalTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Zero-Gamma Flip", app._replay_label())
 
     async def test_replay_selector_loads_bundled_session_in_terminal(self):
-        config = _config()
+        config = replace(_config(), symbol="NQ", contract_multiplier=20)
         consumer = StatefulGexConsumer(
             IntradayGexEngine(multiplier=config.contract_multiplier),
             target_underlying=config.symbol,
@@ -62,6 +63,8 @@ class FirstRunTerminalTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(consumer.runtime_status, "REPLAY")
         self.assertEqual(consumer.target_underlying, "ES")
+        self.assertEqual(app.config.contract_multiplier, 50)
+        self.assertEqual(consumer.engine.multiplier, 50)
 
     async def test_replay_browser_can_browse_and_close_without_loading(self):
         config = _config()

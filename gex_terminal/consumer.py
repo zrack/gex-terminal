@@ -356,6 +356,22 @@ class StatefulGexConsumer:
                     f"{', '.join(changed)}"
                 )
 
+        # Multiplier is contract metadata, not a mutable position quantity.
+        # Missing metadata may be enriched; later omissions cannot erase it.
+        known_multipliers = {
+            row["contract_multiplier"]
+            for source in ("open_interest", "trade_volume")
+            if (row := self.contract_state.get((*state_key[:2], source)))
+            and row.get("contract_multiplier") is not None
+        }
+        supplied_multiplier = contract.get("contract_multiplier")
+        if known_multipliers and supplied_multiplier is not None and (
+            known_multipliers != {supplied_multiplier}
+        ):
+            raise ValueError("contract identity changed: contract_multiplier")
+        if supplied_multiplier is None and known_multipliers:
+            contract = {**contract, "contract_multiplier": next(iter(known_multipliers))}
+
         volume = int(message["volume"])
         previous = int(existing.get("accumulated_volume", 0) if existing else 0)
         previous_directional = dict(
@@ -507,6 +523,13 @@ class StatefulGexConsumer:
                     "error": f"No option contracts match expiry filter '{selected_filter}'."
                 }
             data = self._legacy_matrix(selected_map, spot, days_to_expiry)
+            data["multiplier_provenance"] = {
+                "status": "configured_fallback",
+                "configured_fallback_multiplier": float(self.engine.multiplier),
+                "effective_multipliers": [float(self.engine.multiplier)],
+                "fallback_row_count": len(selected_map),
+                "rows": [],
+            }
             data["directionalized"] = {
                 "model": "aggressor_directionalized_volume",
                 "status": "unsupported_legacy_schema",
@@ -851,6 +874,27 @@ class StatefulGexConsumer:
             for source in state.get("direction_sources", ())
         })
         matrix["directionalized"] = directional
+        matrix["multiplier_provenance"] = {
+            "status": "contract_rows",
+            "configured_fallback_multiplier": float(self.engine.multiplier),
+            "effective_multipliers": sorted(set(float(value) for value in multipliers)),
+            "fallback_row_count": sum(
+                state.get("contract_multiplier") is None for state in contracts
+            ),
+            "rows": [
+                {
+                    "provider": state.get("provider"),
+                    "contract_id": state.get("contract_id"),
+                    "position_source": state.get("position_source"),
+                    "multiplier": float(multiplier),
+                    "source": (
+                        "contract" if state.get("contract_multiplier") is not None
+                        else "configured_fallback"
+                    ),
+                }
+                for state, multiplier in zip(contracts, multipliers)
+            ],
+        }
         iv_sources = [str(state.get("iv_source") or "unknown") for state in contracts]
         matrix["iv_sources"] = sorted(set(iv_sources))
         matrix["iv_source_counts"] = {

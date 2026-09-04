@@ -84,6 +84,25 @@ def _snapshot():
 
 
 class SnapshotFormatsTests(unittest.TestCase):
+    def test_multiplier_source_remains_visible_when_numbers_are_equal(self):
+        snapshot = _snapshot()
+        snapshot["model"]["configured_contract_multiplier"] = 50
+        outputs = []
+        for status, count in (("contract_rows", 0), ("configured_fallback", 1)):
+            provenance = {
+                "status": status, "effective_multipliers": [50.0],
+                "fallback_row_count": count, "rows": [],
+            }
+            snapshot["model"]["multiplier_provenance"] = provenance
+            markdown = snapshot_to_markdown(snapshot)
+            self.assertIn(f"Multiplier provenance: `{status}`", markdown)
+            self.assertIn(f"Rows using fallback multiplier: `{count}`", markdown)
+            outputs.append(markdown)
+            rows = list(csv.DictReader(io.StringIO(snapshot_to_csv(snapshot))))
+            row = next(row for row in rows if row["name"] == "multiplier_provenance")
+            self.assertEqual(json.loads(row["value"]), provenance)
+        self.assertNotEqual(*outputs)
+
     def test_snapshot_csv_contains_metric_and_strike_rows(self):
         rows = list(csv.DictReader(io.StringIO(snapshot_to_csv(_snapshot()))))
 
