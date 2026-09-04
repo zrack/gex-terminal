@@ -5,12 +5,13 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: implementation
+status: ready for contributor review
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: pull-request reviewer and hosted CI
 baseline: main@4d58f89
 branch: codex/gex-research-loop-001
+integration_base: main@2029f29
 created: 2026-09-04
 ```
 
@@ -59,13 +60,13 @@ an evidence-bounded review receipt.
 
 | ID | Requirement / Acceptance Criterion | Evidence | Status |
 | --- | --- | --- | --- |
-| `REQ-01` | Catalog a synthetic NQ, multiplier-20 replay whose option messages are normalized schema v2 and include exact event/expiry times, OI, raw trades, and known/unknown direction. | Fixture/catalog tests | Pending |
-| `REQ-02` | Demo Lab copies the authorized input into the existing pack and emits separate OI/raw/directional comparison artifacts plus limitations in JSON, Markdown, and README views. | Pack tests | Pending |
-| `REQ-03` | The review receipt records portable source, model, app/runtime, quality, evidence ceiling, stable semantic hashes, and all non-receipt artifact byte hashes. | Receipt contract tests | Pending |
-| `REQ-04` | `demo-lab verify PACK` rejects altered/missing/extra declared content, wrong symbol/multiplier/model, unsupported schemas, and incompatible app/runtime. | Negative CLI tests | Pending |
-| `REQ-05` | `demo-lab reproduce PACK OUTPUT` uses only the copied input and receipt, regenerates the pack, verifies it, and matches recorded decision content without source-checkout paths. | Copied-pack clean-environment test | Pending |
-| `REQ-06` | The generated README supports Today → Explain → Compare → Replay → Review and gives portable verify/reproduce commands. | README assertions | Pending |
-| `REQ-07` | Mixed-symbol Replay Lab output groups identity and suppresses cross-symbol comparisons/leaderboards. | Replay Lab tests | Pending |
+| `REQ-01` | Catalog a synthetic NQ, multiplier-20 replay whose option messages are normalized schema v2 and include exact event/expiry times, OI, raw trades, and known/unknown direction. | Fixture/catalog tests | Verified |
+| `REQ-02` | Demo Lab copies the authorized input into the existing pack and emits separate OI/raw/directional comparison artifacts plus limitations in JSON, Markdown, and README views. | Pack tests | Verified |
+| `REQ-03` | The review receipt records portable source, model, app/runtime, quality, evidence ceiling, stable semantic hashes, and all non-receipt artifact byte hashes. | Receipt contract tests | Verified |
+| `REQ-04` | `demo-lab verify PACK` rejects altered/missing/extra declared content, wrong symbol/multiplier/model, unsupported schemas, and incompatible app/runtime. | Negative CLI tests | Verified |
+| `REQ-05` | `demo-lab reproduce PACK OUTPUT` uses only the copied input and receipt, regenerates the pack, verifies it, and matches recorded decision content without source-checkout paths. | Copied-pack clean-environment test | Verified |
+| `REQ-06` | The generated README supports Today → Explain → Compare → Replay → Review and gives portable verify/reproduce commands. | README assertions | Verified |
+| `REQ-07` | Mixed-symbol Replay Lab output groups identity and suppresses cross-symbol comparisons/leaderboards. | Replay Lab tests | Verified |
 
 ## Architecture Delta
 
@@ -110,4 +111,23 @@ overwrite a reproduction target.
 
 ## Evidence
 
-Pending implementation and verification.
+- Integrated the H1/H2/H3/H4/H5 correctness base through `main@2029f29` into
+  the contributor branch before final verification.
+- `python -m unittest discover -s tests`: 349 tests passed.
+- Focused Demo Lab, catalog, replay, comparison, chronology, ownership,
+  experiment-manifest, and provider-fixture set: 53 tests passed.
+- `python -m compileall -q gex_terminal tests` and `git diff --check` passed.
+- `gex-terminal model-evidence`: numerical gate passed with predictive validity
+  `unmeasured`.
+- `gex-terminal databento-offline-certify --symbol ES --multiplier 50`: all
+  bounded cases passed with `live_transport=false`.
+- Built the wheel from a clean archive of the committed tree and confirmed the
+  packaged `nq_research_loop_v2.jsonl` resource.
+- Installed that wheel and all declared dependencies into a fresh Python 3.12
+  virtual environment. Under an empty environment outside the checkout, the
+  installed CLI generated a 20-artifact NQ pack, verified a detached copy,
+  reproduced it, and verified the reproduction. Source, model-profile, and all
+  five decision-content hashes matched; a path scan found no checkout or source
+  archive absolute path.
+- Hosted checks and independent contributor review remain merge gates and are
+  not claimed by this packet.

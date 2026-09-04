@@ -243,6 +243,12 @@ class DemoLabTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(ValueError, "artifacts do not match"):
                 verify_demo_lab(extra_pack)
 
+            missing_pack = base / "missing"
+            shutil.copytree(source, missing_pack)
+            (missing_pack / "tradingview-overlay.csv").unlink()
+            with self.assertRaisesRegex(ValueError, "artifacts do not match"):
+                verify_demo_lab(missing_pack)
+
             schema_pack = base / "receipt-schema"
             shutil.copytree(source, schema_pack)
             receipt_path = schema_pack / "review-receipt.json"
@@ -281,6 +287,15 @@ class DemoLabTests(unittest.IsolatedAsyncioTestCase):
             _write_signed_receipt(receipt_path, receipt)
             with self.assertRaisesRegex(ValueError, "model identity conflicts"):
                 verify_demo_lab(model_pack)
+
+            identity_pack = base / "identity"
+            shutil.copytree(source, identity_pack)
+            receipt_path = identity_pack / "review-receipt.json"
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            receipt["source"]["contract_multiplier"] = 50
+            _write_signed_receipt(receipt_path, receipt)
+            with self.assertRaisesRegex(ValueError, "source identity conflicts"):
+                verify_demo_lab(identity_pack)
 
             source_pack = base / "source-schema"
             shutil.copytree(source, source_pack)
