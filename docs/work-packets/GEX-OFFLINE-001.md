@@ -77,8 +77,9 @@ research migration is introduced by this release.
 
 The PR #26 closeout gate exposed a terminal refresh/teardown race in hosted run
 `33923631319`: an in-flight timer attempted to render after dashboard widgets
-were removed. Both pull-request Python jobs failed even though branch checks
-passed. The release and tag are paused; `GEX-HEALTH-006` owns a deterministic
+were removed. The Python 3.12 test job failed; the 3.11 job was cancelled during
+wheel checks by matrix fail-fast, while branch checks passed. The release and
+tag are paused; `GEX-HEALTH-006` owns a deterministic
 regression and bounded lifecycle repair. Earlier passing evidence remains a
 checkpoint, not final release acceptance. Rebuild and revalidate distributions
 after the repair; do not reuse the pre-repair wheel as the released artifact.
