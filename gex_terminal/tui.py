@@ -10,6 +10,7 @@ from typing import Iterable
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Container, Grid, Vertical
+from textual.events import Resize
 from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 
 from gex_terminal.config import GexConfig
@@ -32,6 +33,7 @@ class GexTerminalApp(App):
     TITLE = "Intraday GEX Imbalance Terminal"
     CSS_PATH = str(Path(__file__).with_name("gex_terminal.tcss"))
     FIRST_RUN_REPLAY = "zero-gamma-flip"
+    MINIMUM_TERMINAL_SIZE = (140, 42)
 
     BINDINGS = [
         ("q", "quit", "Quit"),
@@ -95,6 +97,7 @@ class GexTerminalApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
+        yield Static("", id="minimum-size-message")
 
         with Grid(id="dashboard"):
             with Vertical(id="sidebar"):
@@ -181,6 +184,26 @@ class GexTerminalApp(App):
         self._render_status_bar(self.consumer.runtime_status)
         self.set_interval(self.config.refresh_interval_seconds, self.refresh_terminal_data)
         self.call_later(self.refresh_terminal_data)
+        self._apply_terminal_size()
+
+    def on_resize(self, event: Resize) -> None:
+        if self.is_mounted:
+            self._apply_terminal_size((event.size.width, event.size.height))
+
+    def _apply_terminal_size(self, size: tuple[int, int] | None = None) -> None:
+        width, height = size or self.size
+        minimum_width, minimum_height = self.MINIMUM_TERMINAL_SIZE
+        supported = width >= minimum_width and height >= minimum_height
+        self.screen.set_class(width < 180 or height < 54, "compact")
+        self.query_one("#dashboard").display = supported
+        message = self.query_one("#minimum-size-message", Static)
+        message.display = not supported
+        message.update(
+            f"Terminal needs at least {minimum_width} × {minimum_height} cells.\n"
+            f"Current size: {width} × {height}. Enlarge the window or reduce the font size.\n\n"
+            "Offline reports work without the dashboard:\n"
+            "gex-terminal demo-lab my-research\n\nPress q to quit."
+        )
 
     async def action_refresh_terminal_data(self) -> None:
         await self.refresh_terminal_data()
