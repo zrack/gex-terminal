@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import json
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Iterable
@@ -38,6 +39,11 @@ from gex_terminal.demo_lab import (
     build_demo_lab,
     reproduce_demo_lab,
     verify_demo_lab,
+)
+from gex_terminal.doctor import (
+    build_doctor_report,
+    doctor_report_to_json,
+    doctor_report_to_text,
 )
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.experiment_manifest import reproduce_experiment, run_experiment
@@ -144,6 +150,23 @@ from gex_terminal.tradovate_certification import (
 
 async def main():
     args = parse_args()
+    if args.command == "doctor":
+        if args.command_path or args.command_args:
+            print("Usage: gex-terminal doctor [--json]", file=sys.stderr)
+            raise SystemExit(2)
+        try:
+            config = apply_cli_overrides(GexConfig.from_env(), args)
+        except ConfigValidationError as exc:
+            report = build_doctor_report(config_error=exc)
+        else:
+            report = build_doctor_report(config)
+        print(
+            doctor_report_to_json(report)
+            if args.json
+            else doctor_report_to_text(report)
+        )
+        raise SystemExit(int(report["summary"]["exit_code"]))
+
     try:
         configure_logging(args.log_level)
     except ValueError as exc:
@@ -1234,8 +1257,20 @@ def _safe_integer_argument(value: str) -> int:
         raise argparse.ArgumentTypeError("must be an integer") from None
 
 
+class _RedactingArgumentParser(argparse.ArgumentParser):
+    """Keep rejected command-line values out of public parser errors."""
+
+    def error(self, message: str) -> None:
+        if "invalid choice:" in message:
+            prefix = message.split("invalid choice:", 1)[0].rstrip()
+            message = f"{prefix} invalid choice; use --help to see supported values"
+        elif message.startswith("unrecognized arguments:"):
+            message = "unrecognized arguments; use --help to see supported values"
+        super().error(message)
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+    parser = _RedactingArgumentParser(
         description="Intraday GEX imbalance terminal",
     )
     parser.add_argument(
@@ -1274,6 +1309,7 @@ def parse_args() -> argparse.Namespace:
             "capture-policy-validate",
             "live-population-plan-validate",
             "live-population-results-validate",
+            "doctor",
         ),
         help="Optional utility command.",
     )
@@ -1314,6 +1350,11 @@ def parse_args() -> argparse.Namespace:
         "--providers",
         action="store_true",
         help="List available market-data providers and exit.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the doctor report as versioned JSON.",
     )
     parser.add_argument(
         "--multiplier",

@@ -15,6 +15,10 @@ status checklists into multiple files.
 | Shipped history | [Changelog](../CHANGELOG.md) | Released or merged capabilities and version history |
 | Durable direction | [Product Vision](product-vision.md) | Target users, product outcomes, and non-goals without implementation status |
 | Market evidence | [Competitive Analysis](market-analysis.md) | Dated competitor/persona evidence and implications; not active delivery status |
+| Customer validation | [Product Validation](product-validation.md) | Interview/tasks, matched-fidelity concepts, scorecard, rights questions and assumption-based economics |
+| Install and first use | [First Run](first-run.md) | Reviewed wheel path, guided journey, supported terminal sizes and package lifecycle |
+| Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
+| Local support and recovery | [Local Support](local-support.md) | Shareable diagnostics versus private backup, whole-artifact retention, recovery and credential/uninstall boundaries |
 | Normalized provider contract | [Market-Data Adapters](adapters.md) | Message shapes, quantity semantics, provider readiness, and adapter extension rules |
 | Model meaning | [Model Assumptions](model-assumptions.md) | Equations, pricing models, units, position proxies, levels, and limitations |
 | Model evidence | [Model Validation](model-validation.md) | Numerical oracles, deterministic gates, provenance, and proof ceiling |
@@ -29,12 +33,13 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. [GEX-LIVE-PREP-001](work-packets/GEX-LIVE-PREP-001.md) owns the bounded
-offline live-population contract. [GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md)
-owns experiment-identity integration; independent preflight, support,
-installation and research-loop slices are isolated on their contributor
-branches. `GEX-HEALTH-001`, `002`, `003`, and `005` record merged correctness
-repairs.
+active. [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) owns offline release
+integration; the individual preflight, support, installation and research-loop
+packets own their contributor evidence. `GEX-HEALTH-001` through `005` record
+merged correctness repairs. [GEX-LIVE-002](work-packets/GEX-LIVE-002.md) is
+prepared only; it grants no live execution authority.
+[GEX-LIVE-PREP-001](work-packets/GEX-LIVE-PREP-001.md) owns only the bounded
+offline live-population contract that supports that later external gate.
 
 ## Start Here By Goal
 
@@ -51,6 +56,9 @@ repairs.
 
 ### Work Offline
 
+- [First Run](first-run.md) — wheel installation and the guided research loop.
+- [Doctor](doctor.md) — safe text/JSON installation checks without provider I/O.
+- [Local Support](local-support.md) — safe diagnostics and private lifecycle.
 - [Replay Research](replay-research.md) — choose the right replay or local
   research workflow.
 - [Replay Lab](replay-lab.md) — multi-session reports and alert checks.

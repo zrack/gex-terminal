@@ -44,10 +44,10 @@ EXPERIMENT_WORKFLOWS = {
 # new runtime contract.
 SUPPORTED_EXPERIMENT_PRODUCERS = {
     EXPERIMENT_MANIFEST_SCHEMA_V1: frozenset({"0.3.0", "0.4.0"}),
-    EXPERIMENT_MANIFEST_SCHEMA_V2: frozenset({"0.4.0"}),
+    EXPERIMENT_MANIFEST_SCHEMA_V2: frozenset({"0.4.0", "0.5.0"}),
 }
 SUPPORTED_EXPERIMENT_READERS = {
-    EXPERIMENT_RUNTIME_CONTRACT: frozenset({"0.4.0"}),
+    EXPERIMENT_RUNTIME_CONTRACT: frozenset({"0.4.0", "0.5.0"}),
 }
 
 _PACKAGE_NAME = "gex-terminal"

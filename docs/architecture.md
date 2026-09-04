@@ -28,6 +28,7 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | --- | --- | --- |
 | CLI orchestration | `gex_terminal/cli.py` | Parse command-line options, load config, select runtime mode, start adapters, run exports, and coordinate shutdown. |
 | Configuration | `gex_terminal/config.py` | Read the invocation directory's `.env` and environment defaults into a typed `GexConfig`. |
+| Offline preflight | `gex_terminal/doctor.py` | Inspect local package/configuration/resources and temporary storage without a live adapter or optional SDK import; report safe structural diagnostics. |
 | Provider adapters | `gex_terminal/adapters/`, `gex_terminal/market_data_adapter.py`, `gex_terminal/contracts.py` | Convert live, delayed, provider-shaped, or replay payloads into versioned normalized messages with contract identity and timing semantics. |
 | Provider certification | `gex_terminal/tradovate_certification.py`, `gex_terminal/databento_certification.py`, `gex_terminal/databento_certification_policy.py` | Select a versioned target policy before I/O, run acknowledged and bounded live-network gates, and derive redacted exact-run evidence without converting fixture evidence into a live claim. |
 | Provider fixture and replay intake | `gex_terminal/provider_injector.py`, `gex_terminal/databento_offline.py` | Route provider-shaped local records through production mapping and adversarial checks without opening a live connection. |
@@ -39,6 +40,7 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows, first-run guidance, replay browser, model-assumption controls, feed quality, event log, and exports. |
 | Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py`, `gex_terminal/batch_comparison.py` | Produce replay, demo, provider-fixture, and multi-session model-comparison reports without live credentials. |
+| Portable research receipt | `gex_terminal/demo_lab_receipt.py` | Bind authorized copied replay, model/runtime identity, exact inventory and semantic content; reject unsupported or changed packs before reproduction. |
 | Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, and historical records from normalized state. |
 | Packaged data | `gex_terminal/data/`, `gex_terminal/package_data.py` | Resolve bundled replay and sanitized provider resources independently of the current working directory. |
 
@@ -63,7 +65,9 @@ belong to the adapter and model topic guides rather than this component map.
 
 ## First-Run Flow
 
-The default first-run path is designed to be useful without credentials.
+The default first-run path is designed to be useful without credentials. The
+wheel installation, offline doctor and full user journey are owned by
+[First Run](first-run.md). The internal terminal flow is:
 
 ```text
 gex-terminal --demo
@@ -89,6 +93,11 @@ covered by the same consumer and engine path as offline regression tests.
 The selector is intentionally limited to demo and replay mode. Live provider
 tasks may be running in the background, so live mode keeps replay loading out of
 the active session.
+
+At 140×42 and above the compact layout preserves metrics, strike rows, quality
+and controls, with scrolling for explanatory cards. Below the declared minimum,
+an explicit message replaces the clipped dashboard; resizing restores it
+without resetting market state. The large layout exposes the additional sidebar.
 
 ## Live Provider Flow
 
@@ -211,6 +220,24 @@ five paths:
 
 The [documentation map](README.md) routes each workflow to its command and
 artifact reference.
+
+### Portable identity and local authority
+
+Demo Lab v2 extends the existing pack rather than introducing a second research
+format. Its receipt binds the copied authorized synthetic input, catalog
+instrument/multiplier, model profile, explicit runtime compatibility and exact
+file inventory. Reproduction reads that copied source and compares five decision
+artifacts after removing only declared volatile timing fields. Different
+instruments are grouped separately; ES/NQ differences are not model deltas.
+The [Demo Lab contract](demo-lab.md) owns schema and command details.
+
+Experiment manifests independently bind full specification and profile identity,
+input, implementation, evidence policy and semantic result. Legacy v1 verification
+is explicitly partial. Corpus verification checks membership and content
+integrity, not point-in-time evaluation eligibility; it never promotes a stored
+input merely because a hash matches. [Research Governance](research-governance.md)
+owns these identity and cutoff contracts. Unkeyed hashes provide internal
+consistency, not signatures or independent historical authenticity.
 
 Bundled replay catalog entries own instrument identity (symbol and fallback
 multiplier); a shared configuration resolver carries it into each offline

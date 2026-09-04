@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -23,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install build twine
+          python -m pip install build twine packaging
           python -m pip install -e .
 
       - name: Compile source
@@ -87,6 +89,13 @@ jobs:
           test -s /tmp/gex-wheel-reproduction/manifest.json
           test -s /tmp/gex-wheel-corpus.json
           ! grep -R -E 'site-packages|/home/runner/work/' /tmp/gex-wheel-snapshot.json /tmp/gex-wheel-fixtures.json /tmp/gex-wheel-injection.json /tmp/gex-wheel-demo
+
+      - name: Verify offline install and recovery lifecycle
+        run: |
+          mkdir -p /tmp/gex-prior-source /tmp/gex-prior-dist
+          git archive v0.4.0 | tar -x -C /tmp/gex-prior-source
+          python -m build --wheel --outdir /tmp/gex-prior-dist /tmp/gex-prior-source
+          python scripts/verify_distribution_lifecycle.py --previous-wheel /tmp/gex-prior-dist/gex_terminal-0.4.0-py3-none-any.whl --candidate-wheel /tmp/gex-terminal-dist/gex_terminal-0.5.0-py3-none-any.whl --output /tmp/gex-lifecycle.json
 
       - name: Verify tag matches package version
         if: startsWith(github.ref, 'refs/tags/v')
