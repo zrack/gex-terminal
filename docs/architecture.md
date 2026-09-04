@@ -151,6 +151,15 @@ local request IDs. They show that a request returned without a synchronous
 exception; they are not provider acknowledgements. Actual records, distinct
 chain coverage, and explicit errors supply the observation evidence.
 
+The offline `live_population_contract` module is a preparation boundary around
+future recurring observation, not another adapter or runner. It validates a
+complete 12-slot ES plan, hashes the registered certification policy and every
+normalized plan field, and cross-checks a later hand-authored redacted result
+manifest against that frozen population. It has no credential, scheduling,
+capture, or network integration. Report digests are declared identities only;
+the validator does not read or authenticate report bytes. See
+[Live Population Preparation](live-population-prep.md).
+
 The adapter requests the SDK reconnect policy and registers a reconnect
 callback. Diagnostics count callback boundaries and the first frame observed
 after each boundary. A post-callback frame is useful resumption evidence, but it
@@ -303,6 +312,7 @@ and live-source sessions cannot switch replay.
 | Capture integrity, policy, or event clocks | `tests/test_session_capture.py`, `tests/test_capture_governance.py`, `tests/test_replay_adapter.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
 | Provider certification, policy, lifecycle, or readiness | `tests/test_tradovate_certification.py`, `tests/test_databento_certification.py`, `tests/test_databento_certification_policy.py`, `tests/test_databento_live.py`, `tests/test_provider_readiness.py` |
+| Prospective live-population preparation | `tests/test_live_population_contract.py` |
 | Offline Databento or outcome evaluation | `tests/test_databento_offline.py`, `tests/test_position_model_comparison.py`, `tests/test_price_action_validation.py` |
 | Snapshot/overlay exports | `tests/test_snapshot_formats.py`, `tests/test_overlays.py` |
 | Model evidence or sensitivity parity | `tests/test_model_evidence.py`, `tests/test_sensitivity.py` |

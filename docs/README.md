@@ -25,6 +25,7 @@ status checklists into multiple files.
 | Databento mapping | [Databento Fixture Mapping](databento-fixtures.md) | Provider-specific requests, record mapping, certification policy, and lifecycle evidence semantics |
 | Offline provider evidence | [Offline Validation](offline-validation.md) | Replay, temporal, adversarial, and scripted-lifecycle checks plus their proof ceiling |
 | Capture safety | [Capture Governance](capture-governance.md) | Pre-capture rights, retention, redaction, research-use decisions, and logging safeguards |
+| Live observation preparation | [Live Population Preparation](live-population-prep.md) | Offline population preregistration, canonical identities, full-result accounting, and external authority gates |
 | Research authority | [Research Governance](research-governance.md) | Model profiles, manifests, corpus gates, split identity, and evidence ladder |
 | Contribution workflow | [Contributing](../CONTRIBUTING.md) | Setup, verification commands, development rules, and pull-request checklist |
 | Change governance | [SAED Adoption Profile](SAED_ADOPTION_PROFILE.md) | Change rigor, authority, invariants, active-packet rules, and release evidence |
@@ -37,6 +38,8 @@ integration; the individual preflight, support, installation and research-loop
 packets own their contributor evidence. `GEX-HEALTH-001` through `005` record
 merged correctness repairs. [GEX-LIVE-002](work-packets/GEX-LIVE-002.md) is
 prepared only; it grants no live execution authority.
+[GEX-LIVE-PREP-001](work-packets/GEX-LIVE-PREP-001.md) owns only the bounded
+offline live-population contract that supports that later external gate.
 
 ## Start Here By Goal
 
@@ -83,6 +86,8 @@ prepared only; it grants no live execution authority.
 - [Market-Data Adapters](adapters.md) — shared contract and provider selection.
 - [Databento Fixture Mapping](databento-fixtures.md) — Databento-specific mapping
   and live-certification boundary.
+- [Live Population Preparation](live-population-prep.md) — freeze and validate a
+  prospective ES population without contacting a provider.
 - [Provider Injection](provider-injection.md) — offline provider-shaped samples.
 - [Captured Sessions](captured-sessions.md) — sanitized normalized captures.
 
@@ -99,6 +104,8 @@ prepared only; it grants no live execution authority.
 - [GEX-LIVE-001](work-packets/GEX-LIVE-001.md) — closed `0.4.0` pre-live
   hardening and release record; credentialed validation remains external
   follow-on work.
+- [GEX-LIVE-PREP-001](work-packets/GEX-LIVE-PREP-001.md) — active offline
+  preregistration and result-manifest contract; no live execution is authorized.
 
 ## Editing Rules
 
