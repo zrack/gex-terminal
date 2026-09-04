@@ -11,6 +11,11 @@ claimed.
 
 ### Fixed
 
+- Experiment v2 manifests now bind complete specification, profile, input,
+  implementation and result identities. Reproduction rejects inconsistent or
+  unsupported metadata and nonempty output targets; legacy v1 verification is
+  explicitly partial rather than silently promoted.
+
 - Numeric configuration now fails closed across environment, direct construction
   and CLI/UI replacement, with secret-safe errors and stale-threshold guards.
   Offline injection/fixture reports now label replay origin and no-network

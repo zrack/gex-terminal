@@ -986,7 +986,9 @@ async def experiment_reproduce_command(args: argparse.Namespace) -> None:
         raise SystemExit(str(exc)) from exc
     print(
         f"Reproduced experiment {manifest['experiment_id']} "
-        f"(matched={manifest['reproduction']['matched']}, predictive_validity=unmeasured)"
+        f"(matched={manifest['reproduction']['matched']}, "
+        f"identity_validation={manifest['reproduction']['identity_validation']}, "
+        "predictive_validity=unmeasured)"
     )
 
 
