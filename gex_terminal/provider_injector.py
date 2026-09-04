@@ -38,7 +38,7 @@ async def inject_provider_fixture(
     metadata_path: str | Path | None = None,
     underlying_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Inject a raw provider fixture through the same consumer/engine path as live data."""
+    """Replay a raw provider fixture through the provider mapping and model path."""
     fixture = Path(fixture_path)
     if not fixture.exists():
         raise FileNotFoundError(f"Provider fixture not found: {fixture}")
@@ -48,11 +48,10 @@ async def inject_provider_fixture(
         IntradayGexEngine(multiplier=config.contract_multiplier),
         target_underlying=config.symbol,
         risk_free_rate=config.risk_free_rate,
-        data_mode="live",
+        data_mode="replay",
         stale_after_seconds=config.stale_after_seconds,
         expiry_filter=config.expiry_filter,
     )
-    consumer.mark_connected()
 
     if resolved_format == "tradovate":
         await _inject_tradovate(consumer, config, fixture, metadata_path)
@@ -87,6 +86,9 @@ async def inject_provider_fixture(
     snapshot["provider_injection"] = {
         "provider": provider,
         "fixture_format": resolved_format,
+        "source_kind": "offline_provider_fixture",
+        "network_used": False,
+        "mapping_status": "computed",
         "fixture": portable_package_data_reference(fixture),
         "metadata": (
             portable_package_data_reference(metadata_path) if metadata_path else None
@@ -109,6 +111,7 @@ def provider_injection_summary(snapshot: Mapping[str, Any]) -> str:
     metrics = snapshot.get("metrics", {})
     return "\n".join((
         f"Injected {injection.get('fixture_format', 'provider')} fixture: {injection.get('fixture')}",
+        "Source: offline provider fixture  Network used: no",
         f"Symbol: {snapshot.get('symbol')}  Spot: {float(snapshot.get('spot', 0.0)):,.2f}",
         (
             f"Gamma wall: {float(metrics.get('gamma_wall', 0.0)):,.2f}  "
@@ -122,7 +125,13 @@ def provider_injection_summary(snapshot: Mapping[str, Any]) -> str:
         ),
         (
             f"Subscription: {quality.get('subscription_status', 'unknown')}  "
-            f"Subscribed symbols: {quality.get('subscribed_symbol_count', 0)}  "
+            f"Subscribed symbols: {quality.get('subscribed_symbol_count', 0)}"
+        ),
+        (
+            f"Mapping: {injection.get('mapping_status', 'unknown')}  "
+            f"Runtime: {quality.get('status', 'unknown')}  "
+            f"Mode: {quality.get('data_mode', 'unknown')}  "
+            f"Connection: {quality.get('connection_state', 'unknown')}  "
             f"Health: {quality.get('health', 'unknown')}"
         ),
     ))

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import math
 import time
 import numpy as np
 from datetime import datetime, timezone
@@ -20,6 +21,24 @@ from gex_terminal.market_data_adapter import validate_normalized_message
 
 LOGGER = logging.getLogger(__name__)
 
+
+def _finite_runtime_number(value: object, name: str) -> float:
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError(f"{name} must be numeric") from None
+    if not math.isfinite(number):
+        raise ValueError(f"{name} must be finite")
+    return number
+
+
+def _positive_runtime_number(value: object, name: str) -> float:
+    number = _finite_runtime_number(value, name)
+    if number <= 0:
+        raise ValueError(f"{name} must be greater than 0")
+    return number
+
+
 class StatefulGexConsumer:
     def __init__(
         self,
@@ -32,9 +51,15 @@ class StatefulGexConsumer:
     ):
         self.engine = engine
         self.target_underlying = target_underlying
-        self.risk_free_rate = risk_free_rate
+        self.risk_free_rate = _finite_runtime_number(
+            risk_free_rate,
+            "risk_free_rate",
+        )
         self.data_mode = data_mode.upper()
-        self.stale_after_seconds = stale_after_seconds
+        self.stale_after_seconds = _positive_runtime_number(
+            stale_after_seconds,
+            "stale_after_seconds",
+        )
         self.expiry_filter = expiry_filter
         
         # Compatibility summaries consumed by the existing TUI/export surface.
@@ -98,14 +123,25 @@ class StatefulGexConsumer:
     ) -> None:
         """Clear market state before loading a fresh offline or provider session."""
         next_mode = (data_mode or self.data_mode).upper()
+        next_risk_free_rate = (
+            self.risk_free_rate
+            if risk_free_rate is None
+            else _finite_runtime_number(risk_free_rate, "risk_free_rate")
+        )
+        next_stale_after_seconds = (
+            self.stale_after_seconds
+            if stale_after_seconds is None
+            else _positive_runtime_number(
+                stale_after_seconds,
+                "stale_after_seconds",
+            )
+        )
         async with self.state_lock:
             self.data_mode = next_mode
             if target_underlying:
                 self.target_underlying = target_underlying
-            if risk_free_rate is not None:
-                self.risk_free_rate = float(risk_free_rate)
-            if stale_after_seconds is not None:
-                self.stale_after_seconds = float(stale_after_seconds)
+            self.risk_free_rate = next_risk_free_rate
+            self.stale_after_seconds = next_stale_after_seconds
             self.chain_state.clear()
             self.expiry_state.clear()
             self._legacy_chain_state.clear()

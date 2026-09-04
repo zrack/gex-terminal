@@ -1,5 +1,6 @@
 """Provider feed-quality summaries for the terminal and tests."""
 
+import math
 from dataclasses import asdict, dataclass
 
 
@@ -55,9 +56,16 @@ def build_feed_quality_snapshot(
     p95_latency_ms: float = 0.0,
 ) -> FeedQualitySnapshot:
     """Build a consistent feed-health snapshot from runtime counters."""
+    try:
+        stale_threshold = float(stale_after_seconds)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError("stale_after_seconds must be numeric") from None
+    if not math.isfinite(stale_threshold) or stale_threshold <= 0:
+        raise ValueError("stale_after_seconds must be finite and greater than 0")
+
     stale = status == "STALE" or (
         last_message_age_seconds is not None
-        and last_message_age_seconds > stale_after_seconds
+        and last_message_age_seconds > stale_threshold
         and data_mode not in {"DEMO"}
     )
     notes: list[str] = []
@@ -112,7 +120,7 @@ def build_feed_quality_snapshot(
         subscription_status=subscription_status,
         last_message_age_seconds=last_message_age_seconds,
         last_snapshot_age_seconds=last_snapshot_age_seconds,
-        stale_after_seconds=float(stale_after_seconds),
+        stale_after_seconds=stale_threshold,
         stale=bool(stale),
         latency_ms=float(latency_ms),
         p95_latency_ms=float(p95_latency_ms),
