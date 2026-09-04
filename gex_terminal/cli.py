@@ -84,6 +84,7 @@ from gex_terminal.provider_fixture_lab import (
 )
 from gex_terminal.replay_catalog import (
     bundled_replay_sessions,
+    config_for_replay_session,
     replay_session_for_name,
     replay_session_names,
 )
@@ -432,6 +433,11 @@ async def _shutdown_runtime_tasks(
 
 
 async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
+    if str(consumer.target_underlying).strip().upper() != "ES":
+        raise SystemExit(
+            "Seeded demo data is available only for ES; "
+            "use --symbol ES or select a catalog replay built for the requested symbol."
+        )
     consumer.current_spot = 5943.25
     consumer.session_open = 5904.50
     seed_rows: Iterable[tuple[int, int, int, float]] = (
@@ -1512,7 +1518,18 @@ def apply_cli_overrides(config: GexConfig, args: argparse.Namespace) -> GexConfi
     if args.strict_event_time:
         updates["strict_event_time"] = True
 
-    return replace(config, **updates) if updates else config
+    updated = replace(config, **updates) if updates else config
+    if args.replay_session:
+        try:
+            return config_for_replay_session(
+                updated,
+                session,
+                explicit_symbol=args.symbol,
+                explicit_multiplier=args.multiplier,
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+    return updated
 
 
 def _symbols_with_target(symbols: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:

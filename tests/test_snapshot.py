@@ -68,6 +68,12 @@ class SnapshotTests(unittest.TestCase):
         ):
             self.assertIn(key, snap)
 
+    def test_old_engine_dictionary_does_not_invent_actual_multiplier(self):
+        snapshot = self._snapshot()
+        self.assertEqual(snapshot["contract_multiplier_semantics"], "configured_fallback")
+        self.assertIsNone(snapshot["effective_contract_multiplier"])
+        self.assertEqual(snapshot["model"]["multiplier_provenance"]["status"], "unreported")
+
     def test_snapshot_carries_complete_model_provenance(self):
         model = self._snapshot()["model"]
 

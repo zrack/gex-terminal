@@ -17,6 +17,7 @@ from gex_terminal.regime import build_regime_map
 from gex_terminal.replay_catalog import (
     ReplaySession,
     bundled_replay_sessions,
+    config_for_replay_session,
     replay_session_for_name,
 )
 from gex_terminal.snapshot import build_snapshot
@@ -36,17 +37,21 @@ async def build_replay_lab_report(
         await analyze_replay_session(session, config)
         for session in sessions
     ]
+    report_symbol = sessions[0].symbol if sessions else config.symbol
+    report_multiplier = (
+        sessions[0].contract_multiplier if sessions else config.contract_multiplier
+    )
     return {
         "schema": "gex-terminal.replay-lab.v1",
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "symbol": config.symbol,
+        "symbol": report_symbol,
         "sessions": session_reports,
         "comparisons": compare_replay_sessions(session_reports),
         "leaderboard": build_replay_leaderboard(session_reports),
         "inputs": {
             "days_to_expiry": float(config.days_to_expiry),
             "risk_free_rate": float(config.risk_free_rate),
-            "contract_multiplier": int(config.contract_multiplier),
+            "contract_multiplier": int(report_multiplier),
         },
     }
 
@@ -59,9 +64,7 @@ async def analyze_replay_session(
 ) -> dict[str, Any]:
     """Replay one bundled fixture and collect snapshots, alerts, and quality notes."""
     replay_config = replace(
-        config,
-        data_mode="replay",
-        replay_path=session.path,
+        config_for_replay_session(config, session),
         replay_delay_seconds=0.0,
     )
     consumer = StatefulGexConsumer(

@@ -18,8 +18,8 @@
 
 **Adopted:** 2026-08-19
 
-**Status owner:** No active work packet; closed packet `GEX-LIVE-001` records
-the `0.4.0` repository release
+**Status owner:** `GEX-HEALTH-001` owns the active instrument-identity slice;
+closed packet `GEX-LIVE-001` records the `0.4.0` repository release
 
 ## Purpose And Entry Boundary
 

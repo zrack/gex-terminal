@@ -19,7 +19,11 @@ from gex_terminal.provider_fixture_lab import (
     build_provider_fixture_lab_report,
     write_provider_fixture_lab_report,
 )
-from gex_terminal.replay_catalog import ReplaySession, replay_session_for_name
+from gex_terminal.replay_catalog import (
+    ReplaySession,
+    config_for_replay_session,
+    replay_session_for_name,
+)
 from gex_terminal.replay_lab import build_replay_lab_report, write_replay_lab_report
 from gex_terminal.screenshot import export_app_screenshot_svg
 from gex_terminal.snapshot import build_snapshot
@@ -422,16 +426,11 @@ def _demo_lab_manifest(
 
 
 def _demo_lab_config(config: GexConfig, session: ReplaySession) -> GexConfig:
-    symbol = "ES"
+    replay_config = config_for_replay_session(config, session)
     return replace(
-        config,
-        symbol=symbol,
-        symbols=_symbols_with_target(config.symbols, symbol),
-        data_mode="replay",
-        data_provider="replay",
-        contract_multiplier=50,
-        replay_path=session.path,
+        replay_config,
         replay_delay_seconds=0.0,
+        replay_clock="none",
     )
 
 
@@ -495,11 +494,6 @@ def _health_color(health: str) -> str:
         "down": "#fb7185",
         "failed": "#fb7185",
     }.get(health, "#94a3b8")
-
-
-def _symbols_with_target(symbols: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:
-    cleaned = tuple(symbol for symbol in symbols if symbol != target_symbol)
-    return (target_symbol, *cleaned)[:4]
 
 
 def _fmt_strike(value: float, decimals: int = 0) -> str:

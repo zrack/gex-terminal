@@ -15,7 +15,11 @@ from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
-from gex_terminal.replay_catalog import ReplaySession, bundled_replay_sessions
+from gex_terminal.replay_catalog import (
+    ReplaySession,
+    bundled_replay_sessions,
+    config_for_replay_session,
+)
 from gex_terminal.regime import build_regime_map
 from gex_terminal.provider_readiness import runtime_provider_readiness
 from gex_terminal.snapshot import build_snapshot, write_snapshot
@@ -295,15 +299,9 @@ class GexTerminalApp(App):
             self._render_events()
             return
 
-        symbol = "ES"
+        replay_config = config_for_replay_session(self.config, session)
         self.config = replace(
-            self.config,
-            symbol=symbol,
-            symbols=self._symbols_with_target(self.config.symbols, symbol),
-            data_mode="replay",
-            data_provider="replay",
-            contract_multiplier=50,
-            replay_path=session.path,
+            replay_config,
             replay_delay_seconds=0.0,
             expiry_filter="all",
         )
@@ -311,7 +309,7 @@ class GexTerminalApp(App):
         self.consumer.engine.multiplier = self.config.contract_multiplier
         await self.consumer.reset_state(
             data_mode="replay",
-            target_underlying=symbol,
+            target_underlying=self.config.symbol,
             risk_free_rate=self.config.risk_free_rate,
             stale_after_seconds=self.config.stale_after_seconds,
         )
@@ -1128,12 +1126,6 @@ class GexTerminalApp(App):
     @staticmethod
     def _sort_rows(rows, sort_mode):
         return sort_rows(rows, sort_mode)
-
-    @staticmethod
-    def _symbols_with_target(symbols: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:
-        cleaned = tuple(symbol for symbol in symbols if symbol != target_symbol)
-        return (target_symbol, *cleaned)[:4]
-
 
 async def run_mock_session():
     """Boot the math engine, consumer state machine, and terminal together."""

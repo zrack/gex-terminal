@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from gex_terminal.config import GexConfig
@@ -40,7 +41,7 @@ class DemoLabTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output_dir = Path(tmp) / "demo_lab"
             manifest = await build_demo_lab(
-                _config(),
+                replace(_config(), symbol="NQ", contract_multiplier=20),
                 output_dir,
                 replay_session_name="zero-gamma-flip",
                 screenshot_width=120,
@@ -49,6 +50,8 @@ class DemoLabTests(unittest.IsolatedAsyncioTestCase):
 
             self.assertEqual(manifest["schema"], DEMO_LAB_SCHEMA)
             self.assertEqual(manifest["replay_session"]["name"], "zero-gamma-flip")
+            self.assertEqual(manifest["summary"]["symbol"], "ES")
+            self.assertEqual(manifest["inputs"]["contract_multiplier"], 50)
             self.assertEqual(manifest["output_dir"], "demo_lab")
             self.assertGreaterEqual(len(manifest["artifacts"]), 10)
             self.assertEqual(manifest["provider_fixture_lab"]["failed"], 0)

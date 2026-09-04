@@ -76,6 +76,13 @@ class ProviderInjectorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(snapshot["symbol"], "SPY")
         self.assertEqual(snapshot["spot"], 512.34)
         self.assertEqual(strikes, [505.0, 510.0, 515.0])
+        self.assertEqual(snapshot["contract_multiplier"], 50)
+        self.assertEqual(snapshot["contract_multiplier_semantics"], "configured_fallback")
+        self.assertEqual(snapshot["effective_contract_multiplier"], 100.0)
+        provenance = snapshot["model"]["multiplier_provenance"]
+        self.assertEqual(provenance["effective_multipliers"], [100.0])
+        self.assertEqual(provenance["fallback_row_count"], 0)
+        self.assertTrue(all(row["source"] == "contract" for row in provenance["rows"]))
         self.assertEqual(snapshot["feed_quality"]["subscription_status"], "subscribed")
 
     async def test_cboe_option_quotes_csv_fixture_injection(self):

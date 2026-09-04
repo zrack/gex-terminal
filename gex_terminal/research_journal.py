@@ -11,7 +11,11 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from gex_terminal.config import GexConfig
-from gex_terminal.replay_catalog import ReplaySession, replay_session_for_name
+from gex_terminal.replay_catalog import (
+    ReplaySession,
+    config_for_replay_session,
+    replay_session_for_name,
+)
 from gex_terminal.replay_lab import analyze_replay_session
 from gex_terminal.session_capture import load_captured_session
 
@@ -34,15 +38,20 @@ async def add_journal_entry(
     if captured_session_path is not None:
         capture, captured_messages = load_captured_session(captured_session_path)
         source = capture.get("source", {})
+        model_inputs = capture.get("model_inputs", {})
+        symbol = str(source.get("symbol") or config.symbol).upper()
+        multiplier = int(
+            model_inputs.get("contract_multiplier", config.contract_multiplier)
+        )
         session = ReplaySession(
             name=str(capture["session_id"]),
             path=str(captured_session_path),
             label=str(capture.get("label") or capture["session_id"]),
             description="Integrity-verified normalized captured session.",
+            symbol=symbol,
+            contract_multiplier=multiplier,
             public_ref=f"captured:{capture['session_id']}",
         )
-        model_inputs = capture.get("model_inputs", {})
-        symbol = str(source.get("symbol") or config.symbol).upper()
         replay_config = replace(
             config,
             symbol=symbol,
@@ -54,9 +63,7 @@ async def add_journal_entry(
             replay_clock="none",
             days_to_expiry=float(model_inputs.get("days_to_expiry", config.days_to_expiry)),
             risk_free_rate=float(model_inputs.get("risk_free_rate", config.risk_free_rate)),
-            contract_multiplier=int(
-                model_inputs.get("contract_multiplier", config.contract_multiplier)
-            ),
+            contract_multiplier=multiplier,
             expiry_filter=str(model_inputs.get("expiry_filter", config.expiry_filter)),
         )
     else:
@@ -399,15 +406,9 @@ def write_journal_report(report: dict[str, Any], output_path: str | Path) -> Pat
 
 
 def _journal_config(config: GexConfig, session: ReplaySession) -> GexConfig:
-    symbol = "ES"
+    replay_config = config_for_replay_session(config, session)
     return replace(
-        config,
-        symbol=symbol,
-        symbols=_symbols_with_target(config.symbols, symbol),
-        data_mode="replay",
-        data_provider="replay",
-        contract_multiplier=50,
-        replay_path=session.path,
+        replay_config,
         replay_delay_seconds=0.0,
         replay_clock="none",
     )

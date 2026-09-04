@@ -3,6 +3,7 @@ import io
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from gex_terminal.config import GexConfig
@@ -32,6 +33,20 @@ def _config():
 
 
 class ReplayLabTests(unittest.IsolatedAsyncioTestCase):
+    async def test_selected_session_identity_replaces_ambient_config(self):
+        report = await build_replay_lab_report(
+            replace(_config(), symbol="NQ", contract_multiplier=20),
+            session_names=("trend-day",),
+        )
+
+        self.assertEqual(report["symbol"], "ES")
+        self.assertEqual(report["inputs"]["contract_multiplier"], 50)
+        self.assertEqual(report["sessions"][0]["snapshot"]["symbol"], "ES")
+        self.assertEqual(
+            report["sessions"][0]["snapshot"]["contract_multiplier"],
+            50,
+        )
+
     async def test_builds_replay_lab_report_with_alerts_and_comparisons(self):
         report = await build_replay_lab_report(
             _config(),

@@ -28,7 +28,8 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. No work packet is active after the `0.4.0` release closeout.
+active. [GEX-HEALTH-001](work-packets/GEX-HEALTH-001.md) owns the current
+instrument-identity repair slice.
 
 ## Start Here By Goal
 

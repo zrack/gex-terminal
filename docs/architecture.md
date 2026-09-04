@@ -200,6 +200,13 @@ five paths:
 The [documentation map](README.md) routes each workflow to its command and
 artifact reference.
 
+Bundled replay catalog entries own instrument identity (symbol and fallback
+multiplier); a shared configuration resolver carries it into each offline
+workflow. The legacy seeded demonstration is ES-only. Consumer calculations
+attach selected-row multiplier provenance to snapshots, keeping effective
+inputs distinct from the compatibility fallback field; see
+[Export Formats](exports.md#snapshot-json) for the additive snapshot contract.
+
 Generated output stays local by default under ignored folders such as
 `demo_lab/`, `demo_pack/`, `research_journal/`, and `historical_sessions/`.
 

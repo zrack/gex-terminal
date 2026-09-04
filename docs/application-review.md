@@ -13,6 +13,8 @@ provider-fixture, replay, packaging, and report checks pass, and a fresh wheel
 installation works outside the checkout. Five correctness findings need repair
 before expanding the affected workflows: instrument metadata, health reporting,
 replay isolation, experiment metadata verification, and replay event chronology.
+The instrument-identity repair is now implemented under `GEX-HEALTH-001`;
+the remaining findings retain their open status below.
 Small-terminal usability also needs attention. Passing the current tests does
 not cover these cases.
 
@@ -38,13 +40,21 @@ validation. The PR returned no check results in this inspection; its code has
 not been accepted as part of this review. Reconcile that queue with current
 source before assigning duplicate adapter work.
 
-## Open Findings
+## Findings And Repair Status
 
 P1 means a correctness repair should precede new work that depends on the
 affected result. P2 means a material usability or maintainability issue. These
-findings are open; this documentation update does not implement the repairs.
+findings are open unless explicitly marked resolved with regression evidence.
 
-### H1 — P1: Instrument labels and multiplier metadata can be inconsistent
+### H1 — Resolved: Instrument identity and multiplier provenance
+
+Repair: seeded non-ES demos fail before creating an artifact; bundled replays
+resolve their instrument through one catalog contract. Snapshot v2 now labels
+its compatibility multiplier as configured fallback and records the effective
+multiplier(s), selected contract identities, and fallback use. Consumer,
+snapshot, injection, and public replay-identity tests cover ES/NQ selection,
+SPY ×100 and heterogeneous rows. The following describes the original defect;
+it is not current behavior. See [GEX-HEALTH-001](work-packets/GEX-HEALTH-001.md).
 
 `GEX_SYMBOL=NQ gex-terminal --demo --export nq-demo.json` exits successfully
 with `symbol=NQ`, `spot=5943.25`, and `contract_multiplier=50`. The same fixed
