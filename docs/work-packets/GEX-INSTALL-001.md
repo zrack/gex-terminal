@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: closed
+status: active
 packet_owner: project maintainer
 branch: codex/gex-install-001-guided-terminal
 created: 2026-09-04
@@ -59,3 +59,7 @@ PR #25 Linux Python 3.11/3.12 hosted checks also passed it. Clean merged main
 `830d6a7` passed 419 tests. [GEX-OFFLINE-001](GEX-OFFLINE-001.md) owns the final
 release record. A corrupt-wheel test is not arbitrary interrupted-upgrade
 recovery, and real-user activation remains unmeasured.
+
+Reopened at the PR #26 release gate after hosted tests exposed an in-flight
+refresh accessing removed terminal widgets. `GEX-HEALTH-006` routes the bounded
+repair; final distribution evidence must be refreshed before closure.

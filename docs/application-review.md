@@ -10,7 +10,10 @@ document owns the dated state assessment and verification limits.
 The application is an offline research alpha with corrected result identity,
 fail-closed configuration, isolated replay replacement and verifiable portable
 research packs. All five P1 correctness repairs, compact-terminal support and
-the offline product foundation are accepted. The release evidence and remaining
+the offline product foundation passed their integration checks. The final
+closeout gate then exposed a terminal shutdown race: an in-flight refresh can
+access removed widgets. Release/tagging is paused for the `GEX-HEALTH-006`
+repair and renewed verification. The release evidence and remaining
 external gates are recorded in [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md).
 
 No credentialed provider observation, real-user activation study, customer

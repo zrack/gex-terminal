@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: closed
+status: active
 packet_owner: project maintainer
 branch: codex/gex-offline-product-closeout
 created: 2026-09-04
@@ -73,6 +73,16 @@ research migration is introduced by this release.
 
 ## Accepted integration and release record
 
+### Release-blocking amendment
+
+The PR #26 closeout gate exposed a terminal refresh/teardown race in hosted run
+`33923631319`: an in-flight timer attempted to render after dashboard widgets
+were removed. Both pull-request Python jobs failed even though branch checks
+passed. The release and tag are paused; `GEX-HEALTH-006` owns a deterministic
+regression and bounded lifecycle repair. Earlier passing evidence remains a
+checkpoint, not final release acceptance. Rebuild and revalidate distributions
+after the repair; do not reuse the pre-repair wheel as the released artifact.
+
 - [PR #25](https://github.com/zrack/gex-terminal/pull/25) merged as
   `830d6a7eddbec74001abe8f59b5bcecbc7631ba5` after all four hosted checks passed.
   Linux Python 3.11/3.12 each passed tests, wheel commands and the full
@@ -101,7 +111,8 @@ research migration is introduced by this release.
   cycle; no existing tag is moved and no PyPI/hosted Release
   publication is included. Git and hosted checks own final ref/run identities.
 
-All authorized repository-owned offline implementation is accepted. The next
+All previously scoped offline implementation is accepted; the newly observed
+terminal shutdown defect must close before release. The subsequent product work is
 work is [Roadmap](../../ROADMAP.md#current-work-order) observed first use,
 customer/rights/economics decisions and separately authorized ES observations.
 Preparation is not evidence those external gates passed. `GEX-LIVE-002` remains
