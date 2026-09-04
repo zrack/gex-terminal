@@ -96,8 +96,9 @@ research migration is introduced by this release.
   P1/P2 findings in this scope.
 - This documentation closeout follows the same checked PR and clean-main
   verification cycle; its local gate passed 419 tests, compilation and all 215
-  documentation links. Release identity is the annotated `v0.5.0` tag on that
-  verified closeout tree; no existing tag is moved and no PyPI/hosted Release
+  documentation links. Release identity is established by the annotated
+  `v0.5.0` tag only after this closeout passes its PR and clean-main verification
+  cycle; no existing tag is moved and no PyPI/hosted Release
   publication is included. Git and hosted checks own final ref/run identities.
 
 All authorized repository-owned offline implementation is accepted. The next
