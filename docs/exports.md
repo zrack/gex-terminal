@@ -126,6 +126,15 @@ Captured-session JSONL is an event artifact rather than a snapshot report. See
 
 ## Replay Lab Reports
 
+Analytical timeline points are emitted only for accepted consumer updates.
+`timestamp` is model-state as-of; `input_event_time` records that accepted
+input's own time (which can regress while sequence is preserved). Snapshot
+timestamp equals `model.as_of`. `raw_input_audit` keeps incoming metadata and
+counts separately; dropped, malformed, duplicate, or conflicting input cannot
+advance analytical time or generate a model transition. Untimed legacy input
+is labeled `processing_time`, never observed market time. Journal entries
+preserve this separation without rewriting older saved artifacts.
+
 Replay Lab reports run one or more bundled synthetic sessions and export a
 research artifact:
 

@@ -82,7 +82,16 @@ and [`yfinance_adapter.py`](../gex_terminal/adapters/yfinance_adapter.py).
 Repair acceptance also requires exports to distinguish fallback assumptions
 from the actual row multipliers, including mixed-contract cases.
 
-### H2 — P1: Health output can misrepresent offline or stale inputs
+### H2 — Resolved: Fail-closed configuration and truthful offline health
+
+Repair: every configuration construction/replacement validates numeric domain
+and finiteness; malformed environment/CLI values fail without raw-value echo.
+Consumer and feed-quality entry points defend stale thresholds. UI assumption
+changes validate before mutating the engine. Injection exports and fixture-lab
+reports explicitly carry offline/no-network origin, `REPLAY`, `DISCONNECTED`,
+and simulated/degraded health. Scripted live-lifecycle fault tests remain
+unchanged. See [GEX-HEALTH-002](work-packets/GEX-HEALTH-002.md). The following
+describes the original defect.
 
 The normal offline command
 `inject-provider bundled:yfinance-etf-options --export spy.json` emits
@@ -115,7 +124,14 @@ Reject invalid timing, rate, multiplier, and expiry values with an actionable
 error. A stale source must never become healthy because of an invalid setting.
 Keep intentionally optional values distinct from malformed ones.
 
-### H3 — P1: Switching replay can leave the previous stream writing state
+### H3 — Resolved: Replay replacement settles the previous writer
+
+Repair: the CLI passes its writer task to the terminal, which serializes
+replacement and cancels/awaits the old source before reset. Fixed-delay and
+event-clock tests exercise the full CLI-to-interactive path and prove an old-only
+strike cannot enter the new session. A failed writer blocks replacement and is
+reported at shutdown. [GEX-HEALTH-003](work-packets/GEX-HEALTH-003.md) owns the
+repair evidence. The following records the original defect.
 
 The interactive CLI starts an adapter task in
 [`cli.py`](../gex_terminal/cli.py), while the TUI's
@@ -135,7 +151,16 @@ the consumer. A public interactive-path regression must prove that no prior
 session record arrives after the new session is selected, including delayed
 and event-clock replay. Existing idle-consumer switch tests are insufficient.
 
-### H4 — P1: Reproduction accepts inconsistent experiment metadata
+### H4 — Resolved: Experiment reproduction validates complete identity
+
+Repair: versioned v2 manifests bind the full normalized specification, profile,
+input, implementation, evidence policy and semantic result. Reproduction rejects
+inconsistent or unsupported records before execution and refuses nonempty output
+directories. V1 records retain an explicit `legacy_partial` ceiling rather than
+claiming complete historical identity. Focused tamper, compatibility and
+no-overwrite regressions are recorded in
+[GEX-HEALTH-004](work-packets/GEX-HEALTH-004.md). The following describes the
+original defect; unkeyed hashes still do not establish authenticity.
 
 [`reproduce_experiment`](../gex_terminal/experiment_manifest.py) verifies the
 input digest and resulting report digest, but does not compare the embedded
@@ -156,7 +181,14 @@ identity. Test profile, split, outcome, cost, and implementation compatibility
 independently from input/result parity. These checks establish internal
 consistency; authenticity still requires separate signed or anchored evidence.
 
-### H5 — P1: Dropped events can advance replay report timestamps
+### H5 — Resolved: Replay chronology follows accepted state
+
+Repair: consumer updates return explicit acceptance. Replay reports skip
+analytical points for rejected input, retain a separate raw-input audit, and
+align snapshot time with model as-of. Regressions cover off-symbol, malformed,
+duplicate, conflicting-identity and regressed-time records, untimed legacy
+labels, and journal persistence. [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md)
+owns verification. The following describes the original defect.
 
 [`analyze_replay_session`](../gex_terminal/replay_lab.py) records incoming
 metadata before consumer validation and creates a timeline point after each

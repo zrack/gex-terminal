@@ -64,11 +64,14 @@ class GexTerminalApp(App):
         config: GexConfig | None = None,
         *,
         allow_replay_switching: bool = True,
+        source_task: asyncio.Task | None = None,
     ):
         super().__init__()
         self.consumer = consumer
         self.config = config or GexConfig.from_env()
         self.allow_replay_switching = bool(allow_replay_switching)
+        self._source_task = source_task
+        self._replay_transition_lock = asyncio.Lock()
         self._gex_flow: deque[float] = deque(maxlen=36)
         self._latencies: deque[float] = deque(maxlen=36)
         self._events: deque[str] = deque(maxlen=7)
@@ -288,8 +291,16 @@ class GexTerminalApp(App):
         self._render_events()
 
     async def _load_replay_session(self, session: ReplaySession) -> None:
+        async with self._replay_transition_lock:
+            await self._replace_replay_session(session)
+
+    async def _replace_replay_session(self, session: ReplaySession) -> None:
         if not self.allow_replay_switching:
             self._event("replay load blocked -> active session capture")
+            self._render_events()
+            return
+        if self.config.data_mode.lower() not in {"demo", "replay"}:
+            self._event("replay load blocked -> live source owns this session")
             self._render_events()
             return
         try:
@@ -300,6 +311,20 @@ class GexTerminalApp(App):
             return
 
         replay_config = config_for_replay_session(self.config, session)
+        if self._source_task is not None:
+            self._source_task.cancel()
+            try:
+                await self._source_task
+            except asyncio.CancelledError:
+                # Only a settled writer may be replaced. Caller cancellation
+                # must still propagate, rather than resetting state on exit.
+                if asyncio.current_task().cancelling():
+                    raise
+            except Exception:
+                self._event("replay load blocked -> previous source failed; restart the session")
+                self._render_events()
+                return
+            self._source_task = None
         self.config = replace(
             replay_config,
             replay_delay_seconds=0.0,
@@ -439,18 +464,18 @@ class GexTerminalApp(App):
     ) -> None:
         updates: dict[str, float | int] = {}
         if days_to_expiry is not None:
-            updates["days_to_expiry"] = float(days_to_expiry)
+            updates["days_to_expiry"] = days_to_expiry
         if risk_free_rate is not None:
-            updates["risk_free_rate"] = float(risk_free_rate)
-            self.consumer.risk_free_rate = float(risk_free_rate)
+            updates["risk_free_rate"] = risk_free_rate
         if contract_multiplier is not None:
-            updates["contract_multiplier"] = int(contract_multiplier)
-            self.consumer.engine.multiplier = int(contract_multiplier)
+            updates["contract_multiplier"] = contract_multiplier
 
         if not updates:
             return
 
         self.config = replace(self.config, **updates)
+        self.consumer.risk_free_rate = self.config.risk_free_rate
+        self.consumer.engine.multiplier = self.config.contract_multiplier
         self._event(
             "assumptions -> "
             f"{self.config.days_to_expiry:g}DTE, "

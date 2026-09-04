@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import math
 import time
 import numpy as np
 from datetime import datetime, timezone
@@ -20,6 +21,24 @@ from gex_terminal.market_data_adapter import validate_normalized_message
 
 LOGGER = logging.getLogger(__name__)
 
+
+def _finite_runtime_number(value: object, name: str) -> float:
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError(f"{name} must be numeric") from None
+    if not math.isfinite(number):
+        raise ValueError(f"{name} must be finite")
+    return number
+
+
+def _positive_runtime_number(value: object, name: str) -> float:
+    number = _finite_runtime_number(value, name)
+    if number <= 0:
+        raise ValueError(f"{name} must be greater than 0")
+    return number
+
+
 class StatefulGexConsumer:
     def __init__(
         self,
@@ -32,9 +51,15 @@ class StatefulGexConsumer:
     ):
         self.engine = engine
         self.target_underlying = target_underlying
-        self.risk_free_rate = risk_free_rate
+        self.risk_free_rate = _finite_runtime_number(
+            risk_free_rate,
+            "risk_free_rate",
+        )
         self.data_mode = data_mode.upper()
-        self.stale_after_seconds = stale_after_seconds
+        self.stale_after_seconds = _positive_runtime_number(
+            stale_after_seconds,
+            "stale_after_seconds",
+        )
         self.expiry_filter = expiry_filter
         
         # Compatibility summaries consumed by the existing TUI/export surface.
@@ -98,14 +123,25 @@ class StatefulGexConsumer:
     ) -> None:
         """Clear market state before loading a fresh offline or provider session."""
         next_mode = (data_mode or self.data_mode).upper()
+        next_risk_free_rate = (
+            self.risk_free_rate
+            if risk_free_rate is None
+            else _finite_runtime_number(risk_free_rate, "risk_free_rate")
+        )
+        next_stale_after_seconds = (
+            self.stale_after_seconds
+            if stale_after_seconds is None
+            else _positive_runtime_number(
+                stale_after_seconds,
+                "stale_after_seconds",
+            )
+        )
         async with self.state_lock:
             self.data_mode = next_mode
             if target_underlying:
                 self.target_underlying = target_underlying
-            if risk_free_rate is not None:
-                self.risk_free_rate = float(risk_free_rate)
-            if stale_after_seconds is not None:
-                self.stale_after_seconds = float(stale_after_seconds)
+            self.risk_free_rate = next_risk_free_rate
+            self.stale_after_seconds = next_stale_after_seconds
             self.chain_state.clear()
             self.expiry_state.clear()
             self._legacy_chain_state.clear()
@@ -235,13 +271,14 @@ class StatefulGexConsumer:
         snapshot["fallback_iv_tick_count"] = self.fallback_iv_tick_count
         return snapshot
 
-    async def update_market_state(self, raw_message: str):
+    async def update_market_state(self, raw_message: str) -> bool:
         """
         Parse one normalized message and update contract-aware market state.
 
         Schema-v1 option messages are treated as incremental legacy events.
         Schema-v2 messages carry stable identity and declare whether ``volume``
         is an incremental trade size or a cumulative counter.
+        Return True only when this message changes accepted market state.
         """
         try:
             data = json.loads(raw_message)
@@ -252,7 +289,7 @@ class StatefulGexConsumer:
             if data.get("type") == "underlying_tick":
                 if data.get("symbol") != self.target_underlying:
                     self.dropped_message_count += 1
-                    return
+                    return False
                 async with self.state_lock:
                     self.current_spot = float(data["price"])
                     if self.session_open == 0.0:
@@ -262,7 +299,7 @@ class StatefulGexConsumer:
                             self.market_time = event_time
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
-                return
+                return True
 
             # 2. Update Options Traded Volume
             if data.get("type") == "options_volume_tick":
@@ -272,12 +309,12 @@ class StatefulGexConsumer:
                 )
                 if contract["symbol"] != self.target_underlying:
                     self.dropped_message_count += 1
-                    return
+                    return False
 
                 async with self.state_lock:
                     if contract["schema_version"] >= 2:
                         if not self._update_v2_contract_locked(contract, data):
-                            return
+                            return False
                         if contract.get("iv_source") == "configured_default":
                             self.fallback_iv_tick_count += 1
                         self._v2_option_count += 1
@@ -289,13 +326,14 @@ class StatefulGexConsumer:
                             self.market_time = event_time
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
-                return
+                return True
 
             self.dropped_message_count += 1
 
         except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
             self.malformed_message_count += 1
             LOGGER.error("Failed parsing normalized market-data message: %s", e)
+        return False
 
     def _update_v1_projection_locked(
         self,

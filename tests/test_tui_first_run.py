@@ -27,6 +27,19 @@ def _config(data_mode="demo"):
 
 
 class FirstRunTerminalTests(unittest.IsolatedAsyncioTestCase):
+    async def test_invalid_assumptions_do_not_partially_mutate_runtime(self):
+        consumer = StatefulGexConsumer(IntradayGexEngine(multiplier=50), data_mode="demo")
+        config = _config()
+        app = GexTerminalApp(consumer, config)
+        with self.assertRaises(ValueError):
+            await app._apply_terminal_assumptions(risk_free_rate=float("nan"), contract_multiplier=20)
+        self.assertIs(app.config, config)
+        self.assertEqual(consumer.risk_free_rate, .045)
+        self.assertEqual(consumer.engine.multiplier, 50)
+        with self.assertRaises(ValueError):
+            await app._apply_terminal_assumptions(contract_multiplier=20.5)
+        self.assertEqual(consumer.engine.multiplier, 50)
+
     def test_demo_mode_starts_with_zero_gamma_flip_as_next_replay(self):
         consumer = StatefulGexConsumer(IntradayGexEngine(multiplier=50), data_mode="demo")
         app = GexTerminalApp(consumer=consumer, config=_config())

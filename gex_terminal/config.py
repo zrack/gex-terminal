@@ -1,5 +1,7 @@
+import math
 import os
 from dataclasses import dataclass
+from numbers import Integral, Real
 from pathlib import Path
 
 from gex_terminal.package_data import replay_data_path
@@ -8,6 +10,11 @@ try:
     from dotenv import load_dotenv as _python_dotenv_load
 except ModuleNotFoundError:
     _python_dotenv_load = None
+
+
+class ConfigValidationError(ValueError):
+    """A redaction-safe configuration parsing or domain failure."""
+
 
 @dataclass(frozen=True)
 class GexConfig:
@@ -28,6 +35,61 @@ class GexConfig:
     replay_speed: float = 1.0
     replay_max_gap_seconds: float | None = None
     strict_event_time: bool = False
+
+    def __post_init__(self) -> None:
+        """Enforce the runtime numeric contract for every construction path."""
+        object.__setattr__(
+            self,
+            "contract_multiplier",
+            _positive_integer(self.contract_multiplier, "contract_multiplier"),
+        )
+        object.__setattr__(
+            self,
+            "risk_free_rate",
+            _finite_number(self.risk_free_rate, "risk_free_rate"),
+        )
+        object.__setattr__(
+            self,
+            "days_to_expiry",
+            _positive_number(self.days_to_expiry, "days_to_expiry"),
+        )
+        object.__setattr__(
+            self,
+            "refresh_interval_seconds",
+            _positive_number(
+                self.refresh_interval_seconds,
+                "refresh_interval_seconds",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "stale_after_seconds",
+            _positive_number(self.stale_after_seconds, "stale_after_seconds"),
+        )
+        object.__setattr__(
+            self,
+            "replay_delay_seconds",
+            _non_negative_number(
+                self.replay_delay_seconds,
+                "replay_delay_seconds",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "replay_speed",
+            _positive_number(self.replay_speed, "replay_speed"),
+        )
+        if self.replay_max_gap_seconds is not None:
+            object.__setattr__(
+                self,
+                "replay_max_gap_seconds",
+                _non_negative_number(
+                    self.replay_max_gap_seconds,
+                    "replay_max_gap_seconds",
+                ),
+            )
+        if not isinstance(self.strict_event_time, bool):
+            raise ConfigValidationError("strict_event_time must be true or false")
 
     @classmethod
     def from_env(cls) -> "GexConfig":
@@ -62,17 +124,26 @@ def _env_str(name: str, default: str) -> str:
 
 
 def _env_int(name: str, default: int) -> int:
-    try:
-        return int(os.getenv(name, str(default)))
-    except ValueError:
+    value = os.getenv(name)
+    if value is None:
         return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise ConfigValidationError(f"{name} must be an integer") from None
 
 
 def _env_float(name: str, default: float) -> float:
-    try:
-        return float(os.getenv(name, str(default)))
-    except ValueError:
+    value = os.getenv(name)
+    if value is None:
         return default
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise ConfigValidationError(f"{name} must be numeric") from None
+    if not math.isfinite(number):
+        raise ConfigValidationError(f"{name} must be finite")
+    return number
 
 
 def _env_optional_float(name: str) -> float | None:
@@ -80,9 +151,12 @@ def _env_optional_float(name: str) -> float | None:
     if value is None or not value.strip():
         return None
     try:
-        return float(value)
-    except ValueError:
-        return None
+        number = float(value)
+    except (TypeError, ValueError):
+        raise ConfigValidationError(f"{name} must be numeric or blank") from None
+    if not math.isfinite(number):
+        raise ConfigValidationError(f"{name} must be finite or blank")
+    return number
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -94,7 +168,50 @@ def _env_bool(name: str, default: bool) -> bool:
         return True
     if normalized in {"0", "false", "no", "off"}:
         return False
-    return default
+    raise ConfigValidationError(
+        f"{name} must be true or false (accepted: 1/0, true/false, yes/no, on/off)"
+    )
+
+
+def _finite_number(value: Real, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ConfigValidationError(f"{name} must be numeric")
+    try:
+        number = float(value)
+    except OverflowError:
+        raise ConfigValidationError(f"{name} must be finite") from None
+    if not math.isfinite(number):
+        raise ConfigValidationError(f"{name} must be finite")
+    return number
+
+
+def _positive_number(value: Real, name: str) -> float:
+    number = _finite_number(value, name)
+    if number <= 0:
+        raise ConfigValidationError(f"{name} must be greater than 0")
+    return number
+
+
+def _non_negative_number(value: Real, name: str) -> float:
+    number = _finite_number(value, name)
+    if number < 0:
+        raise ConfigValidationError(f"{name} must be greater than or equal to 0")
+    return number
+
+
+def _positive_integer(value: Integral, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, Integral):
+        raise ConfigValidationError(f"{name} must be an integer")
+    number = int(value)
+    try:
+        finite = math.isfinite(float(number))
+    except OverflowError:
+        finite = False
+    if not finite:
+        raise ConfigValidationError(f"{name} must be finite")
+    if number <= 0:
+        raise ConfigValidationError(f"{name} must be greater than 0")
+    return number
 
 
 def _env_symbols(name: str, default: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:

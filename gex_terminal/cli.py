@@ -22,7 +22,7 @@ from gex_terminal.capture_governance import (
     capture_policy_identity,
     load_capture_policy,
 )
-from gex_terminal.config import GexConfig
+from gex_terminal.config import ConfigValidationError, GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.databento_certification import (
     build_databento_certification_report,
@@ -383,6 +383,7 @@ async def main():
         consumer=state_consumer,
         config=config,
         allow_replay_switching=capture_writer is None,
+        source_task=stream_task,
     )
     app_failed = False
     try:
@@ -1023,7 +1024,9 @@ async def experiment_reproduce_command(args: argparse.Namespace) -> None:
         raise SystemExit(str(exc)) from exc
     print(
         f"Reproduced experiment {manifest['experiment_id']} "
-        f"(matched={manifest['reproduction']['matched']}, predictive_validity=unmeasured)"
+        f"(matched={manifest['reproduction']['matched']}, "
+        f"identity_validation={manifest['reproduction']['identity_validation']}, "
+        "predictive_validity=unmeasured)"
     )
 
 
@@ -1196,6 +1199,22 @@ async def compute_snapshot(
     return snapshot, consumer, data
 
 
+def _safe_float_argument(value: str) -> float:
+    """Parse a CLI number without echoing a rejected raw value."""
+    try:
+        return float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise argparse.ArgumentTypeError("must be numeric") from None
+
+
+def _safe_integer_argument(value: str) -> int:
+    """Parse a CLI integer without echoing a rejected raw value."""
+    try:
+        return int(value)
+    except (OverflowError, TypeError, ValueError):
+        raise argparse.ArgumentTypeError("must be an integer") from None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Intraday GEX imbalance terminal",
@@ -1277,7 +1296,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--multiplier",
-        type=int,
+        type=_safe_integer_argument,
         help="Contract multiplier. Overrides GEX_CONTRACT_MULTIPLIER.",
     )
     parser.add_argument(
@@ -1286,7 +1305,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--refresh",
-        type=float,
+        type=_safe_float_argument,
         help="UI refresh interval in seconds. Overrides GEX_REFRESH_INTERVAL_SECONDS.",
     )
     parser.add_argument(
@@ -1327,7 +1346,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--replay-delay",
-        type=float,
+        type=_safe_float_argument,
         help="Delay between replay messages in seconds. Overrides GEX_REPLAY_DELAY_SECONDS.",
     )
     parser.add_argument(
@@ -1337,12 +1356,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--replay-speed",
-        type=float,
+        type=_safe_float_argument,
         help="Event-time replay speed multiplier. Overrides GEX_REPLAY_SPEED.",
     )
     parser.add_argument(
         "--replay-max-gap",
-        type=float,
+        type=_safe_float_argument,
         help="Optional maximum source-time gap before replay-speed scaling.",
     )
     parser.add_argument(
@@ -1436,19 +1455,19 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--certification-duration",
-        type=float,
+        type=_safe_float_argument,
         default=10.0,
         help="Seconds to observe a provider certification stream. Default: 10.",
     )
     parser.add_argument(
         "--max-underlying-age",
-        type=float,
+        type=_safe_float_argument,
         default=2.0,
         help="Maximum seconds between futures midpoint and option trade for IV inversion. Default: 2.",
     )
     parser.add_argument(
         "--max-option-contracts",
-        type=int,
+        type=_safe_integer_argument,
         default=12,
         help="Maximum option subscriptions during Tradovate certification. Default: 12.",
     )
@@ -1458,25 +1477,25 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--performance-contracts",
-        type=int,
+        type=_safe_integer_argument,
         default=500,
         help="Generated option contracts for performance-certify. Default: 500.",
     )
     parser.add_argument(
         "--minimum-ingest-rps",
-        type=float,
+        type=_safe_float_argument,
         default=50.0,
         help="Minimum generated ingest records/second. Default: 50.",
     )
     parser.add_argument(
         "--maximum-snapshot-ms",
-        type=float,
+        type=_safe_float_argument,
         default=1000.0,
         help="Maximum generated snapshot milliseconds. Default: 1000.",
     )
     parser.add_argument(
         "--maximum-peak-mb",
-        type=float,
+        type=_safe_float_argument,
         default=256.0,
         help="Maximum generated-chain peak memory in MiB. Default: 256.",
     )
@@ -1487,13 +1506,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--screenshot-width",
-        type=int,
+        type=_safe_integer_argument,
         default=180,
         help="Terminal columns for --screenshot export. Default: 180.",
     )
     parser.add_argument(
         "--screenshot-height",
-        type=int,
+        type=_safe_integer_argument,
         default=54,
         help="Terminal rows for --screenshot export. Default: 54.",
     )
@@ -1579,15 +1598,15 @@ def validate_data_mode(data_mode: str) -> None:
     supported_modes = {"demo", "replay", "live"}
     if data_mode not in supported_modes:
         raise SystemExit(
-            f"Unsupported GEX_DATA_MODE '{data_mode}'. Expected one of: demo, replay, live"
+            "Unsupported GEX_DATA_MODE. Expected one of: demo, replay, live"
         )
 
 
 def validate_provider(config: GexConfig) -> None:
     if effective_provider(config) not in available_provider_names():
         raise SystemExit(
-            f"Unsupported GEX_DATA_PROVIDER '{config.data_provider}'. "
-            f"Expected one of: {', '.join(available_provider_names())}"
+            "Unsupported GEX_DATA_PROVIDER. Expected one of: "
+            f"{', '.join(available_provider_names())}"
         )
 
 
@@ -1674,7 +1693,10 @@ def _session_store_source_name(config: GexConfig, args: argparse.Namespace) -> s
 
 
 def main_sync() -> None:
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except ConfigValidationError as exc:
+        raise SystemExit(f"Configuration error: {exc}") from None
 
 
 if __name__ == "__main__":

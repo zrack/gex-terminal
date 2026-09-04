@@ -11,6 +11,25 @@ claimed.
 
 ### Fixed
 
+- Experiment v2 manifests now bind complete specification, profile, input,
+  implementation and result identities. Reproduction rejects inconsistent or
+  unsupported metadata and nonempty output targets; legacy v1 verification is
+  explicitly partial rather than silently promoted.
+
+- Numeric configuration now fails closed across environment, direct construction
+  and CLI/UI replacement, with secret-safe errors and stale-threshold guards.
+  Offline injection/fixture reports now label replay origin and no-network
+  evidence instead of live connection health.
+
+- Replay reports now create analytical transitions only for accepted consumer
+  updates, align snapshot time with model as-of, and separate raw input audit
+  timestamps from accepted-state chronology. Untimed input is explicitly
+  processing-time evidence, not observed market time.
+
+- Replay selection now settles the previous CLI writer before resetting state;
+  active fixed-delay/event-clock streams cannot contaminate a replacement
+  session. Failed writers block replacement and remain visible at shutdown.
+
 - Bound bundled replay workflows to catalog instrument identity and rejected
   unsupported symbol labels on the seeded ES demo. Snapshot exports now
   distinguish the configured fallback multiplier from actual selected-contract

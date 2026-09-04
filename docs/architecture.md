@@ -184,6 +184,9 @@ five paths:
   integrity-checked captures enter through replay adapters and event-time
   controls. A capture cannot switch replay streams mid-file. Live capture
   additionally passes the capture-policy gate before provider startup.
+  Consumer acceptance determines analytical timeline membership; rejected input
+  remains only in counters/raw-input audit. Snapshot as-of follows accepted
+  state, not the final raw record's timestamp.
 - **Provider-shaped intake:** provider injection, fixture labs, and offline
   Databento certification reuse production mapping without opening a live
   connection or promoting readiness.
@@ -214,8 +217,12 @@ Generated output stays local by default under ignored folders such as
 
 Provider readiness is not runtime connection status. The readiness vocabulary
 is `offline-certified`, `delayed`, `scaffold`, `live-uncertified`, and
-`live-certified`. Runtime state remains `SIM`, `LIVE`, `STALE`, or
-`DISCONNECTED`; a live connection never promotes readiness by itself.
+`live-certified`. Runtime state includes `SIM`, `REPLAY`, `CONNECTED`, `LIVE`,
+`STALE`, and `DISCONNECTED`; a live connection never promotes readiness by itself.
+Provider-shaped injection is `REPLAY` with a disconnected transport and explicit
+offline/no-network origin. Scripted fault tests may model live transitions, but
+remain marked as simulations. Frozen `GexConfig` validates numeric values at
+construction/replacement; UI updates validate before publishing state changes.
 
 ## State Ownership
 
@@ -230,9 +237,12 @@ owns:
 - provider and feed-quality counters
 - subscription and entitlement status
 
-Use `reset_state(...)` before loading a new offline session into an existing
-terminal app. That clears market data and quality counters behind the same lock
-used by live updates.
+The CLI gives the terminal ownership of its active replay writer task. Replay
+replacement is serialized and cancels/awaits that writer before calling
+`reset_state(...)`; only after adapter cleanup may new input enter. A failed
+writer blocks replacement and remains visible at CLI shutdown. Reset clears
+market data and quality counters behind the same lock used by updates. Capture
+and live-source sessions cannot switch replay.
 
 ## Contributor Boundaries
 
