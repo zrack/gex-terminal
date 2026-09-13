@@ -43,16 +43,15 @@ class ReplayOwnershipTests(unittest.IsolatedAsyncioTestCase):
                     )
 
                 async def interactive_run(app):
-                    async with app.run_test(size=(160, 48)):
+                    async with app.run_test(size=(160, 48)) as pilot:
                         await asyncio.wait_for(old_writer_waiting.wait(), 3)
                         previous_writer = app._source_task
                         self.assertIsNotNone(previous_writer)
                         self.assertFalse(previous_writer.done())
-                        await app.action_cycle_replay_session()
-                        app._replay_browser_index = app._session_index(
-                            replay_session_for_name("zero-gamma-flip")
-                        )
-                        await app.action_select_replay_session()
+                        await pilot.press("p")
+                        target_index = app._session_index(replay_session_for_name("zero-gamma-flip"))
+                        steps = (target_index - app._replay_browser_index) % len(app._replay_sessions)
+                        await pilot.press(*(["down"] * steps), "enter")
                         self.assertTrue(previous_writer.cancelled())
                         self.assertIsNone(app._source_task)
                         self.assertNotIn(9999, app.consumer.chain_state)

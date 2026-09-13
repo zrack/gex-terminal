@@ -14,6 +14,12 @@ the wheel using [Contributing](../CONTRIBUTING.md); end users do not need a Git
 checkout. Dependency installation may use the network; the application journey
 below does not.
 
+For the replay-picker keyboard repair, obtain a wheel built from the accepted
+[GEX-UX-001](work-packets/GEX-UX-001.md) commit and record that commit and the
+wheel SHA-256. The package version remains `0.5.0`; the original `v0.5.0` wheel
+does not contain this later repair. Version output alone cannot distinguish
+the builds. Freeze the repaired wheel before an observed first-use study.
+
 Create a dedicated application folder outside your research folder. Substitute
 the actual supplied wheel path; do not type the placeholder literally:
 
@@ -56,9 +62,15 @@ timestamp is historical fixture time, not “the market now.”
 Read one wall or strike-profile level alongside quality, model and source
 information. Ask which contracts and quantity produced it, whether IV is
 observed or assumed, and what is unavailable. OI, raw traded volume and
-directionalized volume are proxies, not observed dealer positions. Use the
-in-app replay browser (`p`) and quit (`q`) when finished. Definitions and units
-are in [Model Assumptions](model-assumptions.md).
+directionalized volume are proxies, not observed dealer positions. Definitions
+and units are in [Model Assumptions](model-assumptions.md).
+
+On the dashboard, press `p` to open the replay browser. `Up`/`Down` move through
+sessions and wrap at either end; `Enter` loads the selected session. `Escape`
+or `p` closes it without loading. When the browser is closed, the strike table
+keeps its normal arrow-key and `Enter` behavior. An overlay retains its own
+keyboard controls. Replay replacement is available only in demo/replay mode
+and is blocked during capture. Press `q` to quit when finished.
 
 ## Compare, Replay and Review
 

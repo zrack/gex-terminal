@@ -1,7 +1,9 @@
 # Application State And Health Review
 
-Reviewed September 4, 2026 for `0.5.0 — Offline Research Foundation`. This
-document owns the dated state assessment and verification limits.
+Updated September 13, 2026 for the replay-picker follow-up to
+`0.5.0 — Offline Research Foundation`. This document owns the dated state
+assessment and verification limits; the September 4 release evidence is retained
+below rather than presented as verification of the later repair.
 [Architecture](architecture.md) owns implementation structure;
 [Roadmap](../ROADMAP.md) owns remaining work. Earlier assessments remain in Git.
 
@@ -14,6 +16,13 @@ the offline product foundation are accepted. Final hosted verification exposed
 a terminal shutdown race, now corrected through `GEX-HEALTH-006` with six
 deterministic lifecycle regressions and 425 passing tests. The release evidence and remaining
 external gates are recorded in [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md).
+
+The September 13 follow-up confirmed that a focused strike table consumes
+`Down` and `Enter` after `p` opens the replay picker. Existing direct-action
+tests did not cover this keyboard-routing failure. The bounded repair and
+real-keyboard acceptance are tracked in [GEX-UX-001](work-packets/GEX-UX-001.md).
+The implementation passes local regression and independent review; hosted and
+clean merged-tree verification remain pending integration closeout.
 
 No credentialed provider observation, real-user activation study, customer
 commitment or commercial pilot was performed. Databento remains
@@ -50,6 +59,7 @@ packets rather than being duplicated here.
 | H5 — Rejected-input chronology | Resolved: analytical points follow accepted updates; raw input audit separated; snapshot/model time agree | [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md) |
 | H6 — Clipped small terminal | Resolved: visibility checks at supported sizes, explicit minimum message below them and state-preserving resize | [GEX-INSTALL-001](work-packets/GEX-INSTALL-001.md) |
 | H7 — Refresh after screen teardown | Resolved: screen-owned callbacks, exact-owner checks after both awaits, no cache/UI publication after quit/teardown; resize remains owner-bound behind overlays | [GEX-HEALTH-006](work-packets/GEX-HEALTH-006.md) |
+| H8 — Replay picker keyboard routing | Repaired locally: scoped priority keys, footer/table ownership and six real-keyboard regressions; integration acceptance pending | [GEX-UX-001](work-packets/GEX-UX-001.md) |
 
 These are scoped regression results, not a claim that the application has no
 other defects. Source and tests were inspected together; runtime boundaries
@@ -64,6 +74,9 @@ remain explicit.
 - **Runtime:** receipt compatibility is an explicit allowlist and also binds
   Python major/minor and dependency versions. Same-version hashes alone do not
   guarantee parity after a correctness change; reproduction compares results.
+- **Repair identity:** the original `v0.5.0` tag/wheel does not include the later
+  keyboard repair. A study must freeze the accepted repaired commit, wheel
+  digest and environment; package version `0.5.0` alone is not its identity.
 - **Corpus:** omitted `as_of` can be valid registration metadata, but corpus
   verification reports evaluation eligibility `not_assessed`. Empirical use
   requires the source-specific cutoff/availability gates in

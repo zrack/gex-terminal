@@ -6,17 +6,21 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
-Priorities reviewed September 4, 2026 for version `0.5.0`. Repository-owned
-offline work is delivered through the release packets; [Changelog](CHANGELOG.md)
-and [Application Review](docs/application-review.md) own shipped capabilities
-and verification. The remaining work below requires customer evidence, owner
-decisions, live access or a later demand-driven product choice.
+Priorities reviewed September 13, 2026 against the `0.5.0` baseline.
+[Changelog](CHANGELOG.md) and [Application Review](docs/application-review.md)
+own delivered capabilities and verification; [GEX-UX-001](docs/work-packets/GEX-UX-001.md)
+owns the bounded replay-picker repair and its acceptance. The future work below
+requires customer evidence, owner decisions, live access or a later
+demand-driven product choice.
 
 ## Current Work Order
 
 Do not add another broad feature layer before testing the completed offline
 loop with real users. Correctness regressions still interrupt product work.
 Prepared protocols are ready to use, but preparation is not a passed gate.
+Before observed first use, accept the replay-picker repair and freeze the exact
+repaired commit, wheel digest and test environment. The original `v0.5.0` tag or
+an application version of `0.5.0` alone does not identify a build with the repair.
 
 | Order | Work | Why now | Completion evidence |
 | --- | --- | --- | --- |
@@ -186,6 +190,10 @@ Current command and compatibility contracts live in [First Run](docs/first-run.m
 
 ### Remaining acceptance
 
+- Use one reviewed repaired build for the study, with its commit and wheel
+  digest recorded alongside the [Product Validation](docs/product-validation.md)
+  environment and scoring key. Treat a subsequent build change as a separate
+  cohort; keyboard regressions are not unaided user acceptance.
 - Observe a new user installing without a checkout, reaching a correct replay
   insight in under ten minutes, and completing the scoped loop in under fifteen
   minutes without developer help. These are proposed study thresholds, not
@@ -512,9 +520,9 @@ phase uses them as a gate.
 
 Follow the [Current Work Order](#current-work-order): use the completed
 [Product Validation](docs/product-validation.md) kit with real participants,
-starting with observed offline first use. Record assistance, failed attempts
-and trust defects before routing another engineering slice. Commercial product
-selection remains in Phase 3.
+starting with observed offline first use on the frozen repaired build. Record
+assistance, failed attempts and trust defects before routing another engineering
+slice. Commercial product selection remains in Phase 3.
 
 Separately, obtain owner approval for the prepared ES observation population
 and use [Live Population Preparation](docs/live-population-prep.md) to validate

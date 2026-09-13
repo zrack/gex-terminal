@@ -9,6 +9,20 @@ Release is claimed.
 
 ## Unreleased
 
+### Fixed
+
+- Replay-picker keyboard routing repair and real-keyboard regression coverage
+  for selection/loading from a focused strike table, with normal table and
+  overlay controls preserved. [GEX-UX-001](docs/work-packets/GEX-UX-001.md) owns
+  acceptance evidence. Live/capture restrictions and replay-writer settlement
+  remain unchanged; this is not part of the original `v0.5.0` tag or wheel.
+
+### Changed
+
+- First-run controls and architecture document conditional picker key ownership;
+  the roadmap prioritizes observed offline use on an exact repaired build.
+  Automated keyboard checks do not establish unaided customer acceptance.
+
 ## 0.5.0 - 2026-09-04 — Offline Research Foundation
 
 ### Added
