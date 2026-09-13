@@ -25,7 +25,9 @@ prepared `GEX-LIVE-002` does not authorize or certify live operation.
 Closed `GEX-LIVE-PREP-001` owns only offline population preparation for that
 future observation. Closed `GEX-HEALTH-006` and `GEX-INSTALL-001` also record the
 terminal shutdown regression and repair found by the final hosted gate. No
-repository-owned offline implementation packet remains active.
+other offline implementation packet remains active;
+[GEX-UX-001](work-packets/GEX-UX-001.md) now owns the bounded replay-picker
+keyboard repair and pending acceptance without a version or readiness change.
 
 ## Purpose And Entry Boundary
 

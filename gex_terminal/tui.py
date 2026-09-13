@@ -9,6 +9,7 @@ from typing import Iterable
 
 from rich.text import Text
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Container, Grid, Vertical
 from textual.events import Resize
 from textual.screen import Screen
@@ -43,10 +44,10 @@ class GexTerminalApp(App):
         ("s", "cycle_sort", "Sort"),
         ("f", "cycle_filter", "Filter"),
         ("p", "cycle_replay_session", "Replay"),
-        ("up", "replay_browser_up", "Up"),
-        ("down", "replay_browser_down", "Down"),
-        ("enter", "select_replay_session", "Load"),
-        ("escape", "close_replay_browser", "Close"),
+        Binding("up", "replay_browser_up", "Up", priority=True),
+        Binding("down", "replay_browser_down", "Down", priority=True),
+        Binding("enter", "select_replay_session", "Load", priority=True),
+        Binding("escape", "close_replay_browser", "Close", priority=True),
         ("d", "cycle_expiry_assumption", "DTE"),
         ("x", "cycle_expiry_filter", "Expiry"),
         ("m", "cycle_multiplier_assumption", "Mult"),
@@ -243,6 +244,18 @@ class GexTerminalApp(App):
         if self._last_data is not None:
             self._render_table(self._last_data)
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == "cycle_replay_session":
+            return self.screen is self._refresh_screen_owner
+        if action in {
+            "replay_browser_up", "replay_browser_down",
+            "select_replay_session", "close_replay_browser",
+        }:
+            # Only the open dashboard picker may outrank focused widget keys.
+            # False returns normal table/overlay navigation to Textual.
+            return self._replay_browser_open and self.screen is self._refresh_screen_owner
+        return super().check_action(action, parameters)
+
     async def action_cycle_replay_session(self) -> None:
         if not self.allow_replay_switching:
             self._event("replay switching is disabled while session capture is active")
@@ -260,6 +273,7 @@ class GexTerminalApp(App):
         else:
             self._event("replay browser closed")
             self._render_structure_or_first_run()
+        self.refresh_bindings()
         self._render_controls()
         self._render_events()
 
@@ -327,6 +341,7 @@ class GexTerminalApp(App):
         if not self._replay_browser_open:
             return
         self._replay_browser_open = False
+        self.refresh_bindings()
         self._event("replay browser closed")
         self._render_structure_or_first_run()
         self._render_controls()
@@ -388,6 +403,7 @@ class GexTerminalApp(App):
         self._replay_index = self._session_index(session)
         self._replay_browser_index = self._replay_index
         self._replay_browser_open = False
+        self.refresh_bindings()
 
         for message in messages:
             await self.consumer.update_market_state(json.dumps(message))

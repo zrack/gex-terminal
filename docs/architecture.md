@@ -91,9 +91,17 @@ because that session shows a clear regime transition. The selector uses the
 same normalized message contract as the replay adapter, so UI polish remains
 covered by the same consumer and engine path as offline regression tests.
 
+Picker navigation has conditional keyboard priority: while the browser is open
+on the current dashboard, its Up/Down/Enter actions run before the focused
+strike table's bindings. Closing or loading releases those keys to the table;
+a pushed screen retains its own bindings even if the browser remains open
+behind it. Real Textual key-event regressions must exercise this routing, not
+only invoke action methods. User controls belong in [First Run](first-run.md).
+
 The selector is intentionally limited to demo and replay mode. Live provider
 tasks may be running in the background, so live mode keeps replay loading out of
-the active session.
+the active session. Active capture also blocks replacement; keyboard routing
+does not bypass the loading or writer-settlement gates.
 
 At 140×42 and above the compact layout preserves metrics, strike rows, quality
 and controls, with scrolling for explanatory cards. Below the declared minimum,
