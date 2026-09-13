@@ -21,8 +21,9 @@ The September 13 follow-up confirmed that a focused strike table consumes
 `Down` and `Enter` after `p` opens the replay picker. Existing direct-action
 tests did not cover this keyboard-routing failure. The bounded repair and
 real-keyboard acceptance are tracked in [GEX-UX-001](work-packets/GEX-UX-001.md).
-The implementation passes local regression and independent review; hosted and
-clean merged-tree verification remain pending integration closeout.
+The repair is merged and accepted: six keyboard regressions, independent
+installed-wheel verification, four hosted checks and 431 tests on clean merged
+main. This resolves the interaction defect, not real-user acceptance.
 
 No credentialed provider observation, real-user activation study, customer
 commitment or commercial pilot was performed. Databento remains
@@ -59,7 +60,7 @@ packets rather than being duplicated here.
 | H5 — Rejected-input chronology | Resolved: analytical points follow accepted updates; raw input audit separated; snapshot/model time agree | [GEX-HEALTH-005](work-packets/GEX-HEALTH-005.md) |
 | H6 — Clipped small terminal | Resolved: visibility checks at supported sizes, explicit minimum message below them and state-preserving resize | [GEX-INSTALL-001](work-packets/GEX-INSTALL-001.md) |
 | H7 — Refresh after screen teardown | Resolved: screen-owned callbacks, exact-owner checks after both awaits, no cache/UI publication after quit/teardown; resize remains owner-bound behind overlays | [GEX-HEALTH-006](work-packets/GEX-HEALTH-006.md) |
-| H8 — Replay picker keyboard routing | Repaired locally: scoped priority keys, footer/table ownership and six real-keyboard regressions; integration acceptance pending | [GEX-UX-001](work-packets/GEX-UX-001.md) |
+| H8 — Replay picker keyboard routing | Resolved: dashboard-scoped priority keys, footer/table ownership and real-keyboard coverage for ES/NQ, overlays, cancellation, retries and source safeguards | [GEX-UX-001](work-packets/GEX-UX-001.md) |
 
 These are scoped regression results, not a claim that the application has no
 other defects. Source and tests were inspected together; runtime boundaries
@@ -107,6 +108,7 @@ Package dependency downloads are not market-data connections.
 | Hosted release checks | All four PR #25 Python 3.11/3.12 Linux checks passed, including full tests, fresh-wheel commands and recovery lifecycle | Hosted software verification, not live operation |
 | Final lifecycle repair | PR #26 initially exposed the shutdown race on 3.12; 3.11 was fail-fast-cancelled. Independently reviewed repair and root integration each passed 425 tests | Initial green checkpoints do not erase the observed failure; final tag requires repaired-tree hosted/package checks |
 | Independent installed wheel | Full command matrix passed in a fresh Python 3.14.4 environment; NQ identities, redacted support and private backup/restore verified | Additional command smoke only; full-suite baseline remains 3.11/3.12 |
+| September 13 keyboard repair | PR #27 merged as `b5ecfb1`; 431 tests, compilation and documentation links passed on clean pulled main, after four hosted 3.11/3.12 checks and independent installed-wheel keyboard smoke | Exact repair evidence in GEX-UX-001; no new release tag, native-terminal accessibility or real-user study |
 
 The release closeout and annotated tag identify the final verified merged tree;
 [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) records acceptance without
