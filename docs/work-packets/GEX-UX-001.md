@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L2
-status: integration_pending
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent reviewer and hosted CI
@@ -77,6 +77,26 @@ migrated or removed.
   An independent reviewer found no blocking issues and repeated the eight
   keyboard/source-ownership tests successfully. A follow-up table `RowSelected`
   assertion directly observes Enter falling through to the focused table.
-- Installed-wheel verification, hosted checks and clean merged-tree verification
-  remain required before integration closeout. No release tag or version change
-  is part of this packet.
+- Independent installed-wheel verification passed outside the checkout on
+  macOS ARM64/Python 3.12.13: real keys loaded ES ×50 then NQ ×20, preserved
+  closed-table navigation, and passed version and `pip check`. Offline doctor
+  exited 0 with required checks passing and only two unselected optional-SDK
+  warnings (IBKR and yfinance absent).
+  The isolated environment reused dependency packages; it is not a clean-machine
+  installation study. Candidate wheel SHA-256:
+  `329fab009339a367e4cf513b07b33429ee37816ac9672324c152098a2a9c7090`.
+  Its package source matches repair commit `54a720e`.
+- All four Linux Python 3.11/3.12 push and pull-request checks passed for that
+  commit: [push run](https://github.com/zrack/gex-terminal/actions/runs/34766738374)
+  and [PR run](https://github.com/zrack/gex-terminal/actions/runs/34766741383).
+  These include fresh installed-wheel commands, build validation and the
+  offline install/recovery lifecycle.
+- [PR #27](https://github.com/zrack/gex-terminal/pull/27) merged as
+  `b5ecfb1ee6526999576fd18fc9d84a11fa708342`. Clean pulled main at that commit
+  passed all 431 tests, compilation, documentation links and patch hygiene;
+  local main and `origin/main` matched. Technical implementation is closed.
+  Subsequent documentation closeout changes no application or test code.
+- Package version remains `0.5.0`, and the original `v0.4.0` and `v0.5.0` tags
+  are unchanged. No new tag, publication, deployment, live observation or
+  real-user study was performed. Freeze a reviewed repaired wheel before
+  collecting the next six observed offline task sessions.

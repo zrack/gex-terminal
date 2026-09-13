@@ -18,8 +18,8 @@ demand-driven product choice.
 Do not add another broad feature layer before testing the completed offline
 loop with real users. Correctness regressions still interrupt product work.
 Prepared protocols are ready to use, but preparation is not a passed gate.
-Before observed first use, accept the replay-picker repair and freeze the exact
-repaired commit, wheel digest and test environment. The original `v0.5.0` tag or
+Before observed first use, freeze the exact reviewed repaired commit, wheel
+digest and test environment. The original `v0.5.0` tag or
 an application version of `0.5.0` alone does not identify a build with the repair.
 
 | Order | Work | Why now | Completion evidence |
