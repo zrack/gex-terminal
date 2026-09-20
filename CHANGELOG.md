@@ -19,6 +19,13 @@ Release is claimed.
 
 ### Changed
 
+- Prepared an exact offline study-build handoff with frozen source, wheel,
+  runtime, synthetic fixtures and scoring materials; automated rehearsal remains
+  separate from observed participant acceptance. [GEX-STUDY-001](docs/work-packets/GEX-STUDY-001.md)
+  owns verification and [Study Build](docs/study-build.md) owns the procedure.
+- Extended local documentation checks to heading fragments and clarified
+  architecture/diagram maintenance and canonical documentation ownership in the
+  contributor workflow. Detailed study/build records stay outside the README.
 - First-run controls and architecture document conditional picker key ownership;
   the roadmap prioritizes observed offline use on an exact repaired build.
   Automated keyboard checks do not establish unaided customer acceptance.

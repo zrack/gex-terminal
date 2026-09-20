@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
   <title id="title">Offline Research Certification Workbench architecture</title>
-  <desc id="desc">Versioned model profile and governed corpus feed reproducible experiments and certification gates, producing reviewable evidence with an explicit offline ceiling.</desc>
+  <desc id="desc">Derived summary of docs/architecture.md and docs/research-governance.md. Local inputs enter offline workflows that reuse adapters, the state consumer, and the pricing engine. Orchestration binds experiment identity. Corpus verification is an independent registry check. All evidence remains bounded to offline software and process behavior.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#12263d"/></linearGradient>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#75e6da"/></marker>
@@ -14,25 +14,27 @@
 
   <rect x="64" y="150" width="285" height="145" rx="16" class="box"/>
   <text x="88" y="188" class="h">Versioned inputs</text>
-  <text x="88" y="222" class="t">• model profile</text><text x="88" y="250" class="t">• experiment spec</text><text x="88" y="278" class="t">• point-in-time cutoff</text>
+  <text x="88" y="222" class="t">• source + model profile</text><text x="88" y="250" class="t">• experiment / batch spec</text><text x="88" y="278" class="t">• declared as-of cutoff</text>
 
   <rect x="64" y="340" width="285" height="145" rx="16" class="box"/>
-  <text x="88" y="378" class="h">Governed corpus</text>
+  <text x="88" y="378" class="h">Corpus registry</text>
   <text x="88" y="412" class="t">• append-only hash chain</text><text x="88" y="440" class="t">• rights + redaction</text><text x="88" y="468" class="t">• immutable split identity</text>
 
-  <rect x="447" y="215" width="330" height="205" rx="16" class="gate"/>
-  <text x="475" y="255" class="h">Shared consumer + engine</text>
-  <text x="475" y="290" class="t">contract-aware Black-76 / BS</text><text x="475" y="320" class="t">OI · raw volume · directional</text><text x="475" y="350" class="t">batch grouping, no source sum</text><text x="475" y="380" class="t">semantic result digest</text>
+  <rect x="447" y="185" width="330" height="235" rx="16" class="gate"/>
+  <text x="475" y="225" class="h">Offline workflows</text>
+  <text x="475" y="265" class="t">adapter → consumer → engine</text><text x="475" y="295" class="t">OI · raw volume · directional</text><text x="475" y="325" class="t">kept separate in calculations</text><text x="475" y="355" class="t">orchestration binds identity</text><text x="475" y="385" class="t">and semantic result digests</text>
 
   <rect x="875" y="150" width="335" height="205" rx="16" class="out"/>
   <text x="903" y="190" class="h">Reviewable evidence</text>
-  <text x="903" y="225" class="t">• reproducible manifest</text><text x="903" y="255" class="t">• corpus verification</text><text x="903" y="285" class="t">• batch comparison</text><text x="903" y="315" class="t">• property/fault/perf reports</text>
+  <text x="903" y="225" class="t">• experiments / portable packs</text><text x="903" y="255" class="t">• corpus verification</text><text x="903" y="285" class="t">• batch comparison</text><text x="903" y="315" class="t">• property/fault/perf reports</text>
 
   <rect x="875" y="410" width="335" height="155" rx="16" class="warn"/>
   <text x="903" y="450" class="h">Evidence ceiling</text>
-  <text x="903" y="485" class="t">offline software + process only</text><text x="903" y="515" class="t">predictive validity: unmeasured</text><text x="903" y="545" class="t">live certification: separate gate</text>
+  <text x="903" y="485" class="t">offline software + process only</text><text x="903" y="515" class="t">predictive validity: unmeasured</text><text x="903" y="545" class="t">live certification is separate</text>
 
-  <path d="M349 223 H447" class="line"/><path d="M349 412 C400 412 400 370 447 370" class="line"/><path d="M777 282 H875" class="line"/><path d="M1042 355 V410" class="line"/>
+  <path d="M349 223 H447" class="line"/><path d="M349 412 H390 V530 H830 V338 H875" class="line"/><path d="M777 282 H875" class="line"/><path d="M1042 355 V410" class="line"/>
+  <text x="447" y="510" class="t">Independent membership verification</text>
+  <text x="64" y="605" class="t">Derived from docs/architecture.md and docs/research-governance.md · one local Python application</text>
   <text x="64" y="650" class="sub">Readiness vocabulary: offline-certified · delayed · scaffold · live-uncertified · live-certified</text>
-  <text x="64" y="682" class="sub">Runtime connection state is reported separately: SIM · LIVE · STALE · DISCONNECTED</text>
+  <text x="64" y="682" class="sub">Runtime state, separate from readiness: SIM · REPLAY · CONNECTED · LIVE · STALE · DISCONNECTED</text>
 </svg>

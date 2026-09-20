@@ -1,4 +1,5 @@
 import asyncio
+import html
 import importlib
 import io
 import json
@@ -8,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+import unicodedata
 import unittest
 from argparse import Namespace
 from contextlib import redirect_stdout
@@ -339,40 +341,236 @@ class BundledResourceContractTests(unittest.TestCase):
 
 
 class DocumentationLinkContractTests(unittest.TestCase):
-    _MARKDOWN_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+    # This intentionally small parser covers the documentation conventions here:
+    # inline links/images (including titles and angle-wrapped paths), ATX and
+    # single-line Setext headings, inline formatting, and fenced code. It is not
+    # a full Markdown renderer: reference links, raw HTML anchors, and headings
+    # nested in lists/quotes are outside this contract.
+    _MARKDOWN_LINK = re.compile(
+        r'''!?\[([^\]\n]*)\]\(\s*'''
+        r'''(<[^>\n]*>|(?:\\.|[^()\s]|\([^()\n]*\))+)'''
+        r'''(?:\s+(?:"[^"\n]*"|'[^'\n]*'))?\s*\)'''
+    )
+    _INLINE_CODE = re.compile(r"(?<!`)(`+)(?!`)(.*?)\1(?!`)")
+
+    @staticmethod
+    def _without_fenced_code(markdown: str) -> str:
+        lines = []
+        fence = None
+        for line in markdown.splitlines():
+            marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+            if fence is not None:
+                if (
+                    marker
+                    and marker[1][0] == fence[0]
+                    and len(marker[1]) >= len(fence)
+                    and not marker[2].strip()
+                ):
+                    fence = None
+                lines.append("")
+            elif marker and not (marker[1][0] == "`" and "`" in marker[2]):
+                fence = marker[1]
+                lines.append("")
+            else:
+                lines.append(line)
+        return "\n".join(lines)
+
+    @classmethod
+    def _heading_slug(cls, heading: str) -> str:
+        def plain_text(text: str) -> str:
+            text = cls._MARKDOWN_LINK.sub(lambda match: match[1], text)
+            text = re.sub(r"<[^>]*>", "", text)
+            text = re.sub(r"(\*{1,3}|~~)(.*?)\1", r"\2", text)
+            text = re.sub(r"(?<!\w)(_{1,3})(?!_)(.*?)\1(?!\w)", r"\2", text)
+            return re.sub(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~])", r"\1", text)
+
+        # Protect code before rendering links/entities/formatting. Placeholders
+        # also let a real link whose label contains code retain its whole label.
+        code_spans = []
+
+        def protect_code(match: re.Match) -> str:
+            code_spans.append(match[2])
+            return f"\x00{len(code_spans) - 1}\x00"
+
+        protected = cls._INLINE_CODE.sub(protect_code, heading)
+        text = html.unescape(plain_text(protected))
+        text = re.sub(
+            r"\x00(\d+)\x00", lambda match: code_spans[int(match[1])], text
+        ).strip().lower()
+        return "".join(
+            "-" if character == " " else character
+            for character in text
+            if character in " -_"
+            or unicodedata.category(character)[0] in "LNM"
+        )
+
+    @classmethod
+    def _heading_ids(cls, markdown: str) -> set[str]:
+        headings = set()
+        lines = cls._without_fenced_code(markdown).splitlines()
+        for index, line in enumerate(lines):
+            atx = re.match(r"^ {0,3}#{1,6}(?:[ \t]+(.*?)|[ \t]*)$", line)
+            if atx:
+                heading = re.sub(r"[ \t]+#+[ \t]*$", "", atx[1] or "")
+            elif (
+                index > 0
+                and re.fullmatch(r" {0,3}(?:=+|-+)[ \t]*", line)
+                and lines[index - 1].strip()
+                and not re.match(r"^ {0,3}(?:#|[-*+>] )", lines[index - 1])
+            ):
+                heading = lines[index - 1].strip()
+            else:
+                continue
+            base = cls._heading_slug(heading)
+            anchor = base
+            suffix = 0
+            while anchor in headings:
+                suffix += 1
+                anchor = f"{base}-{suffix}"
+            headings.add(anchor)
+        return headings
+
+    @classmethod
+    def _broken_links(cls, documents: list[Path], root: Path) -> list[str]:
+        missing = []
+        headings_by_path = {}
+        for document in documents:
+            prose = cls._without_fenced_code(document.read_text(encoding="utf-8"))
+            prose = cls._INLINE_CODE.sub("", prose)
+            for match in cls._MARKDOWN_LINK.finditer(prose):
+                target = match[2].removeprefix("<").removesuffix(">")
+                parsed = urlsplit(target)
+                if parsed.scheme or parsed.netloc:
+                    continue
+                path = unquote(parsed.path)
+                if path.startswith("/"):
+                    resolved = (root / path.lstrip("/")).resolve()
+                else:
+                    resolved = (document.parent / path).resolve() if path else document.resolve()
+                reason = None
+                if not resolved.exists():
+                    reason = "missing file"
+                elif parsed.fragment and resolved.suffix.lower() == ".md":
+                    if resolved not in headings_by_path:
+                        headings_by_path[resolved] = cls._heading_ids(
+                            resolved.read_text(encoding="utf-8")
+                        )
+                    if unquote(parsed.fragment) not in headings_by_path[resolved]:
+                        reason = "missing heading"
+                if reason:
+                    missing.append(f"{document.relative_to(root)} -> {target} ({reason})")
+        return missing
 
     def test_key_relative_markdown_links_resolve(self):
         documents = [
-            PROJECT_ROOT / "README.md",
-            PROJECT_ROOT / "CONTRIBUTING.md",
-            PROJECT_ROOT / "CHANGELOG.md",
-            PROJECT_ROOT / "ROADMAP.md",
-            PROJECT_ROOT / "SECURITY.md",
+            *sorted(PROJECT_ROOT.glob("*.md")),
             *sorted((PROJECT_ROOT / "docs").rglob("*.md")),
+            *sorted((PROJECT_ROOT / "assets").rglob("*.md")),
         ]
-        missing: list[str] = []
-
-        for document in documents:
-            for raw_target in self._MARKDOWN_LINK.findall(
-                document.read_text(encoding="utf-8")
-            ):
-                target = raw_target.strip()
-                if target.startswith("<") and target.endswith(">"):
-                    target = target[1:-1]
-                # A quoted Markdown title may follow the path. Project-local
-                # paths contain no literal spaces; encoded spaces remain valid.
-                target = target.split(maxsplit=1)[0]
-                parsed = urlsplit(target)
-                if parsed.scheme or parsed.netloc or not parsed.path:
-                    continue
-
-                resolved = (document.parent / unquote(parsed.path)).resolve()
-                if not resolved.exists():
-                    missing.append(
-                        f"{document.relative_to(PROJECT_ROOT)} -> {target}"
-                    )
-
+        missing = self._broken_links(documents, PROJECT_ROOT)
         self.assertEqual(missing, [], "Broken local Markdown links:\n" + "\n".join(missing))
+
+    def test_heading_ids_normalize_common_markdown_and_resolve_collisions(self):
+        markdown = """# Install & **Run**: `command_name`!
+## [Café](https://example.com) — _été_ ###
+## <em>Details</em> &amp; More
+## `__init__` and snake_case
+## Read [`payload`](input.json)
+## Repeat
+## Repeat-1
+## Repeat
+## Repeat
+## Repeat-1
+Setext Title
+============
+## Two  Spaces
+"""
+        self.assertEqual(
+            self._heading_ids(markdown),
+            {
+                "install--run-command_name", "café--été", "details--more",
+                "__init__-and-snake_case", "read-payload", "repeat", "repeat-1", "repeat-2",
+                "repeat-3", "repeat-1-1", "setext-title", "two--spaces",
+            },
+        )
+
+    def test_link_syntax_inside_heading_code_stays_literal(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            guide = root / "guide.md"
+            guide.write_text(
+                "# Read `[payload](input.json)`\n"
+                "[rendered heading](#read-payloadinputjson)\n"
+                "[incorrectly stripped label](#read-payload)\n"
+                "# Literal `&amp;`\n"
+                "[literal entity](#literal-amp)\n"
+                "[incorrectly decoded entity](#literal-)\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                self._broken_links([guide], root),
+                [
+                    "guide.md -> #read-payload (missing heading)",
+                    "guide.md -> #literal- (missing heading)",
+                ],
+            )
+
+    def test_fenced_examples_do_not_create_headings_or_links(self):
+        markdown = """# Real
+````markdown
+# Fake
+[broken](missing.md)
+```
+## Still Fake
+````
+~~~markdown
+## Also Fake
+~~~
+## Real
+`[inline example](missing.md)`
+"""
+        self.assertEqual(self._heading_ids(markdown), {"real", "real-1"})
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            document = root / "guide.md"
+            document.write_text(markdown, encoding="utf-8")
+            self.assertEqual(self._broken_links([document], root), [])
+
+    def test_links_validate_files_and_decoded_local_heading_fragments(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            guide = root / "guide.md"
+            (root / "other guide.md").write_text("# Café\n## Next\n## Next\n", encoding="utf-8")
+            (root / "image.svg").write_text("<svg/>", encoding="utf-8")
+            guide.write_text(
+                "# Here\n"
+                "[same page](#here)\n"
+                "[encoded](other%20guide.md#caf%C3%A9)\n"
+                '[title](<other guide.md#next-1> "A guide")\n'
+                "[root](/other%20guide.md#next)\n"
+                "![image](image.svg#fragment)\n"
+                "[external](https://example.com/missing.md#missing)\n"
+                "[protocol-relative](//example.com/missing.md#missing)\n"
+                "[email](mailto:example@example.com)\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(self._broken_links([guide], root), [])
+            with guide.open("a", encoding="utf-8") as output:
+                output.write(
+                    "[bad same page](#absent)\n"
+                    "[bad heading](other%20guide.md#missing)\n"
+                    "[bad suffix](other%20guide.md#next-2)\n"
+                    "[bad file](missing.md#here)\n"
+                )
+            self.assertEqual(
+                self._broken_links([guide], root),
+                [
+                    "guide.md -> #absent (missing heading)",
+                    "guide.md -> other%20guide.md#missing (missing heading)",
+                    "guide.md -> other%20guide.md#next-2 (missing heading)",
+                    "guide.md -> missing.md#here (missing file)",
+                ],
+            )
 
 
 if __name__ == "__main__":

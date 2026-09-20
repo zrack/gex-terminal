@@ -27,7 +27,9 @@ future observation. Closed `GEX-HEALTH-006` and `GEX-INSTALL-001` also record th
 terminal shutdown regression and repair found by the final hosted gate.
 Closed [GEX-UX-001](work-packets/GEX-UX-001.md) records the replay-picker
 keyboard repair and acceptance without a version or readiness change.
-No repository-owned offline implementation packet remains active.
+[GEX-STUDY-001](work-packets/GEX-STUDY-001.md) owns the bounded study-build,
+documentation and heading-link validation slice. It does not authorize live
+operation or change the release mechanism.
 
 ## Purpose And Entry Boundary
 
