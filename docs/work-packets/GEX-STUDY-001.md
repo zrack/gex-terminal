@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L2
-status: prepared_awaiting_pull_request
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent reviewer and hosted CI
@@ -78,4 +78,14 @@ the affected local study bundle; no customer or research files are migrated.
   inspected; Mermaid source was reviewed without a local renderer.
 - The prepared bundle remains local and ignored. Package version and original
   tags are unchanged. Real-user and live-provider gates remain open.
-- Pull-request/hosted-check and merged-tree closeout are pending.
+- Independent bundle review verified all 219 inventory hashes, every archived
+  source file, all 66 frozen materials and 93 wheel package files, both fixture
+  hashes, 22 dependency pins and the byte-identical second wheel. Both packs
+  were independently verified and all five reproduced semantic hashes matched.
+- [PR #29](https://github.com/zrack/gex-terminal/pull/29) owns the final hosted
+  check statuses and merge identity. This packet closes technical preparation
+  with that PR's merge, conditional on all final Python 3.11/3.12 checks passing.
+  Preserve the build-source commit through a merge commit. The post-merge
+  regression and remote-equality result belongs in the maintainer's local
+  `dist/study/offline-first-use-2026-09-20-closeout.json`, beside the immutable
+  bundle rather than inside its frozen inventory.

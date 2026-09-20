@@ -35,7 +35,7 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) owns the study-build and
+active. Closed [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) owns the study-build and
 documentation slice. Closed [GEX-UX-001](work-packets/GEX-UX-001.md) owns the replay-picker
 keyboard repair and its verification. Closed [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) owns the
 offline release record; the closed preflight, support, installation and
