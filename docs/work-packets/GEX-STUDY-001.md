@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L2
-status: in_progress
+status: prepared_awaiting_pull_request
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent reviewer and hosted CI
@@ -65,4 +65,17 @@ the affected local study bundle; no customer or research files are migrated.
 
 ## Verification and closeout
 
-Pending the committed-source build, independent review and hosted checks.
+- Source `cb59b7f6cf9d681fa854196fe6bffb5b1102a8fd` passed 435 tests, compilation,
+  heading links and patch hygiene. Independent review verified the two
+  literal-code slug repairs before freezing this source.
+- The [frozen build record](../studies/offline-first-use-2026-09-20.md) owns the
+  exact wheel, source, material and runtime identities and retained rehearsal
+  results. Two clean-source builds matched byte for byte; distributions passed
+  Twine; all 20 final installed-wheel rehearsal checks passed.
+- Root/topic/asset documentation was checked through the link contract and
+  ownership review. Architecture owns C4 views; contributor guidance requires
+  same-change diagram reconciliation. The derived SVG was rendered and visually
+  inspected; Mermaid source was reviewed without a local renderer.
+- The prepared bundle remains local and ignored. Package version and original
+  tags are unchanged. Real-user and live-provider gates remain open.
+- Pull-request/hosted-check and merged-tree closeout are pending.

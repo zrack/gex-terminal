@@ -5,6 +5,11 @@ This guide owns preparation and handoff of one exact offline first-use build.
 participant selection and consent. [First Run](first-run.md) owns installation
 and the application journey. A prepared bundle is not a completed user study.
 
+The prepared [September 20 build record](studies/offline-first-use-2026-09-20.md)
+identifies the repaired wheel, frozen materials, fixture hashes and rehearsal.
+Use that exact artifact for this cohort; rebuilding creates a new candidate
+unless its wheel and declared material/runtime identities match.
+
 ## Freeze the source and materials
 
 Use a reviewed commit containing the [replay-picker repair](work-packets/GEX-UX-001.md).

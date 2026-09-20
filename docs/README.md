@@ -17,6 +17,7 @@ status checklists into multiple files.
 | Market evidence | [Competitive Analysis](market-analysis.md) | Dated competitor/persona evidence and implications; not active delivery status |
 | Customer validation | [Product Validation](product-validation.md) | Interview/tasks, matched-fidelity concepts, scorecard, rights questions and assumption-based economics |
 | Study build handoff | [Study Build](study-build.md) | Exact source/wheel/runtime and frozen materials, automated rehearsal and build-record routing |
+| Dated study build evidence | [Study build records](studies/offline-first-use-2026-09-20.md) | Immutable artifact identities and technical rehearsal results; no private participant records |
 | Install and first use | [First Run](first-run.md) | Reviewed wheel path, guided journey, supported terminal sizes and package lifecycle |
 | Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
 | Local support and recovery | [Local Support](local-support.md) | Shareable diagnostics versus private backup, whole-artifact retention, recovery and credential/uninstall boundaries |
