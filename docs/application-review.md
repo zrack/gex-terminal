@@ -1,9 +1,9 @@
 # Application State And Health Review
 
-Updated September 13, 2026 for the replay-picker follow-up to
-`0.5.0 — Offline Research Foundation`. This document owns the dated state
-assessment and verification limits; the September 4 release evidence is retained
-below rather than presented as verification of the later repair.
+Updated September 20, 2026 for the frozen offline study build following the
+replay-picker repair to `0.5.0 — Offline Research Foundation`. This document owns
+the dated state assessment and verification limits; earlier release evidence is
+retained below rather than presented as verification of later changes.
 [Architecture](architecture.md) owns implementation structure;
 [Roadmap](../ROADMAP.md) owns remaining work. Earlier assessments remain in Git.
 
@@ -30,6 +30,13 @@ commitment or commercial pilot was performed. Databento remains
 `live-uncertified`; predictive validity remains `unmeasured`. The next product
 evidence is observed use of the offline loop, not another broad feature layer.
 
+The [September 20 study build](studies/offline-first-use-2026-09-20.md) now freezes
+the repaired wheel, runtime, synthetic inputs and scoring materials. Its
+fresh-environment rehearsal and 435 source tests passed. Heading-link checks
+protect documentation navigation; architecture/C4 and contributor guidance now
+make diagram and document ownership explicit. These are preparation and
+maintenance results, with participant acceptance still unmeasured.
+
 ## Current state
 
 | Area | Observed state | Limit |
@@ -42,7 +49,7 @@ evidence is observed use of the offline loop, not another broad feature layer.
 | Distribution | Reviewed wheel path, cross-version pack check, lifecycle harness and guided journey | Customer distribution choice and observed activation remain open |
 | Local launcher | Regular 0.5.0 wheel replaces the faulty editable install; version and doctor succeed | The original macOS hidden `.pth` condition is diagnosed, not claimed permanently fixed for editable installs |
 | Support and lifecycle | Redacted diagnostics; verified owner-only backup/restore; whole-group retention bound to a verified backup and exact confirmation | POSIX safety support only; no general database, automatic migration or licensed-capture lifecycle claim |
-| Product preparation | Study kit, matched paper concepts, scorecard, rights questions and scenario worksheet prepared | No demand, price, margin, license or conversion measurement |
+| Product preparation | Study kit and exact repaired wheel/runtime/materials frozen; ES/NQ installed-wheel rehearsal passed | No participant activation, demand, price, margin, license or conversion measurement |
 | Live preparation | Strict local plan/result contracts bind a declared 12-slot ES population, policy/runtime identity and failed/missed attempts | No execution, report-byte authentication, complete-history proof or external authority |
 | Live readiness | Databento uncertified; Tradovate/IBKR scaffolded; yfinance delayed | No supported recurring live operating envelope |
 
@@ -76,8 +83,8 @@ remain explicit.
   Python major/minor and dependency versions. Same-version hashes alone do not
   guarantee parity after a correctness change; reproduction compares results.
 - **Repair identity:** the original `v0.5.0` tag/wheel does not include the later
-  keyboard repair. A study must freeze the accepted repaired commit, wheel
-  digest and environment; package version `0.5.0` alone is not its identity.
+  keyboard repair. Use the exact [study build record](studies/offline-first-use-2026-09-20.md);
+  package version `0.5.0` alone is not its identity.
 - **Corpus:** omitted `as_of` can be valid registration metadata, but corpus
   verification reports evaluation eligibility `not_assessed`. Empirical use
   requires the source-specific cutoff/availability gates in

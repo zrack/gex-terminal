@@ -63,6 +63,7 @@ gex-terminal doctor
 No credentials or optional provider extras are needed for offline use. Follow
 [First Run](docs/first-run.md) for the guided journey, update and uninstall.
 Developers start with [Contributing](CONTRIBUTING.md).
+Maintainers preparing observed first use follow [Study Build](docs/study-build.md).
 
 ## Quick Start
 

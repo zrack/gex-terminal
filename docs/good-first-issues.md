@@ -72,30 +72,7 @@ Verification:
 gex-terminal demo-lab /tmp/gex-readme-preview --replay-session zero-gamma-flip
 ```
 
-## 3. Validate Markdown Heading Links
-
-Labels: `good first issue`, `help wanted`, `documentation`, `testing`
-
-Summary:
-Extend the documentation link contract to verify local `#heading` fragments in
-addition to file existence.
-
-Why it helps:
-The documentation index now links many canonical guides. A renamed heading can
-break navigation even when the target file still exists.
-
-Suggested scope:
-- Extend `DocumentationLinkContractTests` in `tests/test_release_contract.py`.
-- Normalize common GitHub-style Markdown heading fragments deterministically.
-- Add focused valid and invalid fragment cases without checking external URLs.
-
-Verification:
-
-```bash
-python -m unittest -v tests.test_release_contract.DocumentationLinkContractTests
-```
-
-## 4. Document One Provider Payload Shape
+## 3. Document One Provider Payload Shape
 
 Labels: `good first issue`, `help wanted`, `adapter`, `documentation`
 
@@ -121,3 +98,5 @@ python -m unittest -v tests.test_provider_fixture_lab
 The previously proposed dedicated NQ replay is now shipped as
 `nq-research-loop`; see [Demo Lab](demo-lab.md). Choose a distinct regression or
 scenario instead of duplicating its fixture.
+Local heading-link validation is maintained by
+`DocumentationLinkContractTests`; it is no longer an unassigned starter task.

@@ -16,6 +16,8 @@ status checklists into multiple files.
 | Durable direction | [Product Vision](product-vision.md) | Target users, product outcomes, and non-goals without implementation status |
 | Market evidence | [Competitive Analysis](market-analysis.md) | Dated competitor/persona evidence and implications; not active delivery status |
 | Customer validation | [Product Validation](product-validation.md) | Interview/tasks, matched-fidelity concepts, scorecard, rights questions and assumption-based economics |
+| Study build handoff | [Study Build](study-build.md) | Exact source/wheel/runtime and frozen materials, automated rehearsal and build-record routing |
+| Dated study build evidence | [Study build records](studies/offline-first-use-2026-09-20.md) | Immutable artifact identities and technical rehearsal results; no private participant records |
 | Install and first use | [First Run](first-run.md) | Reviewed wheel path, guided journey, supported terminal sizes and package lifecycle |
 | Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
 | Local support and recovery | [Local Support](local-support.md) | Shareable diagnostics versus private backup, whole-artifact retention, recovery and credential/uninstall boundaries |
@@ -33,7 +35,8 @@ status checklists into multiple files.
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. Closed [GEX-UX-001](work-packets/GEX-UX-001.md) owns the replay-picker
+active. Closed [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) owns the study-build and
+documentation slice. Closed [GEX-UX-001](work-packets/GEX-UX-001.md) owns the replay-picker
 keyboard repair and its verification. Closed [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) owns the
 offline release record; the closed preflight, support, installation and
 research-loop packets own their contributor evidence. `GEX-HEALTH-001` through `005` record
@@ -58,6 +61,8 @@ offline live-population contract that supports that later external gate.
 ### Work Offline
 
 - [First Run](first-run.md) — wheel installation and the guided research loop.
+- [Study Build](study-build.md) — freeze a reviewed wheel and materials before
+  observed first use; the protocol remains in Product Validation.
 - [Doctor](doctor.md) — safe text/JSON installation checks without provider I/O.
 - [Local Support](local-support.md) — safe diagnostics and private lifecycle.
 - [Replay Research](replay-research.md) — choose the right replay or local
@@ -120,6 +125,9 @@ offline live-population contract that supports that later external gate.
   README may summarize user-visible capabilities and readiness.
 - Put future sequencing only in the roadmap and completed delivery only in the
   changelog or a closed packet.
+- Keep dated build identities and rehearsal evidence in study build records;
+  the reusable protocol owns scoring, and private participant records stay out
+  of the repository.
 - Keep detailed normalized payload examples in `adapters.md`; provider-specific
   guides should document mapping differences rather than copy the base schema.
 - Keep equations and metric semantics in `model-assumptions.md`.

@@ -6,7 +6,7 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
-Priorities reviewed September 13, 2026 against the `0.5.0` baseline.
+Priorities reviewed September 20, 2026 against the repaired `0.5.0` baseline.
 [Changelog](CHANGELOG.md) and [Application Review](docs/application-review.md)
 own delivered capabilities and verification; [GEX-UX-001](docs/work-packets/GEX-UX-001.md)
 owns the bounded replay-picker repair and its acceptance. The future work below
@@ -18,9 +18,10 @@ demand-driven product choice.
 Do not add another broad feature layer before testing the completed offline
 loop with real users. Correctness regressions still interrupt product work.
 Prepared protocols are ready to use, but preparation is not a passed gate.
-Before observed first use, freeze the exact reviewed repaired commit, wheel
-digest and test environment. The original `v0.5.0` tag or
-an application version of `0.5.0` alone does not identify a build with the repair.
+For observed first use, use the exact reviewed repaired build and frozen
+materials identified through [Study Build](docs/study-build.md). The original
+`v0.5.0` tag or an application version of `0.5.0` alone does not identify a build
+with the repair. Build preparation is separate from participant acceptance.
 
 | Order | Work | Why now | Completion evidence |
 | --- | --- | --- | --- |
@@ -190,9 +191,9 @@ Current command and compatibility contracts live in [First Run](docs/first-run.m
 
 ### Remaining acceptance
 
-- Use one reviewed repaired build for the study, with its commit and wheel
-  digest recorded alongside the [Product Validation](docs/product-validation.md)
-  environment and scoring key. Treat a subsequent build change as a separate
+- Use the frozen [study build](docs/study-build.md) and
+  [Product Validation](docs/product-validation.md) scoring key for the cohort.
+  Record the actual participant environment. Treat a subsequent build change as a separate
   cohort; keyboard regressions are not unaided user acceptance.
 - Observe a new user installing without a checkout, reaching a correct replay
   insight in under ten minutes, and completing the scoped loop in under fifteen

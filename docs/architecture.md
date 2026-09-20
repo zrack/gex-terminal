@@ -4,6 +4,101 @@
 state ownership, model calculation, terminal rendering, and export/report
 workflows stay separated.
 
+This document owns the current architecture, including the C4 views below.
+The diagrams describe shipped source; roadmap items and product concepts are
+not deployed components. The [visual asset guide](../assets/README.md) records
+the source and purpose of the derived SVGs.
+
+## C4 Views
+
+### System Context
+
+The researcher operates a local workbench. Synthetic replay, calculation,
+comparison, export, and reproduction require no provider connection. Provider
+systems are optional external dependencies for separately configured data paths.
+
+```mermaid
+flowchart LR
+    researcher["Researcher / study participant"]
+    workbench["gex-terminal<br/>Local research workbench"]
+    providers["External market-data providers<br/>Optional configured connection"]
+    researcher -->|Run commands and use terminal controls| workbench
+    workbench -->|Inspectable metrics and local research artifacts| researcher
+    providers -.->|Provider-specific data through adapters| workbench
+```
+
+Provider availability, credentials, rights, and readiness are documented in
+[Market-Data Adapters](adapters.md). The study build uses the offline path in
+[Study Build](study-build.md); participant observations remain separate from
+software verification.
+
+### Containers And Local Storage
+
+There is one executable application container in the C4 sense: a local Python
+process launched by `gex-terminal`. The Textual UI, adapters, consumer, engine,
+and research commands are modules within that process. Local files below are
+storage boundaries, not separately deployed services. No hosted API or database
+is required by the current application.
+
+```mermaid
+flowchart LR
+    researcher["Researcher"]
+    providers["External providers"]
+    subgraph local["Researcher's machine"]
+        application["gex-terminal<br/>Python CLI / Textual application"]
+        package[("Installed package resources<br/>Synthetic JSONL and sanitized fixtures")]
+        files[("Local research files<br/>Inputs, packs, manifests, journals and exports")]
+    end
+    researcher -->|Terminal commands and keyboard| application
+    package -->|Read bundled input| application
+    files -->|Replay, verify or reproduce input| application
+    application -->|Write artifacts on request| files
+    providers -.->|Optional live or delayed provider path| application
+```
+
+Configuration is loaded locally by `config.py`; provider secrets remain outside
+the package and research artifacts. Installation uses Python package
+dependencies, while running the frozen replay study needs no data-provider I/O.
+The package/resource boundary is verified from a wheel outside the checkout.
+
+### Application Components
+
+This view expands the application container. Arrows name calls or data flow;
+they do not imply a separate process for each module. CLI commands select the
+required subset of these components.
+
+```mermaid
+flowchart TB
+    cli["CLI + validated configuration<br/>cli.py / config.py"]
+    intake["Replay / provider intake<br/>adapters / provider_injector / databento_offline"]
+    consumer["StatefulGexConsumer<br/>Sole owner of mutable market state"]
+    engine["IntradayGexEngine + regime<br/>Contract pricing and structural levels"]
+    tui["Textual terminal<br/>tui.py"]
+    research["Offline research workflows<br/>Labs, comparisons and reports"]
+    identity["Research identity and governance<br/>Profiles, experiments, corpus and receipts"]
+    exports["Artifact writers<br/>Snapshots, packs, journals and session store"]
+    cli -->|Select and start source| intake
+    cli -->|Start terminal and transfer replay task ownership| tui
+    cli -->|Dispatch requested workflow| research
+    intake -->|Versioned normalized messages| consumer
+    consumer -->|Price selected rows; derive levels| engine
+    tui -->|Request snapshots and controlled replay replacement| consumer
+    tui -->|Load selected replay after prior writer settles| intake
+    research -->|Use normalized or provider-shaped input| intake
+    research -->|Request derived snapshots| consumer
+    identity -->|Validate inputs; bind workflow identity| research
+    research -->|Write derived results| exports
+    tui -->|Export current snapshot| exports
+```
+
+The seeded demo writes synthetic messages directly through the consumer rather
+than opening an adapter. Capture optionally wraps intake with
+`RecordingConsumerProxy`; live capture first requires its approved policy
+identity. The component view omits individual command helpers; the inventory
+below identifies their source modules. Corpus verification and some report
+commands inspect files without running the model, and are not additional
+writers of market state.
+
 ## Repository Map
 
 | Path | Architectural role |
@@ -267,6 +362,12 @@ Generated output stays local by default under ignored folders such as
 
 ![Offline research authority and evidence flow](../assets/offline-research-architecture.svg)
 
+This SVG is a derived summary of this section and
+[Research Governance](research-governance.md). Experiment/receipt orchestration
+owns result identity; the consumer and engine do not create manifests or semantic
+digests. Corpus registration is an independently verified registry, not an
+automatic prerequisite or selector for every experiment.
+
 Provider readiness is not runtime connection status. The readiness vocabulary
 is `offline-certified`, `delayed`, `scaffold`, `live-uncertified`, and
 `live-certified`. Runtime state includes `SIM`, `REPLAY`, `CONNECTED`, `LIVE`,
@@ -316,6 +417,10 @@ and live-source sessions cannot switch replay.
 - Keep artifact format changes in the relevant export/report module.
 - Update README only for user-facing workflows; put implementation detail in
   docs like this one.
+- Keep these C4 views, the component inventory, and derived architecture assets
+  consistent in the same change whenever a source or ownership boundary changes.
+  Record architectural decisions in `docs/decisions/`; record future sequencing
+  in the roadmap and completed delivery in the changelog or closed packet.
 
 ## Verification Map
 
@@ -336,3 +441,7 @@ and live-source sessions cannot switch replay.
 | Logging and recursive redaction | `tests/test_safety_controls.py` |
 | Batch/property/fault/performance gates | `tests/test_batch_comparison.py`, `tests/test_offline_certification_extensions.py` |
 | Wheel resources and release metadata | `tests/test_release_contract.py`, CI installed-wheel smoke workflow |
+| Documentation paths and heading destinations | `tests/test_release_contract.py` (`DocumentationLinkContractTests`) |
+
+For diagrams, also inspect the rendered Mermaid and SVG layout. A passing link
+check cannot establish that an architectural relationship matches source code.

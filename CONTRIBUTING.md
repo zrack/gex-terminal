@@ -19,6 +19,11 @@ is not financial advice.
 - Improve documentation around assumptions, formulas, and limitations.
 - Report bugs with reproducible inputs and expected behavior.
 
+Use the [documentation map](docs/README.md) to find the owning guide before
+editing. The [current architecture](docs/architecture.md#c4-views) shows system,
+container, and component boundaries; all runtime modules belong to one local
+application.
+
 ## Local Setup
 
 Create and activate a virtual environment:
@@ -146,6 +151,55 @@ outside the checkout, and exercise `gex-terminal --version`, a named replay,
 and `fixture-lab`. Bundled data must resolve from package resources rather than
 the repository working directory.
 
+For documentation changes, check local files and Markdown heading destinations:
+
+```bash
+python -m unittest -v tests.test_release_contract.DocumentationLinkContractTests
+git diff --check
+```
+
+When renaming a heading, update incoming `#heading` links as part of the change.
+The tests verify local destinations; inspect rendered diagrams separately and
+check architectural claims against the source modules.
+The bounded parser covers inline links/images and ordinary ATX/Setext headings,
+including duplicate heading IDs. Reference-style links, raw HTML anchors and
+headings nested in lists or quotes require manual review.
+
+For a participant handoff, follow [Study Build](docs/study-build.md) to freeze
+the source commit, wheel checksum, dependency environment, and synthetic inputs,
+then rehearse the installed wheel outside the checkout. The
+[study protocol](docs/product-validation.md) owns participant tasks and the
+scorecard. A maintainer rehearsal is implementation evidence, not a completed
+participant session or a new release.
+
+## Documentation And Diagram Ownership
+
+Update the canonical owner and the affected links in the same pull request:
+
+| Change | Owning document or artifact |
+| --- | --- |
+| Install, quick start, or front-door routing | [README](README.md), linking to [First Run](docs/first-run.md) and the [documentation map](docs/README.md) for detail |
+| Current components, state ownership, runtime flows, or C4 views | [Architecture](docs/architecture.md) |
+| Durable architectural decision and rationale | `docs/decisions/`, linked from the affected architecture section |
+| Derived diagrams, screenshots, or visual concepts | `assets/`, with owner and reproduction/source notes in [Visual Assets](assets/README.md) |
+| Study preparation and frozen-build handoff | [Study Build](docs/study-build.md) |
+| Participant protocol, observations, or study interpretation | [Product Validation](docs/product-validation.md) and the study's retained scorecards |
+| Future outcomes, sequence, dependencies, or exit criteria | [Roadmap](ROADMAP.md) |
+| Merged work, release history, or delivery evidence | [Changelog](CHANGELOG.md) or the relevant closed `docs/work-packets/` record |
+| Commands, schemas, model assumptions, or provider mapping | The relevant topic guide listed in [Documentation Map](docs/README.md) |
+
+Keep architecture diagrams and prose consistent with shipped code. Update all
+affected C4 levels and derived SVGs when a boundary changes; label optional
+provider connections, local storage, and evidence limits. A Python module is
+not an independently deployed service. Put proposed architecture in an explicit
+decision/proposal linked from the roadmap until it is implemented.
+
+Do not turn the README into a command manual or copy release logs into the
+roadmap. Move detail to its owner and leave a short link where readers need it.
+Keep generated study logs, wheel artifacts, and participant records outside the
+committed documentation; retain their identities and locations in the study
+handoff record as described by the build guide.
+
 ## Development Guidelines
 
 This repository follows the local SAED 1.3 adoption profile in
@@ -223,6 +277,12 @@ Before opening a pull request, please confirm:
 - New behavior is documented in its canonical topic guide. Update the README
   only when the front-door install, quick-start, status, or workflow routing
   changes.
+- Local file and heading links pass validation; renamed headings have updated
+  incoming links.
+- Architectural changes reconcile the C4 views, component/ownership prose, and
+  any affected derived SVG; screenshots and mockups retain their evidence labels.
+- Study-build handoffs identify the tested commit, wheel, environment and input
+  hashes without claiming participant results from an automated rehearsal.
 - Calculation changes include tests or clearly described manual verification.
 - Model evidence still reports predictive market validity as `unmeasured`
   unless a separate, reviewable validation design proves a narrower claim.

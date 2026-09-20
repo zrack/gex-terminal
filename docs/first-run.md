@@ -18,7 +18,8 @@ For the replay-picker keyboard repair, obtain a wheel built from the accepted
 [GEX-UX-001](work-packets/GEX-UX-001.md) commit and record that commit and the
 wheel SHA-256. The package version remains `0.5.0`; the original `v0.5.0` wheel
 does not contain this later repair. Version output alone cannot distinguish
-the builds. Freeze the repaired wheel before an observed first-use study.
+the builds. [Study Build](study-build.md) owns the frozen artifact and materials
+handoff for observed first use.
 
 Create a dedicated application folder outside your research folder. Substitute
 the actual supplied wheel path; do not type the placeholder literally:

@@ -58,6 +58,8 @@ live behavior, delivered alerts or paid access.
 ## Observed application task (at least six participants)
 
 Use [First Run](first-run.md), the same pinned wheel and a fresh environment.
+[Study Build](study-build.md) owns the exact artifact, frozen materials and
+automated rehearsal record; this document owns tasks and scoring.
 Before recruiting, freeze the wheel SHA-256, application version, OS/architecture,
 Python version and fixture identity, along with the scoring key below. Record
 any build change as a separate cohort rather than changing the task mid-study.
