@@ -61,6 +61,16 @@ the package and research artifacts. Installation uses Python package
 dependencies, while running the frozen replay study needs no data-provider I/O.
 The package/resource boundary is verified from a wheel outside the checkout.
 
+The optional setup helper, `scripts/install_app.py`, installs an explicitly
+supplied wheel into an owned application folder. It verifies a fresh environment
+before changing the active launch target and keeps research in a separate
+directory. `scripts/build_app_bundle.py` prepares a local handoff containing that
+helper, the wheel and an optional dependency wheelhouse. These are setup tools,
+not another deployed service or package registry. The generated offline launcher
+initializes configuration in an empty working directory with provider settings
+excluded, then writes requested exports in the selected research directory.
+Direct `gex-terminal` invocations retain their existing configuration behavior.
+
 ### Application Components
 
 This view expands the application container. Arrows name calls or data flow;
@@ -134,7 +144,7 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Capture and research authority | `gex_terminal/capture_governance.py`, `gex_terminal/session_capture.py`, `gex_terminal/model_profiles.py`, `gex_terminal/experiment_manifest.py`, `gex_terminal/research_corpus.py` | Fail closed on ambiguous live-capture decisions, bind captures to policy identity, validate versioned assumptions, and maintain reproducible experiment and append-only corpus identity. |
 | Runtime safety | `gex_terminal/logging_config.py`, `gex_terminal/redaction.py` | Configure warning-level process logging by default and recursively sanitize secrets, sensitive identifiers, and labeled private payload fields before configured log or certification output. |
 | Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
-| Terminal UI | `gex_terminal/tui.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows, first-run guidance, replay browser, model-assumption controls, feed quality, event log, and exports. |
+| Terminal UI | `gex_terminal/tui.py`, `gex_terminal/tui_views.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows and responsive layout; present focused replay/help views, model controls, source and quality context, event history and exports. |
 | Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py`, `gex_terminal/batch_comparison.py` | Produce replay, demo, provider-fixture, and multi-session model-comparison reports without live credentials. |
 | Portable research receipt | `gex_terminal/demo_lab_receipt.py` | Bind authorized copied replay, model/runtime identity, exact inventory and semantic content; reject unsupported or changed packs before reproduction. |
 | Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, and historical records from normalized state. |
@@ -413,7 +423,7 @@ and live-source sessions cannot switch replay.
   comparison, evaluation, IV, or profile changes belong in their focused model
   modules. Add independent oracles, deterministic fixtures, and the applicable
   evidence coverage.
-- Keep terminal presentation changes in `tui.py` and `gex_terminal.tcss`.
+- Keep terminal presentation changes in `tui.py`, `tui_views.py` and `gex_terminal.tcss`.
 - Keep artifact format changes in the relevant export/report module.
 - Update README only for user-facing workflows; put implementation detail in
   docs like this one.
@@ -441,6 +451,7 @@ and live-source sessions cannot switch replay.
 | Logging and recursive redaction | `tests/test_safety_controls.py` |
 | Batch/property/fault/performance gates | `tests/test_batch_comparison.py`, `tests/test_offline_certification_extensions.py` |
 | Wheel resources and release metadata | `tests/test_release_contract.py`, CI installed-wheel smoke workflow |
+| Reviewed-wheel setup and launch handoff | `tests/test_install_app.py`, `tests/test_app_bundle.py`; fresh-folder installation and repeated setup in the CI lifecycle step |
 | Maintainer preview automation | `tests/test_refresh_previews.py`; staged synthetic previews and local provenance manifest |
 | Retained CI evidence | `tests/test_ci_evidence.py`; bounded synthetic inventory and explicit failed/missing outputs |
 | Documentation paths and heading destinations | `tests/test_release_contract.py` (`DocumentationLinkContractTests`) |

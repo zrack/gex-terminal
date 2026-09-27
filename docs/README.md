@@ -11,6 +11,7 @@ status checklists into multiple files.
 | Project front door | [README](../README.md) | Positioning, evidence boundary, install, quick start, and links to detailed guides |
 | Current system | [Architecture](architecture.md) | Repository map, component responsibilities, runtime flows, state ownership, and verification map |
 | Application health | [Application Review](application-review.md) | Latest dated state assessment, open review findings, reproductions, and verification limits |
+| Setup and interface review | [Deployment And Terminal Experience Review](deployment-ux-review.md) | Dated setup and screen findings, implemented responses, captured views and remaining experience limits |
 | Planned work | [Roadmap](../ROADMAP.md) | Now/next/later sequencing, dependencies, and exit criteria for work not yet shipped |
 | Shipped history | [Changelog](../CHANGELOG.md) | Released or merged capabilities and version history |
 | Durable direction | [Product Vision](product-vision.md) | Target users, product outcomes, and non-goals without implementation status |
@@ -35,7 +36,8 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. Closed packets are historical evidence and do not make a roadmap item
+change. [GEX-UX-002](work-packets/GEX-UX-002.md) owns the current setup and terminal
+experience improvement. Closed packets are historical evidence and do not make a roadmap item
 active. Closed [GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md) owns the offline
 verification and maintainer-automation slice. Closed [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) owns the study-build and
 documentation slice. Closed [GEX-UX-001](work-packets/GEX-UX-001.md) owns the replay-picker

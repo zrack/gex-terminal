@@ -11,7 +11,7 @@ from tests.test_tui_first_run import _config
 
 class TerminalSizeTests(unittest.IsolatedAsyncioTestCase):
     async def test_supported_sizes_expose_table_quality_and_replay_controls(self):
-        for size in ((140, 42), (160, 48), (180, 54)):
+        for size in ((100, 32), (120, 36), (140, 42), (160, 48), (180, 54)):
             with self.subTest(size=size):
                 consumer = StatefulGexConsumer(IntradayGexEngine(), data_mode="demo")
                 await seed_demo_session(consumer)
@@ -21,6 +21,8 @@ class TerminalSizeTests(unittest.IsolatedAsyncioTestCase):
                     table = app.query_one("#gex-table", DataTable)
                     self.assertGreater(table.row_count, 0)
                     self.assertGreaterEqual(table.content_size.height, 3)
+                    self.assertEqual(list(table.columns.values())[-1].label.plain, "Net GEX")
+                    self.assertEqual(table.max_scroll_x, 0, "Default table must expose net values without horizontal scrolling")
                     for selector in ("#gex-table", "#matrix-controls", "#quality-summary"):
                         widget = app.query_one(selector)
                         self.assertTrue(widget.visible)
@@ -42,15 +44,15 @@ class TerminalSizeTests(unittest.IsolatedAsyncioTestCase):
         app = GexTerminalApp(consumer, _config())
         async with app.run_test(size=(80, 24)) as pilot:
             await pilot.pause()
-            for width, height in ((80, 24), (120, 40)):
+            for width, height in ((80, 24), (99, 32), (120, 31)):
                 await pilot.resize_terminal(width, height)
                 await pilot.pause()
                 warning = app.query_one("#minimum-size-message", Static)
                 self.assertTrue(warning.display)
-                self.assertIn("140 × 42", str(warning.content))
+                self.assertIn("100 × 32", str(warning.content))
                 self.assertFalse(app.query_one("#dashboard").display)
             count = consumer.message_count
-            await pilot.resize_terminal(140, 42)
+            await pilot.resize_terminal(100, 32)
             await pilot.pause()
             self.assertFalse(app.query_one("#minimum-size-message").display)
             self.assertTrue(app.query_one("#dashboard").display)

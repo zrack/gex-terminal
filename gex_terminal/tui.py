@@ -6,11 +6,12 @@ from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable
+from uuid import uuid4
 
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Grid, Vertical
+from textual.containers import Container, Grid, Vertical, VerticalScroll
 from textual.events import Resize
 from textual.screen import Screen
 from textual.timer import Timer
@@ -28,31 +29,35 @@ from gex_terminal.regime import build_regime_map
 from gex_terminal.provider_readiness import runtime_provider_readiness
 from gex_terminal.snapshot import build_snapshot, write_snapshot
 from gex_terminal.table_rows import arrange_rows, filter_rows, sort_rows
+from gex_terminal.tui_views import ReplayPicker, ResearchInfo
 
 
 class GexTerminalApp(App):
     """A real-time terminal interface tracking intraday option gamma imbalances."""
 
-    TITLE = "Intraday GEX Imbalance Terminal"
+    TITLE = "GEX / RESEARCH"
     CSS_PATH = str(Path(__file__).with_name("gex_terminal.tcss"))
     FIRST_RUN_REPLAY = "zero-gamma-flip"
-    MINIMUM_TERMINAL_SIZE = (140, 42)
+    MINIMUM_TERMINAL_SIZE = (100, 32)
 
     BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("r", "refresh_terminal_data", "Refresh"),
+        Binding("p", "cycle_replay_session", "Open replay", priority=True),
         ("s", "cycle_sort", "Sort"),
         ("f", "cycle_filter", "Filter"),
-        ("p", "cycle_replay_session", "Replay"),
+        ("e", "export_snapshot", "Save"),
+        ("v", "show_research_details", "Details"),
+        ("question_mark", "show_help", "Help"),
+        ("q", "quit", "Quit"),
+        Binding("r", "refresh_terminal_data", "Refresh", show=False),
         Binding("up", "replay_browser_up", "Up", priority=True),
         Binding("down", "replay_browser_down", "Down", priority=True),
         Binding("enter", "select_replay_session", "Load", priority=True),
         Binding("escape", "close_replay_browser", "Close", priority=True),
-        ("d", "cycle_expiry_assumption", "DTE"),
-        ("x", "cycle_expiry_filter", "Expiry"),
-        ("m", "cycle_multiplier_assumption", "Mult"),
-        ("i", "cycle_rate_assumption", "Rate"),
-        ("e", "export_snapshot", "Export"),
+        Binding("d", "cycle_expiry_assumption", "DTE", show=False),
+        Binding("x", "cycle_expiry_filter", "Expiry", show=False),
+        Binding("m", "cycle_multiplier_assumption", "Mult", show=False),
+        Binding("i", "cycle_rate_assumption", "Rate", show=False),
+        Binding("c", "toggle_columns", "Columns", show=False),
     ]
 
     SORT_MODES = ("strike", "net", "volume")
@@ -99,41 +104,41 @@ class GexTerminalApp(App):
         self._replay_browser_index = self._initial_browser_index()
         self._refresh_screen_owner: Screen | None = None
         self._refresh_timer: Timer | None = None
+        self._replay_picker: ReplayPicker | None = None
+        self._full_columns_override: bool | None = None
+        self._table_compact: bool | None = None
+        self._last_export: Path | None = None
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield Header(show_clock=False)
+        yield Static("", id="session-summary")
         yield Static("", id="minimum-size-message")
 
         with Grid(id="dashboard"):
             with Vertical(id="sidebar"):
-                yield Static("SYMBOLS", classes="rail-label")
-                for symbol in self._symbols:
-                    classes = "symbol symbol-active" if symbol == self.consumer.target_underlying else "symbol"
-                    yield Static(f"{symbol:<8}0DTE", classes=classes)
-
-                yield Static("FEED HEALTH", classes="rail-label")
+                # Retained diagnostics, available in Details without a decorative symbol rail.
                 yield Static("* WebSocket\n  awaiting ticks", id="feed-websocket", classes="feed-line")
                 yield Static("* Option chain\n  no contracts", id="feed-chain", classes="feed-line")
-                yield Static("* OI proxy\n  volume weighted", id="feed-proxy", classes="feed-line")
+                yield Static("* Volume proxy\n  selected quantity", id="feed-proxy", classes="feed-line")
                 yield Static("* State lock\n  clean", id="feed-lock", classes="feed-line")
 
             with Grid(id="top-metrics"):
-                yield self._metric("Underlying", "--", "--", self.config.symbol, "stat-spot")
-                yield self._metric("Net GEX", "--", "$ / 1%", "positive gamma regime", "stat-netgex")
-                yield self._metric("Gamma Wall", "--", "strike", "largest absolute exposure", "stat-wall")
-                yield self._metric("Zero Gamma", "--", "node", "volatility inflection", "stat-zero")
+                yield self._metric("Underlying", "--", "", self.config.symbol, "stat-spot")
+                yield self._metric("Net GEX", "--", "", "$ per 1% move · proxy", "stat-netgex")
+                yield self._metric("Gamma Wall", "--", "", "Peak absolute GEX", "stat-wall")
+                yield self._metric("Zero Gamma", "--", "", "Strike-profile level", "stat-zero")
                 yield self._metric("Imbalance", "--", "C/P", "call/put balance", "stat-imbalance")
                 yield self._metric("Latency", "--", "p95", "async queue stable", "stat-latency")
 
             with Vertical(id="matrix-panel"):
-                yield Static("Strike Gamma Exposure Matrix", classes="section-title")
+                yield Static("STRIKE EXPOSURE", classes="section-title")
                 yield Static("waiting for runtime configuration", id="matrix-meta", classes="subtle")
                 yield Static("", id="matrix-controls", classes="subtle")
                 yield Static("", id="matrix-state", classes="state-banner")
                 yield DataTable(id="gex-table")
 
-            with Vertical(id="structure-panel"):
-                yield Static("Market Structure", classes="section-title")
+            with VerticalScroll(id="structure-panel"):
+                yield Static("RESEARCH CONTEXT", classes="section-title")
                 yield Static("computed after next snapshot", id="structure-meta", classes="subtle")
                 yield Static("", id="dealer-regime", classes="zone-card")
                 yield Static("", id="balance-pressure", classes="zone-card")
@@ -141,13 +146,14 @@ class GexTerminalApp(App):
                 yield Static("", id="regime-map", classes="regime-card")
 
             with Vertical(id="flow-panel"):
-                yield Static("Session GEX Flow", classes="section-title")
-                yield Static("rolling 36 intervals", classes="subtle")
+                yield Static("GEX / RECENT SNAPSHOTS", classes="section-title")
+                yield Static("36 refreshes · selected proxy", classes="subtle")
                 yield Sparkline([], min_color="#fb7185", max_color="#38bdf8", id="gex-flow")
+                yield Static("Waiting for a snapshot", id="flow-message")
 
             with Vertical(id="quality-panel"):
-                yield Static("Provider Health", classes="section-title")
-                yield Static("feed quality checks", classes="subtle")
+                yield Static("SOURCE HEALTH", classes="section-title")
+                yield Static("v opens full diagnostics", classes="subtle")
                 yield Static("", id="quality-summary", classes="quality-card")
 
             with Vertical(id="event-panel"):
@@ -165,24 +171,18 @@ class GexTerminalApp(App):
             Static(header, classes="metric-label"),
             Static(value, id=value_id, classes="metric-value"),
             Static(foot, id=f"{value_id}-foot", classes="metric-foot"),
-            classes="metric-card",
+            classes="metric-card secondary-metric" if value_id in {"stat-imbalance", "stat-latency"} else "metric-card",
         )
 
     def on_mount(self) -> None:
-        self.title = "Intraday GEX Imbalance Terminal"
+        self.title = self.TITLE
         self.sub_title = (
             f"{self.config.symbol} · {self._workflow_label()} · CUMULATIVE SESSION VOLUME"
         )
         table = self.query_one("#gex-table", DataTable)
         table.cursor_type = "row"
         table.zebra_stripes = True
-        table.add_column("Strike", width=12)
-        table.add_column("Call Vol", width=10)
-        table.add_column("Put Vol", width=10)
-        table.add_column("Gamma", width=10)
-        table.add_column("Call GEX", width=12)
-        table.add_column("Put GEX", width=12)
-        table.add_column("Net GEX", width=18)
+        self._configure_table()
         self.query_one("#matrix-state", Static).display = False
         self._render_controls()
         self._render_first_run_guide(self.consumer.runtime_status)
@@ -214,7 +214,7 @@ class GexTerminalApp(App):
         screen = self._refresh_screen_owner
         if screen is None:
             return
-        screen.set_class(width < 180 or height < 54, "compact")
+        screen.set_class(width < 140 or height < 42, "compact")
         screen.query_one("#dashboard").display = supported
         message = screen.query_one("#minimum-size-message", Static)
         message.display = not supported
@@ -224,6 +224,35 @@ class GexTerminalApp(App):
             "Offline reports work without the dashboard:\n"
             "gex-terminal demo-lab my-research\n\nPress q to quit."
         )
+        self._configure_table(width)
+
+    def _configure_table(self, width: int | None = None) -> None:
+        compact = not self._full_columns_override if self._full_columns_override is not None else (width or self.size.width) < 140
+        if compact == self._table_compact:
+            return
+        table = self.query_one("#gex-table", DataTable)
+        selected = self._selected_strike_key(table)
+        table.clear(columns=True)
+        columns = [("Strike", 12), ("Call qty", 9), ("Put qty", 9)]
+        if not compact:
+            columns.extend([("Gamma", 10), ("Call GEX", 12), ("Put GEX", 12)])
+        columns.append(("Net GEX", 18))
+        for label, cell_width in columns:
+            table.add_column(label, width=cell_width)
+        self._table_compact = compact
+        if self._last_data is not None:
+            self._render_table(self._last_data, selected_key=selected)
+
+    @staticmethod
+    def _selected_strike_key(table: DataTable) -> str | None:
+        if not table.row_count:
+            return None
+        return table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
+
+    def action_toggle_columns(self) -> None:
+        self._full_columns_override = bool(self._table_compact)
+        self._configure_table()
+        self._render_controls()
 
     async def action_refresh_terminal_data(self) -> None:
         await self.refresh_terminal_data()
@@ -246,14 +275,18 @@ class GexTerminalApp(App):
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         if action == "cycle_replay_session":
-            return self.screen is self._refresh_screen_owner
+            return self.screen is self._refresh_screen_owner or self.screen is self._replay_picker
         if action in {
             "replay_browser_up", "replay_browser_down",
             "select_replay_session", "close_replay_browser",
         }:
-            # Only the open dashboard picker may outrank focused widget keys.
-            # False returns normal table/overlay navigation to Textual.
-            return self._replay_browser_open and self.screen is self._refresh_screen_owner
+            return self._replay_browser_open and self.screen is self._replay_picker
+        if action in {
+            "cycle_sort", "cycle_filter", "export_snapshot", "show_help", "show_research_details",
+            "refresh_terminal_data", "cycle_expiry_assumption", "cycle_expiry_filter",
+            "cycle_multiplier_assumption", "cycle_rate_assumption", "toggle_columns",
+        }:
+            return self.screen is self._refresh_screen_owner
         return super().check_action(action, parameters)
 
     async def action_cycle_replay_session(self) -> None:
@@ -265,14 +298,17 @@ class GexTerminalApp(App):
             self._event("replay selector is available in demo or replay mode")
             self._render_events()
             return
-        self._replay_browser_open = not self._replay_browser_open
-        if self._replay_browser_open:
+        if not self._replay_browser_open:
+            self._replay_browser_open = True
             self._replay_browser_index = self._initial_browser_index()
             self._event("replay browser opened")
-            self._render_replay_browser()
+            self._replay_picker = ReplayPicker(
+                self._replay_sessions, self._replay_browser_index,
+                self._active_replay_session if self.config.data_mode == "replay" else None,
+            )
+            await self.push_screen(self._replay_picker)
         else:
-            self._event("replay browser closed")
-            self._render_structure_or_first_run()
+            self.action_close_replay_browser()
         self.refresh_bindings()
         self._render_controls()
         self._render_events()
@@ -341,11 +377,15 @@ class GexTerminalApp(App):
         if not self._replay_browser_open:
             return
         self._replay_browser_open = False
+        if self._replay_picker is not None and self.screen is self._replay_picker:
+            self.pop_screen()
+        self._replay_picker = None
         self.refresh_bindings()
         self._event("replay browser closed")
         self._render_structure_or_first_run()
         self._render_controls()
         self._render_events()
+        self.query_one("#gex-table", DataTable).focus()
 
     async def _load_replay_session(self, session: ReplaySession) -> None:
         async with self._replay_transition_lock:
@@ -365,6 +405,8 @@ class GexTerminalApp(App):
         except (FileNotFoundError, ValueError) as error:
             self._event(f"replay load failed -> {error}")
             self._render_events()
+            if self._replay_picker is not None:
+                self._replay_picker.show_error("Could not load this replay. Choose another session or retry.")
             return
 
         replay_config = config_for_replay_session(self.config, session)
@@ -403,6 +445,9 @@ class GexTerminalApp(App):
         self._replay_index = self._session_index(session)
         self._replay_browser_index = self._replay_index
         self._replay_browser_open = False
+        if self._replay_picker is not None and self.screen is self._replay_picker:
+            self.pop_screen()
+        self._replay_picker = None
         self.refresh_bindings()
 
         for message in messages:
@@ -503,14 +548,9 @@ class GexTerminalApp(App):
 
     def _render_controls(self) -> None:
         self.query_one("#matrix-controls", Static).update(
-            f"sort: [#cbd5e1]{self.SORT_LABELS[self._sort_mode]}[/]  ·  "
-            f"filter: [#cbd5e1]{self.FILTER_LABELS[self._filter_mode]}[/]   "
-            f"replay: [#cbd5e1]{self._replay_label()}[/]   "
-            f"expiry: [#cbd5e1]{self.config.expiry_filter}[/]   "
-            f"model: [#cbd5e1]{self.config.days_to_expiry:g}DTE · "
-            f"{self.config.risk_free_rate:.2%} · ×{self.config.contract_multiplier}[/]   "
-            f"[#5b6675]([b]s[/] sort  [b]f[/] filter  [b]p[/] replay  "
-            f"[b]x[/] expiry  [b]d[/] dte  [b]m[/] mult  [b]i[/] rate  [b]e[/] export)[/]"
+            f"[b]s[/] {self.SORT_LABELS[self._sort_mode]}   "
+            f"[b]f[/] {self.FILTER_LABELS[self._filter_mode]}   "
+            f"[b]c[/] {'full columns' if self._table_compact else 'essential columns'}   [b]?[/] help"
         )
 
     async def _apply_terminal_assumptions(
@@ -558,56 +598,15 @@ class GexTerminalApp(App):
         self._render_first_run_guide(self.consumer.runtime_status)
 
     def _render_replay_browser(self) -> None:
-        if not self._replay_sessions:
-            self.query_one("#dealer-regime", Static).update("[b]Replay Browser[/]\nNo bundled sessions found.")
-            return
-
-        selected = self._selected_replay_session()
-        active_label = self._active_replay_session.label if self._active_replay_session else "Demo seed"
-        self.query_one("#dealer-regime", Static).update(
-            "[b]Replay Browser[/]   [cyan]offline sessions[/]\n"
-            f"Selected [#cbd5e1]{selected.label}[/]\n"
-            f"[#94a3b8]Active:[/] {active_label}"
-        )
-        self.query_one("#balance-pressure", Static).update(
-            "[b]Session Notes[/]\n"
-            f"{selected.description}\n"
-            f"[#94a3b8]Path:[/] {selected.path}"
-        )
-        self.query_one("#vol-boundary", Static).update(
-            "[b]Controls[/]\n"
-            "Up/Down browse · Enter load · Escape close\n"
-            "Use exports and journal reports after loading."
-        )
-        self.query_one("#regime-map", Static).update(self._replay_browser_rows(selected))
-
-    def _replay_browser_rows(self, selected: ReplaySession) -> Text:
-        text = Text("Bundled Replay Sessions\n", style="bold #8a97a6")
-        for index, session in enumerate(self._replay_sessions, start=1):
-            is_selected = session.name == selected.name
-            is_active = (
-                self._active_replay_session is not None
-                and session.name == self._active_replay_session.name
-            )
-            marker = ">" if is_selected else " "
-            active = "*" if is_active else " "
-            style = "bold #38bdf8" if is_selected else "#94a3b8"
-            text.append(f"{marker} {index:02d} {active} {session.label:<24} {session.name}\n", style=style)
-        text.append("\n* active session", style="#64748b")
-        return text
+        if self._replay_picker is not None and self._replay_picker.is_mounted:
+            self._replay_picker.select(self._replay_browser_index)
 
     def _render_status_bar(self, status: str) -> None:
         color = self._status_color(status)
         bar = Text(" ", style="#94a3b8")
-        segments = (
-            f"provider {self.config.data_provider}",
-            f"readiness {runtime_provider_readiness(self.config)}",
-            self._workflow_label().lower(),
-            f"{self.config.symbol} ×{self.config.contract_multiplier}",
-            f"expiry {self.config.expiry_filter}",
-            f"refresh {self.config.refresh_interval_seconds:g}s",
-            f"last {self._last_refresh_at}",
-        )
+        segments = (f"{self.config.symbol} ×{self.config.contract_multiplier}",
+                    f"expiry {self.config.expiry_filter}",
+                    f"updated {self._last_refresh_at}", "proxy model · predictive effect unmeasured")
         bar.append("  ·  ".join(segments), style="#94a3b8")
         bar.append("  ·  ", style="#3a4654")
         bar.append(status, style=f"bold {self._hex_status(status)}")
@@ -617,10 +616,10 @@ class GexTerminalApp(App):
         banner = self.query_one("#matrix-state", Static)
         if status == "STALE":
             banner.display = True
-            banner.update("[amber]■ STALE FEED[/]  no fresh ticks — showing last known snapshot")
+            banner.update("[#e9b96e]■ STALE FEED[/]  no fresh ticks — showing last known snapshot")
         elif status == "DISCONNECTED":
             banner.display = True
-            banner.update("[red]■ DISCONNECTED[/]  provider feed is down — snapshot may be outdated")
+            banner.update("[#fb7185]■ DISCONNECTED[/]  provider feed is down — snapshot may be outdated")
         else:
             banner.display = False
 
@@ -650,13 +649,53 @@ class GexTerminalApp(App):
             chain_state=self.consumer.chain_state,
             expiry_breakdown=self._last_breakdown,
         )
-        filename = f"gex_snapshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = f"gex_snapshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}.json"
         try:
             target = write_snapshot(snapshot, filename)
+            self._last_export = target.resolve()
             self._event(f"snapshot exported -> {target.name}")
+            self.notify(f"Saved to {self._last_export}", title="Snapshot saved", timeout=8)
         except OSError as error:
             self._event(f"export failed — {error}")
         self._render_events()
+
+    def action_show_help(self) -> None:
+        text = Text("A short offline research loop\n", style="bold #e9b96e")
+        text.append("1  Press p and choose a synthetic replay.\n2  Inspect the source, strike quantities and model levels.\n3  Press e to save a snapshot; v shows details and its destination.\n\n", style="#e9eef3")
+        text.append("Navigation\n", style="bold #e9b96e")
+        text.append("p  Open replay picker       ↑ / ↓  Move through strikes\ns  Change sort              f  Change filter\nc  Essential / full columns (scroll horizontally for full detail)\ne  Save snapshot            v  Source, assumptions and health\nr  Refresh                  q  Quit\n\n", style="#c3ced8")
+        text.append("Model assumptions\n", style="bold #e9b96e")
+        text.append("d  Cycle fallback days to expiry\nx  Select expiry bucket\nm  Cycle fallback contract multiplier\ni  Cycle risk-free rate\n\n", style="#c3ced8")
+        text.append("These keys change research assumptions. Contract-specific schema-v2 metadata takes precedence where supplied. Read current assumptions in Details.\n\n", style="#9aaaba")
+        text.append("OI, volume and directionalized volume are separate proxies. They do not establish dealer positions, live readiness or predictive value.", style="#9aaaba")
+        self.push_screen(ResearchInfo("RESEARCH / HELP", text))
+
+    def action_show_research_details(self) -> None:
+        text = Text("Source & assumptions\n", style="bold #e9b96e")
+        session = self._active_replay_session
+        if self.config.data_mode == "demo":
+            source = "demo seed"
+        elif self.config.data_mode == "replay":
+            source = session.name if session else "Local replay (configured file)"
+        else:
+            source = self.config.data_provider
+        text.append(f"Instrument  {self.config.symbol}\nMode        {self.config.data_mode}\nSource      {source}\n", style="#e9eef3")
+        text.append(f"Provider readiness  {runtime_provider_readiness(self.config)}\nFallback assumptions  {self.config.days_to_expiry:g} DTE · {self.config.risk_free_rate:.2%} rate · ×{self.config.contract_multiplier}\nExpiry selection  {self.config.expiry_filter}\n", style="#c3ced8")
+        if self._last_data is not None:
+            text.append(f"Quantity sources  {', '.join(self._last_data.get('position_sources', ['legacy_volume_proxy']))}\n", style="#c3ced8")
+            text.append("\nModel context\n", style="bold #e9b96e")
+            for selector in ("#dealer-regime", "#balance-pressure", "#vol-boundary", "#regime-map"):
+                content = self.query_one(selector, Static).content
+                text.append(content if isinstance(content, Text) else Text.from_markup(str(content)))
+                text.append("\n\n")
+        text.append("\nFeed diagnostics\n", style="bold #e9b96e")
+        content = self.query_one("#quality-summary", Static).content
+        text.append(content if isinstance(content, Text) else Text(str(content)))
+        text.append("\n\nLast saved snapshot\n", style="bold #e9b96e")
+        text.append(str(self._last_export) if self._last_export else "No snapshot saved in this session. Press e to save.", style="#c3ced8")
+        text.append("\n\nRecent events\n", style="bold #e9b96e")
+        text.append("\n".join(self._events), style="#9aaaba")
+        self.push_screen(ResearchInfo("RESEARCH / DETAILS", text))
 
     async def refresh_terminal_data(self) -> None:
         """Poll the consumer and render the latest GEX matrix."""
@@ -740,14 +779,14 @@ class GexTerminalApp(App):
         banner = self.query_one("#matrix-state", Static)
         banner.display = True
         if status == "DISCONNECTED":
-            banner.update("[red]■ DISCONNECTED[/]  trying to reach the market-data provider — no snapshot yet")
-            self.query_one("#feed-chain", Static).update("[red]*[/] Option chain\n  disconnected")
+            banner.update("[#fb7185]■ DISCONNECTED[/]  trying to reach the market-data provider — no snapshot yet")
+            self.query_one("#feed-chain", Static).update("[#fb7185]*[/] Option chain\n  disconnected")
         elif status == "CONNECTED":
-            banner.update("[cyan]■ CONNECTING[/]  awaiting the first option-chain snapshot")
-            self.query_one("#feed-chain", Static).update("[cyan]*[/] Option chain\n  connecting")
+            banner.update("[#67d2e3]■ CONNECTING[/]  awaiting the first option-chain snapshot")
+            self.query_one("#feed-chain", Static).update("[#67d2e3]*[/] Option chain\n  connecting")
         else:
-            banner.update(f"[amber]■ WAITING[/]  {reason}")
-            self.query_one("#feed-chain", Static).update("[amber]*[/] Option chain\n  no contracts")
+            banner.update(f"[#e9b96e]■ WAITING[/]  {reason}")
+            self.query_one("#feed-chain", Static).update("[#e9b96e]*[/] Option chain\n  no contracts")
         self._render_first_run_guide(status, reason)
         if self._replay_browser_open:
             self._render_replay_browser()
@@ -755,17 +794,17 @@ class GexTerminalApp(App):
     def _render_first_run_guide(self, status: str, reason: str = "waiting for market state") -> None:
         replay = self._next_replay_session()
         self.query_one("#dealer-regime", Static).update(
-            "[b]First Run[/]   [cyan]offline research ready[/]\n"
+            "[b]First Run[/]   [#67d2e3]offline research ready[/]\n"
             f"{reason}\n"
             f"[#94a3b8]Next replay:[/] [#cbd5e1]{replay.label}[/]"
         )
         self.query_one("#balance-pressure", Static).update(
-            "[b]Start Without Data[/]   [cyan]press p[/]\n"
+            "[b]Start Without Data[/]   [#67d2e3]press p[/]\n"
             "Open the bundled replay browser, then press Enter to load.\n"
             "[#94a3b8]Try:[/] zero-gamma-flip, trend-day, gap-fade."
         )
         self.query_one("#vol-boundary", Static).update(
-            "[b]Review Output[/]   [green]press e[/]\n"
+            "[b]Review Output[/]   [#4ade80]press e[/]\n"
             "Export the current snapshot once a replay is loaded.\n"
             "[#94a3b8]Docs:[/] docs/replay-research.md"
         )
@@ -780,7 +819,7 @@ class GexTerminalApp(App):
         call_total = sum(float(value) for value in data["call_gex"])
         put_total_abs = abs(sum(float(value) for value in data["put_gex"]))
         imbalance = self._imbalance(call_total, put_total_abs)
-        regime = "positive gamma regime" if total_net >= 0 else "negative gamma regime"
+        regime = "Positive GEX proxy" if total_net >= 0 else "Negative GEX proxy"
 
         self.query_one("#stat-spot", Static).update(f"{self.consumer.current_spot:,.2f}")
         self.query_one("#stat-spot-foot", Static).update(self._spot_change_text())
@@ -788,8 +827,8 @@ class GexTerminalApp(App):
         self.query_one("#stat-netgex", Static).update(self._colored_money(total_net))
         self.query_one("#stat-netgex-foot", Static).update(regime)
 
-        self.query_one("#stat-wall", Static).update(f"[amber]{self._format_strike(data['gamma_wall_strike'])}[/]")
-        self.query_one("#stat-zero", Static).update(f"[cyan]{self._format_strike(data['zero_gamma_strike'])}[/]")
+        self.query_one("#stat-wall", Static).update(f"[#e9b96e]{self._format_strike(data['gamma_wall_strike'])}[/]")
+        self.query_one("#stat-zero", Static).update(f"[#67d2e3]{self._format_strike(data['zero_gamma_strike'])}[/]")
 
         self.query_one("#stat-imbalance", Static).update(f"{imbalance:.2f}x")
         self.query_one("#stat-imbalance-foot", Static).update(
@@ -801,8 +840,11 @@ class GexTerminalApp(App):
             f"{self.consumer.runtime_status.lower()} | refresh {self.config.refresh_interval_seconds:g}s"
         )
 
-    def _render_table(self, data: dict) -> None:
+    def _render_table(self, data: dict, *, selected_key: str | None = None) -> None:
         table = self.query_one("#gex-table", DataTable)
+        selected_key = selected_key or self._selected_strike_key(table)
+        previous_row = table.cursor_row
+        previous_scroll = table.scroll_offset
         table.clear()
 
         call_volumes = data.get("call_volume", ())
@@ -850,15 +892,22 @@ class GexTerminalApp(App):
             strike_label = self._strike_label(
                 row["strike"], data["gamma_wall_strike"], nearest_zero
             )
-            table.add_row(
+            cells = [
                 strike_label,
                 self._text(f"{row['call_vol']:,}", row_style),
                 self._text(f"{row['put_vol']:,}", row_style),
-                self._text(f"{row['gamma']:.5f}", row_style),
-                self._money_cell(row["call_gex"], row_style),
-                self._money_cell(row["put_gex"], row_style),
-                self._net_cell(row["net_gex"], max_abs_net, row_style),
-            )
+            ]
+            if not self._table_compact:
+                cells.extend([self._text(f"{row['gamma']:.5f}", row_style),
+                              self._money_cell(row["call_gex"], row_style),
+                              self._money_cell(row["put_gex"], row_style)])
+            cells.append(self._net_cell(row["net_gex"], max_abs_net, row_style))
+            table.add_row(*cells, key=str(row["strike"]))
+        keys = [str(row["strike"]) for row in rows]
+        if keys:
+            selected_row = keys.index(selected_key) if selected_key in keys else min(previous_row, len(keys) - 1)
+            table.move_cursor(row=selected_row, animate=False, scroll=False)
+            table.scroll_to(x=previous_scroll.x, y=previous_scroll.y, animate=False, force=True)
 
     def _render_structure(self, data: dict) -> None:
         total_net = float(data["total_net_gex"])
@@ -873,20 +922,20 @@ class GexTerminalApp(App):
         band_low = self._format_strike(data.get("concentration_band_low", data["gamma_wall_strike"]))
         band_high = self._format_strike(data.get("concentration_band_high", data["gamma_wall_strike"]))
         regime_label = "+GEX" if total_net >= 0 else "-GEX"
-        regime_color = "green" if total_net >= 0 else "red"
+        regime_color = "#4ade80" if total_net >= 0 else "#fb7185"
 
         self.query_one("#dealer-regime", Static).update(
             f"[b]GEX Proxy Regime[/]   [{regime_color}]{regime_label}[/]\n"
             f"Net {self._format_money(total_net)} · gamma wall {wall}\n"
-            f"[green]call wall {call_wall}[/] · [red]put wall {put_wall}[/]"
+            f"[#4ade80]call wall {call_wall}[/] · [#fb7185]put wall {put_wall}[/]"
         )
         self.query_one("#balance-pressure", Static).update(
-            f"[b]Proxy Balance[/]   [cyan]{imbalance:.2f}x[/]\n"
+            f"[b]Proxy Balance[/]   [#67d2e3]{imbalance:.2f}x[/]\n"
             f"{'Call-side' if imbalance >= 1 else 'Put-side'} leads in selected quantities.\n"
             f"Top strike holds [#cbd5e1]{concentration:.0%}[/] of modeled net GEX."
         )
         self.query_one("#vol-boundary", Static).update(
-            f"[b]Compatibility Level[/]   [amber]{zero}[/]\n"
+            f"[b]Compatibility Level[/]   [#e9b96e]{zero}[/]\n"
             f"Historical strike-profile field; predictive effect unmeasured.\n"
             f"70% band {band_low}–{band_high}."
         )
@@ -927,9 +976,11 @@ class GexTerminalApp(App):
     def _render_sidebar(self, data: dict) -> None:
         contract_count = int(data.get("selected_contract_count", len(data["strikes"])))
         volume = int(sum(data.get("call_volume", ())) + sum(data.get("put_volume", ())))
-        self.query_one("#feed-chain", Static).update(f"[green]*[/] Option chain\n  {contract_count:,} contracts")
-        self.query_one("#feed-proxy", Static).update(f"[amber]*[/] OI proxy\n  {volume:,} volume")
-        self.query_one("#feed-lock", Static).update("[green]*[/] State lock\n  clean")
+        self.query_one("#feed-chain", Static).update(f"[#4ade80]*[/] Option chain\n  {contract_count:,} contracts")
+        sources = data.get("position_sources", ["legacy_volume_proxy"])
+        basis = "Volume proxy" if all(source in {"legacy_volume_proxy", "trade_volume"} for source in sources) else "Selected quantities"
+        self.query_one("#feed-proxy", Static).update(f"[#e9b96e]*[/] {basis}\n  {volume:,} quantity")
+        self.query_one("#feed-lock", Static).update("[#4ade80]*[/] State lock\n  clean")
 
     def _render_quality(self) -> None:
         quality = self.consumer.feed_quality_snapshot(
@@ -939,6 +990,9 @@ class GexTerminalApp(App):
         status_color = self._hex_status(quality["status"])
         health_color = self._health_color(quality["health"])
         text = Text()
+        if self.config.data_mode in {"demo", "replay"}:
+            text.append("Offline · no network needed\n", style="#67d2e3")
+            text.append(f"Health {quality['health'].upper()}\n", style=health_color)
         text.append("Connection  ", style="bold #8a97a6")
         text.append(quality["status"], style=f"bold {self._hex_status(quality['status'])}")
         text.append(f" / {quality['connection_state']}\n", style="#94a3b8")
@@ -982,17 +1036,26 @@ class GexTerminalApp(App):
             self._event(f"runtime state {status}")
             self._last_runtime_status = status
 
-        self.sub_title = (
-            f"{self.config.symbol} · {self._workflow_label()} · CUMULATIVE SESSION VOLUME · {status}"
-        )
+        if self.config.data_mode == "demo":
+            source_label, source_name = "SYNTHETIC DEMO", "Seeded offline session"
+        elif self.config.data_mode == "replay" and self._active_replay_session is not None:
+            source_label, source_name = "SYNTHETIC REPLAY", self._active_replay_session.label
+        elif self.config.data_mode == "replay":
+            source_label, source_name = "LOCAL REPLAY", "User-selected replay source"
+        else:
+            source_label, source_name = status, self.config.data_provider
+        self.sub_title = f"{self.config.symbol} · {source_label}"
+        summary = Text(f"{self.config.symbol}  ", style="bold #e9b96e")
+        summary.append(source_name, style="bold #e9eef3")
+        summary.append(f"  /  {source_label.lower()}\n", style="#67d2e3")
+        summary.append("p open replay   e save snapshot   v inspect assumptions & source", style="#9aaaba")
+        self.query_one("#session-summary", Static).update(summary)
 
         self.query_one("#feed-websocket", Static).update(
             f"[{color}]*[/] Data mode\n  {status}"
         )
         self.query_one("#matrix-meta", Static).update(
-            f"mode: {status} | expiry: {self.config.days_to_expiry:g}d | "
-            f"selection: {self.config.expiry_filter} | multiplier: {self.config.contract_multiplier} | "
-            f"rate: {self.config.risk_free_rate:.2%}"
+            f"{self._quantity_label()} · expiry {self.config.expiry_filter} · ×{self.config.contract_multiplier}"
         )
         self.query_one("#stat-latency-foot", Static).update(
             f"{status.lower()} | refresh {self.config.refresh_interval_seconds:g}s"
@@ -1000,8 +1063,15 @@ class GexTerminalApp(App):
 
     def _render_flow(self) -> None:
         sparkline = self.query_one("#gex-flow", Sparkline)
+        message = self.query_one("#flow-message", Static)
         values = list(self._gex_flow)
-        sparkline.data = values if values else [0.0]
+        varied = len(values) > 1 and min(values) != max(values)
+        sparkline.display = varied
+        message.display = not varied
+        if varied:
+            sparkline.data = values
+        else:
+            message.update("No change across sampled refreshes" if len(values) > 1 else "One snapshot · refresh to compare")
 
     def _render_events(self) -> None:
         if not self._events:
@@ -1078,8 +1148,16 @@ class GexTerminalApp(App):
         return text
 
     def _colored_money(self, value: float) -> str:
-        color = "green" if value >= 0 else "red"
+        color = "#4ade80" if value >= 0 else "#fb7185"
         return f"[{color}]{self._format_money(value)}[/]"
+
+    def _quantity_label(self) -> str:
+        sources = (self._last_data or {}).get("position_sources", ["legacy_volume_proxy"])
+        if all(source in {"legacy_volume_proxy", "trade_volume"} for source in sources):
+            return "Volume proxy"
+        if sources == ["open_interest"]:
+            return "Open-interest proxy"
+        return "Selected quantity proxies"
 
     def _money_cell(self, value: float, fallback_style: str = "#dce5ee") -> Text:
         style = "#4ade80" if value >= 0 else "#fb7185"
@@ -1196,16 +1274,16 @@ class GexTerminalApp(App):
     @staticmethod
     def _status_color(status: str) -> str:
         if status == "LIVE":
-            return "green"
+            return "#4ade80"
         if status == "SIM":
-            return "cyan"
+            return "#67d2e3"
         if status == "REPLAY":
-            return "cyan"
+            return "#67d2e3"
         if status == "STALE":
-            return "amber"
+            return "#e9b96e"
         if status == "CONNECTED":
-            return "cyan"
-        return "red"
+            return "#67d2e3"
+        return "#fb7185"
 
     @staticmethod
     def _hex_status(status: str) -> str:

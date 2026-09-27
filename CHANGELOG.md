@@ -11,6 +11,12 @@ Release is claimed.
 
 ### Added
 
+- A reviewed-wheel setup helper and local handoff bundle with reusable macOS/POSIX
+  launchers, isolated offline configuration, separate research storage, exact
+  payload verification and safe reuse/update selection. Python remains required;
+  dependency wheels can be included for installation without downloads.
+- A focused replay chooser, contextual keyboard help and source/assumption
+  details, plus readable essential table columns from 100×32 cells.
 - Fixture-specific replay expectations for alert meaning, event timing and
   structural levels, extending identity and report-format checks.
 - Linux/macOS verification across Python 3.11/3.12 with retained, bounded
@@ -23,6 +29,9 @@ Release is claimed.
 
 ### Fixed
 
+- Table selection now follows the chosen strike through ordinary refreshes.
+  Replay choices stay visible while browsing. Saved snapshots have collision-
+  resistant filenames and visible destination feedback.
 - Generated demo-preview table headings and regime-label layout; the onboarding
   preview uses enough rows to expose its replay choices.
 - Replay-picker keyboard routing repair and real-keyboard regression coverage
@@ -33,6 +42,11 @@ Release is claimed.
 
 ### Changed
 
+- Terminal hierarchy emphasizes four research metrics, instrument/source and
+  primary actions with a restrained amber/cyan palette. Compatibility-level and
+  quantity labels preserve their proxy meaning; unchanged samples are labeled
+  rather than rendered as a misleading full-height trend strip.
+  [GEX-UX-002](docs/work-packets/GEX-UX-002.md) owns review and verification.
 - Prepared an exact offline study-build handoff with frozen source, wheel,
   runtime, synthetic fixtures and scoring materials; automated rehearsal remains
   separate from observed participant acceptance. [GEX-STUDY-001](docs/work-packets/GEX-STUDY-001.md)

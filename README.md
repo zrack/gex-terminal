@@ -6,7 +6,7 @@ provider or replay data, makes model assumptions visible, and produces
 replayable research artifacts without presenting proxy calculations as observed
 dealer inventory.
 
-![Color replay demo lab preview](assets/gex-terminal-demo-lab.svg)
+![GEX research terminal with a bundled synthetic replay](assets/gex-terminal-actual.svg)
 
 > This project is for market research and engineering experimentation. It is
 > not financial advice.
@@ -49,33 +49,35 @@ quality, or profitability.
 
 ## Install
 
-Use Python 3.11/3.12 and a reviewed wheel supplied by your maintainer. Replace
-the example path with the actual wheel location:
+Use Python 3.11/3.12 and a reviewed setup folder supplied by your maintainer.
+On macOS, open **Install.command**; on Linux, run `sh Install.command`.
+Setup checks the build and creates **GEX App/Start GEX.command** on macOS and
+**GEX App/run-gex** on Linux. Open that launcher whenever you want to return.
+No environment activation or provider credentials are needed. Research stays
+in a separate **GEX App Research** folder.
 
-```bash
-python3 -m venv gex-app
-source gex-app/bin/activate
-python -m pip install /path/to/gex_terminal-0.5.0-py3-none-any.whl
-gex-terminal --version
-gex-terminal doctor
-```
-
-No credentials or optional provider extras are needed for offline use. Follow
-[First Run](docs/first-run.md) for the guided journey, update and uninstall.
+The first setup downloads dependencies unless the supplied folder includes
+dependency wheels for your platform and Python version. The app then runs
+offline. Keep its installation folder in place. Follow
+[First Run](docs/first-run.md) for setup details, the manual wheel alternative,
+the guided journey, update and uninstall.
 Developers start with [Contributing](CONTRIBUTING.md).
 Maintainers preparing observed first use follow [Study Build](docs/study-build.md).
 
 ## Quick Start
 
-Start with seeded offline data:
+The installed launcher opens a bundled synthetic replay. For a manual wheel
+installation, start with seeded offline data:
 
 ```bash
 gex-terminal --demo
 ```
 
 Press `p` to open the replay browser, use Up/Down to choose a session, and press
-Enter to load it. Press `q` to quit. The terminal needs at least 140×42 cells;
-180×54 provides more room. See First Run for model controls and interpretation.
+Enter to load it. Press `e` to save a snapshot, `v` for source and model details,
+`?` for help, and `q` to quit. The terminal works from 100×32 cells; 140×42 gives
+the full table more room. Press `c` to switch between essential and full columns.
+See First Run for model controls and interpretation.
 
 Run a named replay or list the packaged catalog:
 

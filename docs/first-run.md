@@ -1,56 +1,121 @@
 # First Run — Offline Research
 
 Start with synthetic data. No provider account, credential or live-market
-subscription is needed. This guide owns the wheel installation and the guided
+subscription is needed. This guide owns local setup, wheel installation and the guided
 Today → Explain → Compare → Replay → Review journey. Detailed pack contracts
 belong in [Demo Lab](demo-lab.md).
 
-## Install one reviewed wheel
+## Install and open the reviewed bundle
 
-Use Python 3.11 or 3.12 for the tested baseline. Obtain the exact reviewed wheel
-from your maintainer, with its version and digest. There is no PyPI publication
-or hosted release download promised by this repository. Contributors can build
-the wheel using [Contributing](../CONTRIBUTING.md); end users do not need a Git
-checkout. Dependency installation may use the network; the application journey
-below does not.
+Obtain the reviewed setup folder from your maintainer and put it in its
+permanent location. It contains the application wheel, `install_app.py`,
+`Install.command`, `START HERE.txt` and `bundle.json`. Use Python 3.11 or 3.12
+on macOS or Linux. There is no PyPI publication, signed native installer or
+hosted release download promised by this repository.
 
-For the replay-picker keyboard repair, obtain a wheel built from the accepted
-[GEX-UX-001](work-packets/GEX-UX-001.md) commit and record that commit and the
-wheel SHA-256. The package version remains `0.5.0`; the original `v0.5.0` wheel
-does not contain this later repair. Version output alone cannot distinguish
-the builds. [Study Build](study-build.md) owns the frozen artifact and materials
-handoff for observed first use.
+On **macOS**, open `Install.command`. On **Linux**, open a terminal in the
+supplied folder and run:
 
-Create a dedicated application folder outside your research folder. Substitute
-the actual supplied wheel path; do not type the placeholder literally:
+```bash
+sh Install.command
+```
+
+Setup creates `GEX App` and a separate `GEX App Research` folder, checks the
+supplied wheel checksum, installs an isolated application environment, and
+checks dependencies, offline doctor and a bundled replay. An interactive setup
+then opens the replay. No activation, Git checkout, provider account or
+credentials are required. It does not change system Python or shell profiles.
+
+To return later, open **`GEX App/Start GEX.command`** on macOS, or run:
+
+```bash
+"./GEX App/run-gex"
+```
+
+The macOS launcher requests a 120×40 terminal for an interactive start;
+resize guidance remains available when the terminal ignores that request.
+
+Keep the installed application folder in place: Python environments contain
+absolute paths. If you want another location, install into a new folder.
+Research remains separately stored; reinstalling does not move or delete it.
+
+The first setup normally downloads Python dependencies. A bundle with a complete
+`wheelhouse/` uses only those local dependency wheels and fails if the selected
+Python/platform is not covered. Application launches and bundled replay need no
+network. Windows setup and unaided customer activation remain unverified.
+
+The offline launcher starts `zero-gamma-flip`, clears inherited application and
+provider settings, and loads configuration before entering your research folder.
+Caller and research-folder `.env` files therefore cannot select a live provider
+or break this first-use path. The ordinary `gex-terminal` CLI remains available
+inside the environment for separately configured advanced workflows.
+
+The setup receipt, `GEX App/installation.json`, identifies the exact wheel,
+supplied source commit, installed application payload, Python and dependency
+versions. Package version `0.5.0` alone cannot identify every maintenance build.
+The expected checksum and source claim come from the maintainer; a matching
+hash detects changed bytes and does not independently authenticate the sender.
+[Study Build](study-build.md) owns the separate frozen cohort materials; this
+new setup workflow does not replace that study bundle.
+
+### Local setup options
+
+Maintainers can use the standalone installer directly, substituting the reviewed
+wheel identity and explicit destination:
+
+```bash
+python3 install_app.py --wheel PATH_TO_REVIEWED_WHEEL \
+  --sha256 EXPECTED_WHEEL_SHA256 --source-commit FULL_SOURCE_COMMIT \
+  --target "GEX App"
+```
+
+Use `--research-dir PATH` to select a separate research folder and
+`--wheelhouse PATH` for installation without dependency downloads. The installer
+refuses to adopt an existing unowned application folder. Repeating setup for the
+same wheel verifies the installed payload against that wheel and runs the local
+checks again without creating another environment or reinstalling dependencies.
+It rejects changed application payload or launcher files instead of overwriting
+them. A failed preparation can be retried if no launcher was published; an
+incomplete or modified published installation requires a new application folder.
+
+To diagnose the installed offline path without opening the terminal interface:
+
+```bash
+"./GEX App/run-gex" --doctor
+"./GEX App/run-gex" --list-replays
+```
+
+Doctor exit 0 means the local path is structurally usable. Optional provider
+warnings do not require installing extras. Exit 1 means a base installation,
+resource or storage failure; exit 2 means invalid configuration or an unusable
+selected path. See [Doctor](doctor.md) for the complete diagnostic contract.
+
+### Manual wheel installation
+
+The regular wheel remains the installation mechanism. Substitute the supplied
+wheel's actual path below. These commands avoid shell activation:
 
 ```bash
 python3 -m venv gex-app
-source gex-app/bin/activate
-python -m pip install /path/to/gex_terminal-0.5.0-py3-none-any.whl
-gex-terminal --version
-gex-terminal doctor
+gex-app/bin/python -m pip install /path/to/gex_terminal-0.5.0-py3-none-any.whl
+gex-app/bin/gex-terminal --demo
 ```
 
-These shell instructions cover macOS/Linux. Windows activation/installer and
-unaided customer setup are not verified by this release. A regular wheel is the
-supported technical baseline; an editable development install is not required.
-
-Doctor exit 0 means the selected local path is structurally usable, not live
-certified. Optional provider warnings do not require installing every extra.
-Exit 1 means a base installation/resource/storage failure; exit 2 means invalid
-configuration or a structurally unusable selected path. See [Doctor](doctor.md)
-for diagnosis and safe text/JSON output. Do not add credentials to make the
-offline walkthrough work.
+Keep research outside `gex-app` and invoke that environment's `gex-terminal`
+again to return. An editable development install is not needed for end-user
+operation. [Contributing](../CONTRIBUTING.md#verification) owns build verification.
 
 ## Today: open one declared session
 
-Use a terminal at least 140 columns by 42 rows; 180×54 exposes more context.
-Smaller windows show resize guidance instead of a clipped research view.
+Use a terminal at least 100 columns by 32 rows. Essential columns keep strike,
+call/put quantities and net exposure visible in the smaller layout. At 140×42
+the full table has more room; 180×54 exposes more context. Below the minimum,
+the app shows resize guidance. Press `c` to switch between essential and full
+columns; horizontal scrolling reaches extra columns in a smaller window.
 
 ```bash
-gex-terminal list-replays
-gex-terminal --replay-session nq-research-loop
+"./GEX App/run-gex" --list-replays
+"./GEX App/run-gex" --session nq-research-loop
 ```
 
 Confirm that the selected session identifies NQ, its multiplier is 20, and its
@@ -73,6 +138,14 @@ keeps its normal arrow-key and `Enter` behavior. An overlay retains its own
 keyboard controls. Replay replacement is available only in demo/replay mode
 and is blocked during capture. Press `q` to quit when finished.
 
+Press `?` for the short research loop and keyboard guide. Press `v` to inspect
+source, fallback assumptions, quality, recent events and the last export path;
+these details remain reachable at every supported size. Press `e` to save the
+current snapshot. The app confirms its destination and uses a distinct filename
+for each save. The bundle launcher saves in its research folder; a direct CLI
+launch saves in its current working directory. Sorting, refreshes and column
+changes retain the selected strike when it is still present.
+
 ## Compare, Replay and Review
 
 Generate a new pack in a separate research folder. Use a new output directory
@@ -92,40 +165,35 @@ just because a synthetic pack is shareable.
 
 ## Update, recover and uninstall
 
-Keep research outside `gex-app`. Retain your previous reviewed wheel and a
-verified private backup before changing versions. Close the terminal first.
+Close the terminal before updating, retain the previous reviewed bundle, and
+keep a verified private backup of your research. The simplest update is to
+install the new reviewed bundle in a new permanent folder; the previous Start
+launcher remains available. The new bundle's default research folder starts
+separately. Use the standalone installer's `--research-dir` option if you intend
+to reopen the existing research folder; no data is moved or migrated by setup.
 
-```bash
-python -m pip install --upgrade /path/to/new-reviewed-wheel.whl
-gex-terminal --version
-gex-terminal doctor
-```
+For an update within an installer-owned application folder, run the standalone
+installer with the new wheel, its checksum/source identity, the same `--target`
+and the same research destination. It creates a separate environment, validates
+it, and only then changes the active installation receipt. Existing launcher
+bytes remain unchanged. A failed dependency install, application check or final
+receipt update leaves the previous completed selection available. Older and
+failed candidate environments remain in place; setup never deletes them.
 
-If an update fails, check version and doctor before reopening research. A
-corrupt-wheel rejection is tested; every possible interrupted installation is
-not. Recreate the virtual environment from the retained wheel if its integrity
-is uncertain. Reinstalling an earlier release does not migrate newer research
-formats backwards; unsupported versions must fail, not be relabeled.
+To return to an older application, use its retained bundle and Start launcher.
+Older versions may reject newer research formats; reinstalling does not migrate
+or relabel research. Keep both builds until you have verified the needed path.
 
-To roll back within a working environment:
+There is no automatic updater or automatic cleanup. To stop using an application,
+close it and remove its installer-owned `GEX App` folder only after confirming
+its location. The separate research folder and original bundle are not part of
+the application environment. Do not delete research as an installation fix.
+[Local Support](local-support.md) owns backup, recovery and deliberate retention.
 
-```bash
-python -m pip install --force-reinstall --no-deps /path/to/previous-reviewed-wheel.whl
-gex-terminal --version
-```
-
-`--no-deps` is suitable only when that prior wheel's declared dependency versions
-are still satisfied; otherwise rebuild a clean environment from it. To uninstall
-the package in this dedicated environment:
-
-```bash
-python -m pip uninstall gex-terminal
-```
-
-Uninstall does not delete separately stored research or credentials. Use
-[Local Support](local-support.md) for private backup/recovery, safe support
-diagnostics and explicit retention/deletion. Do not remove an entire research
-folder as an installation troubleshooting step.
+Manual virtual-environment installations can still use `python -m pip install`
+or `python -m pip uninstall gex-terminal` with that environment's Python. Do not
+use those commands to mutate a checksum-verified bundle environment: its next
+setup verification should reject a changed application payload.
 
 ## Verification boundary
 
@@ -134,5 +202,8 @@ research, upgrades to 0.5.0, rejects a corrupt update, rolls back, reinstalls an
 uninstalls while comparing every research-file byte identity. The repeatable
 maintainer check is `scripts/verify_distribution_lifecycle.py`; the latest
 platforms and results are recorded in [Application Review](application-review.md).
-The wheel is not yet a customer-selected commercial distribution channel.
+The setup wrapper adds a reviewed local handoff around the same wheel mechanism.
+It verifies package bytes before import, checks repeat installation and failed
+updates, and keeps research separate. These checks do not establish every
+interrupted-install failure mode or a customer-selected distribution channel.
 Real users must still demonstrate the roadmap's unaided activation targets.

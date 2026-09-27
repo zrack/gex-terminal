@@ -7,6 +7,12 @@ failure on one combination does not cancel the others. Application commands use
 bundled synthetic data without live provider credentials. Dependency and build
 tool installation can use the network.
 
+The lifecycle step also prepares a local setup bundle, runs its installer twice
+to check reuse, and exercises doctor and synthetic export through the generated
+launcher. The wrapper prefers the selected supported `python3` so these checks
+use the matrix's Python version. Application folders and installer records stay
+in the disposable runner directory; the bounded upload inventory is unchanged.
+
 Testing a runner is software verification for that run, not a supported-platform
 promise, participant acceptance, live reliability, or predictive validation.
 The existing release and publication process is unchanged. See
@@ -58,9 +64,10 @@ a general-purpose secret scanner or redaction tool.
 A retained file is not by itself a passing check. Inspect its producer outcome
 and the report's own result. If a smoke command fails partway through a step,
 reports already written are retained, later outputs are marked missing, and
-the step remains failed. The lifecycle verifier writes a report only on success;
-a failed lifecycle therefore has an explicit failed step and missing report,
-with detailed diagnostics in the GitHub job log. The collector writes its
+the step remains failed. The cross-version lifecycle verifier writes a report
+only on success. A later setup-bundle failure can leave that earlier successful
+report present while the overall lifecycle step fails; inspect both the producer
+outcome and job log. The collector writes its
 manifest before exiting unsuccessfully for incomplete collection, and the
 upload is still attempted. Upload requires the collector's completion marker;
 an existing staging directory or a collector crash cannot authorize uploading
