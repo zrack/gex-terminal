@@ -58,7 +58,7 @@ class ReplayKeyboardTests(unittest.IsolatedAsyncioTestCase):
         return {key.action for key in app.query_one(Footer).query("FooterKey")}
 
     async def test_keyboard_browses_and_loads_es_then_nq_at_supported_sizes(self):
-        for size in ((140, 42), (180, 54)):
+        for size in ((100, 32), (140, 42), (180, 54)):
             with self.subTest(size=size):
                 app = _app()
                 async with app.run_test(size=size) as pilot:
@@ -115,8 +115,8 @@ class ReplayKeyboardTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(table.cursor_row, 1)
             await pilot.press("p", "down")
             await pilot.pause()
-            self.assertIn("select_replay_session", self._footer_actions(app))
-            self.assertIn("close_replay_browser", self._footer_actions(app))
+            self.assertIn("Enter load", str(app.screen.query_one(".dialog-hint").content))
+            self.assertIn("cancel", str(app.screen.query_one(".dialog-hint").content))
             self.assertEqual(table.cursor_row, 1)
             await pilot.press("escape")
             await pilot.pause()
@@ -178,7 +178,7 @@ class ReplayKeyboardTests(unittest.IsolatedAsyncioTestCase):
             await pilot.resize_terminal(180, 54)
             await pilot.press("escape")
             await pilot.pause()
-            self.assertIs(app.screen, app._refresh_screen_owner)
+            self.assertIs(app.screen, app._replay_picker)
             self.assertTrue(app._replay_browser_open)
             self.assertEqual(app._replay_browser_index, selected)
             await pilot.press("up", "enter")

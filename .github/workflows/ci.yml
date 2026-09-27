@@ -133,6 +133,11 @@ jobs:
           python -m build --wheel --outdir "$GEX_CI_ROOT/gex-prior-dist" "$GEX_CI_ROOT/gex-prior-source"
           GEX_CANDIDATE_VERSION=$(python -c 'import gex_terminal; print(gex_terminal.__version__)')
           python scripts/verify_distribution_lifecycle.py --previous-wheel "$GEX_CI_ROOT/gex-prior-dist/gex_terminal-0.4.0-py3-none-any.whl" --candidate-wheel "$GEX_CI_ROOT/gex-terminal-dist/gex_terminal-${GEX_CANDIDATE_VERSION}-py3-none-any.whl" --output "$GEX_CI_ROOT/gex-lifecycle.json"
+          python scripts/build_app_bundle.py --wheel "$GEX_CI_ROOT/gex-terminal-dist/gex_terminal-${GEX_CANDIDATE_VERSION}-py3-none-any.whl" --source-commit "$GITHUB_SHA" --output "$GEX_CI_ROOT/GEX Setup"
+          sh "$GEX_CI_ROOT/GEX Setup/Install.command" </dev/null
+          sh "$GEX_CI_ROOT/GEX Setup/Install.command" </dev/null
+          "$GEX_CI_ROOT/GEX Setup/GEX App/run-gex" --doctor
+          "$GEX_CI_ROOT/GEX Setup/GEX App/run-gex" --export "$GEX_CI_ROOT/gex-launcher-snapshot.json"
 
       - name: Verify tag matches package version
         id: tag

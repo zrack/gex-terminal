@@ -11,7 +11,7 @@ own source and verification record identify it as runtime evidence.
 | `offline-research-architecture.svg` | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md); maintained SVG summary of those contracts | Derived architectural explanation; not a run result or deployment diagram |
 | C4 context, container and component views | Mermaid source lives in [Architecture](../docs/architecture.md#c4-views), not a separate asset copy | Current source boundaries; one local Python application with local files |
 | `gex-terminal-demo-lab.svg`, `gex-terminal-onboarding.svg` | [Demo Lab](../docs/demo-lab.md#contributor-preview) owns `scripts/refresh_previews.py` and its local provenance manifest | Calculated synthetic demo graphic and actual replay-picker capture for the generating source build |
-| `gex-terminal-actual.svg` | [Replay Lab](../docs/replay-lab.md) owns its replay screenshot command | Synthetic replay screenshot; not live-market evidence |
+| `gex-terminal-actual.svg` | [Deployment And Terminal Experience Review](../docs/deployment-ux-review.md), using the CLI screenshot command below | Actual terminal with synthetic demo data; not live-market evidence |
 | `gex-terminal-mockup.png`, `gex-terminal-mockup 2.png`, `live-gamma-regime-map-mockup.svg` | Retained product/visual concepts; interpretation belongs with [Product Validation](../docs/product-validation.md) | Illustrative concepts; no implementation or usability claim |
 | `github-social-preview.svg`, `github-social-preview.png`, `github-social-preview 2.png` | Repository presentation artwork | Promotional illustration; no runtime or provider-readiness claim |
 
@@ -35,6 +35,13 @@ manifest binds source/runtime/input identities and exact asset hashes. Inspect
 both SVGs before accepting the diff. Snapshot calculations are repeatable, while
 legacy replay report timestamps and terminal SVG identifiers/timing may vary.
 The current preview refresh does not replace the frozen study bundle.
+
+The front-door terminal capture uses `gex-terminal --demo --screenshot
+assets/gex-terminal-actual.svg --screenshot-width 140 --screenshot-height 42`.
+Run from a clean configuration with `NO_COLOR` unset for color captures; record
+source and file hashes with the review. The running app continues to honor a
+user's monochrome preference. The replay-picker asset uses the maintained
+preview refresh command and its explicit bundled `zero-gamma-flip` input.
 
 ## Retained Concepts
 

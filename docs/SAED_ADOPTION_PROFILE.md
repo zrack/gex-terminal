@@ -31,9 +31,10 @@ Closed [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) records the bounded study-
 documentation and heading-link validation slice. It does not authorize live
 operation or change the release mechanism.
 Closed [GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md) owns the bounded replay,
-CI evidence, macOS verification and preview-automation slice. No repository-owned
-offline implementation packet remains active; observed participant acceptance
-remains open.
+CI evidence, macOS verification and preview-automation slice.
+Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the easier-setup and
+terminal experience slice, with closure conditional on its recorded final
+hosted checks and authorized PR merge. Observed participant acceptance remains open.
 
 ## Purpose And Entry Boundary
 

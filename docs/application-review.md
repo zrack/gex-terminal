@@ -1,6 +1,6 @@
 # Application State And Health Review
 
-Updated September 26, 2026 for offline verification and preview maintenance on
+Updated September 26, 2026 for setup and terminal experience improvements on
 the repaired `0.5.0 — Offline Research Foundation`. This document owns
 the dated state assessment and verification limits; earlier release evidence is
 retained below rather than presented as verification of later changes.
@@ -45,6 +45,17 @@ the onboarding picker's existing viewport in a taller capture.
 visual and hosted-check results. The September 20 study artifacts retain their
 original identities; these changes do not re-identify that frozen build.
 
+The follow-up [deployment and terminal review](deployment-ux-review.md) found
+avoidable setup friction, a hidden replay selection and refresh-driven cursor
+resets. [GEX-UX-002](work-packets/GEX-UX-002.md) implements a reviewed-wheel setup
+bundle, persistent isolated offline launcher, smaller-window layout, focused
+replay chooser and contextual help/details. The slice passed 479 local tests,
+fresh offline installation, 18 installed-UI checks, and the four hosted
+Ubuntu/macOS × Python 3.11/3.12 jobs. The packet and
+[PR #31](https://github.com/zrack/gex-terminal/pull/31) own final checked-source
+and merge evidence. These changes are separate from the prior version tag and
+frozen study; participant acceptance remains unmeasured.
+
 ## Current state
 
 | Area | Observed state | Limit |
@@ -52,10 +63,10 @@ original identities; these changes do not re-identify that frozen build.
 | Model and state | Contract-aware Black-76/Black-Scholes with separate OI, raw-volume and directionalized-volume paths | Numerical correctness does not establish dealer inventory or forecasting value |
 | Replay and identity | Eleven bundled scenarios including NQ ×20 schema-v2; catalog identity, actual/fallback multipliers and accepted-event chronology are explicit | Synthetic fixtures do not establish provider support for ES or NQ |
 | Research loop | Existing Demo Lab extended to a 20-file portable pack, input copy, three-model ladder and versioned receipt | Strict inventory/runtime compatibility; unkeyed hashes are not signatures |
-| Terminal | Compact layout at 140×42+, larger view at 180×54; smaller sizes show guidance; resize preserves state | Not a mobile interface or unaided usability study |
+| Terminal | Essential columns at 100×32+, full-table view at 140×42; focused picker/help/details and strike selection retained across refresh | Not a mobile interface, screen-reader certification or unaided usability study |
 | Preflight | Offline doctor checks package, resources, config, provider structure and temporary storage with text/JSON exit status | No live authentication, entitlements, SDK behavior or market-quality check |
-| Distribution | Reviewed wheel path, cross-version pack check, lifecycle harness and guided journey | Customer distribution choice and observed activation remain open |
-| Local launcher | Regular 0.5.0 wheel replaces the faulty editable install; version and doctor succeed | The original macOS hidden `.pth` condition is diagnosed, not claimed permanently fixed for editable installs |
+| Distribution | Reviewed wheel, local setup handoff, optional platform-specific wheelhouse and disposable lifecycle checks | Python remains required; no signed native installer or customer-selected channel |
+| Local launcher | Reusable offline launcher, exact package-payload checks and separate research directory; no shell activation | Existing direct CLI configuration remains unchanged; observed activation is still open |
 | Support and lifecycle | Redacted diagnostics; verified owner-only backup/restore; whole-group retention bound to a verified backup and exact confirmation | POSIX safety support only; no general database, automatic migration or licensed-capture lifecycle claim |
 | Product preparation | Study kit and exact repaired wheel/runtime/materials frozen; ES/NQ installed-wheel rehearsal passed | No participant activation, demand, price, margin, license or conversion measurement |
 | Live preparation | Strict local plan/result contracts bind a declared 12-slot ES population, policy/runtime identity and failed/missed attempts | No execution, report-byte authentication, complete-history proof or external authority |

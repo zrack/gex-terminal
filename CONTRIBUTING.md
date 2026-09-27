@@ -46,6 +46,27 @@ module invocation and inspect doctor output; on macOS, hidden editable `.pth`
 flags can recur. A regular wheel in a dedicated environment avoids that editable
 path dependency. Do not clear flags on broad filesystem trees.
 
+For an easier local handoff, first build a wheel from the exact reviewed commit,
+then prepare a new setup folder:
+
+```bash
+python scripts/build_app_bundle.py --wheel /path/to/gex_terminal-0.5.0-py3-none-any.whl --source-commit FULL_REVIEWED_COMMIT --output /path/to/new-gex-setup
+```
+
+Replace the example paths and commit with the actual build identity. Supply
+`--wheelhouse /path/to/dependency-wheels` to include dependencies for the intended
+Python version, operating system and architecture. A wheelhouse from one platform
+does not automatically support another. The builder copies only wheel files and
+never replaces an existing handoff. The user opens `Install.command` on macOS or
+runs `sh Install.command` on Linux; it performs setup, verification and creates
+a reusable launcher. It needs Python 3.11 or 3.12. Keep the installed folder in
+place because virtual-environment executables contain absolute paths.
+
+Setup smoke checks are part of the existing Linux/macOS CI lifecycle step.
+The helper's exact wheel and verification records stay in its application
+folder. The bundle inventory records the supplied source identity and file
+hashes; it is not a signature or proof of publisher trust.
+
 Demo and replay work needs no provider credentials. Create a local environment
 file only when testing provider configuration:
 
