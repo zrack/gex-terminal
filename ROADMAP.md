@@ -6,10 +6,12 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
-Priorities reviewed September 20, 2026 against the repaired `0.5.0` baseline.
+Priorities reviewed September 26, 2026 against the repaired `0.5.0` baseline
+and the maintainer-requested offline deployment and terminal improvements.
 [Changelog](CHANGELOG.md) and [Application Review](docs/application-review.md)
-own delivered capabilities and verification; [GEX-UX-001](docs/work-packets/GEX-UX-001.md)
-owns the bounded replay-picker repair and its acceptance. The future work below
+own implemented capabilities and verification;
+[GEX-UX-002](docs/work-packets/GEX-UX-002.md) owns the setup/interface slice and
+its integration status. The future work below
 requires customer evidence, owner decisions, live access or a later
 demand-driven product choice.
 
@@ -22,6 +24,9 @@ For observed first use, use the exact reviewed repaired build and frozen
 materials identified through [Study Build](docs/study-build.md). The original
 `v0.5.0` tag or an application version of `0.5.0` alone does not identify a build
 with the repair. Build preparation is separate from participant acceptance.
+The newer setup bundle and redesigned terminal have their own exact build and
+verification record. They do not replace the frozen September 20 study; any
+future study of the new experience needs freshly identified materials.
 
 | Order | Work | Why now | Completion evidence |
 | --- | --- | --- | --- |

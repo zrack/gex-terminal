@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: verified-locally
+status: integration
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent reviewer
@@ -24,8 +24,11 @@ window-size adaptation, replay selection, keyboard help and export feedback.
 Installation lifecycle changes receive L3 rigor even though the regular wheel
 remains the package format and source of installed code.
 
-The user's current request authorizes implementation and disposable local
-installation. No provider connections, participant observation, credentials,
+The original request authorized implementation and disposable local
+installation. The September 26 follow-up explicitly authorizes documentation
+updates, commits, a pull request and merge to `origin/main`. Merge follows
+independent review and successful final-head hosted checks; it does not require
+a further approval round. No provider connections, participant observation, credentials,
 automatic updates, system Python changes, telemetry, new hosted service,
 package publication or release tag are involved. The frozen September 20 study
 bundle remains unchanged. This is a new build, not a replacement of its
@@ -130,6 +133,9 @@ boundaries remain owned by [Architecture](../architecture.md).
   documentation-link checks passed.
 
 The local handoff contains the reviewed wheel, installer and platform-specific
-dependency wheels. This packet does not claim hosted checks, merge to `main`,
-publication, observed-user acceptance or live-data verification. The source
-branch remains `codex/deployment-ux-polish` for review.
+dependency wheels. Hosted verification and the authorized merge are the current
+integration steps on `codex/deployment-ux-polish`. Package publication,
+observed-user acceptance and live-data verification remain outside this slice.
+The pull request will retain final checked-source and merge identities; the
+merged-main verification receipt will be saved locally under
+`dist/deployment-ux-review/merged-closeout.json`.
