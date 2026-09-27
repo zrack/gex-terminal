@@ -7,7 +7,7 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
-## Unreleased — Unified Starter
+## 2026-09-27 — Unified Starter
 
 - Fresh setup folders offer **Terminal**, **Wind Tunnel** or **Both** through
   one starter, with direct shortcuts retained. Both owns the local Wind Tunnel

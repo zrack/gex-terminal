@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent contributor review
@@ -94,14 +94,52 @@ transfer would require a separately authorized scope and is not implied here.
 
 ## Verification Record
 
-Pending implementation and verification. Expected focused coverage belongs in
-`tests/test_install_app.py` and `tests/test_app_bundle.py`; documentation links
-are checked by `tests.test_release_contract.DocumentationLinkContractTests`.
-Do not treat this packet's acceptance list as completed evidence.
+Implementation commit `c16a69705b4294ef53e0c66bae8016515eb469f3` passed the
+complete 528-test source suite and 30 focused starter, installer and bundle
+tests. Independent review found one interruption-status race during browser
+startup. Commit `1fb07027ac520a4e988d39c783b7e856a2fc36a5` fixes it and adds
+a regression covering SIGINT, SIGTERM and SIGHUP. The resulting 21-test starter
+and documentation-link run, compilation and patch hygiene pass. Final full-suite
+and hosted results belong to the integration record below.
 
-The maintainer will retain local rehearsal and bundle manifests outside Git,
-then add the verified source, tests, integration outcome and handoff location to
-this record before closeout. No new package version or tag is planned.
+Fresh installed acceptance outside the checkout uses a 120-by-40 terminal and
+paths containing spaces. Cancel, Terminal, Wind Tunnel, Both with normal quit,
+and Both with SIGTERM pass. The combined path renders the synthetic replay,
+serves its authenticated Wind Tunnel catalog, settles both owned children and
+closes its port. A separately running released Wind Tunnel remains responsive.
+Repeat setup leaves the receipt byte-identical. Two initial rehearsal-observer
+failures (a text-label mismatch and an exit-observation race) are retained
+separately; correcting the observer required no product changes.
+
+The ordinary Both choice also opens a Chrome tab titled `GEX / Wind Tunnel`
+and the synthetic terminal. Quitting the terminal exits successfully and closes
+only its Wind Tunnel port. Browser inventory confirms automatic opening;
+direct inspection of that Chrome tab timed out, so this check does not claim
+a new visual browser audit. Application UI and wheel contents are unchanged.
+
+Independent identity review confirms all 25 candidate bundle entries, six
+launcher hashes and 117 application payload records. The application wheel
+is byte-identical to the retained `v0.6.0` release:
+`f4390551d60e4926b1a914125c16d2e4e4eeda5a21c89c06f4e317c7192e8def`.
+Its source remains `1332d90206762381a80115ca77683a65510f96d0`.
+The final handoff is `dist/GEX Unified Starter Setup/`, with installer source
+`1fb07027ac520a4e988d39c783b7e856a2fc36a5` and bundled dependencies for Apple
+Silicon, macOS 14 or later, Python 3.12. Its separate research folder is
+`GEX App Research`. The distribution ZIP excludes installed environments and
+owned research. `dist/unified-starter/final-handoff.json` records exact runtime,
+file and archive identities; candidate and final acceptance records live in
+the same evidence directory.
+
+## Integration
+
+This packet closes technical shipment with the authorized reviewed merge of
+`codex/unified-starter`, conditional on all final-head Ubuntu/macOS and Python
+3.11/3.12 hosted jobs passing, including documentation closeout. Clean merged-main
+regression, remote equality, final installed acceptance and preservation checks
+are recorded in `dist/unified-starter/merged-closeout.json` after those gates
+complete. The installer commit above remains an ancestor of that merge and
+its shipped helper bytes must match the merged source. No application version
+or tag changes. Observed first-use acceptance remains an external gate.
 
 ## Recovery
 

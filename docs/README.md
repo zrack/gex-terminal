@@ -37,7 +37,7 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. Active [GEX-START-001](work-packets/GEX-START-001.md) owns the unified
+change. Closed [GEX-START-001](work-packets/GEX-START-001.md) owns the unified
 offline starter and its bounded process lifecycle; the original `0.6.0` release
 identity remains unchanged. Closed [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the Market
 Wind Tunnel release and its final integration conditions. Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the setup and
