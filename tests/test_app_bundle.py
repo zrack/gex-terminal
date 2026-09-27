@@ -50,6 +50,21 @@ class AppBundleTests(unittest.TestCase):
         self.assertEqual(marker.read_text(), "important")
         self.assertEqual(list(output.iterdir()), [marker])
 
+    def test_bundle_distinguishes_installer_from_unchanged_application_source(self):
+        output = build_bundle(self.wheel, self.root / "new starter old wheel", "a" * 40,
+                              installer_source_commit="b" * 40)
+        manifest = json.loads((output / "bundle.json").read_text())
+        self.assertEqual(manifest["source_commit"], "a" * 40)
+        self.assertEqual(manifest["installer_source_commit"], "b" * 40)
+        self.assertEqual((output / self.wheel.name).read_bytes(), self.wheel.read_bytes())
+        guide = (output / "START HERE.txt").read_text()
+        self.assertIn("a" * 40, guide)
+        self.assertIn("b" * 40, guide)
+        invalid = self.root / "invalid installer identity"
+        with self.assertRaises(ValueError):
+            build_bundle(self.wheel, invalid, "a" * 40, installer_source_commit="main")
+        self.assertFalse(invalid.exists())
+
     def test_wind_tunnel_bundle_explains_both_launchers(self):
         with zipfile.ZipFile(self.wheel, "a") as archive:
             archive.writestr("gex_terminal/wind_tunnel_cli.py", "# bundled local browser entry")
@@ -58,6 +73,8 @@ class AppBundleTests(unittest.TestCase):
         self.assertIn("Start Wind Tunnel.command", instructions)
         self.assertIn("GEX App Research/wind-tunnel", instructions)
         self.assertIn("Control-C", instructions)
+        self.assertIn("Start Terminal.command", instructions)
+        self.assertIn("Both", instructions)
         subprocess.run(["sh", "-n", str(output / "Install.command")], check=True)
 
     def test_setup_wrapper_passes_paths_with_spaces_and_apostrophes_intact(self):
@@ -85,6 +102,7 @@ class AppBundleTests(unittest.TestCase):
         args = json.loads((output / "invocation.json").read_text())
         self.assertEqual(args[args.index("--wheel") + 1], str(output / self.wheel.name))
         self.assertEqual(args[args.index("--target") + 1], str(output / "GEX App"))
+        self.assertNotIn("--launch", args)
 
     def test_interactive_update_does_not_execute_unlisted_wind_launcher(self):
         # Model the setup helper's successful return for an existing installation
@@ -110,9 +128,10 @@ class AppBundleTests(unittest.TestCase):
         original = json.dumps({"launcher_sha256": hashes}).encode()
         (target / "installation.json").write_bytes(original)
         unwanted = output / "unlisted-was-executed"
-        unlisted = target / "Start Wind Tunnel.command"
-        unlisted.write_text(f'#!/bin/sh\ntouch {shlex.quote(str(unwanted))}\n')
-        unlisted.chmod(0o755)
+        unlisted_files = [target / name for name in ("Start Wind Tunnel.command", "Start Terminal.command")]
+        for unlisted in unlisted_files:
+            unlisted.write_text(f'#!/bin/sh\ntouch {shlex.quote(str(unwanted))}\n')
+            unlisted.chmod(0o755)
         master, slave = pty.openpty()
         process = None
         captured = bytearray()
@@ -137,9 +156,9 @@ class AppBundleTests(unittest.TestCase):
             os.close(slave)
         self.assertFalse(unwanted.exists())
         invocation = json.loads((output / "trusted-launch.json").read_text())
-        self.assertEqual(invocation, ["--launch", "--wind-tunnel", "--target", str(target)])
+        self.assertEqual(invocation, ["--launch", "--choose", "--target", str(target)])
         self.assertEqual((target / "installation.json").read_bytes(), original)
-        self.assertTrue(unlisted.is_file())
+        self.assertTrue(all(path.is_file() for path in unlisted_files))
 
     def test_invalid_inputs_do_not_create_destination(self):
         output = self.root / "not-created"

@@ -19,7 +19,7 @@ status checklists into multiple files.
 | Customer validation | [Product Validation](product-validation.md) | Interview/tasks, matched-fidelity concepts, scorecard, rights questions and assumption-based economics |
 | Study build handoff | [Study Build](study-build.md) | Exact source/wheel/runtime and frozen materials, automated rehearsal and build-record routing |
 | Dated study build evidence | [Study build records](studies/offline-first-use-2026-09-20.md) | Immutable artifact identities and technical rehearsal results; no private participant records |
-| Install and first use | [First Run](first-run.md) | Reviewed wheel path, guided journey, supported terminal sizes and package lifecycle |
+| Install and first use | [First Run](first-run.md) | Reviewed wheel setup, Terminal/Wind Tunnel/Both starter, guided journey and package lifecycle |
 | Market Wind Tunnel | [Wind Tunnel](wind-tunnel.md) | Browser workflow, scenarios, sampled search, portable experiments and worked examples |
 | Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
 | Local support and recovery | [Local Support](local-support.md) | Shareable diagnostics versus private backup, whole-artifact retention, recovery and credential/uninstall boundaries |
@@ -37,7 +37,9 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. Closed [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the Market
+change. Active [GEX-START-001](work-packets/GEX-START-001.md) owns the unified
+offline starter and its bounded process lifecycle; the original `0.6.0` release
+identity remains unchanged. Closed [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the Market
 Wind Tunnel release and its final integration conditions. Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the setup and
 terminal experience improvement and its integration conditions.
 Closed packets are historical evidence and do not make a roadmap item

@@ -40,16 +40,19 @@ if Path(".env").exists():
 '''
 
 
-def make_wheel(directory: Path, version="0.5.0", name="gex-terminal", broken=False) -> Path:
+def make_wheel(directory: Path, version="0.5.0", name="gex-terminal", broken=False,
+               *, wind_tunnel=False, cli=CLI) -> Path:
     path = directory / f"gex_terminal-{version}-py3-none-any.whl"
     metadata_dir = f"gex_terminal-{version}.dist-info"
     records = {
         "gex_terminal/__init__.py": f"__version__={version!r}\n",
         "gex_terminal/config.py": CONFIG,
-        "gex_terminal/cli.py": "raise RuntimeError('deliberate synthetic failure')\n" if broken else CLI,
+        "gex_terminal/cli.py": "raise RuntimeError('deliberate synthetic failure')\n" if broken else cli,
         f"{metadata_dir}/METADATA": f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\nRequires-Python: >=3.11\n",
         f"{metadata_dir}/WHEEL": "Wheel-Version: 1.0\nGenerator: installer-test\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
     }
+    if wind_tunnel:
+        records["gex_terminal/wind_tunnel_cli.py"] = "# synthetic Wind Tunnel payload\n"
     records[f"{metadata_dir}/RECORD"] = "".join(f"{filename},,\n" for filename in records)
     with zipfile.ZipFile(path, "w") as wheel:
         for filename, content in records.items():
@@ -80,8 +83,9 @@ class InstallAppTests(unittest.TestCase):
             archive.writestr(wind_module, "# payload presence enables shortcut\n")
         receipt = self.install()
         self.assertEqual(set(receipt["launcher_sha256"]),
-                         set((*install_app.LAUNCH_FILES, *install_app.WIND_LAUNCH_FILES)))
-        for name in install_app.WIND_LAUNCH_FILES:
+                         set((*install_app.LAUNCH_FILES, *install_app.WIND_LAUNCH_FILES,
+                              *install_app.STARTER_LAUNCH_FILES)))
+        for name in (*install_app.WIND_LAUNCH_FILES, *install_app.STARTER_LAUNCH_FILES):
             subprocess.run(["sh", "-n", str(self.target / name)], check=True)
         # Payload validation still executes; inspect only the final process
         # boundary to avoid opening a real browser in the test runner.
@@ -99,6 +103,29 @@ class InstallAppTests(unittest.TestCase):
                                        str(self.research / "wind-tunnel")])
         self.assertNotIn("GEX_DATA_MODE", options["env"])
         self.assertTrue(install_app.owned_target(self.target))
+        # An existing five-launcher receipt must keep its exact old helper and
+        # shortcut bytes, even when the current installer can create a chooser.
+        for name in install_app.STARTER_LAUNCH_FILES:
+            (self.target / name).unlink()
+            receipt["launcher_sha256"].pop(name)
+        legacy_helper = b"# preserved installer helper from an older setup\n"
+        (self.target / "launcher.py").write_bytes(legacy_helper)
+        receipt["launcher_sha256"]["launcher.py"] = hashlib.sha256(legacy_helper).hexdigest()
+        receipt.pop("reused", None)
+        receipt_path = self.target / install_app.RECEIPT
+        receipt_path.write_text(json.dumps(receipt))
+        previous_bytes = receipt_path.read_bytes()
+        previous_launchers = {name: (self.target / name).read_bytes() for name in receipt["launcher_sha256"]}
+        unlisted = self.target / "Start Terminal.command"
+        unlisted_bytes = b"# unrelated user file outside the legacy receipt\n"
+        unlisted.write_bytes(unlisted_bytes)
+        self.assertTrue(self.install()["reused"])
+        self.assertEqual(receipt_path.read_bytes(), previous_bytes)
+        newer = make_wheel(self.root, version="0.7.0", wind_tunnel=True)
+        updated = self.install(newer)
+        self.assertEqual(set(updated["launcher_sha256"]), set(previous_launchers))
+        self.assertEqual({name: (self.target / name).read_bytes() for name in previous_launchers}, previous_launchers)
+        self.assertEqual(unlisted.read_bytes(), unlisted_bytes)
         (self.target / "run-wind-tunnel").write_text("# altered shortcut")
         with self.assertRaisesRegex(ValueError, "launcher has changed"):
             install_app.owned_target(self.target)
@@ -150,6 +177,9 @@ class InstallAppTests(unittest.TestCase):
             self.assertEqual(receipt["active"]["wheel_sha256"], install_app.digest(self.wheel))
             self.assertEqual(receipt["active"]["source_commit"], SOURCE)
             self.assertEqual(receipt["active"]["verification"]["doctor"], "passed")
+            for missing_interface in ({"wind_tunnel": True}, {"both": True}):
+                with self.subTest(missing_interface=missing_interface), self.assertRaisesRegex(ValueError, "no Wind Tunnel"):
+                    install_app.launch(self.target, **missing_interface)
             active_before = (self.target / install_app.RECEIPT).read_bytes()
             launchers_before = {name: (self.target / name).read_bytes() for name in install_app.LAUNCH_FILES}
             with patch.object(install_app.venv, "EnvBuilder", side_effect=AssertionError("reuse created an environment")):
@@ -230,7 +260,7 @@ class InstallAppTests(unittest.TestCase):
                 self.assertEqual(json.loads(receipt_path.read_text()), invalid)
                 self.assertEqual({name: (self.target / name).read_bytes() for name in install_app.LAUNCH_FILES}, launchers_before)
             receipt_path.write_bytes(active_before)
-            newer = make_wheel(self.root, version="0.7.0")
+            newer = make_wheel(self.root, version="0.7.0", wind_tunnel=True)
             original_write = install_app.atomic_write
             def fail_receipt(path, data, **options):
                 if path.name == install_app.RECEIPT:

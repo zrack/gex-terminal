@@ -26,12 +26,15 @@ def regular_file(path: Path) -> Path:
 
 
 def build_bundle(wheel: Path, output: Path, source_commit: str,
-                 wheelhouse: Path | None = None) -> Path:
+                 wheelhouse: Path | None = None, *, installer_source_commit: str | None = None) -> Path:
     """Create a new folder only; neither install nor run any supplied code."""
     regular_file(wheel)
     regular_file(INSTALLER)
     if not re.fullmatch(r"[0-9a-fA-F]{40}", source_commit):
         raise ValueError("source-commit must be the full 40-character reviewed Git commit")
+    installer_source_commit = installer_source_commit or source_commit
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", installer_source_commit):
+        raise ValueError("installer-source-commit must be the full 40-character reviewed Git commit")
     if not re.fullmatch(r"gex_terminal-[A-Za-z0-9_.+]+-py3-none-any\.whl", wheel.name):
         raise ValueError("Expected a gex_terminal universal Python wheel")
     with zipfile.ZipFile(wheel) as archive:
@@ -94,7 +97,7 @@ if [ -t 0 ] && [ -t 1 ]; then
     # Use the validated setup helper, not an optional file that an older
     # three-launcher installation might leave outside its receipt inventory.
     if has_wind_tunnel:
-        shell += '    exec "$GEX_PYTHON" -I "$BUNDLE_DIR/install_app.py" --launch --wind-tunnel --target "$BUNDLE_DIR/GEX App"\n'
+        shell += '    exec "$GEX_PYTHON" -I "$BUNDLE_DIR/install_app.py" --launch --choose --target "$BUNDLE_DIR/GEX App"\n'
     else:
         shell += '    exec "$BUNDLE_DIR/GEX App/Start GEX.command"\n'
     shell += 'fi\n'
@@ -108,11 +111,17 @@ if [ -t 0 ] && [ -t 1 ]; then
         "First setup downloads Python dependencies. Later launches need no network."
     )
     wind_note = (
-        "MARKET WIND TUNNEL\n"
-        "Open GEX App/Start Wind Tunnel.command on macOS or GEX App/run-wind-tunnel on Linux.\n"
-        "The first interactive setup opens the Wind Tunnel in your browser.\n"
+        "CHOOSE YOUR WORKSPACE\n"
+        "Interactive setup and GEX App/Start GEX.command offer 1 Terminal, 2 Wind Tunnel, 3 Both, q Cancel.\n"
+        "On Linux, run GEX App/run-gex --choose in a terminal.\n"
+        "Both opens Terminal and the browser workbench in one managed session.\n"
+        "Quitting Terminal, Control-C or closing its launch window stops that session's Wind Tunnel too.\n"
+        "Closing only the browser tab does not stop its server. The two views have independent selections.\n"
+        "Direct shortcuts: GEX App/Start Terminal.command and GEX App/Start Wind Tunnel.command.\n"
+        "GEX App/run-gex stays terminal-only; GEX App/run-gex --both starts both directly.\n"
+        "GEX App/run-wind-tunnel starts only Wind Tunnel.\n"
         "Choose Examples for three worked synthetic experiments.\n"
-        "Use Save experiment to retain results in GEX App Research/wind-tunnel.\n"
+        "Use Save scenario to retain results in GEX App Research/wind-tunnel.\n"
         "Keep the launcher window open while exploring. Control-C stops the local server.\n"
         "Charts and calculations work offline; the browser connects only to this computer.\n\n"
         if has_wind_tunnel else ""
@@ -133,7 +142,8 @@ if [ -t 0 ] && [ -t 1 ]; then
         "For an update, retain your old folder and install a new reviewed bundle separately.\n"
         "This is a local Python application, not a signed native app or a live-market service.\n"
         "The checksum establishes file identity, not publisher trust; obtain the bundle from your maintainer.\n\n"
-        f"Source commit: {source_commit.lower()}\nWheel SHA-256: {wheel_sha}\n",
+        f"Application source commit: {source_commit.lower()}\n"
+        f"Installer source commit: {installer_source_commit.lower()}\nWheel SHA-256: {wheel_sha}\n",
         encoding="utf-8",
     )
     inventory = {
@@ -143,6 +153,7 @@ if [ -t 0 ] && [ -t 1 ]; then
     (output / "bundle.json").write_text(json.dumps({
         "schema": "gex-terminal.app-bundle.v1",
         "source_commit": source_commit.lower(),
+        "installer_source_commit": installer_source_commit.lower(),
         "wheel": wheel.name,
         "wheel_sha256": wheel_sha,
         "dependencies_included": wheelhouse is not None,
@@ -158,10 +169,12 @@ def main() -> None:
     parser.add_argument("--wheel", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--installer-source-commit", help="Installer Git commit when reusing a wheel from another commit")
     parser.add_argument("--wheelhouse", type=Path)
     args = parser.parse_args()
     try:
-        output = build_bundle(args.wheel, args.output, args.source_commit, args.wheelhouse)
+        output = build_bundle(args.wheel, args.output, args.source_commit, args.wheelhouse,
+                              installer_source_commit=args.installer_source_commit)
     except (OSError, ValueError, zipfile.BadZipFile) as exc:
         parser.exit(1, f"Bundle not completed: {exc}\n")
     print(f"Prepared {output}\nOpen Install.command to set up the app.")

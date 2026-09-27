@@ -50,10 +50,14 @@ For an easier local handoff, first build a wheel from the exact reviewed commit,
 then prepare a new setup folder:
 
 ```bash
-python scripts/build_app_bundle.py --wheel /path/to/gex_terminal-0.5.0-py3-none-any.whl --source-commit FULL_REVIEWED_COMMIT --output /path/to/new-gex-setup
+python scripts/build_app_bundle.py --wheel /path/to/gex_terminal-0.6.0-py3-none-any.whl --source-commit FULL_REVIEWED_COMMIT --output /path/to/new-gex-setup
 ```
 
 Replace the example paths and commit with the actual build identity. Supply
+`--installer-source-commit FULL_INSTALLER_COMMIT` when packaging a newer setup
+helper with an unchanged reviewed wheel; `--source-commit` still identifies the
+wheel's source. The bundle records both identities and exact file checksums.
+Supply
 `--wheelhouse /path/to/dependency-wheels` to include dependencies for the intended
 Python version, operating system and architecture. A wheelhouse from one platform
 does not automatically support another. The builder copies only wheel files and

@@ -7,15 +7,23 @@ through the same calculation engine as the terminal.
 
 ## Open The Workbench
 
-Open **Start Wind Tunnel.command** in a fresh 0.6.0 setup folder on macOS, or
-**run-wind-tunnel** on Linux. Manual wheel installations use:
+In a fresh setup folder with the unified starter, open **Start GEX.command**
+on macOS or run **`run-gex --choose`** on Linux, then choose **Wind Tunnel** or
+**Both**. The direct **Start Wind Tunnel.command** / **run-wind-tunnel** shortcuts
+also remain available, including in the original 0.6.0 setup.
+[First Run](first-run.md#choose-terminal-wind-tunnel-or-both) owns the shortcut
+and update details. Manual wheel installations use:
 
 ```bash
 gex-terminal wind-tunnel
 ```
 
-The command opens your browser. Keep the launcher window open; Control-C stops
-the local server. No provider account, live data, CDN or telemetry is involved.
+The direct command opens your browser. Keep its launcher window open; Control-C
+stops the local server. In **Both**, quitting the terminal also stops the server
+that combined session started. Closing a browser tab closes only the view.
+The terminal and browser keep independent source selections and research state;
+launching both does not transfer a checkpoint or scenario between them.
+No provider account, live data, CDN or telemetry is involved.
 The browser connects only to a Python process on this computer. The launcher
 uses a free port; the direct command defaults to port 8765. To select a free
 port and an explicit research location:
@@ -25,7 +33,7 @@ gex-terminal wind-tunnel serve --port 0 --workspace ./wind_tunnel_research
 ```
 
 Commands below assume `gex-terminal` is on your PATH. For the manual environment
-in [First Run](first-run.md), use its explicit `gex-env/bin/gex-terminal` path
+in [First Run](first-run.md), use its explicit `gex-app/bin/gex-terminal` path
 instead; no activation is required.
 
 Add `--no-browser` to print the launch URL. Use that complete URL, including its

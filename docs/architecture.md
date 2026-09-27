@@ -74,6 +74,14 @@ not another deployed service or package registry. The generated offline launcher
 initializes configuration in an empty working directory with provider settings
 excluded, then writes requested exports in the selected research directory.
 Direct `gex-terminal` invocations retain their existing configuration behavior.
+Fresh Wind Tunnel-capable setup folders offer Terminal, Wind Tunnel or Both
+through the starter. Both owns a background Wind Tunnel child and a foreground
+terminal child, waits for browser-service readiness, isolates server output,
+and stops its children when the terminal exits or the combined launch is
+interrupted. Separate launches remain independent. Starting both does not
+synchronize replay checkpoints or scenario state. Existing installer receipts
+retain their original launcher bytes; the setup manifest identifies the
+installer commit separately when it reuses a wheel from another source commit.
 
 The Wind Tunnel reconstructs a declared synthetic replay checkpoint, forks
 scenario assumptions and prices each fork through the existing consumer/engine.
