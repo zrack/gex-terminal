@@ -94,3 +94,17 @@ net-GEX, imbalance, session change, and replay-alert count. See
 5. Review changed alerts, walls, strike-profile levels, model provenance, and
    comparison deltas.
 6. Add or update tests for any intended fixture, alert, or export behavior.
+
+`tests/test_replay_lab.py` checks semantic checkpoints from the bundled inputs:
+initialization after the first accepted option, timed wall changes, put-driven
+sign flips, balanced and concentrated positions, quality-annotation deduplication,
+off-symbol rejection, and schema-v2 event time. The checks use explicit fixture
+events and bounded level/sign expectations rather than treating a generated
+report or a nonzero alert count as its own oracle. Legacy ES expectations fix
+fallback DTE at `0.01` days; NQ uses its contract-specific expiry and multiplier.
+
+Keep net-GEX sign, proximity state, and compatibility-level crosses distinct.
+For example, at these inputs `zero-gamma-flip` changes net-GEX sign while spot
+stays above the historical strike-profile compatibility level, so it must not
+emit a `zero_gamma_cross` alert. A scenario label is not evidence of a particular
+alert, market regime, or predictive outcome.

@@ -9,8 +9,22 @@ Release is claimed.
 
 ## Unreleased
 
+### Added
+
+- Fixture-specific replay expectations for alert meaning, event timing and
+  structural levels, extending identity and report-format checks.
+- Linux/macOS verification across Python 3.11/3.12 with retained, bounded
+  synthetic reports and previews, build/runtime identity, file hashes and
+  explicit failed or missing check outputs. See [Offline CI](docs/offline-ci.md).
+- A repeatable maintainer preview-refresh command using explicit synthetic
+  inputs and a local provenance manifest. See [Demo Lab](docs/demo-lab.md#contributor-preview).
+  [GEX-OFFLINE-002](docs/work-packets/GEX-OFFLINE-002.md) owns verification;
+  frozen study materials and external evidence gates are unchanged.
+
 ### Fixed
 
+- Generated demo-preview table headings and regime-label layout; the onboarding
+  preview uses enough rows to expose its replay choices.
 - Replay-picker keyboard routing repair and real-keyboard regression coverage
   for selection/loading from a focused strike table, with normal table and
   overlay controls preserved. [GEX-UX-001](docs/work-packets/GEX-UX-001.md) owns

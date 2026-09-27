@@ -30,12 +30,14 @@ status checklists into multiple files.
 | Live observation preparation | [Live Population Preparation](live-population-prep.md) | Offline population preregistration, canonical identities, full-result accounting, and external authority gates |
 | Research authority | [Research Governance](research-governance.md) | Model profiles, manifests, corpus gates, split identity, and evidence ladder |
 | Contribution workflow | [Contributing](../CONTRIBUTING.md) | Setup, verification commands, development rules, and pull-request checklist |
+| Offline CI evidence | [Offline CI](offline-ci.md) | Verification matrix, synthetic artifact inventory, failure accounting and retained build identity |
 | Change governance | [SAED Adoption Profile](SAED_ADOPTION_PROFILE.md) | Change rigor, authority, invariants, active-packet rules, and release evidence |
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
 change. Closed packets are historical evidence and do not make a roadmap item
-active. Closed [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) owns the study-build and
+active. [GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md) owns the active offline
+verification and maintainer-automation slice. Closed [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) owns the study-build and
 documentation slice. Closed [GEX-UX-001](work-packets/GEX-UX-001.md) owns the replay-picker
 keyboard repair and its verification. Closed [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) owns the
 offline release record; the closed preflight, support, installation and

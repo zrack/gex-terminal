@@ -29,8 +29,10 @@ Closed [GEX-UX-001](work-packets/GEX-UX-001.md) records the replay-picker
 keyboard repair and acceptance without a version or readiness change.
 Closed [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) records the bounded study-build,
 documentation and heading-link validation slice. It does not authorize live
-operation or change the release mechanism. No repository-owned offline
-implementation packet remains active; observed participant acceptance is open.
+operation or change the release mechanism.
+[GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md) owns the active bounded replay,
+CI evidence, macOS verification and preview-automation slice; observed
+participant acceptance remains open.
 
 ## Purpose And Entry Boundary
 
@@ -119,7 +121,7 @@ views. They never override their listed source authorities.
 
 | Invariant Or Quality | Command Or Inspection | Frequency | Failure Action |
 | --- | --- | --- | --- |
-| Source integrity | `python -m compileall main.py gex_terminal tests` | Every PR | Block merge |
+| Source integrity | `python -m compileall main.py gex_terminal scripts tests` | Every PR | Block merge |
 | Behavioral regression | `python -m unittest discover -s tests -p 'test*.py'` | Every PR | Block merge |
 | Numerical ceiling | `gex-terminal model-evidence OUTPUT.json` | Model/release change | Block merge |
 | Offline provider behavior | `gex-terminal databento-offline-certify OUTPUT.json` | Adapter/release change | Block merge |

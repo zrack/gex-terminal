@@ -482,7 +482,7 @@ def demo_lab_preview_svg(
     health = str(quality.get("health", "unknown"))
 
     row_blocks = []
-    start_y = 374
+    start_y = 402
     for index, row in enumerate(rows):
         y = start_y + index * 42
         net_gex = float(row["net_gex"])
@@ -555,21 +555,23 @@ def demo_lab_preview_svg(
   <text x="646" y="361" class="mono label">EXPOSURE</text>
 {''.join(row_blocks)}
 
-  <rect x="874" y="336" width="434" height="184" rx="10" fill="#0d141c" stroke="#263445"/>
+  <rect x="874" y="336" width="434" height="216" rx="10" fill="#0d141c" stroke="#263445"/>
   <text x="902" y="374" class="mono panel-title">GEX Proxy Regime Map</text>
   <rect x="902" y="402" width="348" height="26" rx="7" fill="url(#lane)" opacity="0.88"/>
   <line x1="1044" y1="391" x2="1044" y2="443" stroke="#38bdf8" stroke-width="4"/>
   <line x1="1176" y1="391" x2="1176" y2="443" stroke="#fbbf24" stroke-width="4" stroke-dasharray="7 6"/>
   <circle cx="1128" cy="415" r="7" fill="#f8fafc" filter="url(#glow)"/>
-  <text x="902" y="470" class="mono small">Replay alerts: {int(replay_summary['alert_count'])}  |  Regime: {html.escape(replay_summary['regime_label'])}</text>
-  <text x="902" y="500" class="mono small">Session change: {_signed(snapshot['session_change'], 2)}  |  Imbalance: {float(metrics['imbalance']):.2f}x</text>
+  <text x="902" y="460" class="mono small">Replay alerts: {int(replay_summary['alert_count'])}</text>
+  <text x="902" y="484" class="mono small">Regime: {html.escape(replay_summary['regime_label'])}</text>
+  <text x="902" y="508" class="mono small">Session change: {_signed(snapshot['session_change'], 2)}</text>
+  <text x="902" y="532" class="mono small">Imbalance: {float(metrics['imbalance']):.2f}x</text>
 
-  <rect x="874" y="548" width="434" height="180" rx="10" fill="#0d141c" stroke="#263445"/>
-  <text x="902" y="586" class="mono panel-title">Demo Pack Outputs</text>
-  <text x="902" y="624" class="mono small">color SVG preview</text>
-  <text x="902" y="654" class="mono small">Textual terminal capture</text>
+  <rect x="874" y="572" width="434" height="160" rx="10" fill="#0d141c" stroke="#263445"/>
+  <text x="902" y="608" class="mono panel-title">Demo Pack Outputs</text>
+  <text x="902" y="636" class="mono small">color SVG preview</text>
+  <text x="902" y="660" class="mono small">Textual terminal capture</text>
   <text x="902" y="684" class="mono small">snapshot JSON/Markdown</text>
-  <text x="902" y="714" class="mono small">Replay Lab + Provider Fixture Lab</text>
+  <text x="902" y="708" class="mono small">Replay Lab + Provider Fixture Lab</text>
 
   <text x="78" y="764" class="mono small">Local-first, credential-safe, replayable market-structure research for contributors.</text>
 </svg>

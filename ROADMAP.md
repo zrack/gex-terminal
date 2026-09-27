@@ -15,6 +15,12 @@ demand-driven product choice.
 
 ## Current Work Order
 
+The maintainer's September 26 offline-only continuation is scoped in
+[GEX-OFFLINE-002](docs/work-packets/GEX-OFFLINE-002.md): strengthen synthetic replay
+expectations, retain build evidence, automate macOS verification and refresh
+documentation previews. It can complete without participants or market-data
+access; the product acceptance order below remains open.
+
 Do not add another broad feature layer before testing the completed offline
 loop with real users. Correctness regressions still interrupt product work.
 Prepared protocols are ready to use, but preparation is not a passed gate.
