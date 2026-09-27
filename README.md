@@ -1,55 +1,64 @@
 # gex-terminal
 
-`gex-terminal` is an open, local-first browser and terminal workbench for inspecting gamma
-exposure (GEX) proxies in ES, NQ, and related options markets. It normalizes
-provider or replay data, makes model assumptions visible, and produces
-replayable research artifacts without presenting proxy calculations as observed
-dealer inventory.
+**One local installation. Two research interfaces: Terminal and Market Wind Tunnel.**
 
-![Market Wind Tunnel calculating a synthetic ES volatility scenario](assets/market-wind-tunnel.png)
+`gex-terminal` is an open-source workbench for inspecting gamma exposure (GEX)
+proxies in ES, NQ, and related options markets. Use the **Terminal** to inspect a
+session and its strike-level structure. Use the **Market Wind Tunnel** to change
+assumptions and explore how that structure responds. Start either component on
+its own, or choose **Both** in the starter.
 
-> This project is for market research and engineering experimentation. It is
-> not financial advice.
+Both components work offline with bundled synthetic data.
 
-## What It Does
+[Install](#install) · [Quick start](#quick-start) ·
+[Architecture](docs/architecture.md#c4-views) · [Roadmap](ROADMAP.md)
 
-- Explores synthetic market structure in an offline Market Wind Tunnel: exposure
-  landscape, matched scenario comparison, sampled fragility map and bounded
-  break search, with saved experiments that can be verified and reproduced.
+## Two Components, One Installation
 
-- Prices futures-option rows with Black-76 and equity/index-option rows with
-  Black-Scholes before strike aggregation.
-- Keeps open interest, raw trade volume, and directionalized volume as separate
-  position models instead of blending unlike quantities.
-- Runs a Textual terminal with strike-level exposure, walls, a documented
-  strike-profile flip, feed health, replay selection, and assumption controls.
-- Replays bundled sessions and provider-shaped fixtures without credentials.
-- Builds portable packs with authorized input, separated model comparisons and
-  verifiable review receipts; supports safe diagnosis and private local recovery.
-- Keeps provider readiness, runtime connection state, model verification, and
-  predictive validity as separate claims.
+| Component | What you do | What you see |
+| --- | --- | --- |
+| [Terminal](#terminal) | Load a replay, inspect exposure and source quality, adjust model controls, export a snapshot | A keyboard-driven dashboard with metrics, strike rows, walls and replay controls |
+| [Market Wind Tunnel](#market-wind-tunnel) | Change price, volatility, time or expiry assumptions; compare scenarios and save reproducible results | A browser workbench with exposure landscapes, comparisons, fragility maps and bounded break searches |
 
-The intended users are quant/model researchers, Python/data engineers, and
-advanced traders who want an inspectable local workflow. The model definitions
-and limitations are documented in
-[Model Assumptions](docs/model-assumptions.md).
+### Terminal
 
-## Current Status
+Inspect the structure of a session: exposure by strike, modeled levels, source
+quality and the assumptions behind the numbers. Press `p` to select a replay,
+`v` to inspect source and model details, and `e` to export a snapshot.
 
-Version **0.6.0 — Market Wind Tunnel** is a research alpha. The
-repository and reviewed Git tag are the release record; no PyPI publication or
-hosted GitHub Release is claimed.
+![Terminal component: GEX research dashboard showing synthetic exposure metrics, strike-level rows and replay controls](assets/gex-terminal-actual.png)
 
-Bundled demo/replay is `offline-certified`. Databento is `live-uncertified`;
-Tradovate and IBKR remain scaffolds; yfinance is delayed. Details belong in
-[Market-Data Adapters](docs/adapters.md) and the dated
-[Application Review](docs/application-review.md).
+*Actual Terminal capture with seeded synthetic data. The dashboard is operated
+with the keyboard. [Terminal guide](docs/first-run.md).*
 
-`predictive_validity` remains `unmeasured`. Offline tests and fixtures verify
-software behavior. A credentialed certification report can establish bounded
-transport and input evidence for its exact run, but neither form of evidence
-establishes a forecasting edge, durable provider-wide reliability, execution
-quality, or profitability.
+### Market Wind Tunnel
+
+Ask “what changes if…?” without changing the source checkpoint. Shift spot,
+implied volatility or model time, exclude the nearest expiry, and compare the
+recalculated structure. Save a scenario receipt to verify or reproduce later.
+
+![Market Wind Tunnel component: browser workbench showing a calculated ES exposure landscape and controls for price, volatility, time and expiry assumptions](assets/market-wind-tunnel.png)
+
+*Actual Wind Tunnel capture: synthetic ES, final replay checkpoint, IV shifted
+by +2 volatility points. Cyan marks the original state and gold the recalculated
+scenario. [Wind Tunnel guide](docs/wind-tunnel.md).*
+
+## How The Components Fit Together
+
+![One GEX starter offers Terminal, Market Wind Tunnel or Both. The two interfaces reuse the same calculation code, run with independent state and save research locally.](assets/workbench-components.svg)
+
+The **Terminal** runs in a terminal window. The **Wind Tunnel** runs in your
+browser, served by a separate Python process on your own computer. Its charts
+and scripts are included in the installation; no hosted service is needed.
+
+Choosing **Both** starts the two components together. Quitting Terminal stops
+that session's Wind Tunnel server; closing only the browser tab does not.
+A separately launched instance keeps running. Replay choices, checkpoints and
+scenario changes are **not automatically synchronized** between the views.
+
+The shared engine is reusable code loaded by each process, not a central service
+or shared live session. The [architecture diagrams](docs/architecture.md#c4-views)
+show the process, state and local storage boundaries.
 
 ## Install
 
@@ -94,8 +103,6 @@ start with seeded offline data:
 gex-terminal --demo
 ```
 
-![GEX research terminal with seeded synthetic data](assets/gex-terminal-actual.svg)
-
 Press `p` to open the replay browser, use Up/Down to choose a session, and press
 Enter to load it. Press `e` to save a snapshot, `v` for source and model details,
 `?` for help, and `q` to quit. The terminal works from 100×32 cells; 140×42 gives
@@ -111,6 +118,44 @@ gex-terminal --replay-session zero-gamma-flip
 
 Credentials belong in the local environment and must never be committed. See
 [Security](SECURITY.md) before using a live provider.
+
+## What It Does
+
+The two interfaces are backed by the same research tools:
+
+- Price futures-option rows with Black-76 and equity/index-option rows with
+  Black-Scholes before strike aggregation.
+- Keep open interest, raw trade volume, and directionalized volume as separate
+  position models.
+- Replay bundled sessions and provider-shaped fixtures without credentials.
+- Build portable packs with authorized input, separated model comparisons and
+  verifiable receipts; support local diagnosis, backup and recovery.
+- Keep provider readiness, runtime connection state, model verification and
+  predictive validity as separate claims.
+
+The intended users are quant/model researchers, Python/data engineers, and
+advanced traders who want an inspectable local workflow. See
+[Model Assumptions](docs/model-assumptions.md) for definitions and limitations.
+
+> For market research and engineering experimentation. Proxy calculations are
+> not observed dealer inventory, market forecasts or financial advice.
+
+## Current Status
+
+Version **0.6.0 — Market Wind Tunnel** is a research alpha. The
+repository and reviewed Git tag are the release record; no PyPI publication or
+hosted GitHub Release is claimed.
+
+Bundled demo/replay is `offline-certified`. Databento is `live-uncertified`;
+Tradovate and IBKR remain scaffolds; yfinance is delayed. Details belong in
+[Market-Data Adapters](docs/adapters.md) and the dated
+[Application Review](docs/application-review.md).
+
+`predictive_validity` remains `unmeasured`. Offline tests and fixtures verify
+software behavior. A credentialed certification report can establish bounded
+transport and input evidence for its exact run, but neither form of evidence
+establishes a forecasting edge, durable provider-wide reliability, execution
+quality, or profitability.
 
 ## Common Workflows
 

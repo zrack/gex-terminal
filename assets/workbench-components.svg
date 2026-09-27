@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title description">
+  <title id="title">GEX: two components, one local installation</title>
+  <desc id="description">The starter offers Terminal, Market Wind Tunnel or Both. Terminal provides a keyboard dashboard in one Python process. Wind Tunnel provides a browser workbench served by another local Python process. Each uses the same installed calculation code and bundled synthetic inputs with separate state. Terminal exports snapshots; Wind Tunnel saves scenario receipts. Both stops its owned Wind Tunnel when Terminal exits. Derived from docs/architecture.md; this is a component overview, not a screenshot or a shared-state service diagram.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#9aaabb"/></marker>
+    <style>
+      text{font-family:Arial,Helvetica,sans-serif}
+      .heading{font-size:34px;font-weight:700;fill:#f3f6fa}
+      .label{font-size:13px;font-weight:700;letter-spacing:2px;fill:#9aaabb}
+      .name{font-size:27px;font-weight:700;fill:#f3f6fa}
+      .body{font-size:19px;fill:#c5d0dd}
+      .small{font-size:16px;fill:#aab8c8}
+      .launch{fill:none;stroke:#9aaabb;stroke-width:2;marker-end:url(#arrow)}
+      .reuse{fill:none;stroke:#9aaabb;stroke-width:2;stroke-dasharray:6 6;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="800" rx="20" fill="#0b121a"/>
+  <text x="54" y="53" class="label">GEX / LOCAL RESEARCH WORKBENCH</text>
+  <text x="54" y="105" class="heading">Two components. One local installation.</text>
+
+  <rect x="310" y="143" width="580" height="104" rx="12" fill="#172331" stroke="#4b5d70"/>
+  <text x="600" y="181" text-anchor="middle" class="name">Start GEX</text>
+  <text x="415" y="220" text-anchor="middle" class="body">1  Terminal</text>
+  <text x="610" y="220" text-anchor="middle" class="body">2  Wind Tunnel</text>
+  <text x="795" y="220" text-anchor="middle" class="body">3  Both</text>
+  <path d="M600 247 V272 H304 V306" class="launch"/>
+  <path d="M600 272 H896 V306" class="launch"/>
+
+  <rect x="54" y="309" width="500" height="225" rx="12" fill="#10232b" stroke="#69c6d8" stroke-width="2"/>
+  <text x="80" y="346" class="label" style="fill:#69c6d8">01 / TERMINAL WINDOW</text>
+  <text x="80" y="389" class="name">Terminal</text>
+  <text x="80" y="423" class="body">Keyboard dashboard · own market state</text>
+  <text x="80" y="455" class="body">Replay sessions, inspect strikes and levels</text>
+  <path d="M80 478 H528" stroke="#29464f"/>
+  <text x="80" y="510" class="small">Saves local snapshot exports</text>
+
+  <rect x="646" y="309" width="500" height="225" rx="12" fill="#272319" stroke="#f3c45b" stroke-width="2"/>
+  <text x="672" y="346" class="label" style="fill:#f3c45b">02 / BROWSER + LOCAL PYTHON SERVICE</text>
+  <text x="672" y="389" class="name">Market Wind Tunnel</text>
+  <text x="672" y="423" class="body">Visual workbench · own scenario state</text>
+  <text x="672" y="455" class="body">Stress assumptions, compare and reproduce</text>
+  <path d="M672 478 H1120" stroke="#51462c"/>
+  <text x="672" y="510" class="small">Saves local scenario receipts</text>
+
+  <path d="M304 534 V586" class="reuse"/>
+  <path d="M896 534 V586" class="reuse"/>
+  <rect x="54" y="590" width="1092" height="99" rx="12" fill="#17202b" stroke="#4b5d70"/>
+  <text x="600" y="626" text-anchor="middle" class="name" style="font-size:23px">Shared package and calculation code</text>
+  <text x="600" y="662" text-anchor="middle" class="body">Same pricing engine and bundled inputs · separate instances in each Python process</text>
+
+  <text x="600" y="726" text-anchor="middle" class="small">Dashed arrows mean code reuse. Replay selections and scenarios do not synchronize.</text>
+  <text x="600" y="759" text-anchor="middle" class="small">Both starts the two components together; quitting Terminal stops that session's Wind Tunnel.</text>
+</svg>
