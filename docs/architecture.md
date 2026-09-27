@@ -1,8 +1,16 @@
 # Architecture
 
-`gex-terminal` is organized around one rule: provider-specific data handling,
-state ownership, model calculation, terminal rendering, and export/report
-workflows stay separated.
+`gex-terminal` has two user-facing components: **Terminal**, a Textual dashboard
+for replay and research workflows, and **Market Wind Tunnel**, a browser
+workbench for exploring synthetic replay scenarios. They use one installed
+Python package and the same calculation code, but run in separate processes
+with separate state. The optional starter opens either component or manages
+both together.
+
+Provider-specific data handling, state ownership, model calculation,
+presentation, and export/report workflows stay separated. Starting both
+interfaces does not synchronize their source, replay checkpoint, model controls
+or scenario selections.
 
 This document owns the current architecture, including the C4 views below.
 The diagrams describe shipped source; roadmap items and product concepts are
@@ -13,18 +21,24 @@ the source and purpose of the derived SVGs.
 
 ### System Context
 
-The researcher operates a local workbench. Synthetic replay, calculation,
-comparison, export, and reproduction require no provider connection. Provider
-systems are optional external dependencies for separately configured data paths.
+The researcher operates one local workbench through two interfaces. Terminal
+provides a replay dashboard and access to research workflows; Market Wind Tunnel
+provides scenario controls, exposure plots and saved experiments. Synthetic
+replay, calculation, comparison, export, and reproduction require no provider
+connection. Optional provider connections belong to separately configured
+terminal/CLI paths; Wind Tunnel accepts bundled synthetic sources only.
 
 ```mermaid
 flowchart LR
     researcher["Researcher / study participant"]
-    workbench["gex-terminal<br/>Local research workbench"]
+    subgraph workbench["gex-terminal — local research workbench"]
+        terminal["Terminal<br/>Replay dashboard and research workflows"]
+        wind["Market Wind Tunnel<br/>Browser scenario workbench"]
+    end
     providers["External market-data providers<br/>Optional configured connection"]
-    researcher -->|Run commands and use terminal controls| workbench
-    workbench -->|Inspectable metrics and local research artifacts| researcher
-    providers -.->|Provider-specific data through adapters| workbench
+    researcher <-->|Keyboard controls, metrics and exports| terminal
+    researcher <-->|Scenario controls, plots and receipts| wind
+    providers -.->|Separately configured terminal / CLI intake| terminal
 ```
 
 Provider availability, credentials, rights, and readiness are documented in
@@ -34,57 +48,80 @@ software verification.
 
 ### Containers And Local Storage
 
-There is one executable application container in the C4 sense: a local Python
-process launched by `gex-terminal`. The browser server, Textual UI, adapters, consumer, engine,
-and research commands are modules within that process. Local files below are
-storage boundaries, not separately deployed services. The Wind Tunnel also uses a browser process on the same machine, served
-by an aiohttp listener bound to `127.0.0.1`. No hosted API or database
-is required by the current application.
+The installed package supports separate local runtime containers. Terminal runs
+in a Python process with its Textual UI, intake task, consumer and engine.
+Market Wind Tunnel consists of browser code and a separate Python service with
+an aiohttp listener bound to `127.0.0.1`. Its checkpoint consumers and scenario
+calculations live in that service process, not in Terminal. Research CLI
+commands select their own workflow in a separate invocation of the same package.
+
+In Both mode, the setup helper remains a parent process supervising the two
+application children. The browser is an independently managed application;
+the starter requests that it open the local launch URL. Installed resources and
+research files are storage boundaries, not running services. There is no hosted
+API, external chart service or database in this architecture.
 
 ```mermaid
 flowchart LR
     researcher["Researcher"]
     providers["External providers"]
     subgraph local["Researcher's machine"]
-        application["gex-terminal<br/>Python CLI / Textual application"]
-        browser["Market Wind Tunnel<br/>Local browser / bundled Plotly"]
-        package[("Installed package resources<br/>Synthetic JSONL and sanitized fixtures")]
-        files[("Local research files<br/>Inputs, packs, manifests, journals and exports")]
+        starter["Optional starter<br/>Python parent in Both mode"]
+        terminal["Terminal / research CLI process<br/>Python; own consumer and engine instances"]
+        browser["Market Wind Tunnel browser<br/>HTML / JavaScript / bundled Plotly"]
+        wind["Wind Tunnel service process<br/>Python / aiohttp; own checkpoint calculations"]
+        package[("One installed package<br/>Shared code definitions, inputs and web assets")]
+        files[("Terminal / CLI research files<br/>Inputs, packs, journals and exports")]
+        receipts[("Wind Tunnel receipts<br/>Separate wind-tunnel research subfolder")]
     end
-    researcher -->|Terminal commands and keyboard| application
+    researcher -->|Choose Terminal, Wind Tunnel or Both| starter
+    researcher -->|Terminal commands and keyboard| terminal
     researcher -->|Scenario controls and plots| browser
-    browser <-->|Capability-protected loopback HTTP| application
-    package -->|Read bundled input and web assets| application
-    files -->|Replay, verify or reproduce input| application
-    application -->|Write artifacts on request| files
-    providers -.->|Optional live or delayed provider path| application
+    starter -.->|Start and supervise owned child| terminal
+    starter -.->|Start and supervise owned child| wind
+    browser <-->|Capability-protected loopback HTTP| wind
+    package -->|Load code and resources| terminal
+    package -->|Load code, synthetic input and web assets| wind
+    files -->|Replay, verify or reproduce input| terminal
+    terminal -->|Write artifacts on request| files
+    wind <-->|Save, reopen and reproduce receipts| receipts
+    providers -.->|Optional configured live or delayed path| terminal
 ```
 
-Configuration is loaded locally by `config.py`; provider secrets remain outside
-the package and research artifacts. Installation uses Python package
-dependencies, while running the frozen replay study needs no data-provider I/O.
-The package/resource boundary is verified from a wheel outside the checkout.
+The repeated consumer and engine instances use the same installed code; there
+is no shared in-memory market state or Terminal-to-Wind Tunnel data connection.
+Configuration for terminal/CLI workflows is loaded locally by `config.py`;
+provider secrets remain outside the package and research artifacts. Installation
+uses Python package dependencies, while running the frozen replay study and
+Wind Tunnel needs no data-provider I/O. The package/resource boundary is verified
+from a wheel outside the checkout.
 
 The optional setup helper, `scripts/install_app.py`, installs an explicitly
 supplied wheel into an owned application folder. It verifies a fresh environment
 before changing the active launch target and keeps research in a separate
 directory. `scripts/build_app_bundle.py` prepares a local handoff containing that
-helper, the wheel and an optional dependency wheelhouse. These are setup tools,
-not another deployed service or package registry. The generated offline launcher
+helper, the wheel and an optional dependency wheelhouse. The builder is a setup
+tool; the installed helper also supplies the starter and Both supervisor. Neither
+is a hosted service or package registry. The generated offline launcher
 initializes configuration in an empty working directory with provider settings
 excluded, then writes requested exports in the selected research directory.
 Direct `gex-terminal` invocations retain their existing configuration behavior.
-Fresh Wind Tunnel-capable setup folders offer Terminal, Wind Tunnel or Both
-through the starter. Both owns a background Wind Tunnel child and a foreground
-terminal child, waits for browser-service readiness, isolates server output,
-and stops its children when the terminal exits or the combined launch is
-interrupted. Separate launches remain independent. Starting both does not
-synchronize replay checkpoints or scenario state. Existing installer receipts
-retain their original launcher bytes; the setup manifest identifies the
-installer commit separately when it reuses a wheel from another source commit.
 
-The Wind Tunnel reconstructs a declared synthetic replay checkpoint, forks
-scenario assumptions and prices each fork through the existing consumer/engine.
+Fresh Wind Tunnel-capable setup folders offer Terminal, Wind Tunnel or Both
+through the starter. Both starts its background Wind Tunnel child first, waits
+for the service's launch URL, requests a browser window, then starts its
+foreground terminal child. Server output stays off the terminal UI. Quitting
+Terminal stops only that combined session's Wind Tunnel service; an interruption
+or service failure settles both owned children. It does not stop another launch
+or close the user's browser. Closing a browser tab alone does not stop the
+service. A startup failure cancels Both before Terminal opens. Separate launches
+remain independent. Existing installer receipts retain their original launcher
+bytes; the setup manifest identifies the installer commit separately when it
+reuses a wheel from another source commit.
+
+The Wind Tunnel reconstructs a declared synthetic replay checkpoint in a fresh
+consumer for each calculation request. It copies checkpoint rows, applies
+scenario assumptions and prices those copies with the existing engine code.
 Its service exposes only bundled source identifiers and bounded operations,
 never arbitrary input paths. An origin check and per-run capability protect the
 API; the capability stays outside saved research. Static browser assets are
@@ -94,41 +131,69 @@ and semantic results. Reproduction recalculates before declaring agreement.
 
 ### Application Components
 
-This view expands the application container. Arrows name calls or data flow;
-they do not imply a separate process for each module. CLI commands select the
-required subset of these components.
+This view expands the two Python application processes and the browser client.
+Arrows name calls or data flow inside those boundaries, with HTTP as the browser
+boundary. The two consumer and engine boxes are separate instances of the same
+classes, not a common runtime service. Other research commands reuse those
+classes in their own CLI invocation.
+
+**Terminal components**
 
 ```mermaid
 flowchart TB
-    cli["CLI + validated configuration<br/>cli.py / config.py"]
-    intake["Replay / provider intake<br/>adapters / provider_injector / databento_offline"]
-    consumer["StatefulGexConsumer<br/>Sole owner of mutable market state"]
-    engine["IntradayGexEngine + regime<br/>Contract pricing and structural levels"]
-    tui["Textual terminal<br/>tui.py"]
-    research["Offline research workflows<br/>Labs, comparisons and reports"]
-    identity["Research identity and governance<br/>Profiles, experiments, corpus and receipts"]
-    exports["Artifact writers<br/>Snapshots, packs, journals and session store"]
-    cli -->|Select and start source| intake
-    cli -->|Start terminal and transfer replay task ownership| tui
-    cli -->|Dispatch requested workflow| research
-    intake -->|Versioned normalized messages| consumer
-    consumer -->|Price selected rows; derive levels| engine
-    tui -->|Request snapshots and controlled replay replacement| consumer
-    tui -->|Load selected replay after prior writer settles| intake
-    research -->|Use normalized or provider-shaped input| intake
-    research -->|Request derived snapshots| consumer
-    identity -->|Validate inputs; bind workflow identity| research
-    research -->|Write derived results| exports
-    tui -->|Export current snapshot| exports
+    subgraph terminal["Terminal Python process"]
+        cli["CLI + validated configuration<br/>cli.py / config.py"]
+        intake["Replay / provider adapter<br/>or seeded demo input"]
+        consumer["Own StatefulGexConsumer<br/>Market state and replay lifecycle"]
+        engine["Own IntradayGexEngine + regime<br/>Contract pricing and structural levels"]
+        tui["Textual terminal<br/>tui.py / tui_views.py"]
+        exports["Snapshot writer<br/>snapshot.py"]
+        cli -->|Select source| intake
+        cli -->|Start UI and transfer replay task ownership| tui
+        intake -->|Versioned normalized messages| consumer
+        consumer -->|Price selected rows; derive levels| engine
+        tui -->|Snapshots and controlled replay replacement| consumer
+        tui -->|Load replay after prior writer settles| intake
+        tui -->|Export on request| exports
+    end
 ```
 
-The seeded demo writes synthetic messages directly through the consumer rather
-than opening an adapter. Capture optionally wraps intake with
+**Market Wind Tunnel browser and service components**
+
+```mermaid
+flowchart TB
+    subgraph browser["Market Wind Tunnel browser"]
+        web["wind_tunnel_web/app.js + Plotly<br/>Own controls, selected checkpoint and rendered results"]
+    end
+    subgraph service["Wind Tunnel Python service process"]
+        windcli["wind_tunnel_cli.py<br/>Start server and coordinate shutdown"]
+        server["wind_tunnel_server.py<br/>HTTP routes, capability and request bounds"]
+        core["wind_tunnel.py<br/>Scenarios, surfaces and sampled searches"]
+        checkpoint["Request-local StatefulGexConsumer<br/>Reconstruct bundled replay prefix"]
+        pricing["Request-local IntradayGexEngine<br/>Price copied baseline / scenario rows"]
+        receipts["Receipt identity and ReceiptStore<br/>Save, load and reproduce"]
+        windcli -->|Start local listener| server
+        server -->|Validated operation request| core
+        core -->|Apply source cutoff and replay messages| checkpoint
+        checkpoint -->|Copied checkpoint rows| core
+        core -->|Reprice explicit assumptions| pricing
+        server -->|Requested receipt operation| receipts
+        receipts -->|Recalculate and bind exact result identity| core
+    end
+    web <-->|Loopback HTTP: requests and JSON results| server
+```
+
+The terminal's seeded demo writes synthetic messages directly through its
+consumer rather than opening an adapter. Capture optionally wraps intake with
 `RecordingConsumerProxy`; live capture first requires its approved policy
 identity. The component view omits individual command helpers; the inventory
-below identifies their source modules. Corpus verification and some report
-commands inspect files without running the model, and are not additional
-writers of market state.
+below identifies their source modules. Offline labs and governed research
+commands select intake, consumers, models and artifact writers as needed;
+profiles, experiment manifests and corpus rules bind their research identity.
+Corpus verification and some report commands inspect files without running the
+model, and are not additional writers of market state. Wind Tunnel's browser
+holds interface state; its service recalculates from each declared request
+instead of reading the Terminal consumer or following its replay writer.
 
 ## Repository Map
 
@@ -137,6 +202,8 @@ writers of market state.
 | `gex_terminal/` | Installable application package and all runtime, model, and report modules |
 | `gex_terminal/adapters/` | Provider protocol and replay implementations behind the normalized adapter boundary |
 | `gex_terminal/data/` | Packaged synthetic replays and sanitized provider fixtures |
+| `gex_terminal/wind_tunnel_web/` | Packaged browser UI, Plotly, icons and static assets served by the local Wind Tunnel service |
+| `scripts/install_app.py`, `scripts/build_app_bundle.py` | Reviewed-wheel setup, generated launchers, optional Both supervisor and bundle preparation |
 | `tests/` | Contract, model, provider, TUI, report, package, and documentation regression tests |
 | `docs/` | Canonical technical, workflow, governance, decision, and packet documentation |
 | `assets/` | Derived screenshots, diagrams, and product mockups; never canonical system truth |
@@ -166,7 +233,10 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Runtime safety | `gex_terminal/logging_config.py`, `gex_terminal/redaction.py` | Configure warning-level process logging by default and recursively sanitize secrets, sensitive identifiers, and labeled private payload fields before configured log or certification output. |
 | Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/tui_views.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows and responsive layout; present focused replay/help views, model controls, source and quality context, event history and exports. |
-| Market Wind Tunnel | `wind_tunnel.py`, `wind_tunnel_server.py`, `wind_tunnel_cli.py`, `wind_tunnel_web/` | Fork synthetic checkpoints, calculate scenarios/surfaces/searches, serve a local browser and save bounded reproducible receipts. |
+| Wind Tunnel calculations | `gex_terminal/wind_tunnel.py` | Reconstruct a bundled replay cutoff with a request-local consumer, copy checkpoint rows, and use engine code to calculate baseline/scenario comparisons, surfaces and bounded searches. |
+| Wind Tunnel service and CLI | `gex_terminal/wind_tunnel_server.py`, `gex_terminal/wind_tunnel_cli.py` | Serve packaged assets and bounded loopback API operations, protect requests with a per-run capability, and save/verify/reproduce receipts. CLI example and reproduction commands also run without the browser server. |
+| Wind Tunnel browser | `gex_terminal/wind_tunnel_web/` | Hold source/checkpoint/scenario selections, request calculations, render Plotly views and expose receipt controls; never read the Terminal's consumer state. |
+| Setup and starter | `scripts/install_app.py`, `scripts/build_app_bundle.py` | Prepare and verify an owned wheel installation, keep research separate, generate shortcuts and offer Terminal/Wind Tunnel/Both. Both supervises two application children with readiness checks and owned-process cleanup. |
 | Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py`, `gex_terminal/batch_comparison.py` | Produce replay, demo, provider-fixture, and multi-session model-comparison reports without live credentials. |
 | Portable research receipt | `gex_terminal/demo_lab_receipt.py` | Bind authorized copied replay, model/runtime identity, exact inventory and semantic content; reject unsupported or changed packs before reproduction. |
 | Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, and historical records from normalized state. |
@@ -195,7 +265,26 @@ belong to the adapter and model topic guides rather than this component map.
 
 The default first-run path is designed to be useful without credentials. The
 wheel installation, offline doctor and full user journey are owned by
-[First Run](first-run.md). The internal terminal flow is:
+[First Run](first-run.md). A fresh reviewed setup with the unified starter routes
+the user to the two components:
+
+```text
+Install.command -> verified application environment -> Start GEX.command chooser
+        |
+        +-> Terminal -> its own replay consumer -> Textual dashboard
+        |
+        +-> Wind Tunnel -> local Python service -> browser controls and plots
+        |
+        +-> Both -> supervised Wind Tunnel service becomes ready
+                       -> request browser window -> start Terminal child
+                       -> Terminal exit stops this session's Wind Tunnel service
+```
+
+The setup launcher's Terminal path selects `zero-gamma-flip`; the direct
+`gex-terminal --demo` CLI path starts seeded data. Wind Tunnel independently
+selects its own bundled source and checkpoint. Both changes launch and shutdown
+coordination, not either component's source or model state. Its internal terminal
+flow remains:
 
 ```text
 gex-terminal --demo
@@ -338,8 +427,8 @@ summed with trade volume. Detailed mapping and policy values live in
 
 ## Offline Research Flow
 
-Offline tools reuse the same adapter, consumer, and engine boundaries through
-five paths:
+Offline tools reuse the same adapter, consumer, and engine code boundaries
+through six paths, with consumer instances owned by the invoking workflow:
 
 - **Normalized replay and capture:** packaged/local normalized events and
   integrity-checked captures enter through replay adapters and event-time
@@ -354,6 +443,12 @@ five paths:
 - **Model evaluation:** sensitivity, numerical evidence, position-model
   comparison, and descriptive later-price evaluation derive bounded artifacts
   from the selected source state.
+- **Wind Tunnel scenarios:** each request reconstructs a bundled synthetic
+  checkpoint, copies its rows and applies explicit spot, IV, time and expiry
+  assumptions. Browser comparisons, surfaces and sampled searches use those
+  copied inputs; they neither consume Terminal's active replay nor fabricate a
+  future market path. Saved receipts retain the normalized request and exact
+  source, calculation and result identities for reproduction.
 - **Governed research:** model profiles, experiment manifests, append-only
   corpus registration, and batch comparison bind source identity, assumptions,
   splits, outcomes, costs, and semantic results.
@@ -411,8 +506,9 @@ construction/replacement; UI updates validate before publishing state changes.
 
 ## State Ownership
 
-`StatefulGexConsumer` is the only layer that should mutate market state. It
-owns:
+Each `StatefulGexConsumer` instance owns its invocation's mutable market state.
+The class defines the state-owner boundary; it is not a global object shared by
+Terminal, Wind Tunnel and research commands. An instance owns:
 
 - `current_spot` and `session_open`
 - aggregate `chain_state`
@@ -428,6 +524,13 @@ replacement is serialized and cancels/awaits that writer before calling
 writer blocks replacement and remains visible at CLI shutdown. Reset clears
 market data and quality counters behind the same lock used by updates. Capture
 and live-source sessions cannot switch replay.
+
+Wind Tunnel creates its own consumer when reconstructing the selected replay
+prefix for a calculation request. It then copies the checkpoint rows for
+scenario pricing, preserving the source checkpoint. Browser control state and
+calculated responses belong to that browser view; they do not replace Terminal's
+consumer, replay task or selected model. The Both supervisor owns process
+lifetime only and provides no shared-memory or replay-synchronization channel.
 
 ## Contributor Boundaries
 
@@ -446,6 +549,11 @@ and live-source sessions cannot switch replay.
   modules. Add independent oracles, deterministic fixtures, and the applicable
   evidence coverage.
 - Keep terminal presentation changes in `tui.py`, `tui_views.py` and `gex_terminal.tcss`.
+- Keep Wind Tunnel browser presentation in `wind_tunnel_web/`, request/receipt
+  boundaries in `wind_tunnel_server.py`, and synthetic scenario orchestration in
+  `wind_tunnel.py`. Reuse engine pricing rather than duplicating it in JavaScript.
+- Keep setup, chooser and owned-process supervision in `scripts/install_app.py`;
+  do not use the starter to transfer market state between the two interfaces.
 - Keep artifact format changes in the relevant export/report module.
 - Update README only for user-facing workflows; put implementation detail in
   docs like this one.
@@ -461,6 +569,7 @@ and live-source sessions cannot switch replay.
 | Consumer lifecycle or feed quality | `tests/test_gex_consumer.py`, `tests/test_feed_quality.py` |
 | Model math or structural levels | `tests/test_gex_engine.py`, `tests/test_engine_structure.py`, `tests/test_regime.py` |
 | TUI table or first-run behavior | `tests/test_tui_table.py`, `tests/test_tui_first_run.py`, `tests/test_demo_lab.py` |
+| Wind Tunnel numerical, service or CLI behavior | `tests/test_wind_tunnel.py`, `tests/test_wind_tunnel_server.py`, `tests/test_wind_tunnel_cli.py`; inspect the browser against computed results |
 | Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py`, `tests/test_session_store.py` |
 | Capture integrity, policy, or event clocks | `tests/test_session_capture.py`, `tests/test_capture_governance.py`, `tests/test_replay_adapter.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
@@ -473,7 +582,7 @@ and live-source sessions cannot switch replay.
 | Logging and recursive redaction | `tests/test_safety_controls.py` |
 | Batch/property/fault/performance gates | `tests/test_batch_comparison.py`, `tests/test_offline_certification_extensions.py` |
 | Wheel resources and release metadata | `tests/test_release_contract.py`, CI installed-wheel smoke workflow |
-| Reviewed-wheel setup and launch handoff | `tests/test_install_app.py`, `tests/test_app_bundle.py`; fresh-folder installation and repeated setup in the CI lifecycle step |
+| Reviewed-wheel setup and launch handoff | `tests/test_install_app.py`, `tests/test_app_bundle.py`, `tests/test_starter.py`; fresh-folder installation, reuse and managed-child lifecycle checks |
 | Maintainer preview automation | `tests/test_refresh_previews.py`; staged synthetic previews and local provenance manifest |
 | Retained CI evidence | `tests/test_ci_evidence.py`; bounded synthetic inventory and explicit failed/missing outputs |
 | Documentation paths and heading destinations | `tests/test_release_contract.py` (`DocumentationLinkContractTests`) |
