@@ -5,21 +5,54 @@ subscription is needed. This guide owns local setup, wheel installation and the 
 Today → Explain → Compare → Replay → Review journey. Detailed pack contracts
 belong in [Demo Lab](demo-lab.md).
 
+## Choose Terminal, Wind Tunnel or Both
+
+In a fresh setup folder whose reviewed wheel includes Wind Tunnel, open
+**GEX App/Start GEX.command** on macOS. On Linux, run:
+
+```bash
+"./GEX App/run-gex" --choose
+```
+
+Choose `1` for **Terminal**, `2` for **Wind Tunnel**, `3` for **Both**, or `q`
+to cancel. Pressing Return without a choice also cancels. The terminal opens a
+bundled synthetic replay; Wind Tunnel opens the local browser workbench.
+
+**Both** starts one managed session. Quitting the terminal with `q`, pressing
+Control-C or closing its launcher window also stops the Wind Tunnel server
+started by that session. A startup failure cancels the combined launch. Closing
+only the browser tab closes the view; it does not stop the server. A separately
+started Wind Tunnel server is independent and is not stopped by this session.
+
+The two interfaces do not share their selected source, checkpoint, scenario or
+in-memory state. Both makes them available together; choose and inspect each
+interface's source explicitly. Terminal exports and Wind Tunnel receipts remain
+separate artifacts in the research folder.
+
+| Mode | macOS shortcut | Linux command |
+| --- | --- | --- |
+| Terminal | `GEX App/Start Terminal.command` | `"./GEX App/run-gex"` |
+| Wind Tunnel | `GEX App/Start Wind Tunnel.command` | `"./GEX App/run-wind-tunnel"` |
+| Both | Choose `3` in `GEX App/Start GEX.command` | `"./GEX App/run-gex" --both` |
+
+A terminal-only installed wheel keeps its direct terminal path. Wind Tunnel
+requires a reviewed wheel that includes that module. The independent browser
+shortcut stays running until Control-C stops its server. Its receipts live in
+the research folder's `wind-tunnel` subfolder. The three worked examples in
+[Wind Tunnel](wind-tunnel.md) are a useful first browser session.
+
+The chooser is a setup-helper enhancement after the `v0.6.0` release. It does
+not change that application wheel or tag. Older installed shortcuts retain
+their verified bytes during an in-place update, so use a **new reviewed setup
+folder** to obtain the unified starter and explicit Terminal shortcut. Keep the
+original 0.6.0 setup and your research. No data is moved or migrated.
+
 ## Market Wind Tunnel
 
-Fresh 0.6.0 setup folders include **Start Wind Tunnel.command** (macOS) and
-**run-wind-tunnel** (Linux). Open either to launch the local browser workbench.
-The Python window stays open while you explore; Control-C stops the server.
-Saved experiments remain under the separate research folder's `wind-tunnel`
-subfolder. The terminal launcher remains available as **Start GEX.command**.
-
-For manual installations, run `gex-terminal wind-tunnel`. Start with the three
-worked examples in [Wind Tunnel](wind-tunnel.md). No provider credentials or
-network connection are needed after dependencies have been installed.
-
-Older installed shortcuts remain byte-identical during an in-place update.
-Use a fresh reviewed setup folder to obtain the new Wind Tunnel shortcuts, and
-keep the old research folder. Exported receipts can be reopened in the new app.
+For manual wheel installations, run `gex-terminal wind-tunnel`. No provider
+credentials or network connection are needed after dependencies are installed.
+Use [Wind Tunnel](wind-tunnel.md) for scenario controls, receipts and the direct
+server command. Manual CLI commands do not add the setup folder's chooser.
 
 ## Install and open the reviewed bundle
 
@@ -39,16 +72,20 @@ sh Install.command
 Setup creates `GEX App` and a separate `GEX App Research` folder, checks the
 supplied wheel checksum, installs an isolated application environment, and
 checks dependencies, offline doctor and a bundled replay. An interactive setup
-then opens the replay. No activation, Git checkout, provider account or
-credentials are required. It does not change system Python or shell profiles.
+then offers the starter choice when Wind Tunnel is available. No activation,
+Git checkout, provider account or credentials are required. It does not change
+system Python or shell profiles.
 
 To return later, open **`GEX App/Start GEX.command`** on macOS, or run:
 
 ```bash
-"./GEX App/run-gex"
+"./GEX App/run-gex" --choose
 ```
 
-The macOS launcher requests a 120×40 terminal for an interactive start;
+For a direct terminal launch, use `Start Terminal.command` or omit `--choose`
+from `run-gex`. For Wind Tunnel or Both automation, `--no-browser` prints the
+local launch URL instead of requesting a browser window. The macOS terminal
+shortcut requests a 120×40 terminal for an interactive start;
 resize guidance remains available when the terminal ignores that request.
 
 Keep the installed application folder in place: Python environments contain
@@ -60,7 +97,7 @@ The first setup normally downloads Python dependencies. A bundle with a complete
 Python/platform is not covered. Application launches and bundled replay need no
 network. Windows setup and unaided customer activation remain unverified.
 
-The offline launcher starts `zero-gamma-flip`, clears inherited application and
+The terminal path starts `zero-gamma-flip`, clears inherited application and
 provider settings, and loads configuration before entering your research folder.
 Caller and research-folder `.env` files therefore cannot select a live provider
 or break this first-use path. The ordinary `gex-terminal` CLI remains available
@@ -68,7 +105,8 @@ inside the environment for separately configured advanced workflows.
 
 The setup receipt, `GEX App/installation.json`, identifies the exact wheel,
 supplied source commit, installed application payload, Python and dependency
-versions. Package version `0.5.0` alone cannot identify every maintenance build.
+versions. Application version `0.6.0` alone does not identify the setup helper
+or its shortcuts; the reviewed bundle inventory identifies their exact bytes.
 The expected checksum and source claim come from the maintainer; a matching
 hash detects changed bytes and does not independently authenticate the sender.
 [Study Build](study-build.md) owns the separate frozen cohort materials; this
@@ -113,7 +151,7 @@ wheel's actual path below. These commands avoid shell activation:
 
 ```bash
 python3 -m venv gex-app
-gex-app/bin/python -m pip install /path/to/gex_terminal-0.5.0-py3-none-any.whl
+gex-app/bin/python -m pip install /path/to/gex_terminal-0.6.0-py3-none-any.whl
 gex-app/bin/gex-terminal --demo
 ```
 
@@ -196,7 +234,8 @@ just because a synthetic pack is shareable.
 
 ## Update, recover and uninstall
 
-Close the terminal before updating, retain the previous reviewed bundle, and
+Close the terminal and stop any standalone Wind Tunnel launcher before updating,
+retain the previous reviewed bundle, and
 keep a verified private backup of your research. The simplest update is to
 install the new reviewed bundle in a new permanent folder; the previous Start
 launcher remains available. The new bundle's default research folder starts

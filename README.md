@@ -55,10 +55,11 @@ quality, or profitability.
 
 Use Python 3.11/3.12 and a reviewed setup folder supplied by your maintainer.
 On macOS, open **Install.command**; on Linux, run `sh Install.command`.
-Setup checks the build and creates **GEX App/Start GEX.command** on macOS and
-**GEX App/run-gex** on Linux. Open that launcher whenever you want to return.
-No environment activation or provider credentials are needed. Research stays
-in a separate **GEX App Research** folder.
+Setup checks the build. In a fresh Wind Tunnel-capable setup, open
+**GEX App/Start GEX.command** on macOS or run **`"./GEX App/run-gex" --choose`**
+on Linux to choose **Terminal**, **Wind Tunnel** or **Both**. The interactive
+installer offers the same choice. No environment activation or provider
+credentials are needed. Research stays in a separate **GEX App Research** folder.
 
 The first setup downloads dependencies unless the supplied folder includes
 dependency wheels for your platform and Python version. The app then runs
@@ -70,8 +71,11 @@ Maintainers preparing observed first use follow [Study Build](docs/study-build.m
 
 ## Quick Start
 
-Open **GEX App/Start Wind Tunnel.command** on macOS or
-**GEX App/run-wind-tunnel** on Linux. For a manual wheel installation:
+Choose **Wind Tunnel** in the starter for browser research, or **Both** to
+open it alongside the terminal. Both manages their lifetime together: quitting
+the terminal also stops that Wind Tunnel server. The two views keep independent
+research state. The direct **Start Wind Tunnel.command** / **run-wind-tunnel**
+shortcuts remain available. For a manual wheel installation:
 
 ```bash
 gex-terminal wind-tunnel
@@ -82,9 +86,9 @@ time or expiry assumptions, compare the resulting structure and save a receipt.
 Charts and calculations use bundled synthetic data and work without a provider
 account or internet connection. See [Market Wind Tunnel](docs/wind-tunnel.md).
 
-
-The installed launcher opens a bundled synthetic replay. For a manual wheel
-installation, start with seeded offline data:
+Choose **Terminal**, open **Start Terminal.command**, or run **`"./GEX App/run-gex"`**
+to open a bundled synthetic replay directly. For a manual wheel installation,
+start with seeded offline data:
 
 ```bash
 gex-terminal --demo

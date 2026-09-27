@@ -7,6 +7,18 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## 2026-09-27 — Unified Starter
+
+- Fresh setup folders offer **Terminal**, **Wind Tunnel** or **Both** through
+  one starter, with direct shortcuts retained. Both owns the local Wind Tunnel
+  process it starts and stops it when the terminal exits; the two interfaces
+  retain independent research state.
+- Existing installed launcher bytes, separate research, the original 0.6.0
+  setup and the immutable `v0.6.0` tag are preserved. This is a setup-helper
+  enhancement using the existing application wheel, without a version bump or
+  new tag. [GEX-START-001](docs/work-packets/GEX-START-001.md) owns its acceptance
+  and integration status; [First Run](docs/first-run.md) owns usage.
+
 ## 0.6.0 — 2026-09-27 — Market Wind Tunnel
 
 ### Added

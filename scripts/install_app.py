@@ -14,11 +14,14 @@ import json
 import os
 from pathlib import Path
 import re
+import selectors
 import shlex
+import signal
 import stat
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 import venv
 import zipfile
@@ -30,6 +33,7 @@ SCHEMA = "gex-terminal.local-install.v1"
 SESSION = "zero-gamma-flip"
 LAUNCH_FILES = ("launcher.py", "run-gex", "Start GEX.command")
 WIND_LAUNCH_FILES = ("run-wind-tunnel", "Start Wind Tunnel.command")
+STARTER_LAUNCH_FILES = ("Start Terminal.command",)
 BOOTSTRAP = (
     "import os,runpy,sys; import gex_terminal.config; "
     "os.chdir(sys.argv.pop(1)); runpy.run_module('gex_terminal.cli',run_name='__main__')"
@@ -113,7 +117,8 @@ def owned_target(target: Path) -> dict | None:
         raise ValueError("Application folder identity does not match. Choose a new installation folder.")
     receipt_path = target / RECEIPT
     if not receipt_path.exists() and not receipt_path.is_symlink():
-        if any((target / name).exists() or (target / name).is_symlink() for name in (*LAUNCH_FILES, *WIND_LAUNCH_FILES)):
+        if any((target / name).exists() or (target / name).is_symlink()
+               for name in (*LAUNCH_FILES, *WIND_LAUNCH_FILES, *STARTER_LAUNCH_FILES)):
             raise ValueError("Incomplete installation has published launcher files. Choose a new application folder to preserve them.")
         # An owned preparation that failed before launcher publication may be
         # retried; its failed environment and unrelated files remain untouched.
@@ -137,7 +142,8 @@ def owned_target(target: Path) -> dict | None:
                    or not re.fullmatch(r"[a-f0-9]{64}", value) for name, value in payload.items())):
         raise ValueError("Installation receipt has an invalid application payload identity.")
     active_environment(target, receipt)
-    if set(hashes) not in (set(LAUNCH_FILES), set((*LAUNCH_FILES, *WIND_LAUNCH_FILES))):
+    if set(hashes) not in (set(LAUNCH_FILES), set((*LAUNCH_FILES, *WIND_LAUNCH_FILES)),
+                          set((*LAUNCH_FILES, *WIND_LAUNCH_FILES, *STARTER_LAUNCH_FILES))):
         raise ValueError("Installation receipt has an invalid launcher inventory.")
     for name in hashes:
         path = target / name
@@ -251,6 +257,14 @@ def launcher_contents(target: Path, *, wind_tunnel: bool = False) -> dict[str, b
         ).encode(),
     }
     if wind_tunnel:
+        contents["Start Terminal.command"] = contents["Start GEX.command"]
+        contents["Start GEX.command"] = (
+            '#!/bin/sh\n'
+            'if [ "$#" -eq 0 ]; then\n'
+            f'    exec {command} --choose\n'
+            'fi\n'
+            f'exec {shlex.quote(str(target / "run-gex"))} "$@"\n'
+        ).encode()
         contents["run-wind-tunnel"] = f'#!/bin/sh\nexec {command} --wind-tunnel "$@"\n'.encode()
         contents["Start Wind Tunnel.command"] = (
             '#!/bin/sh\n'
@@ -331,8 +345,162 @@ def install(wheel: Path, expected_sha256: str, source_commit: str, target: Path,
     return {**receipt, "reused": False}
 
 
+def choose_action(wind_tunnel: bool) -> str | None:
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        raise ValueError("The starter needs an interactive terminal. Use run-gex for Terminal, "
+                         "run-wind-tunnel for Wind Tunnel, or run-gex --both in a terminal.")
+    print("\nGEX — Choose your workspace\n\n  1  Terminal", flush=True)
+    if wind_tunnel:
+        print("  2  Market Wind Tunnel\n  3  Both\n", flush=True)
+        print("Both opens two independent views. Quitting Terminal stops that Wind Tunnel session.")
+    else:
+        print("\nThis installed version supports Terminal only.")
+    print("  q or Return  Cancel\n", flush=True)
+    choices = {"1": "terminal", "q": None, "": None}
+    if wind_tunnel:
+        choices.update({"2": "wind", "3": "both"})
+    while True:
+        try:
+            answer = input("Choose an option: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nCancelled. No application was started.", flush=True)
+            return None
+        if answer in choices:
+            return choices[answer]
+        print("Choose 1, 2, 3 or q." if wind_tunnel else "Choose 1 or q.", flush=True)
+
+
+def stop_child(process: subprocess.Popen | None) -> None:
+    """Settle only the child we created; never signal a shared process group."""
+    if process is None:
+        return
+    for signum, timeout in ((signal.SIGINT, 3), (signal.SIGTERM, 2), (signal.SIGKILL, 2)):
+        if process.poll() is not None:
+            return
+        try:
+            process.send_signal(signum)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=timeout)
+            return
+        except subprocess.TimeoutExpired:
+            continue
+    raise RuntimeError("A launched process did not stop; close its launch window.")
+
+
+def open_browser(url: str) -> bool:
+    # A browser controller can fail or hang. Keep that optional action bounded;
+    # its helper owns no application process and never closes a user's browser.
+    try:
+        result = subprocess.run(
+            [sys.executable, "-I", "-c",
+             "import sys,webbrowser; sys.exit(0 if webbrowser.open(sys.argv[1]) else 1)", url],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return True
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return False
+
+
+def run_both(command: list[str], wind_command: list[str], *, cwd: Path,
+             no_browser: bool = False, startup_timeout: float = 20.0) -> int:
+    """Own two children for one launch session, keeping server output off the TUI."""
+    wind = terminal = None
+    previous_handlers = {}
+    interrupted = None
+    output = bytearray()
+    stream_closed = False
+    ready_url = None
+
+    def interrupt(signum, _frame):
+        nonlocal interrupted
+        # Do not raise inside Popen before its new child has been assigned.
+        # The loop observes this immediately after each bounded startup step.
+        if interrupted is None:
+            interrupted = signum
+
+    try:
+        for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            previous_handlers[signum] = signal.signal(signum, interrupt)
+        wind = subprocess.Popen(wind_command, cwd=cwd, env=clean_environment(),
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+        os.set_blocking(wind.stdout.fileno(), False)
+        deadline = time.monotonic() + startup_timeout
+        with selectors.DefaultSelector() as selector:
+            selector.register(wind.stdout, selectors.EVENT_READ)
+            while True:
+                if interrupted is not None:
+                    return 128 + interrupted
+                for _, _events in selector.select(timeout=0.1):
+                    block = os.read(wind.stdout.fileno(), 65536)
+                    if block:
+                        output.extend(block)
+                        if ready_url is None:
+                            match = re.search(rb"(?m)^http://127\.0\.0\.1:([0-9]{1,5})/#cap=[A-Za-z0-9_-]{32,128}\r?\n", output)
+                            if match and 0 < int(match.group(1)) < 65536:
+                                ready_url = match.group().decode().strip()
+                        del output[:-32768]
+                    else:
+                        selector.unregister(wind.stdout)
+                        stream_closed = True
+                if interrupted is not None:
+                    return 128 + interrupted
+                if terminal is None:
+                    if wind.poll() is not None or stream_closed:
+                        raise RuntimeError("Wind Tunnel could not start. Terminal was not opened. "
+                                           "Use its individual shortcut to inspect the problem.")
+                    if ready_url is not None:
+                        url = ready_url
+                        print("Wind Tunnel is ready locally.\n" + url, flush=True)
+                        print("Opening Terminal. Quit Terminal to stop this combined session.\n"
+                              "The two views have independent replay and scenario selections.", flush=True)
+                        if not no_browser:
+                            browser_opened = open_browser(url)
+                            if interrupted is not None:
+                                return 128 + interrupted
+                            if not browser_opened:
+                                raise RuntimeError("The browser could not open, so Both was cancelled. "
+                                                   "Use the Wind Tunnel shortcut to open its URL manually, "
+                                                   "or run-gex --both --no-browser to manage the browser yourself.")
+                        if interrupted is not None:
+                            return 128 + interrupted
+                        if wind.poll() is not None:
+                            raise RuntimeError("Wind Tunnel stopped during startup. Terminal was not opened.")
+                        terminal = subprocess.Popen(command, cwd=cwd, env=clean_environment())
+                    elif time.monotonic() >= deadline:
+                        raise RuntimeError("Wind Tunnel did not become ready in time. No Terminal was opened; "
+                                           "the combined session was stopped.")
+                else:
+                    if terminal.poll() is not None:
+                        return terminal.returncode
+                    if wind.poll() is not None:
+                        raise RuntimeError("Wind Tunnel stopped unexpectedly. The combined session was stopped; "
+                                           "saved research remains available.")
+    except KeyboardInterrupt:
+        return 130
+    finally:
+        # Ignore repeated launch-window signals until both owned children settle.
+        interrupted = interrupted or signal.SIGINT
+        try:
+            try:
+                stop_child(terminal)
+            finally:
+                stop_child(wind)
+                if wind is not None and wind.stdout is not None:
+                    wind.stdout.close()
+        finally:
+            for signum, handler in previous_handlers.items():
+                signal.signal(signum, handler)
+
+
 def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
-           export: Path | None = None, session: str = SESSION, wind_tunnel: bool = False) -> int:
+           export: Path | None = None, session: str = SESSION, wind_tunnel: bool = False,
+           choose: bool = False, both: bool = False, no_browser: bool = False) -> int:
     receipt = owned_target(target)
     if not receipt:
         raise ValueError("No completed application installation exists here. Run Install first.")
@@ -340,19 +508,35 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
     research = Path(receipt["research_dir"])
     if research.is_symlink() or not research.is_dir():
         raise ValueError("Research folder is unavailable. Restore its location before starting GEX.")
-    args = ["doctor", "--json"] if doctor else (["list-replays"] if list_replays else ["--replay-session", session])
-    if wind_tunnel:
-        if "gex_terminal/wind_tunnel_cli.py" not in receipt["active"]["payload_sha256"]:
+    has_wind_tunnel = "gex_terminal/wind_tunnel_cli.py" in receipt["active"]["payload_sha256"]
+    if choose:
+        choice = choose_action(has_wind_tunnel)
+        if choice is None:
+            return 0
+        wind_tunnel, both = choice == "wind", choice == "both"
+        if choice in {"terminal", "both"}:
+            print("\033[8;40;120t", end="", flush=True)
+    if wind_tunnel or both:
+        if not has_wind_tunnel:
             raise ValueError("This installed version has no Wind Tunnel. Install a reviewed 0.6.0 or later bundle.")
-        args = ["wind-tunnel", "serve", "--port", "0", "--workspace", str(research / "wind-tunnel")]
+    if both and (not sys.stdin.isatty() or not sys.stdout.isatty()):
+        raise ValueError("Both needs an interactive terminal. Open Start GEX.command and choose Both.")
+    args = ["doctor", "--json"] if doctor else (["list-replays"] if list_replays else ["--replay-session", session])
+    wind_args = ["wind-tunnel", "serve", "--port", "0", "--workspace", str(research / "wind-tunnel")]
+    if wind_tunnel:
+        args = [*wind_args, *(["--no-browser"] if no_browser else [])]
     if export is not None:
         args.extend(["--export", str(export.absolute())])
     # Import config in a newly created directory before entering research, so
     # neither a caller nor research .env can change this offline launcher.
     with tempfile.TemporaryDirectory(prefix="gex-launch-") as directory:
         verify_payload(environment, receipt["active"]["payload_sha256"], Path(directory))
+        command = [str(environment / "bin" / "python"), "-I", "-c", BOOTSTRAP, str(research)]
+        if both:
+            return run_both([*command, *args], [*command, *wind_args, "--no-browser"],
+                            cwd=Path(directory), no_browser=no_browser)
         result = subprocess.run(
-            [str(environment / "bin" / "python"), "-I", "-c", BOOTSTRAP, str(research), *args],
+            [*command, *args],
             cwd=directory, env=clean_environment(),
         )
     return result.returncode
@@ -373,11 +557,15 @@ def main() -> int:
     mode.add_argument("--list-replays", action="store_true", help="List bundled sessions through the installed launcher")
     mode.add_argument("--export", type=Path, help="Export a synthetic snapshot through the installed launcher")
     mode.add_argument("--wind-tunnel", action="store_true", help="Open the offline Market Wind Tunnel in your browser")
+    mode.add_argument("--choose", action="store_true", help="Choose Terminal, Wind Tunnel or Both interactively")
+    mode.add_argument("--both", action="store_true", help="Run Terminal and Wind Tunnel in one managed session")
+    parser.add_argument("--no-browser", action="store_true", help="Print the Wind Tunnel URL without opening a browser")
     args = parser.parse_args()
     try:
         if args.launch:
             return launch(args.target, doctor=args.doctor, list_replays=args.list_replays,
-                          export=args.export, session=args.session, wind_tunnel=args.wind_tunnel)
+                          export=args.export, session=args.session, wind_tunnel=args.wind_tunnel,
+                          choose=args.choose, both=args.both, no_browser=args.no_browser)
         if not all((args.wheel, args.sha256, args.source_commit)):
             parser.error("installation requires --wheel, --sha256 and --source-commit")
         receipt = install(args.wheel, args.sha256, args.source_commit, args.target,
@@ -386,6 +574,8 @@ def main() -> int:
         print(f"Start: {Path(receipt['root']) / 'Start GEX.command'}")
         if "Start Wind Tunnel.command" in receipt["launcher_sha256"]:
             print(f"Wind Tunnel: {Path(receipt['root']) / 'Start Wind Tunnel.command'}")
+        if "Start Terminal.command" in receipt["launcher_sha256"]:
+            print(f"Terminal: {Path(receipt['root']) / 'Start Terminal.command'}")
         print(f"Research folder: {receipt['research_dir']}")
         return 0
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:

@@ -40,6 +40,10 @@ Closed [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the explicitly
 authorized Market Wind Tunnel implementation and `0.6.0` tagged release,
 conditional on its final hosted, merged-tree and tag gates.
 
+Closed [GEX-START-001](work-packets/GEX-START-001.md) owns the unified offline
+starter and managed combined launch. It changes setup helpers while preserving
+the application version and immutable `v0.6.0` release identity.
+
 ## Purpose And Entry Boundary
 
 `gex-terminal` is an open, local-first market-structure research workbench. It
