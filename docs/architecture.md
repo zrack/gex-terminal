@@ -441,7 +441,14 @@ and live-source sessions cannot switch replay.
 | Logging and recursive redaction | `tests/test_safety_controls.py` |
 | Batch/property/fault/performance gates | `tests/test_batch_comparison.py`, `tests/test_offline_certification_extensions.py` |
 | Wheel resources and release metadata | `tests/test_release_contract.py`, CI installed-wheel smoke workflow |
+| Maintainer preview automation | `tests/test_refresh_previews.py`; staged synthetic previews and local provenance manifest |
+| Retained CI evidence | `tests/test_ci_evidence.py`; bounded synthetic inventory and explicit failed/missing outputs |
 | Documentation paths and heading destinations | `tests/test_release_contract.py` (`DocumentationLinkContractTests`) |
+
+The [offline CI workflow](offline-ci.md) exercises source, installed-wheel and
+recovery paths on Linux/macOS and Python 3.11/3.12. Maintainer scripts generate
+preview and build-evidence artifacts outside runtime state ownership. These are
+verification tools; the C4 application/deployment boundaries are unchanged.
 
 For diagrams, also inspect the rendered Mermaid and SVG layout. A passing link
 check cannot establish that an architectural relationship matches source code.

@@ -92,7 +92,7 @@ gex-terminal session-store report /tmp/gex-store/session_store.md --session-stor
 Run a source compile smoke check before opening a pull request:
 
 ```bash
-python -m compileall main.py gex_terminal tests
+python -m compileall main.py gex_terminal scripts tests
 python -m unittest discover -s tests -v
 ```
 
@@ -143,8 +143,16 @@ using `scripts/verify_distribution_lifecycle.py --previous-wheel OLD.whl
 own temporary environment and synthetic research; it must never target a
 developer or customer installation. The first dependency install may use the
 network, but application commands are offline. CI exercises this lifecycle on
-Python 3.11/3.12 and runs the portable pack, doctor and research checks from a
-fresh wheel outside the checkout. Preserve the exact wheel hashes and report.
+Linux and macOS with Python 3.11/3.12 and runs the portable pack, doctor and
+research checks from a fresh wheel outside the checkout. Preserve the exact
+wheel hashes and report. [Offline CI](docs/offline-ci.md) owns the matrix,
+retained synthetic evidence and failure-accounting contract. A passing matrix
+establishes those tested environments, not a customer support commitment.
+
+For generated documentation visuals, use the maintained refresh command in
+[Demo Lab](docs/demo-lab.md#contributor-preview), inspect the staged SVGs, and
+retain its local provenance manifest. Keep full generated packs outside Git
+and preserve existing frozen study bundles.
 
 Install the wheel into a temporary virtual environment, change to a directory
 outside the checkout, and exercise `gex-terminal --version`, a named replay,

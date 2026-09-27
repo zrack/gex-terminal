@@ -25,12 +25,14 @@ changes.
   implementing the same scope in parallel; do not merge or close issue #4 on
   this evidence. No provider access was attempted during this review.
 
-## 1. Add Replay Alert Expectations For New Fixtures
+## 1. Extend Replay Expectations For A Distinct Scenario
 
 Labels: `good first issue`, `help wanted`, `testing`, `replay`
 
 Summary:
-Add expected alert checks for one bundled replay fixture in the Replay Lab tests.
+The baseline semantic expectations are maintained by
+[GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md). Extend them only for a distinct
+scenario or independently established coverage gap in the Replay Lab tests.
 
 Why it helps:
 Replay fixtures are most useful when contributors can tell whether a model or
@@ -38,7 +40,8 @@ parser change altered expected behavior.
 
 Suggested scope:
 - Add or extend a focused test in `tests/test_replay_lab.py`.
-- Pick one session from `gex-terminal list-replays`.
+- Inspect existing expectations, then pick an uncovered behavior from
+  `gex-terminal list-replays` or propose a distinct synthetic fixture.
 - Assert one expected alert, gamma wall, strike-profile flip/nearest-neutral, or
   regime property.
 
@@ -48,29 +51,12 @@ Verification:
 python -m unittest -v tests.test_replay_lab
 ```
 
-## 2. Add A README Preview Refresh Script
+## 2. Preview Automation — Maintained
 
-Labels: `good first issue`, `help wanted`, `documentation`, `terminal-ui`
-
-Summary:
-Add a small maintainer script or documented Make-style command that refreshes
-the generated README demo preview and optional onboarding asset.
-
-Why it helps:
-The project looks better when the README visual stays aligned with the actual
-Textual terminal.
-
-Suggested scope:
-- Add a script under a maintainer-friendly location such as `scripts/`.
-- Generate `assets/gex-terminal-demo-lab.svg` through the documented Demo Lab
-  workflow; optionally refresh the replay-browser onboarding asset too.
-- Avoid committing generated local demo packs.
-
-Verification:
-
-```bash
-gex-terminal demo-lab /tmp/gex-readme-preview --replay-session zero-gamma-flip
-```
+The refresh script and its provenance/safety checks are owned by
+[GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md); this is no longer an unassigned
+starter implementation. Use [Demo Lab](demo-lab.md#contributor-preview) to stage
+and inspect current previews, then report a concrete defect or missing scenario.
 
 ## 3. Document One Provider Payload Shape
 

@@ -6,111 +6,155 @@ on:
 
 jobs:
   smoke-test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: ["3.11", "3.12"]
 
     steps:
+      - name: Prepare disposable evidence paths
+        id: paths
+        run: |
+          printf 'GEX_CI_ROOT=%s/gex-ci\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          mkdir "$RUNNER_TEMP/gex-ci"
+
       - name: Check out repository
+        id: checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Python
+        id: python
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        id: dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install build twine packaging
           python -m pip install -e .
 
       - name: Compile source
-        run: python -m compileall main.py gex_terminal tests
+        id: compile
+        run: python -m compileall main.py gex_terminal scripts tests
 
       - name: Check patch hygiene
+        id: hygiene
         run: git diff --check
 
       - name: Run tests
+        id: tests
         run: python -m unittest discover -s tests
 
       - name: Check CLI help
+        id: cli
         run: |
           gex-terminal --version
           gex-terminal --help
 
-      - name: Export screenshot smoke test
-        run: |
-          gex-terminal --demo --screenshot /tmp/gex-terminal-ci.svg
-          test -s /tmp/gex-terminal-ci.svg
+      - name: Refresh synthetic documentation previews
+        id: previews
+        run: python scripts/refresh_previews.py --output-dir "$GEX_CI_ROOT/previews" --include-onboarding
+
+      - name: Check numerical model evidence
+        id: numerical
+        run: gex-terminal model-evidence "$GEX_CI_ROOT/gex-model-evidence.json"
 
       - name: Build and validate distributions
+        id: distributions
         run: |
-          python -m build --outdir /tmp/gex-terminal-dist
-          python -m twine check /tmp/gex-terminal-dist/*
+          python -m build --outdir "$GEX_CI_ROOT/gex-terminal-dist"
+          python -m twine check "$GEX_CI_ROOT/gex-terminal-dist/"*
 
       - name: Smoke-test installed wheel outside checkout
+        id: wheel
         run: |
-          python -m venv /tmp/gex-terminal-wheel-smoke
-          /tmp/gex-terminal-wheel-smoke/bin/pip install /tmp/gex-terminal-dist/*.whl
-          mkdir -p /tmp/gex-wheel-config
-          printf 'GEX_SYMBOL=NQ\nGEX_DATA_MODE=replay\n' > /tmp/gex-wheel-config/.env
-          cd /tmp/gex-wheel-config
-          test "$(/tmp/gex-terminal-wheel-smoke/bin/python -c 'from gex_terminal.config import GexConfig; c = GexConfig.from_env(); print(c.symbol + ":" + c.data_mode)')" = "NQ:replay"
-          cd /tmp
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal --version
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal doctor --json
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal --replay-session trend-day --export /tmp/gex-wheel-snapshot.json
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal fixture-lab /tmp/gex-wheel-fixtures.json
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal inject-provider bundled:yfinance-etf-options --export /tmp/gex-wheel-injection.json
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab /tmp/gex-wheel-demo --replay-session gap-fade
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab /tmp/gex-wheel-nq --replay-session nq-research-loop
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab verify /tmp/gex-wheel-nq
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal demo-lab reproduce /tmp/gex-wheel-nq /tmp/gex-wheel-nq-reproduced
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal support-bundle /tmp/gex-wheel-support.json /tmp/gex-wheel-nq
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal research-backup /tmp/gex-wheel-nq /tmp/gex-wheel-nq-backup
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal research-backup-verify /tmp/gex-wheel-nq-backup
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal research-restore /tmp/gex-wheel-nq-backup /tmp/gex-wheel-nq-restored
-          FIXTURE_DIR=$(/tmp/gex-terminal-wheel-smoke/bin/python -c 'from gex_terminal.package_data import provider_fixture_dir; print(provider_fixture_dir())')
-          if /tmp/gex-terminal-wheel-smoke/bin/gex-terminal live-population-plan-validate "$FIXTURE_DIR/databento_es_live_population_plan_template.json"; then
+          python -m venv "$GEX_CI_ROOT/gex-terminal-wheel-smoke"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/pip" install "$GEX_CI_ROOT/gex-terminal-dist/"*.whl
+          mkdir -p "$GEX_CI_ROOT/gex-wheel-config"
+          printf 'GEX_SYMBOL=NQ\nGEX_DATA_MODE=replay\n' > "$GEX_CI_ROOT/gex-wheel-config/.env"
+          cd "$GEX_CI_ROOT/gex-wheel-config"
+          test "$("$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/python" -c 'from gex_terminal.config import GexConfig; c = GexConfig.from_env(); print(c.symbol + ":" + c.data_mode)')" = "NQ:replay"
+          cd "$GEX_CI_ROOT"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" --version
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" doctor --json > "$GEX_CI_ROOT/gex-wheel-doctor.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" --replay-session trend-day --export "$GEX_CI_ROOT/gex-wheel-snapshot.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" fixture-lab "$GEX_CI_ROOT/gex-wheel-fixtures.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" inject-provider bundled:yfinance-etf-options --export "$GEX_CI_ROOT/gex-wheel-injection.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" demo-lab "$GEX_CI_ROOT/gex-wheel-demo" --replay-session gap-fade
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" demo-lab "$GEX_CI_ROOT/gex-wheel-nq" --replay-session nq-research-loop
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" demo-lab verify "$GEX_CI_ROOT/gex-wheel-nq"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" demo-lab reproduce "$GEX_CI_ROOT/gex-wheel-nq" "$GEX_CI_ROOT/gex-wheel-nq-reproduced"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" support-bundle "$GEX_CI_ROOT/gex-wheel-support.json" "$GEX_CI_ROOT/gex-wheel-nq"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" research-backup "$GEX_CI_ROOT/gex-wheel-nq" "$GEX_CI_ROOT/gex-wheel-nq-backup"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" research-backup-verify "$GEX_CI_ROOT/gex-wheel-nq-backup"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" research-restore "$GEX_CI_ROOT/gex-wheel-nq-backup" "$GEX_CI_ROOT/gex-wheel-nq-restored"
+          FIXTURE_DIR=$("$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/python" -c 'from gex_terminal.package_data import provider_fixture_dir; print(provider_fixture_dir())')
+          if "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" live-population-plan-validate "$FIXTURE_DIR/databento_es_live_population_plan_template.json"; then
             echo 'Unapproved live-population template must not validate'
             exit 1
           fi
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal capture-policy-validate "$FIXTURE_DIR/capture_policy_example.json"
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal databento-replay "$FIXTURE_DIR/databento_mixed_offline_records.jsonl" /tmp/gex-wheel-databento.json --symbol ES --multiplier 50
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal databento-offline-certify /tmp/gex-wheel-databento-cert.json --symbol ES --multiplier 50
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal price-action-evaluate "$FIXTURE_DIR/price_action_validation_example.json" /tmp/gex-wheel-price-action.json
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal position-model-compare "$FIXTURE_DIR/position_model_comparison_example.json" /tmp/gex-wheel-position.json --symbol ES --multiplier 50
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal model-property-certify /tmp/gex-wheel-properties.json
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal provider-fault-certify /tmp/gex-wheel-faults.json
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal performance-certify /tmp/gex-wheel-performance.json --performance-contracts 100 --minimum-ingest-rps 5 --maximum-snapshot-ms 5000 --maximum-peak-mb 512
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal experiment-run "$FIXTURE_DIR/experiment_spec_example.json" /tmp/gex-wheel-experiment
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal experiment-reproduce /tmp/gex-wheel-experiment/manifest.json /tmp/gex-wheel-reproduction
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal batch-position-compare "$FIXTURE_DIR/batch_position_comparison_example.json" /tmp/gex-wheel-batch.json
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal corpus-init /tmp/gex-wheel-corpus --corpus-id wheel-smoke
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal corpus-register /tmp/gex-wheel-corpus "$FIXTURE_DIR/price_action_validation_example.json" "$FIXTURE_DIR/corpus_item_metadata_example.json"
-          /tmp/gex-terminal-wheel-smoke/bin/gex-terminal corpus-verify /tmp/gex-wheel-corpus /tmp/gex-wheel-corpus.json
-          test -s /tmp/gex-wheel-snapshot.json
-          test -s /tmp/gex-wheel-fixtures.json
-          test -s /tmp/gex-wheel-injection.json
-          test -s /tmp/gex-wheel-demo/manifest.json
-          test -s /tmp/gex-wheel-experiment/manifest.json
-          test -s /tmp/gex-wheel-reproduction/manifest.json
-          test -s /tmp/gex-wheel-corpus.json
-          ! grep -R -E 'site-packages|/home/runner/work/' /tmp/gex-wheel-snapshot.json /tmp/gex-wheel-fixtures.json /tmp/gex-wheel-injection.json /tmp/gex-wheel-demo
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" capture-policy-validate "$FIXTURE_DIR/capture_policy_example.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" databento-replay "$FIXTURE_DIR/databento_mixed_offline_records.jsonl" "$GEX_CI_ROOT/gex-wheel-databento.json" --symbol ES --multiplier 50
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" databento-offline-certify "$GEX_CI_ROOT/gex-wheel-databento-cert.json" --symbol ES --multiplier 50
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" price-action-evaluate "$FIXTURE_DIR/price_action_validation_example.json" "$GEX_CI_ROOT/gex-wheel-price-action.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" position-model-compare "$FIXTURE_DIR/position_model_comparison_example.json" "$GEX_CI_ROOT/gex-wheel-position.json" --symbol ES --multiplier 50
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" model-property-certify "$GEX_CI_ROOT/gex-wheel-properties.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" provider-fault-certify "$GEX_CI_ROOT/gex-wheel-faults.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" performance-certify "$GEX_CI_ROOT/gex-wheel-performance.json" --performance-contracts 100 --minimum-ingest-rps 5 --maximum-snapshot-ms 5000 --maximum-peak-mb 512
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" experiment-run "$FIXTURE_DIR/experiment_spec_example.json" "$GEX_CI_ROOT/gex-wheel-experiment"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" experiment-reproduce "$GEX_CI_ROOT/gex-wheel-experiment/manifest.json" "$GEX_CI_ROOT/gex-wheel-reproduction"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" batch-position-compare "$FIXTURE_DIR/batch_position_comparison_example.json" "$GEX_CI_ROOT/gex-wheel-batch.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" corpus-init "$GEX_CI_ROOT/gex-wheel-corpus" --corpus-id wheel-smoke
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" corpus-register "$GEX_CI_ROOT/gex-wheel-corpus" "$FIXTURE_DIR/price_action_validation_example.json" "$FIXTURE_DIR/corpus_item_metadata_example.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" corpus-verify "$GEX_CI_ROOT/gex-wheel-corpus" "$GEX_CI_ROOT/gex-wheel-corpus.json"
+          test -s "$GEX_CI_ROOT/gex-wheel-snapshot.json"
+          test -s "$GEX_CI_ROOT/gex-wheel-fixtures.json"
+          test -s "$GEX_CI_ROOT/gex-wheel-injection.json"
+          test -s "$GEX_CI_ROOT/gex-wheel-demo/manifest.json"
+          test -s "$GEX_CI_ROOT/gex-wheel-experiment/manifest.json"
+          test -s "$GEX_CI_ROOT/gex-wheel-reproduction/manifest.json"
+          test -s "$GEX_CI_ROOT/gex-wheel-corpus.json"
+          ! grep -R -E 'site-packages|/home/runner/work/|/Users/runner/work/' "$GEX_CI_ROOT/gex-wheel-snapshot.json" "$GEX_CI_ROOT/gex-wheel-fixtures.json" "$GEX_CI_ROOT/gex-wheel-injection.json" "$GEX_CI_ROOT/gex-wheel-demo"
 
       - name: Verify offline install and recovery lifecycle
+        id: lifecycle
         run: |
-          mkdir -p /tmp/gex-prior-source /tmp/gex-prior-dist
-          git archive v0.4.0 | tar -x -C /tmp/gex-prior-source
-          python -m build --wheel --outdir /tmp/gex-prior-dist /tmp/gex-prior-source
+          mkdir -p "$GEX_CI_ROOT/gex-prior-source" "$GEX_CI_ROOT/gex-prior-dist"
+          git archive v0.4.0 | tar -x -C "$GEX_CI_ROOT/gex-prior-source"
+          python -m build --wheel --outdir "$GEX_CI_ROOT/gex-prior-dist" "$GEX_CI_ROOT/gex-prior-source"
           GEX_CANDIDATE_VERSION=$(python -c 'import gex_terminal; print(gex_terminal.__version__)')
-          python scripts/verify_distribution_lifecycle.py --previous-wheel /tmp/gex-prior-dist/gex_terminal-0.4.0-py3-none-any.whl --candidate-wheel "/tmp/gex-terminal-dist/gex_terminal-${GEX_CANDIDATE_VERSION}-py3-none-any.whl" --output /tmp/gex-lifecycle.json
+          python scripts/verify_distribution_lifecycle.py --previous-wheel "$GEX_CI_ROOT/gex-prior-dist/gex_terminal-0.4.0-py3-none-any.whl" --candidate-wheel "$GEX_CI_ROOT/gex-terminal-dist/gex_terminal-${GEX_CANDIDATE_VERSION}-py3-none-any.whl" --output "$GEX_CI_ROOT/gex-lifecycle.json"
 
       - name: Verify tag matches package version
+        id: tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           test "${GITHUB_REF_NAME#v}" = "$(python -c 'from importlib.metadata import version; print(version("gex-terminal"))')"
+
+      - name: Collect bounded offline evidence
+        id: evidence
+        if: always()
+        env:
+          GEX_CI_STEP_OUTCOMES: >-
+            {"paths":"${{ steps.paths.outcome }}","checkout":"${{ steps.checkout.outcome }}","python":"${{ steps.python.outcome }}","dependencies":"${{ steps.dependencies.outcome }}","compile":"${{ steps.compile.outcome }}","hygiene":"${{ steps.hygiene.outcome }}","tests":"${{ steps.tests.outcome }}","cli":"${{ steps.cli.outcome }}","previews":"${{ steps.previews.outcome }}","numerical":"${{ steps.numerical.outcome }}","distributions":"${{ steps.distributions.outcome }}","wheel":"${{ steps.wheel.outcome }}","lifecycle":"${{ steps.lifecycle.outcome }}","tag":"${{ steps.tag.outcome }}"}
+        run: |
+          python scripts/collect_ci_evidence.py --input-root "$GEX_CI_ROOT" --output-dir "${{ runner.temp }}/gex-ci-evidence" --step-outcomes "$GEX_CI_STEP_OUTCOMES" --github-output "$GITHUB_OUTPUT"
+
+      - name: Retain offline evidence
+        if: always() && steps.evidence.outputs.staged == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: offline-evidence-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gex-ci-evidence/
+          if-no-files-found: error
+          retention-days: 14
+          include-hidden-files: false

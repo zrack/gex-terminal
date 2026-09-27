@@ -121,15 +121,52 @@ Generated `demo_lab/` and `demo_pack/` folders are ignored by Git by default.
 
 ## Contributor Preview
 
-To refresh repository preview assets from the existing ES visual path:
+From a source checkout with the development dependencies installed, stage fresh
+previews using the current interpreter:
 
 ```bash
-gex-terminal demo-lab /tmp/gex_terminal_demo_lab --replay-session zero-gamma-flip
-cp /tmp/gex_terminal_demo_lab/gex-terminal-color.svg assets/gex-terminal-demo-lab.svg
-gex-terminal --demo --screenshot assets/gex-terminal-onboarding.svg --screenshot-view replay-browser
+python scripts/refresh_previews.py --include-onboarding
 ```
 
-The interactive terminal uses the same first-run session: start
-`gex-terminal --demo`, press `p`, and select a replay. Pack inputs and generated
-assets must never contain credentials, account identifiers, private payloads, or
-licensed data without explicit redistribution rights.
+The command prints a new ignored `dist/previews-<unique-id>` directory containing
+`demo.svg`, optional `onboarding.svg`, and `manifest.json`. Use `--output-dir PATH`
+to choose another **new** directory; existing directories and symlinks are
+rejected. Without `--include-onboarding`, only the Demo Lab graphic is generated.
+The command stages previews by default. To generate them and update the two
+documentation assets, use:
+
+```bash
+python scripts/refresh_previews.py --include-onboarding --write-assets
+```
+
+Inspect the generated SVGs and the asset diff before accepting a refresh. The
+demo graphic uses calculated snapshot values; onboarding captures the actual
+Textual replay picker at 180 columns by 64 rows so its list viewport is visible.
+The taller capture retains the application's normal list viewport; it does not
+show every choice at once. The temporary Demo Lab terminal capture remains
+180 columns by 54 rows, and the manifest records both sizes. Both select the explicit bundled
+`zero-gamma-flip` replay. Demo Lab also evaluates its bundled provider-shaped
+fixtures; none of these operations connects to a provider.
+
+Each application command runs from a fresh temporary working directory using
+the checkout source and the current Python interpreter in isolated mode. The
+environment allowlist removes ambient GEX/provider settings and credentials;
+the repository and caller `.env` files are not loaded. Existing research folders
+and the frozen study bundle are untouched.
+
+The local manifest records source commit and dirty state, source/input hashes,
+Python and direct dependency versions/metadata hashes, exact commands and exit
+codes, terminal and SVG dimensions, verified Demo Lab receipt identities, and
+asset hashes. The input inventory covers the bundled catalog and fixtures,
+including files not consumed by this run. Dependency metadata is not a complete
+environment lock. A failed command leaves a failed manifest without retaining
+arbitrary subprocess diagnostics. Source or input changes during generation
+fail the refresh before repository assets are copied.
+
+Repeatability means fixed inputs and snapshot calculations. The legacy replay
+preserves its `timestamp` chronology, but Demo Lab's report/as-of fields for
+this schema-v1 fixture use run time; those fields vary between runs. Terminal
+SVG identifiers and timing can vary too. Hashes identify the exact
+outputs, not a promise of identical bytes for every report or screenshot. These
+are current source-build previews, not screenshots of the frozen study build or
+evidence of participant acceptance or live reliability.

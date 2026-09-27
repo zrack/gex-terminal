@@ -1,7 +1,7 @@
 # Application State And Health Review
 
-Updated September 20, 2026 for the frozen offline study build following the
-replay-picker repair to `0.5.0 — Offline Research Foundation`. This document owns
+Updated September 26, 2026 for offline verification and preview maintenance on
+the repaired `0.5.0 — Offline Research Foundation`. This document owns
 the dated state assessment and verification limits; earlier release evidence is
 retained below rather than presented as verification of later changes.
 [Architecture](architecture.md) owns implementation structure;
@@ -36,6 +36,14 @@ fresh-environment rehearsal and 435 source tests passed. Heading-link checks
 protect documentation navigation; architecture/C4 and contributor guidance now
 make diagram and document ownership explicit. These are preparation and
 maintenance results, with participant acceptance still unmeasured.
+
+The September 26 maintenance slice adds independently reasoned replay checks,
+Linux/macOS build verification, bounded synthetic CI evidence and a preview
+refresh tool. Visual review also corrects generated demo SVG layout and exposes
+the onboarding picker's existing viewport in a taller capture.
+[GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md) owns the final test, package,
+visual and hosted-check results. The September 20 study artifacts retain their
+original identities; these changes do not re-identify that frozen build.
 
 ## Current state
 
