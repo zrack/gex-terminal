@@ -35,9 +35,10 @@ software verification.
 ### Containers And Local Storage
 
 There is one executable application container in the C4 sense: a local Python
-process launched by `gex-terminal`. The Textual UI, adapters, consumer, engine,
+process launched by `gex-terminal`. The browser server, Textual UI, adapters, consumer, engine,
 and research commands are modules within that process. Local files below are
-storage boundaries, not separately deployed services. No hosted API or database
+storage boundaries, not separately deployed services. The Wind Tunnel also uses a browser process on the same machine, served
+by an aiohttp listener bound to `127.0.0.1`. No hosted API or database
 is required by the current application.
 
 ```mermaid
@@ -46,11 +47,14 @@ flowchart LR
     providers["External providers"]
     subgraph local["Researcher's machine"]
         application["gex-terminal<br/>Python CLI / Textual application"]
+        browser["Market Wind Tunnel<br/>Local browser / bundled Plotly"]
         package[("Installed package resources<br/>Synthetic JSONL and sanitized fixtures")]
         files[("Local research files<br/>Inputs, packs, manifests, journals and exports")]
     end
     researcher -->|Terminal commands and keyboard| application
-    package -->|Read bundled input| application
+    researcher -->|Scenario controls and plots| browser
+    browser <-->|Capability-protected loopback HTTP| application
+    package -->|Read bundled input and web assets| application
     files -->|Replay, verify or reproduce input| application
     application -->|Write artifacts on request| files
     providers -.->|Optional live or delayed provider path| application
@@ -70,6 +74,15 @@ not another deployed service or package registry. The generated offline launcher
 initializes configuration in an empty working directory with provider settings
 excluded, then writes requested exports in the selected research directory.
 Direct `gex-terminal` invocations retain their existing configuration behavior.
+
+The Wind Tunnel reconstructs a declared synthetic replay checkpoint, forks
+scenario assumptions and prices each fork through the existing consumer/engine.
+Its service exposes only bundled source identifiers and bounded operations,
+never arbitrary input paths. An origin check and per-run capability protect the
+API; the capability stays outside saved research. Static browser assets are
+packaged with the wheel, so no external script or chart service is required.
+Receipts bind normalized requests, exact source and calculation identities,
+and semantic results. Reproduction recalculates before declaring agreement.
 
 ### Application Components
 
@@ -145,6 +158,7 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Runtime safety | `gex_terminal/logging_config.py`, `gex_terminal/redaction.py` | Configure warning-level process logging by default and recursively sanitize secrets, sensitive identifiers, and labeled private payload fields before configured log or certification output. |
 | Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/tui_views.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows and responsive layout; present focused replay/help views, model controls, source and quality context, event history and exports. |
+| Market Wind Tunnel | `wind_tunnel.py`, `wind_tunnel_server.py`, `wind_tunnel_cli.py`, `wind_tunnel_web/` | Fork synthetic checkpoints, calculate scenarios/surfaces/searches, serve a local browser and save bounded reproducible receipts. |
 | Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py`, `gex_terminal/batch_comparison.py` | Produce replay, demo, provider-fixture, and multi-session model-comparison reports without live credentials. |
 | Portable research receipt | `gex_terminal/demo_lab_receipt.py` | Bind authorized copied replay, model/runtime identity, exact inventory and semantic content; reject unsupported or changed packs before reproduction. |
 | Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, and historical records from normalized state. |

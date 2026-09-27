@@ -74,6 +74,35 @@ class InstallAppTests(unittest.TestCase):
             return install_app.install(wheel, install_app.digest(wheel), SOURCE, self.target,
                                        wheelhouse=self.wheelhouse)
 
+    def test_fresh_wind_launcher_selects_isolated_browser_command(self):
+        wind_module = "gex_terminal/wind_tunnel_cli.py"
+        with zipfile.ZipFile(self.wheel, "a") as archive:
+            archive.writestr(wind_module, "# payload presence enables shortcut\n")
+        receipt = self.install()
+        self.assertEqual(set(receipt["launcher_sha256"]),
+                         set((*install_app.LAUNCH_FILES, *install_app.WIND_LAUNCH_FILES)))
+        for name in install_app.WIND_LAUNCH_FILES:
+            subprocess.run(["sh", "-n", str(self.target / name)], check=True)
+        # Payload validation still executes; inspect only the final process
+        # boundary to avoid opening a real browser in the test runner.
+        real_run = subprocess.run
+        invocations = []
+        def capture(command, **kwargs):
+            if install_app.BOOTSTRAP in command:
+                invocations.append((command, kwargs))
+                return subprocess.CompletedProcess(command, 0)
+            return real_run(command, **kwargs)
+        with patch.object(install_app.subprocess, "run", side_effect=capture):
+            self.assertEqual(install_app.launch(self.target, wind_tunnel=True), 0)
+        command, options = invocations[0]
+        self.assertEqual(command[-6:], ["wind-tunnel", "serve", "--port", "0", "--workspace",
+                                       str(self.research / "wind-tunnel")])
+        self.assertNotIn("GEX_DATA_MODE", options["env"])
+        self.assertTrue(install_app.owned_target(self.target))
+        (self.target / "run-wind-tunnel").write_text("# altered shortcut")
+        with self.assertRaisesRegex(ValueError, "launcher has changed"):
+            install_app.owned_target(self.target)
+
     def test_validated_input_rejects_wrong_checksum_package_and_source_before_target_creation(self):
         with self.assertRaisesRegex(ValueError, "checksum"):
             install_app.install(self.wheel, "0" * 64, SOURCE, self.target)
@@ -228,7 +257,7 @@ class InstallAppTests(unittest.TestCase):
                    "active": {"environment": "env-" + "1" * 12 + "-" + "2" * 12,
                               "version": "0.5.0", "wheel_sha256": "1" * 64, "source_commit": SOURCE,
                               "payload_sha256": {"gex_terminal/__init__.py": "1" * 64}},
-                   "launcher_sha256": {"launcher.py": "0" * 64}}
+                   "launcher_sha256": {name: "0" * 64 for name in install_app.LAUNCH_FILES}}
         (self.target / "environments" / receipt["active"]["environment"]).mkdir(parents=True)
         (self.target / install_app.RECEIPT).write_text(json.dumps(receipt))
         custom = self.target / "launcher.py"

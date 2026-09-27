@@ -5,6 +5,22 @@ subscription is needed. This guide owns local setup, wheel installation and the 
 Today → Explain → Compare → Replay → Review journey. Detailed pack contracts
 belong in [Demo Lab](demo-lab.md).
 
+## Market Wind Tunnel
+
+Fresh 0.6.0 setup folders include **Start Wind Tunnel.command** (macOS) and
+**run-wind-tunnel** (Linux). Open either to launch the local browser workbench.
+The Python window stays open while you explore; Control-C stops the server.
+Saved experiments remain under the separate research folder's `wind-tunnel`
+subfolder. The terminal launcher remains available as **Start GEX.command**.
+
+For manual installations, run `gex-terminal wind-tunnel`. Start with the three
+worked examples in [Wind Tunnel](wind-tunnel.md). No provider credentials or
+network connection are needed after dependencies have been installed.
+
+Older installed shortcuts remain byte-identical during an in-place update.
+Use a fresh reviewed setup folder to obtain the new Wind Tunnel shortcuts, and
+keep the old research folder. Exported receipts can be reopened in the new app.
+
 ## Install and open the reviewed bundle
 
 Obtain the reviewed setup folder from your maintainer and put it in its

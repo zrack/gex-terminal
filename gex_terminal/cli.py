@@ -1433,6 +1433,7 @@ def parse_args() -> argparse.Namespace:
         "command",
         nargs="?",
         choices=(
+            "wind-tunnel",
             "validate-fixture",
             "list-replays",
             "replay-lab",
@@ -1968,6 +1969,13 @@ def _session_store_source_name(config: GexConfig, args: argparse.Namespace) -> s
 
 
 def main_sync() -> None:
+    if sys.argv[1:2] == ["wind-tunnel"]:
+        from gex_terminal.wind_tunnel_cli import main as wind_tunnel_main
+
+        result = wind_tunnel_main(sys.argv[2:])
+        if result:
+            raise SystemExit(result)
+        return
     try:
         asyncio.run(main())
     except ConfigValidationError as exc:

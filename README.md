@@ -1,17 +1,21 @@
 # gex-terminal
 
-`gex-terminal` is an open, local-first terminal workbench for inspecting gamma
+`gex-terminal` is an open, local-first browser and terminal workbench for inspecting gamma
 exposure (GEX) proxies in ES, NQ, and related options markets. It normalizes
 provider or replay data, makes model assumptions visible, and produces
 replayable research artifacts without presenting proxy calculations as observed
 dealer inventory.
 
-![GEX research terminal with seeded synthetic data](assets/gex-terminal-actual.svg)
+![Market Wind Tunnel calculating a synthetic ES volatility scenario](assets/market-wind-tunnel.png)
 
 > This project is for market research and engineering experimentation. It is
 > not financial advice.
 
 ## What It Does
+
+- Explores synthetic market structure in an offline Market Wind Tunnel: exposure
+  landscape, matched scenario comparison, sampled fragility map and bounded
+  break search, with saved experiments that can be verified and reproduced.
 
 - Prices futures-option rows with Black-76 and equity/index-option rows with
   Black-Scholes before strike aggregation.
@@ -32,7 +36,7 @@ and limitations are documented in
 
 ## Current Status
 
-Version **0.5.0 — Offline Research Foundation** is a research alpha. The
+Version **0.6.0 — Market Wind Tunnel** is a research alpha. The
 repository and reviewed Git tag are the release record; no PyPI publication or
 hosted GitHub Release is claimed.
 
@@ -66,12 +70,27 @@ Maintainers preparing observed first use follow [Study Build](docs/study-build.m
 
 ## Quick Start
 
+Open **GEX App/Start Wind Tunnel.command** on macOS or
+**GEX App/run-wind-tunnel** on Linux. For a manual wheel installation:
+
+```bash
+gex-terminal wind-tunnel
+```
+
+The local browser workbench includes three worked examples. Change spot, IV,
+time or expiry assumptions, compare the resulting structure and save a receipt.
+Charts and calculations use bundled synthetic data and work without a provider
+account or internet connection. See [Market Wind Tunnel](docs/wind-tunnel.md).
+
+
 The installed launcher opens a bundled synthetic replay. For a manual wheel
 installation, start with seeded offline data:
 
 ```bash
 gex-terminal --demo
 ```
+
+![GEX research terminal with seeded synthetic data](assets/gex-terminal-actual.svg)
 
 Press `p` to open the replay browser, use Up/Down to choose a session, and press
 Enter to load it. Press `e` to save a snapshot, `v` for source and model details,
@@ -96,6 +115,7 @@ canonical guide:
 
 | Goal | Starting command | Guide |
 | --- | --- | --- |
+| Stress market structure offline | `gex-terminal wind-tunnel` | [Market Wind Tunnel](docs/wind-tunnel.md) |
 | Diagnose a local installation | `gex-terminal doctor` | [Offline Doctor](docs/doctor.md) |
 | Explore bundled market days | `gex-terminal --replay-session trend-day` | [Replay Research](docs/replay-research.md) |
 | Generate a shareable offline pack | `gex-terminal demo-lab demo_lab` | [Demo Lab](docs/demo-lab.md) |

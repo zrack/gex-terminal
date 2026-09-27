@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>GEX / Wind Tunnel</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script defer src="/static/vendor/plotly.min.js"></script>
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#workspace">Skip to research workspace</a>
+<header class="app-header">
+  <a class="brand" href="#workspace" aria-label="GEX Wind Tunnel home"><strong>GEX</strong><span>/</span> WIND TUNNEL</a>
+  <span class="header-source" id="header-source">Synthetic research</span>
+  <span class="local-badge">LOCAL · OFFLINE</span>
+  <div class="header-actions">
+    <button type="button" id="open-examples" class="quiet">Examples</button>
+    <button type="button" id="open-receipts" class="quiet"><img src="/static/icons/folder-open.svg" alt="">Saved scenarios</button>
+    <button type="button" id="open-help" class="quiet"><img src="/static/icons/question.svg" alt="">Help</button>
+  </div>
+</header>
+<div id="connection-error" class="connection-error" role="alert" hidden></div>
+<main id="workspace" tabindex="-1">
+  <div class="workspace-top">
+    <div><p class="eyebrow">A MARKET STRUCTURE RESEARCH LAB</p><h1 id="view-title">Find what changes the structure.</h1><p class="lede" id="view-description">Change the assumptions. See how the modeled exposure responds.</p></div>
+    <div class="source-control"><label for="source">Synthetic replay</label><select id="source" disabled><option>Loading sources…</option></select><button type="button" class="text-button" id="source-details">Source &amp; assumptions</button></div>
+  </div>
+  <div class="view-toolbar">
+    <div class="tabs" role="tablist" aria-label="Research views">
+      <button id="tab-landscape" type="button" role="tab" aria-selected="true" aria-controls="panel-landscape" data-view="landscape"><img src="/static/icons/cube.svg" alt="">Exposure landscape</button>
+      <button id="tab-compare" type="button" role="tab" aria-selected="false" aria-controls="panel-compare" data-view="compare" tabindex="-1"><img src="/static/icons/chart-line.svg" alt="">Compare</button>
+      <button id="tab-fragility" type="button" role="tab" aria-selected="false" aria-controls="panel-fragility" data-view="fragility" tabindex="-1"><img src="/static/icons/grid-four.svg" alt="">Fragility map</button>
+    </div>
+    <div id="calculation-status" class="status-line" role="status" aria-live="polite">Preparing local research…</div>
+  </div>
+  <div class="research-layout">
+    <section class="plot-column">
+      <div class="metric-strip" aria-label="Scenario comparison">
+        <div><span class="metric-label">NET EXPOSURE</span><div class="metric-values"><span class="baseline" id="metric-baseline-net">—</span><span class="metric-arrow">to</span><span class="scenario" id="metric-scenario-net">—</span></div></div>
+        <div><span class="metric-label">DOMINANT GAMMA WALL</span><div class="metric-values"><span class="baseline" id="metric-baseline-wall">—</span><span class="metric-arrow">to</span><span class="scenario" id="metric-scenario-wall">—</span></div></div>
+        <div><span class="metric-label">SCENARIO STATE</span><strong class="scenario-state" id="scenario-state">Waiting for a source</strong></div>
+      </div>
+      <section id="panel-landscape" role="tabpanel" aria-labelledby="tab-landscape" class="view-panel">
+        <div class="chart-heading"><div><h2>Modeled Net GEX</h2><p>Underlying price × time advanced · conditional on fixed quantities</p></div><div class="chart-legend"><span class="baseline">Original state</span><span class="scenario">Recalculated scenario</span></div></div>
+        <div class="plot-controls"><label for="landscape-render">View</label><select id="landscape-render"><option value="3d">3D landscape</option><option value="2d">2D time slices</option></select><span id="webgl-note" class="muted"></span></div>
+        <div id="landscape-plot" class="plot landscape-plot" role="img" aria-label="Net GEX landscape across underlying prices and elapsed time"></div>
+        <p class="chart-caption" id="landscape-caption">Drag to rotate. Scroll to zoom. All points are recalculated from the selected checkpoint.</p>
+      </section>
+      <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" class="view-panel" hidden>
+        <div class="chart-heading"><div><h2>Branch a market moment.</h2><p>Same checkpoint. Explicit changes. Matched scales.</p></div></div>
+        <div class="comparison-plots"><div><h3 class="baseline">Original replay state</h3><div id="baseline-plot" class="plot compare-plot" role="img" aria-label="Baseline net gamma exposure by strike"></div></div><div><h3 class="scenario">Recalculated scenario</h3><div id="scenario-plot" class="plot compare-plot" role="img" aria-label="Scenario net gamma exposure by strike"></div></div></div>
+        <p class="chart-caption" id="compare-caption">No assumptions changed.</p>
+        <details class="data-details"><summary>Inspect strike values</summary><div class="table-scroll"><table id="comparison-table"><caption>Baseline and scenario modeled net GEX by strike</caption><thead><tr><th scope="col">Strike</th><th scope="col">Original</th><th scope="col">Scenario</th><th scope="col">Change</th></tr></thead><tbody></tbody></table></div></details>
+      </section>
+      <section id="panel-fragility" role="tabpanel" aria-labelledby="tab-fragility" class="view-panel" hidden>
+        <div class="chart-heading"><div><h2>How far does the conclusion hold?</h2><p id="tested-claim">Choose a claim and run a bounded search.</p></div></div>
+        <div id="fragility-plot" class="plot fragility-plot" role="img" aria-label="Tested scenario grid showing where the selected model claim changes"></div>
+        <div class="map-legend"><span class="baseline">Claim holds at tested points</span><span class="scenario">Claim changes</span><span class="muted">Not evaluable / not tested</span></div>
+        <p class="chart-caption" id="map-caption">A finite grid is a sensitivity test, not a probability or a continuous boundary.</p><details class="data-details"><summary>Inspect tested cases</summary><div class="table-scroll"><table id="search-table"><caption>Every tested point and its model claim status</caption><thead><tr><th scope="col">Price shift</th><th scope="col">IV shift</th><th scope="col">Status</th><th scope="col">Wall</th><th scope="col">Net GEX</th><th scope="col">Reason</th></tr></thead><tbody></tbody></table></div></details>
+      </section>
+      <div class="inline-notice" id="result-notice" role="status" hidden></div>
+    </section>
+    <aside class="control-column" aria-labelledby="stress-heading">
+      <div class="control-heading"><h2 id="stress-heading">Stress the model</h2><button type="button" class="icon-button" id="reset-scenario" aria-label="Reset scenario assumptions" title="Reset scenario"><img src="/static/icons/arrows-clockwise.svg" alt=""></button></div>
+      <p class="control-intro">Change one assumption, or combine a few. Quantities stay fixed.</p>
+      <form id="scenario-form">
+        <div class="scenario-control"><div class="input-heading"><label for="spot-shift">Underlying price shift</label><div class="number-unit"><input id="spot-number" aria-label="Underlying price shift in points" type="number" min="-100" max="100" step="1" value="0"><span>pts</span></div></div><input id="spot-shift" type="range" min="-100" max="100" step="1" value="0"><div class="range-labels"><span>−100</span><output id="spot-effective">Original price —</output><span>+100</span></div></div>
+        <div class="scenario-control"><div class="input-heading"><label for="iv-shift">Implied volatility shift</label><div class="number-unit"><input id="iv-number" aria-label="Implied volatility shift in volatility points" type="number" min="-5" max="5" step="0.1" value="0"><span>pts</span></div></div><input id="iv-shift" type="range" min="-5" max="5" step="0.1" value="0"><div class="range-labels"><span>−5.0</span><span>Absolute volatility points</span><span>+5.0</span></div></div>
+        <div class="scenario-control"><div class="input-heading"><label for="time-advance">Time advanced</label><div class="number-unit"><input id="time-number" aria-label="Time advanced in minutes" type="number" min="0" max="120" step="1" value="0"><span>min</span></div></div><input id="time-advance" type="range" min="0" max="120" step="1" value="0"><div class="range-labels"><span>0</span><span>Reprice at a later model time</span><span>120</span></div></div>
+        <div class="model-control"><label for="position-model">Position model</label><select id="position-model"><option value="raw_trade_volume">Volume proxy</option><option value="open_interest">Open interest</option><option value="directionalized_trade_volume">Directionalized volume</option></select></div>
+        <label class="checkbox-control"><input type="checkbox" id="remove-expiry"><span>Remove the nearest expiry<small>Exclude its contracts from this scenario.</small></span></label>
+        <p class="validation-message" id="scenario-validation" role="alert" hidden></p>
+      </form>
+      <section class="search-controls" aria-labelledby="search-heading">
+        <h3 id="search-heading">Find a breaking case</h3>
+        <label for="claim">Tested claim</label><select id="claim"><option value="wall_change">Dominant wall stays at the same strike</option><option value="net_sign">Net exposure keeps its sign</option><option value="model_disagreement">Models agree on wall and sign</option></select>
+        <div id="comparison-model-control" hidden><label for="comparison-model">Compare against</label><select id="comparison-model"><option value="open_interest">Open interest</option><option value="raw_trade_volume">Volume proxy</option><option value="directionalized_trade_volume">Directionalized volume</option></select></div>
+        <details class="bounds-details"><summary>Search bounds <span id="bounds-summary">±50 pts · ±3 vol pts</span></summary><div class="bounds-grid"><label>Price bound (±pts)<input id="search-price" type="number" min="0.000001" max="5000" step="any" value="50"></label><label>IV bound (±pts)<input id="search-iv" type="number" min="0.000001" max="100" step="any" value="3"></label><label>Samples per axis<select id="search-samples"><option value="7">7 · 49 cases</option><option value="11" selected>11 · 121 cases</option><option value="15">15 · 225 cases</option></select></label></div><p>Price and IV vary around the original checkpoint. Time, expiry removal, and quantity model use your current settings.</p></details>
+        <p id="loaded-grid-note" class="loaded-grid-note" hidden></p><button type="button" class="primary-button" id="run-search"><span id="run-search-label">Find breaking point</span><img src="/static/icons/arrow-right.svg" alt=""></button>
+        <div class="search-result" id="search-result" aria-live="polite"><p class="eyebrow">BOUNDED SEARCH</p><h3>No search run yet.</h3><p>Find the smallest tested change within explicit bounds.</p></div>
+        <button type="button" class="secondary-button" id="apply-breaking-case" hidden>Replay breaking case<img src="/static/icons/arrow-right.svg" alt=""></button>
+      </section>
+    </aside>
+  </div>
+  <section class="replay-bar" aria-label="Replay checkpoint">
+    <div class="replay-label"><strong>Replay checkpoint</strong><span id="checkpoint-label">Loading…</span></div>
+    <div class="scrubber"><button type="button" class="icon-button" id="play-replay" aria-label="Play replay checkpoints" title="Play checkpoints"><img src="/static/icons/play.svg" alt=""></button><div class="scrubber-track"><label class="sr-only" for="checkpoint">Replay checkpoint</label><input id="checkpoint" type="range" min="0" max="0" value="0" step="1" disabled><div class="range-labels"><span id="checkpoint-start">—</span><span id="checkpoint-count">—</span><span id="checkpoint-end">—</span></div></div></div>
+    <button type="button" class="secondary-button" id="save-scenario" disabled><img src="/static/icons/floppy-disk.svg" alt="">Save scenario</button>
+  </section>
+  <footer class="evidence-footer"><span>Synthetic inputs · conditional model output · predictive validity unmeasured</span><span id="source-fingerprint">Local calculations. No market connection.</span></footer>
+</main>
+<dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-header"><h2 id="info-title">Research help</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div id="info-content" class="dialog-body"></div></dialog>
+<dialog id="save-dialog" aria-labelledby="save-title"><form id="save-form"><div class="dialog-header"><h2 id="save-title">Save this scenario</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body"><p>Keep the exact source, model inputs, and calculated result in a local receipt.</p><label for="scenario-name">Scenario name</label><input id="scenario-name" type="text" maxlength="80" required autocomplete="off"><p id="save-error" class="validation-message" role="alert" hidden></p><button class="primary-button" id="confirm-save" type="submit">Save scenario</button></div></form></dialog>
+<dialog id="receipts-dialog" aria-labelledby="receipts-title"><div class="dialog-header"><h2 id="receipts-title">Saved scenarios</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body"><p>Local receipts preserve inputs and results. Reopening recalculates the saved scenario.</p><div class="receipt-import"><label class="secondary-button" for="receipt-file">Import &amp; verify a receipt</label><input id="receipt-file" type="file" accept=".json,application/json"><p id="import-status" role="status"></p></div><div id="receipts-list" aria-live="polite"></div></div></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

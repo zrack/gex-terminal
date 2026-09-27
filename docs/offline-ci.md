@@ -11,7 +11,20 @@ The lifecycle step also prepares a local setup bundle, runs its installer twice
 to check reuse, and exercises doctor and synthetic export through the generated
 launcher. The wrapper prefers the selected supported `python3` so these checks
 use the matrix's Python version. Application folders and installer records stay
-in the disposable runner directory; the bounded upload inventory is unchanged.
+in the disposable runner directory and are excluded from the bounded upload inventory.
+
+The installed-wheel step also runs Wind Tunnel help and generates, verifies and
+reproduces its three worked examples outside the checkout. It checks the expected
+discovered break, no break and front-expiry exclusion with retained farther contracts. One bounded
+summary retains the example identities, source and calculation fingerprints,
+artifact checksums and verification results; the full example files remain in
+the disposable runner directory.
+
+The lifecycle step separately builds the tagged 0.5.0 producer and verifies its
+unchanged Demo Lab and experiment research with the installed candidate reader.
+The compatibility report records the previous wheel checksum, producer and
+reader versions, verification results and preserved input file hashes. This does
+not migrate or upload the complete disposable research folders.
 
 Testing a runner is software verification for that run, not a supported-platform
 promise, participant acceptance, live reliability, or predictive validation.
@@ -37,6 +50,8 @@ job's disposable `runner.temp/gex-ci` directory. It stages:
 - Selected synthetic research-pack manifests, integrity receipts, replay
   reports and terminal SVGs; these subsets are not portable complete packs.
 - The successful disposable installation and recovery lifecycle report.
+- The installed Wind Tunnel example verification summary (not complete portable receipts).
+- The prior-version research compatibility report from the tagged 0.5.0 producer.
 
 It does not recursively copy the workspace or research folders. Wheels,
 environments, backups, raw command logs, `.env` files, and arbitrary extra files

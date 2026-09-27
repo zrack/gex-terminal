@@ -3,13 +3,23 @@
 All notable project changes should be recorded here so the README and roadmap
 can stay focused on current usage and future direction.
 
-The source/package version is `0.5.0`. Release tags identify verified merged
+The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
-## Unreleased
+## 0.6.0 — 2026-09-27 — Market Wind Tunnel
 
 ### Added
+
+- Packaged offline browser Wind Tunnel with calculated 3D/2D exposure, matched
+  scenario comparison, sampled fragility maps, checkpoint selection and bounded
+  search across spot, IV, time, expiry and separated position assumptions.
+- Immutable experiment receipts with source and calculation identity, local
+  save/reopen/export/reproduce workflows and three reproducible synthetic examples.
+- A loopback-only service with capability-protected APIs, bounded research
+  storage and bundled chart assets; fresh setup folders include a Wind Tunnel
+  launcher. See [Wind Tunnel](docs/wind-tunnel.md) and
+  [GEX-WIND-001](docs/work-packets/GEX-WIND-001.md) for acceptance status.
 
 - A reviewed-wheel setup helper and local handoff bundle with reusable macOS/POSIX
   launchers, isolated offline configuration, separate research storage, exact
