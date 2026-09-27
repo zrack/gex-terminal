@@ -460,7 +460,10 @@ def run_both(command: list[str], wind_command: list[str], *, cwd: Path,
                         print("Opening Terminal. Quit Terminal to stop this combined session.\n"
                               "The two views have independent replay and scenario selections.", flush=True)
                         if not no_browser:
-                            if not open_browser(url):
+                            browser_opened = open_browser(url)
+                            if interrupted is not None:
+                                return 128 + interrupted
+                            if not browser_opened:
                                 raise RuntimeError("The browser could not open, so Both was cancelled. "
                                                    "Use the Wind Tunnel shortcut to open its URL manually, "
                                                    "or run-gex --both --no-browser to manage the browser yourself.")

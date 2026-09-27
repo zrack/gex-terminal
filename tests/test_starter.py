@@ -207,6 +207,21 @@ class StarterLifecycleTests(unittest.TestCase):
                 self.assert_children_reaped()
                 (self.root / "wind.json").unlink()
 
+    def test_signal_during_failed_browser_open_keeps_interrupt_exit_status(self):
+        terminal, wind = self.commands("normal")
+        for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            with self.subTest(signal=signum):
+                def interrupted_browser(_url):
+                    os.kill(os.getpid(), signum)
+                    return False
+                with patch.object(install_app, "open_browser", side_effect=interrupted_browser), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    status = install_app.run_both(terminal, wind, cwd=self.root, startup_timeout=3)
+                self.assertEqual(status, 128 + signum)
+                self.assertFalse((self.root / "terminal.json").exists())
+                self.assert_children_reaped()
+                (self.root / "wind.json").unlink()
+
     def test_noisy_wind_output_is_drained_before_and_after_terminal_starts(self):
         self.assertEqual(self.run_both("noisy"), 7)
         self.assertTrue((self.root / "noise-drained.json").exists())
