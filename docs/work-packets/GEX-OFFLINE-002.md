@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L2
-status: in_review
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent reviewer and hosted CI
@@ -32,8 +32,10 @@ inputs and interactive terminal behavior remain unchanged. Rebuild and recheck
 the package after this exporter-only correction.
 
 Implementation, local verification, a feature branch and reviewable pull request
-are in scope. Protected-main merge and publication remain separately authorized
-actions. The exact September 20 study bundle, its source and frozen materials
+are in scope. The maintainer subsequently explicitly authorized pushing this
+branch, opening the pull request, and merging into `origin/main` after hosted
+checks pass. Tags, package publication and hosted releases remain outside this
+authority. The exact September 20 study bundle, its source and frozen materials
 remain unchanged. No participant sessions or market-data connections are used.
 
 ## Acceptance
@@ -99,8 +101,15 @@ generated previews and reports can be rebuilt. No user data is migrated.
   numerical calculation, fixture, receipt schema or compatibility rule changed.
 - Independent review found no unresolved issues in the packet/docs, collector,
   CI contract, preview isolation or final renderer diff. YAML parsing, all 13
-  shell step bodies and Python 3.11 syntax checks passed. Hosted matrix results
-  and protected-main merge remain separate completion evidence, pending review.
+  shell step bodies and Python 3.11 syntax checks passed.
+- The first submitted source `3b5182e` passed all four hosted Ubuntu/macOS and
+  Python 3.11/3.12 jobs in [PR #30](https://github.com/zrack/gex-terminal/pull/30),
+  including complete evidence collection and uploads. Final closeout-document
+  changes must pass the same matrix before the authorized merge.
+- This packet closes technical shipment with PR #30's merge, conditional on
+  all final-commit hosted checks passing. The PR owns the final checked source
+  and merge identity. The clean-main regression and remote-equality result are
+  retained in local ignored `dist/offline-002-closeout.json` after merge.
 
 The initial clean pull was already current. Local integration reports remain in
 the maintainer's temporary `gex-offline-002.SzyxBD` directory; generated logs and
