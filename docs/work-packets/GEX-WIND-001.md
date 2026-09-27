@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent contributor review
@@ -81,8 +81,14 @@ Wheel and source distributions pass build/Twine. The installed wheel passes the
 numerical gate, offline Databento certification, seven model properties, seven
 provider fault cases and the declared 100-contract performance budget. Actual
 0.5.0 Demo Lab and experiment artifacts reproduce through the 0.6.0 installed
-reader without changing their source bytes. Hosted final-head, fresh handoff and
-merged-tree gates remain required before the tag.
+reader without changing their source bytes. The committed candidate at
+`c6545c53268a37035167af2fba695f8cfd8bee96` passes a fresh offline installation
+and repeat reuse with 21 supplied dependency wheels. All 117 installed
+application files match the committed source and wheel. Both launcher chains,
+doctor, terminal export and all three example/verify/reproduce cycles pass from
+outside the checkout. The installed browser loads its packaged charts and
+examples. The candidate wheel SHA-256 is
+`f97af37248baca21bfac400d018c00d51bba6cd28cf752e3bc2ce7e24b4576cc`.
 
 Independent review found and resolved cooperative cancellation, stale-save
 ownership, exact surface/grid reopening, an unlisted installer-launcher hazard,
@@ -100,3 +106,28 @@ A chart or synthetic example establishes software behavior only. Search results
 identify a nearest tested point under declared bounds and resolution, never a
 global mathematical minimum or a market forecast. Predictive validity remains
 `unmeasured`.
+
+## Integration And Recovery
+
+[PR #32](https://github.com/zrack/gex-terminal/pull/32) owns the final checked
+source and merge identities. This packet closes technical implementation with
+that authorized merge, conditional on all final-head Ubuntu/macOS and Python
+3.11/3.12 hosted jobs passing. Documentation closeout changes must pass the same
+matrix. Clean merged-main regression, remote equality, final build/install
+identity and the annotated `v0.6.0` tag are recorded in the local release record
+`dist/wind-tunnel-development/merged-closeout.json` after those gates complete.
+The tag points to the checked merge; it is the durable release bookmark.
+
+The final handoff is a fresh `dist/GEX Wind Tunnel 0.6.0 Setup/` folder with a
+reviewed wheel and dependencies for macOS ARM64 / Python 3.12. Completed example
+receipts and reproduction reports are retained separately from its owned research
+workspace. The existing setup folder and frozen September 20 study remain intact.
+The candidate rehearsal record is
+`dist/wind-tunnel-development/committed-rehearsal/candidate-handoff.json`.
+
+Recover by reinstalling a previously reviewed wheel into its owned application
+folder, or use a fresh setup folder; retain the separate research directory.
+No research migration is performed. Exact Wind Tunnel reproduction requires the
+recorded application/source/runtime identities, so preserve its matching wheel
+and receipts together. Package publication, real-user acceptance and live-data
+certification remain outside this release.

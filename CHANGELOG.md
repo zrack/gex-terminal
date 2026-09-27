@@ -7,7 +7,7 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
-## 0.6.0 — Market Wind Tunnel
+## 0.6.0 — 2026-09-27 — Market Wind Tunnel
 
 ### Added
 

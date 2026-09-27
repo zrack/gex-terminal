@@ -37,8 +37,8 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. Active [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the Market
-Wind Tunnel release. Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the setup and
+change. Closed [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the Market
+Wind Tunnel release and its final integration conditions. Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the setup and
 terminal experience improvement and its integration conditions.
 Closed packets are historical evidence and do not make a roadmap item
 active. Closed [GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md) owns the offline

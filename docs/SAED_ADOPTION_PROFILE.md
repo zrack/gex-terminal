@@ -36,8 +36,9 @@ Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the easier-setup and
 terminal experience slice, with closure conditional on its recorded final
 hosted checks and authorized PR merge. Observed participant acceptance remains open.
 
-Active [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the explicitly
-authorized Market Wind Tunnel implementation and `0.6.0` tagged release.
+Closed [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the explicitly
+authorized Market Wind Tunnel implementation and `0.6.0` tagged release,
+conditional on its final hosted, merged-tree and tag gates.
 
 ## Purpose And Entry Boundary
 
