@@ -12,6 +12,10 @@ profitability.
 
 ## Generate
 
+Bundle and manual-wheel users should first follow the
+[installed CLI instructions](first-run.md#compare-replay-and-review), which
+work without shell activation. Use that explicit CLI path in the examples below.
+
 Generate the default ES pack:
 
 ```bash

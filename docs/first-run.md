@@ -148,6 +148,21 @@ changes retain the selected strike when it is still present.
 
 ## Compare, Replay and Review
 
+For these advanced commands, use the installed CLI. Bundle setup does not add a
+command to your shell's search path. From the setup folder, locate its current
+CLI once, then generate the NQ pack in your separate research folder:
+
+```bash
+GEX_CLI=$(python3 -c 'import json,pathlib; app=pathlib.Path("GEX App").resolve(); receipt=json.loads((app/"installation.json").read_text()); print(app/"environments"/receipt["active"]["environment"]/"bin"/"gex-terminal")')
+"$GEX_CLI" demo-lab "GEX App Research/nq_demo_lab" --replay-session nq-research-loop
+"$GEX_CLI" demo-lab verify "GEX App Research/nq_demo_lab"
+```
+
+In the linked Demo Lab examples, replace `gex-terminal` with `"$GEX_CLI"`.
+For the manual wheel setup above, use `./gex-app/bin/gex-terminal` instead.
+These commands need no shell activation; unlike the offline dashboard launcher,
+the advanced CLI reads ordinary application configuration from its environment.
+
 Generate a new pack in a separate research folder. Use a new output directory
 for each run; do not overwrite a prior result. The exact receipt verification
 and reproduction commands, file inventory, interpretation and compatibility

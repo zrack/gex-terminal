@@ -117,6 +117,17 @@ boundaries remain owned by [Architecture](../architecture.md).
   installed-UI and reusable-launcher verification are recorded separately in
   `dist/deployment-ux-review/closeout.json`, including exact build identities.
 - All **219** frozen September 20 study-file checksums remained unchanged.
+- Final wheel/sdist build and Twine checks passed. The handoff installs source
+  `b4c37d5481ac3917d58c47bea9e8b5611a16b2e9`, wheel SHA-256
+  `d82d4f1ed0cc8278286de22919e3f338b0014d8a080ade5afc7787f84d6e3ce6`,
+  on macOS ARM64 / Python 3.12.13 with its supplied dependency wheels and no
+  downloads. Repeat setup reused the healthy installation; all 94 application
+  payload files, doctor and ES/NQ launcher exports passed. Eighteen installed-UI
+  checks passed from a neutral folder, with four actual 100×32 captures inspected.
+  Installed NQ Demo Lab generation, verification and reproduction passed, as
+  did the installed numerical gate. The final documentation-only follow-up
+  adds the explicit installed CLI path for that advanced workflow; its five
+  documentation-link checks passed.
 
 The local handoff contains the reviewed wheel, installer and platform-specific
 dependency wheels. This packet does not claim hosted checks, merge to `main`,

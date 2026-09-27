@@ -6,7 +6,7 @@ provider or replay data, makes model assumptions visible, and produces
 replayable research artifacts without presenting proxy calculations as observed
 dealer inventory.
 
-![GEX research terminal with a bundled synthetic replay](assets/gex-terminal-actual.svg)
+![GEX research terminal with seeded synthetic data](assets/gex-terminal-actual.svg)
 
 > This project is for market research and engineering experimentation. It is
 > not financial advice.
