@@ -49,8 +49,12 @@ The follow-up [deployment and terminal review](deployment-ux-review.md) found
 avoidable setup friction, a hidden replay selection and refresh-driven cursor
 resets. [GEX-UX-002](work-packets/GEX-UX-002.md) implements a reviewed-wheel setup
 bundle, persistent isolated offline launcher, smaller-window layout, focused
-replay chooser and contextual help/details. Its packet records verification;
-these source changes are separate from the prior merged release and frozen study.
+replay chooser and contextual help/details. The slice passed 479 local tests,
+fresh offline installation, 18 installed-UI checks, and the four hosted
+Ubuntu/macOS × Python 3.11/3.12 jobs. The packet and
+[PR #31](https://github.com/zrack/gex-terminal/pull/31) own final checked-source
+and merge evidence. These changes are separate from the prior version tag and
+frozen study; participant acceptance remains unmeasured.
 
 ## Current state
 

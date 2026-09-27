@@ -5,8 +5,10 @@ Review date: September 26, 2026. Baseline: `f4df041`.
 status. The scope is the existing local terminal, from setup through selecting
 and inspecting a synthetic replay and saving a snapshot.
 
-The maintainer has authorized integration through a reviewed pull request and
-successful hosted checks. The local setup archive is tied to the exact wheel
+The maintainer authorized integration through
+[PR #31](https://github.com/zrack/gex-terminal/pull/31). The submitted source
+passed the Ubuntu/macOS and Python 3.11/3.12 matrix; the packet records exact
+runs and final-commit merge conditions. The local setup archive is tied to the exact wheel
 and source recorded in the packet. Its version number alone does not identify
 the latest merged source; build a fresh handoff from a reviewed commit when
 distributing a later revision.

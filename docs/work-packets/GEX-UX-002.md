@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: integration
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent reviewer
@@ -132,10 +132,24 @@ boundaries remain owned by [Architecture](../architecture.md).
   adds the explicit installed CLI path for that advanced workflow; its five
   documentation-link checks passed.
 
+## Hosted Acceptance And Integration
+
+Source `5c78391a860abab0f95ec41d397cbda78d0289d5` passed all four Ubuntu/macOS
+and Python 3.11/3.12 jobs in
+[PR #31](https://github.com/zrack/gex-terminal/pull/31), including the new
+setup, repeat-install, doctor and launcher-export checks. Both the
+[pull-request run](https://github.com/zrack/gex-terminal/actions/runs/36295333103)
+and the [branch run](https://github.com/zrack/gex-terminal/actions/runs/36295331609)
+completed successfully, including synthetic evidence collection and uploads.
+
+This packet closes technical shipment with PR #31's merge, conditional on all
+final-commit hosted checks passing. The PR owns final checked-source and merge
+identities. Final documentation-only closeout changes must pass the same matrix
+before merge. Clean merged-main regression, hosted outcome and remote equality
+are recorded locally in `dist/deployment-ux-review/merged-closeout.json` after
+merge. The original local handoff retains its recorded wheel/source identity.
+
 The local handoff contains the reviewed wheel, installer and platform-specific
-dependency wheels. Hosted verification and the authorized merge are the current
-integration steps on `codex/deployment-ux-polish`. Package publication,
-observed-user acceptance and live-data verification remain outside this slice.
-The pull request will retain final checked-source and merge identities; the
-merged-main verification receipt will be saved locally under
-`dist/deployment-ux-review/merged-closeout.json`.
+dependency wheels. Package publication, observed-user acceptance and live-data
+verification remain outside this slice. No version or readiness promotion is
+implied by merging these setup and interface improvements.

@@ -36,8 +36,9 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. [GEX-UX-002](work-packets/GEX-UX-002.md) owns the current setup and terminal
-experience improvement. Closed packets are historical evidence and do not make a roadmap item
+change. Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the setup and
+terminal experience improvement and its integration conditions.
+Closed packets are historical evidence and do not make a roadmap item
 active. Closed [GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md) owns the offline
 verification and maintainer-automation slice. Closed [GEX-STUDY-001](work-packets/GEX-STUDY-001.md) owns the study-build and
 documentation slice. Closed [GEX-UX-001](work-packets/GEX-UX-001.md) owns the replay-picker

@@ -32,8 +32,9 @@ documentation and heading-link validation slice. It does not authorize live
 operation or change the release mechanism.
 Closed [GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md) owns the bounded replay,
 CI evidence, macOS verification and preview-automation slice.
-[GEX-UX-002](work-packets/GEX-UX-002.md) owns the current easier-setup and terminal
-experience implementation. Observed participant acceptance remains open.
+Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the easier-setup and
+terminal experience slice, with closure conditional on its recorded final
+hosted checks and authorized PR merge. Observed participant acceptance remains open.
 
 ## Purpose And Entry Boundary
 
