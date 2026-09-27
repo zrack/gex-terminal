@@ -58,7 +58,9 @@ ARTIFACTS = {
     "gex-wheel-reproduction/report.json": "wheel",
     "gex-wheel-batch.json": "wheel",
     "gex-wheel-corpus.json": "wheel",
+    "gex-wheel-wind-tunnel.json": "wheel",
     "gex-lifecycle.json": "lifecycle",
+    "gex-prior-research.json": "lifecycle",
 }
 RUN_FIELDS = {
     "repository": "GITHUB_REPOSITORY", "workflow": "GITHUB_WORKFLOW",

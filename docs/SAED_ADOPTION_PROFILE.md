@@ -36,6 +36,9 @@ Closed [GEX-UX-002](work-packets/GEX-UX-002.md) records the easier-setup and
 terminal experience slice, with closure conditional on its recorded final
 hosted checks and authorized PR merge. Observed participant acceptance remains open.
 
+Active [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the explicitly
+authorized Market Wind Tunnel implementation and `0.6.0` tagged release.
+
 ## Purpose And Entry Boundary
 
 `gex-terminal` is an open, local-first market-structure research workbench. It

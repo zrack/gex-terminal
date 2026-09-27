@@ -29,6 +29,7 @@ RECEIPT = "installation.json"
 SCHEMA = "gex-terminal.local-install.v1"
 SESSION = "zero-gamma-flip"
 LAUNCH_FILES = ("launcher.py", "run-gex", "Start GEX.command")
+WIND_LAUNCH_FILES = ("run-wind-tunnel", "Start Wind Tunnel.command")
 BOOTSTRAP = (
     "import os,runpy,sys; import gex_terminal.config; "
     "os.chdir(sys.argv.pop(1)); runpy.run_module('gex_terminal.cli',run_name='__main__')"
@@ -112,7 +113,7 @@ def owned_target(target: Path) -> dict | None:
         raise ValueError("Application folder identity does not match. Choose a new installation folder.")
     receipt_path = target / RECEIPT
     if not receipt_path.exists() and not receipt_path.is_symlink():
-        if any((target / name).exists() or (target / name).is_symlink() for name in LAUNCH_FILES):
+        if any((target / name).exists() or (target / name).is_symlink() for name in (*LAUNCH_FILES, *WIND_LAUNCH_FILES)):
             raise ValueError("Incomplete installation has published launcher files. Choose a new application folder to preserve them.")
         # An owned preparation that failed before launcher publication may be
         # retried; its failed environment and unrelated files remain untouched.
@@ -136,7 +137,9 @@ def owned_target(target: Path) -> dict | None:
                    or not re.fullmatch(r"[a-f0-9]{64}", value) for name, value in payload.items())):
         raise ValueError("Installation receipt has an invalid application payload identity.")
     active_environment(target, receipt)
-    for name in LAUNCH_FILES:
+    if set(hashes) not in (set(LAUNCH_FILES), set((*LAUNCH_FILES, *WIND_LAUNCH_FILES))):
+        raise ValueError("Installation receipt has an invalid launcher inventory.")
+    for name in hashes:
         path = target / name
         if path.is_symlink() or not path.is_file() or digest(path) != hashes.get(name):
             raise ValueError("An installed launcher has changed. Choose a new application folder to preserve it.")
@@ -231,12 +234,12 @@ def verify_environment(environment: Path, expected_version: str, payload: dict[s
                 "payload_identity_sha256": payload_identity, "payload_files": len(payload)}
 
 
-def launcher_contents(target: Path) -> dict[str, bytes]:
+def launcher_contents(target: Path, *, wind_tunnel: bool = False) -> dict[str, bytes]:
     base_python = str(Path(getattr(sys, "_base_executable", sys.executable)).resolve())
     command = " ".join(shlex.quote(part) for part in (
         base_python, "-I", str(target / "launcher.py"), "--launch", "--target", str(target),
     ))
-    return {
+    contents = {
         "launcher.py": Path(__file__).read_bytes(),
         "run-gex": f'#!/bin/sh\nexec {command} "$@"\n'.encode(),
         "Start GEX.command": (
@@ -247,6 +250,13 @@ def launcher_contents(target: Path) -> dict[str, bytes]:
             f'exec {shlex.quote(str(target / "run-gex"))} "$@"\n'
         ).encode(),
     }
+    if wind_tunnel:
+        contents["run-wind-tunnel"] = f'#!/bin/sh\nexec {command} --wind-tunnel "$@"\n'.encode()
+        contents["Start Wind Tunnel.command"] = (
+            '#!/bin/sh\n'
+            f'exec {shlex.quote(str(target / "run-wind-tunnel"))} "$@"\n'
+        ).encode()
+    return contents
 
 
 def install(wheel: Path, expected_sha256: str, source_commit: str, target: Path,
@@ -303,8 +313,8 @@ def install(wheel: Path, expected_sha256: str, source_commit: str, target: Path,
     research.mkdir(parents=True, exist_ok=True)
     # Existing launchers remain byte-identical across application updates.
     # Their v1 selection contract reads the active environment from the receipt.
-    contents = ({name: (target / name).read_bytes() for name in LAUNCH_FILES}
-                if previous else launcher_contents(target))
+    contents = ({name: (target / name).read_bytes() for name in previous["launcher_sha256"]}
+                if previous else launcher_contents(target, wind_tunnel="gex_terminal/wind_tunnel_cli.py" in identity["payload_sha256"]))
     if not previous:
         for filename, data in contents.items():
             atomic_write(target / filename, data, executable=filename != "launcher.py")
@@ -322,7 +332,7 @@ def install(wheel: Path, expected_sha256: str, source_commit: str, target: Path,
 
 
 def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
-           export: Path | None = None, session: str = SESSION) -> int:
+           export: Path | None = None, session: str = SESSION, wind_tunnel: bool = False) -> int:
     receipt = owned_target(target)
     if not receipt:
         raise ValueError("No completed application installation exists here. Run Install first.")
@@ -331,6 +341,10 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
     if research.is_symlink() or not research.is_dir():
         raise ValueError("Research folder is unavailable. Restore its location before starting GEX.")
     args = ["doctor", "--json"] if doctor else (["list-replays"] if list_replays else ["--replay-session", session])
+    if wind_tunnel:
+        if "gex_terminal/wind_tunnel_cli.py" not in receipt["active"]["payload_sha256"]:
+            raise ValueError("This installed version has no Wind Tunnel. Install a reviewed 0.6.0 or later bundle.")
+        args = ["wind-tunnel", "serve", "--port", "0", "--workspace", str(research / "wind-tunnel")]
     if export is not None:
         args.extend(["--export", str(export.absolute())])
     # Import config in a newly created directory before entering research, so
@@ -358,17 +372,20 @@ def main() -> int:
     mode.add_argument("--doctor", action="store_true", help="Run local doctor through the installed launcher")
     mode.add_argument("--list-replays", action="store_true", help="List bundled sessions through the installed launcher")
     mode.add_argument("--export", type=Path, help="Export a synthetic snapshot through the installed launcher")
+    mode.add_argument("--wind-tunnel", action="store_true", help="Open the offline Market Wind Tunnel in your browser")
     args = parser.parse_args()
     try:
         if args.launch:
             return launch(args.target, doctor=args.doctor, list_replays=args.list_replays,
-                          export=args.export, session=args.session)
+                          export=args.export, session=args.session, wind_tunnel=args.wind_tunnel)
         if not all((args.wheel, args.sha256, args.source_commit)):
             parser.error("installation requires --wheel, --sha256 and --source-commit")
         receipt = install(args.wheel, args.sha256, args.source_commit, args.target,
                           research_dir=args.research_dir, wheelhouse=args.wheelhouse)
         print("Existing installation verified." if receipt["reused"] else "Installation ready.")
         print(f"Start: {Path(receipt['root']) / 'Start GEX.command'}")
+        if "Start Wind Tunnel.command" in receipt["launcher_sha256"]:
+            print(f"Wind Tunnel: {Path(receipt['root']) / 'Start Wind Tunnel.command'}")
         print(f"Research folder: {receipt['research_dir']}")
         return 0
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:

@@ -8,6 +8,7 @@ own source and verification record identify it as runtime evidence.
 
 | Asset | Canonical owner and source | Evidence boundary |
 | --- | --- | --- |
+| `market-wind-tunnel.png` | [Wind Tunnel](../docs/wind-tunnel.md) and [design QA](../design-qa.md); browser capture of ES Wind Tunnel Lab at final checkpoint, IV +2 points | Calculated synthetic scenario, 1487×1058 desktop capture; not a forecast or live observation |
 | `offline-research-architecture.svg` | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md); maintained SVG summary of those contracts | Derived architectural explanation; not a run result or deployment diagram |
 | C4 context, container and component views | Mermaid source lives in [Architecture](../docs/architecture.md#c4-views), not a separate asset copy | Current source boundaries; one local Python application with local files |
 | `gex-terminal-demo-lab.svg`, `gex-terminal-onboarding.svg` | [Demo Lab](../docs/demo-lab.md#contributor-preview) owns `scripts/refresh_previews.py` and its local provenance manifest | Calculated synthetic demo graphic and actual replay-picker capture for the generating source build |

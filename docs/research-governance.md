@@ -23,7 +23,7 @@ The schemas are versioned. Unknown schemas, runtime contracts, producer
 versions, or unsupported model ladders fail closed. Compatibility is declared
 explicitly; it is not inferred from package-version ordering.
 
-The 0.5.0 reader explicitly supports v2 producers 0.4.0 and 0.5.0 under
+The 0.6.0 reader explicitly supports v2 producers 0.4.0, 0.5.0 and 0.6.0 under
 `gex-terminal.experiment-runtime.v1`; result parity is still required. A
 compatible runtime does not guarantee that a report produced before a
 correctness repair will match the corrected implementation.

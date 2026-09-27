@@ -1,0 +1,38 @@
+{
+  "schema": "gex-terminal.vendor-assets.v1",
+  "packages": [
+    {
+      "package": "plotly.js-dist-min",
+      "version": "4.1.1",
+      "license": "MIT",
+      "registry": "https://registry.npmjs.org/plotly.js-dist-min/4.1.1",
+      "archive_sha256": "4169ed8fc581f2331f0aeb201c66debf48ab50721b6e64a8dcea45d42827464a",
+      "files": {
+        "vendor/plotly-LICENSE.txt": "8c45d9eaf50c2f72dd9c7ab9ef440788ba58a3538484b5c51c1f17d5128752e7",
+        "vendor/plotly.min.js": "3b6e15d45dbb7fca5bd2094291e961ddc5472cd887009e6009a56dab668d721f"
+      }
+    },
+    {
+      "package": "@phosphor-icons/core",
+      "version": "2.1.1",
+      "license": "MIT",
+      "registry": "https://registry.npmjs.org/@phosphor-icons/core/2.1.1",
+      "archive_sha256": "313332be6190b724da24107addd781799b48bf76b13963f24501112ffe1baadd",
+      "files": {
+        "vendor/phosphor-LICENSE.txt": "ddbe6082ec3cf979db47e5af549d2849c5d6182b3e005ef91ce1dbb9eb122f11",
+        "icons/play.svg": "885b3ed2095889c4ff063dac35dc424cb9f6c00273ab44e2f90dc9dadbee661a",
+        "icons/floppy-disk.svg": "067b385ee62469be500d2d5bcd10e2aedd7529cd615ed180fa8414aaef0e40ab",
+        "icons/question.svg": "fd9a87cfce2abaa9113058be90e5281da58f665e2185974b80c7425d5c7fe2d6",
+        "icons/arrows-clockwise.svg": "2e80fbc9c5c37553934c9ebbd6324bf7fabe9a4b4d7c2445d99edfce55cc22df",
+        "icons/download.svg": "af9fcd16c155e5c113bdebe14790ccdf28738d06acd39da936bf33b4721c09d5",
+        "icons/arrow-right.svg": "e45bc4a12592b8723110db42c6deffdf177e4fe7704cf50324963fa0a59b2d74",
+        "icons/folder-open.svg": "9157518d00547242d3986c4fdaaf44a62ef056caf3ecee0c88137529947170ea",
+        "icons/x.svg": "7397b15e1fa66eaf6ff9b59fe91d483cb5c3bcf75b2fe052097ab6f0593b513a",
+        "icons/caret-down.svg": "53f0cf2d0b144ac3cb07e353e0cd0853ffb3ed432d741460ce288edfcb0924b1",
+        "icons/chart-line.svg": "8a432fac53ae887b1726a96462aa8ea285e714b8e480261751361e4d6b2b226f",
+        "icons/cube.svg": "7c0f13cb492d0dd212e48ab259dabec4627df32d71aa00ce31b3228c0f35112b",
+        "icons/grid-four.svg": "9e48ec8047eb0f26a0a59ffa2dbd6cb33d972390d52197ddc37e3a56859e879c"
+      }
+    }
+  ]
+}

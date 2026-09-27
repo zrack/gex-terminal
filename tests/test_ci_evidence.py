@@ -34,6 +34,7 @@ class CiEvidenceTests(unittest.TestCase):
             self.write(name)
         self.write(".env", b"API_TOKEN=private-token\n")
         self.write("gex-wheel-nq/private.json", b"private research")
+        self.write("gex-wheel-wind-tunnel/discovered-break.json", b"unlisted complete receipt")
         self.write("debug.log", b"private debug output")
         with patch.dict(os.environ, {"GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "2",
                                      "GITHUB_SHA": "abc123", "PRIVATE_TOKEN": "never serialize"}):

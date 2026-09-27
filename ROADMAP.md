@@ -6,8 +6,10 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
-Priorities reviewed September 26, 2026 against the repaired `0.5.0` baseline
-and the maintainer-requested offline deployment and terminal improvements.
+Priorities reviewed September 26, 2026. The maintainer explicitly authorized
+the Market Wind Tunnel as an exception to the earlier feature hold.
+[GEX-WIND-001](docs/work-packets/GEX-WIND-001.md) owns its `0.6.0` implementation
+and release gates; [Wind Tunnel](docs/wind-tunnel.md) owns its usage.
 [Changelog](CHANGELOG.md) and [Application Review](docs/application-review.md)
 own implemented capabilities and verification;
 [GEX-UX-002](docs/work-packets/GEX-UX-002.md) owns the setup/interface slice and
@@ -17,8 +19,8 @@ demand-driven product choice.
 
 ## Current Work Order
 
-Do not add another broad feature layer before testing the completed offline
-loop with real users. Correctness regressions still interrupt product work.
+Beyond the explicitly authorized Wind Tunnel release, defer broad feature
+expansion until the completed offline loop has been tested with real users. Correctness regressions still interrupt product work.
 Prepared protocols are ready to use, but preparation is not a passed gate.
 For observed first use, use the exact reviewed repaired build and frozen
 materials identified through [Study Build](docs/study-build.md). The original
@@ -52,7 +54,7 @@ slices land in order; independent work may proceed in isolated contributor
 branches, with integration checks before each merge. This bounded parallelism
 implements the maintainer's September 4 authorization to complete all offline
 priorities. A confirmed correctness issue can interrupt feature work; an
-unvalidated feature request cannot.
+unvalidated feature request needs an explicit owner decision.
 
 Provider queue reconciliation is recorded in [Good First Issues](docs/good-first-issues.md).
 Databento #5 overlaps shipped fixtures; Tradovate #10 requires contributor

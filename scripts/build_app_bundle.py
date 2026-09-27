@@ -37,6 +37,7 @@ def build_bundle(wheel: Path, output: Path, source_commit: str,
     with zipfile.ZipFile(wheel) as archive:
         if "gex_terminal/cli.py" not in archive.namelist():
             raise ValueError("Wheel is missing the GEX application")
+        has_wind_tunnel = "gex_terminal/wind_tunnel_cli.py" in archive.namelist()
     dependencies: list[Path] = []
     if wheelhouse is not None:
         if wheelhouse.is_symlink() or not wheelhouse.is_dir():
@@ -87,11 +88,16 @@ printf '%s\\n' 'Setting up GEX Terminal. Your research stays in GEX App Research
     if wheelhouse is not None:
         shell += ' --wheelhouse "$BUNDLE_DIR/wheelhouse"'
     shell += '\n'
-    shell += '''printf '\\n%s\\n' 'Setup complete. Open GEX App/Start GEX.command any time to return.'
+    shell += '''printf '\\n%s\\n' 'Setup complete. Open a launcher in GEX App any time to return.'
 if [ -t 0 ] && [ -t 1 ]; then
-    exec "$BUNDLE_DIR/GEX App/Start GEX.command"
-fi
 '''
+    # Use the validated setup helper, not an optional file that an older
+    # three-launcher installation might leave outside its receipt inventory.
+    if has_wind_tunnel:
+        shell += '    exec "$GEX_PYTHON" -I "$BUNDLE_DIR/install_app.py" --launch --wind-tunnel --target "$BUNDLE_DIR/GEX App"\n'
+    else:
+        shell += '    exec "$BUNDLE_DIR/GEX App/Start GEX.command"\n'
+    shell += 'fi\n'
     launch = output / "Install.command"
     launch.write_text(shell, encoding="utf-8")
     launch.chmod(0o755)
@@ -101,13 +107,24 @@ fi
         if wheelhouse is not None else
         "First setup downloads Python dependencies. Later launches need no network."
     )
+    wind_note = (
+        "MARKET WIND TUNNEL\n"
+        "Open GEX App/Start Wind Tunnel.command on macOS or GEX App/run-wind-tunnel on Linux.\n"
+        "The first interactive setup opens the Wind Tunnel in your browser.\n"
+        "Choose Examples for three worked synthetic experiments.\n"
+        "Use Save experiment to retain results in GEX App Research/wind-tunnel.\n"
+        "Keep the launcher window open while exploring. Control-C stops the local server.\n"
+        "Charts and calculations work offline; the browser connects only to this computer.\n\n"
+        if has_wind_tunnel else ""
+    )
     (output / "START HERE.txt").write_text(
         "GEX TERMINAL — LOCAL RESEARCH\n\n"
         "1. Keep this folder in its permanent location before setup.\n"
         "2. Install Python 3.11 or 3.12 if needed (python.org/downloads).\n"
         "3. On macOS, open Install.command. On Linux, run: sh Install.command\n"
         "4. Return using GEX App/Start GEX.command on macOS or GEX App/run-gex on Linux.\n\n"
-        "The first interactive setup opens a bundled synthetic replay.\n"
+        + wind_note +
+        "The terminal launcher opens a bundled synthetic replay.\n"
         "Press p to choose a replay, ? for help, e to export, q to quit.\n"
         "Exports are saved in the separate GEX App Research folder.\n\n"
         f"{dependencies_note}\n"

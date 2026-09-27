@@ -116,6 +116,44 @@ jobs:
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" corpus-init "$GEX_CI_ROOT/gex-wheel-corpus" --corpus-id wheel-smoke
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" corpus-register "$GEX_CI_ROOT/gex-wheel-corpus" "$FIXTURE_DIR/price_action_validation_example.json" "$FIXTURE_DIR/corpus_item_metadata_example.json"
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" corpus-verify "$GEX_CI_ROOT/gex-wheel-corpus" "$GEX_CI_ROOT/gex-wheel-corpus.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" wind-tunnel --help
+          mkdir "$GEX_CI_ROOT/gex-wheel-wind-tunnel"
+          for example in discovered-break no-break expiry-exclusion; do
+            "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" wind-tunnel example "$example" --output "$GEX_CI_ROOT/gex-wheel-wind-tunnel/$example.json"
+            "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" wind-tunnel verify "$GEX_CI_ROOT/gex-wheel-wind-tunnel/$example.json" --output "$GEX_CI_ROOT/gex-wheel-wind-tunnel/$example-verified.json"
+            "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" wind-tunnel reproduce "$GEX_CI_ROOT/gex-wheel-wind-tunnel/$example.json" --output "$GEX_CI_ROOT/gex-wheel-wind-tunnel/$example-reproduced.json"
+          done
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/python" - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from gex_terminal import __version__
+          root = Path(os.environ["GEX_CI_ROOT"])
+          folder = root / "gex-wheel-wind-tunnel"
+          examples = []
+          for name, outcome in (("discovered-break", "break_found"), ("no-break", "no_break_found"), ("expiry-exclusion", "available")):
+              receipt = json.loads((folder / f"{name}.json").read_text())
+              verified = json.loads((folder / f"{name}-verified.json").read_text())
+              reproduced = json.loads((folder / f"{name}-reproduced.json").read_text())
+              actual = receipt["result"].get("outcome") or receipt["result"]["scenario"]["status"]
+              assert actual == outcome, (name, actual)
+              if name == "expiry-exclusion":
+                  assert receipt["result"]["scenario"]["counts"]["excluded_nearest_rows"] > 0
+                  assert receipt["result"]["scenario"]["counts"]["selected_rows"] > 0
+              assert verified["status"] == reproduced["status"] == "verified"
+              assert verified["receipt_sha256"] == reproduced["receipt_sha256"] == receipt["receipt_sha256"]
+              examples.append({"name": name, "outcome": actual, "verified": True, "reproduced": True,
+                               "receipt_sha256": receipt["receipt_sha256"], "result_sha256": receipt["result"]["result_sha256"],
+                               "calculation_fingerprint": receipt["result"]["calculation_fingerprint"],
+                               "source_sha256": receipt["result"]["source"]["source_sha256"],
+                               "files": {f"{name}{suffix}.json": hashlib.sha256((folder / f"{name}{suffix}.json").read_bytes()).hexdigest()
+                                         for suffix in ("", "-verified", "-reproduced")}})
+          summary = {"schema": "gex-terminal.wind-tunnel.ci.v1", "application_version": __version__,
+                     "status": "pass", "examples": examples,
+                     "evidence_ceiling": "Installed-wheel offline reproduction of three bundled synthetic examples only."}
+          (root / "gex-wheel-wind-tunnel.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+          PY
           test -s "$GEX_CI_ROOT/gex-wheel-snapshot.json"
           test -s "$GEX_CI_ROOT/gex-wheel-fixtures.json"
           test -s "$GEX_CI_ROOT/gex-wheel-injection.json"
@@ -133,6 +171,10 @@ jobs:
           python -m build --wheel --outdir "$GEX_CI_ROOT/gex-prior-dist" "$GEX_CI_ROOT/gex-prior-source"
           GEX_CANDIDATE_VERSION=$(python -c 'import gex_terminal; print(gex_terminal.__version__)')
           python scripts/verify_distribution_lifecycle.py --previous-wheel "$GEX_CI_ROOT/gex-prior-dist/gex_terminal-0.4.0-py3-none-any.whl" --candidate-wheel "$GEX_CI_ROOT/gex-terminal-dist/gex_terminal-${GEX_CANDIDATE_VERSION}-py3-none-any.whl" --output "$GEX_CI_ROOT/gex-lifecycle.json"
+          mkdir -p "$GEX_CI_ROOT/gex-prior-research-source" "$GEX_CI_ROOT/gex-prior-research-dist"
+          git archive v0.5.0 | tar -x -C "$GEX_CI_ROOT/gex-prior-research-source"
+          python -m build --wheel --outdir "$GEX_CI_ROOT/gex-prior-research-dist" "$GEX_CI_ROOT/gex-prior-research-source"
+          python scripts/verify_prior_research.py --previous-wheel "$GEX_CI_ROOT/gex-prior-research-dist/gex_terminal-0.5.0-py3-none-any.whl" --reader-python "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/python" --output "$GEX_CI_ROOT/gex-prior-research.json"
           python scripts/build_app_bundle.py --wheel "$GEX_CI_ROOT/gex-terminal-dist/gex_terminal-${GEX_CANDIDATE_VERSION}-py3-none-any.whl" --source-commit "$GITHUB_SHA" --output "$GEX_CI_ROOT/GEX Setup"
           sh "$GEX_CI_ROOT/GEX Setup/Install.command" </dev/null
           sh "$GEX_CI_ROOT/GEX Setup/Install.command" </dev/null

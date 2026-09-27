@@ -2,6 +2,8 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import pty
+import select
 import shlex
 import subprocess
 import sys
@@ -48,6 +50,16 @@ class AppBundleTests(unittest.TestCase):
         self.assertEqual(marker.read_text(), "important")
         self.assertEqual(list(output.iterdir()), [marker])
 
+    def test_wind_tunnel_bundle_explains_both_launchers(self):
+        with zipfile.ZipFile(self.wheel, "a") as archive:
+            archive.writestr("gex_terminal/wind_tunnel_cli.py", "# bundled local browser entry")
+        output = build_bundle(self.wheel, self.root / "wind", "b" * 40)
+        instructions = (output / "START HERE.txt").read_text()
+        self.assertIn("Start Wind Tunnel.command", instructions)
+        self.assertIn("GEX App Research/wind-tunnel", instructions)
+        self.assertIn("Control-C", instructions)
+        subprocess.run(["sh", "-n", str(output / "Install.command")], check=True)
+
     def test_setup_wrapper_passes_paths_with_spaces_and_apostrophes_intact(self):
         self.installer.write_text(
             "import json, pathlib, sys\n"
@@ -73,6 +85,61 @@ class AppBundleTests(unittest.TestCase):
         args = json.loads((output / "invocation.json").read_text())
         self.assertEqual(args[args.index("--wheel") + 1], str(output / self.wheel.name))
         self.assertEqual(args[args.index("--target") + 1], str(output / "GEX App"))
+
+    def test_interactive_update_does_not_execute_unlisted_wind_launcher(self):
+        # Model the setup helper's successful return for an existing installation
+        # whose completed receipt still owns only the original three launchers.
+        self.installer.write_text(
+            "import json, pathlib, sys\n"
+            "root = pathlib.Path(__file__).parent\n"
+            "receipt = json.loads((root / 'GEX App' / 'installation.json').read_text())\n"
+            "assert set(receipt['launcher_sha256']) == {'launcher.py', 'run-gex', 'Start GEX.command'}\n"
+            "if '--launch' in sys.argv:\n"
+            "    (root / 'trusted-launch.json').write_text(json.dumps(sys.argv[1:]))\n"
+        )
+        with zipfile.ZipFile(self.wheel, "a") as archive:
+            archive.writestr("gex_terminal/wind_tunnel_cli.py", "# current bundle supports Wind Tunnel")
+        output = build_bundle(self.wheel, self.root / "existing installation handoff", "c" * 40)
+        target = output / "GEX App"
+        target.mkdir()
+        hashes = {}
+        for name in ("launcher.py", "run-gex", "Start GEX.command"):
+            data = b"# original launcher bytes\n"
+            (target / name).write_bytes(data)
+            hashes[name] = hashlib.sha256(data).hexdigest()
+        original = json.dumps({"launcher_sha256": hashes}).encode()
+        (target / "installation.json").write_bytes(original)
+        unwanted = output / "unlisted-was-executed"
+        unlisted = target / "Start Wind Tunnel.command"
+        unlisted.write_text(f'#!/bin/sh\ntouch {shlex.quote(str(unwanted))}\n')
+        unlisted.chmod(0o755)
+        master, slave = pty.openpty()
+        process = None
+        captured = bytearray()
+        try:
+            process = subprocess.Popen(["sh", str(output / "Install.command")],
+                                       stdin=slave, stdout=slave, stderr=slave,
+                                       env={**os.environ, "PATH": str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"]})
+            # Drain while the slave is open: macOS may discard unread PTY bytes
+            # when its final slave descriptor closes.
+            for _ in range(300):
+                ready, _, _ = select.select([master], [], [], 0.1)
+                if ready:
+                    captured.extend(os.read(master, 65536))
+                if process.poll() is not None:
+                    break
+            self.assertEqual(process.poll(), 0, captured.decode(errors="replace"))
+        finally:
+            if process is not None and process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            os.close(master)
+            os.close(slave)
+        self.assertFalse(unwanted.exists())
+        invocation = json.loads((output / "trusted-launch.json").read_text())
+        self.assertEqual(invocation, ["--launch", "--wind-tunnel", "--target", str(target)])
+        self.assertEqual((target / "installation.json").read_bytes(), original)
+        self.assertTrue(unlisted.is_file())
 
     def test_invalid_inputs_do_not_create_destination(self):
         output = self.root / "not-created"
