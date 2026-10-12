@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: "Open — offline verified; protected-branch integration pending"
+status: closed
 baseline: main@c7f0c0b
 branch: codex/databento-issue-35
 created: 2026-10-11
@@ -24,8 +24,12 @@ documentation updates, a commit, and closure of
 [issue #5](https://github.com/zrack/gex-terminal/issues/5) with links to completed
 fixture work. This is L3 because reference-session and deletion semantics add
 optional metadata to the normalized contract and affect canonical OI state.
-The change does not authorize paid/live access, a protected-branch merge, a
-version promotion, a tag, or a release.
+The initial change request did not authorize paid/live access, a protected-branch
+merge, a version promotion, a tag, or a release. On October 11, 2026, the maintainer
+explicitly authorized the protected-branch merge of
+[PR #36](https://github.com/zrack/gex-terminal/pull/36). This subsequent authority
+covers the reviewed offline software slice; live access, version promotion,
+tags and releases remain outside its scope.
 
 The maintainer subsequently authorized the proposed offline functional,
 parameter, generated-sequence, rollover/reconnect, binary-format and provider
@@ -97,9 +101,10 @@ locally without provider I/O.
   `/tmp/gex35-model-evidence.json`, `/tmp/gex35-offline-certify.json`, and
   `/tmp/gex35-provider-faults.json`. These are disposable local outputs.
 
-Hosted checks and protected-branch merge remain integration evidence, separate
-from the completed offline implementation. GitHub records the exact delivered
-commit, review discussion, check results and issue closure.
+At this verification stage, hosted checks and protected-branch merge remained
+integration gates separate from the completed offline implementation. GitHub
+records the exact delivered commit, review discussion, check results and issue
+closure; the completed integration is recorded below.
 
 ## Expanded Offline Verification — October 11, 2026
 
@@ -164,13 +169,30 @@ and ten default provider-load gates also passed. Independent review confirmed
 the complete historical replay decision content matches. The final source suite
 passed all 603 tests; compile, documentation links and patch hygiene passed.
 Repair evidence is retained in the same ignored verification directory under
-`ci-repair/`. The revised hosted matrix remains the final integration check
-before maintainer merge.
+`ci-repair/`. The revised hosted matrix was the final integration check before
+maintainer merge.
+
+## Technical Closeout — October 11, 2026
+
+The maintainer-authorized [PR #36](https://github.com/zrack/gex-terminal/pull/36)
+merged reviewed head `2449ca0` as
+`445cad5b9daa31dab0b31b1befcace11edcc1d46` at `2026-10-12T05:13:18Z`
+(October 11 in America/Los_Angeles). The final hosted runs
+[38206418675](https://github.com/zrack/gex-terminal/actions/runs/38206418675) and
+[38206415655](https://github.com/zrack/gex-terminal/actions/runs/38206415655)
+passed all eight jobs. Clean merged-main verification passed all 603 source tests
+at that merge commit before this documentation closeout.
+
+This closes the offline technical shipment. Credentialed provider observation
+remains open; Databento stays `live-uncertified`, predictive validity stays
+`unmeasured`, and application version `0.6.0` and the existing release tag remain
+unchanged. No new tag, release, publication or live-provider operation is claimed.
 
 ## Recovery And Evidence Ceiling
 
-Revert the feature commit to recover the previous implementation. No user data
+Revert PR #36's merge commit to recover the previous implementation. No user data
 migration is performed. Offline tests prove parser/state/calculation behavior;
 they do not establish live credentials, current option-family availability,
 entitlements, latency, predictive validity, or financial outcomes. Hosted CI and
-maintainer merge remain separate integration gates.
+the authorized maintainer merge completed the technical integration gates above;
+credentialed outcome validation remains external.
