@@ -122,9 +122,22 @@ class UnderlyingIdentityConsumerTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(await self.update(tick))
         self.assertTrue(await self.update(_oi_message()))
         self.assertEqual(len(self.selected()), 1)
+        self.assertNotIn("underlying_identity", self.consumer.feed_quality_snapshot())
         await self.update(underlying())
+        self.assertEqual(
+            self.consumer.feed_quality_snapshot()["underlying_identity"]["current_contract_ids"],
+            {"databento": "202"},
+        )
         self.assertFalse(await self.update({**tick, "price": 5900, "event_time": "2026-08-06T16:01:00Z"}))
         self.assertEqual(self.consumer.current_spot, 6000)
+
+    async def test_unquoted_linked_position_still_reports_quarantine_evidence(self):
+        await self.update(_oi_message(underlying_contract_id="202"))
+        identity = self.consumer.feed_quality_snapshot()["underlying_identity"]
+        self.assertEqual(identity["current_contract_ids"], {})
+        self.assertEqual(identity["quarantined_option_states"], 1)
+        await self.consumer.reset_state()
+        self.assertNotIn("underlying_identity", self.consumer.feed_quality_snapshot())
 
     async def test_link_metadata_omission_cannot_reactivate_quarantined_position(self):
         await self.update(underlying())

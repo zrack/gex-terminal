@@ -147,6 +147,26 @@ unlinked sessions remain compatible; the new identity evidence does not certify
 mixed-vendor forward equivalence. Retired mappings deliberately require a
 consumer reset before reuse. Live reconciliation remains external observation.
 
+## Hosted Compatibility Repair — October 11, 2026
+
+The first expanded hosted matrix passed source, numerical and installed-wheel
+checks but failed reproduction of a real `0.5.0` Demo Lab pack. An empty
+`underlying_identity` feed-quality field changed the saved snapshot/replay
+decision hashes for identity-free historical inputs. Reports now emit this
+field only when identity evidence exists; receipt canonicalization and integrity
+checks remain unchanged. Regression coverage verifies legacy omission, tracked
+contract reporting, quarantine without a quote, and reset behavior.
+
+The repaired installed wheel passed the real `0.5.0` producer compatibility
+gate: Demo Lab verification/reproduction, experiment reproduction and byte
+preservation of all 22 original files. All eighteen Databento functional cases
+and ten default provider-load gates also passed. Independent review confirmed
+the complete historical replay decision content matches. The final source suite
+passed all 603 tests; compile, documentation links and patch hygiene passed.
+Repair evidence is retained in the same ignored verification directory under
+`ci-repair/`. The revised hosted matrix remains the final integration check
+before maintainer merge.
+
 ## Recovery And Evidence Ceiling
 
 Revert the feature commit to recover the previous implementation. No user data

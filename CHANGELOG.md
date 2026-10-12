@@ -25,6 +25,8 @@ Release is claimed.
   [Offline Validation](docs/offline-validation.md) owns reproduction commands.
 - Clear stale terminal metrics, expiry totals, selected quantities and flow
   when a rollover leaves no active contracts; stale snapshot export is blocked.
+- Preserve saved identity-free research decision hashes by emitting feed-quality
+  identity provenance only when contract, quarantine or rejection evidence exists.
 
 ## 2026-09-27 — Unified Starter
 

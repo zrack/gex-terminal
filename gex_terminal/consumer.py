@@ -265,7 +265,12 @@ class StatefulGexConsumer:
             )))
         snapshot["duplicate_message_count"] = self.duplicate_message_count
         snapshot["cumulative_reset_count"] = self.cumulative_reset_count
-        snapshot["underlying_identity"] = self.underlying_identity_snapshot()
+        identity = self.underlying_identity_snapshot()
+        # Identity-free replay retains the historical serialized decision
+        # content used by portable research receipts. Identity evidence is
+        # still included whenever a contract, quarantine or rejection exists.
+        if any(identity.values()):
+            snapshot["underlying_identity"] = identity
         if self.fallback_iv_tick_count:
             existing_notes = tuple(
                 note for note in snapshot["notes"] if note != "feed checks clean"

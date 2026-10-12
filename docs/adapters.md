@@ -99,6 +99,12 @@ their existing behavior; a known option link survives later metadata omissions.
 Provider timestamps preserve nanosecond ordering, including revisions within
 the same microsecond.
 
+Feed-quality reports include `underlying_identity` when a current/retired
+contract, quarantined position or rejected quote provides identity evidence.
+Identity-free legacy sessions omit the empty field so saved research receipts
+retain their original decision hashes; identity evidence remains bound by the
+receipt integrity check.
+
 Schema v2 may also carry optional trade-direction provenance. `aggressor_side`
 is `buy` or `sell`; `direction_source` is `provider` or `quote_inference`.
 Known direction is valid only for incremental `trade_volume`. Missing direction,
