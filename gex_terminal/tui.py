@@ -717,6 +717,8 @@ class GexTerminalApp(App):
             self._latencies.append(latency_ms)
             self._last_refresh_at = self._timestamp()
             self._last_data = None
+            self._last_breakdown = {}
+            self._render_expiry({})
             status = self.consumer.runtime_status
             self._render_lifecycle()
             self._render_status_bar(status)
@@ -774,6 +776,19 @@ class GexTerminalApp(App):
 
     def _render_empty_state(self, reason: str, status: str) -> None:
         self.query_one("#gex-table", DataTable).clear()
+        self.query_one("#stat-spot", Static).update(
+            f"{self.consumer.current_spot:,.2f}" if self.consumer.current_spot > 0 else "--"
+        )
+        self.query_one("#stat-spot-foot", Static).update("Latest underlying quote")
+        for selector in ("#stat-netgex", "#stat-wall", "#stat-zero", "#stat-imbalance"):
+            self.query_one(selector, Static).update("--")
+        self.query_one("#stat-netgex-foot", Static).update("No active contracts")
+        self.query_one("#stat-imbalance-foot", Static).update("No selected quantities")
+        self.query_one("#feed-proxy", Static).update("Selected quantities\n  unavailable")
+        self._gex_flow.clear()
+        self.query_one("#gex-flow", Sparkline).display = False
+        self.query_one("#flow-message", Static).display = True
+        self.query_one("#flow-message", Static).update("Waiting for active contracts")
         self.query_one("#stat-latency", Static).update(f"{self._last_latency_ms:.0f}ms")
 
         banner = self.query_one("#matrix-state", Static)

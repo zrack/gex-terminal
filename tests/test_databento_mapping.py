@@ -135,6 +135,7 @@ class DatabentoMappingTests(unittest.TestCase):
                 "schema_version": 2,
                 "type": "underlying_tick",
                 "provider": "databento",
+                "contract_id": "9001003",
                 "symbol": "ES",
                 "price": 5943.25,
                 "event_time": "2026-06-18T14:30:00.000000000Z",

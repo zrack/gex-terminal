@@ -58,6 +58,10 @@ def validate_normalized_message(message: NormalizedMessage) -> None:
         "open_interest_reference_date", "open_interest_update_action"
     )) and (message_type != "options_volume_tick" or schema_version < 2):
         raise ValueError("open-interest reference fields require a schema-v2 option message")
+    if "underlying_contract_id" in message and (
+        message_type != "options_volume_tick" or schema_version < 2
+    ):
+        raise ValueError("underlying_contract_id requires a schema-v2 option message")
 
     if message_type == "underlying_tick":
         _require_fields(message, ("symbol", "price"))
@@ -65,6 +69,8 @@ def validate_normalized_message(message: NormalizedMessage) -> None:
         if schema_version >= NORMALIZED_SCHEMA_VERSION:
             _require_fields(message, ("provider", "event_time"))
             _require_aware_timestamp(message, "event_time")
+            if "contract_id" in message:
+                _require_contract_identifier(message, "contract_id")
             if message.get("received_time") not in (None, ""):
                 _require_aware_timestamp(message, "received_time")
         return
@@ -104,6 +110,12 @@ def _require_fields(message: NormalizedMessage, fields: tuple[str, ...]) -> None
         raise ValueError(
             f"Missing required field(s) for {message.get('type')}: {', '.join(missing)}"
         )
+
+
+def _require_contract_identifier(message: NormalizedMessage, field: str) -> None:
+    value = message[field]
+    if isinstance(value, bool) or not isinstance(value, (str, int)) or not str(value).strip():
+        raise ValueError(f"{field} must be a nonempty string or integer contract identifier")
 
 
 def _require_positive_number(message: NormalizedMessage, field: str) -> None:
@@ -166,6 +178,8 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
             "event_time",
         ),
     )
+    if "underlying_contract_id" in message:
+        _require_contract_identifier(message, "underlying_contract_id")
 
     instrument_class = str(message["instrument_class"]).lower()
     if instrument_class not in INSTRUMENT_CLASSES:

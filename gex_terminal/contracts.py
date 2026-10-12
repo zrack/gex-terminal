@@ -9,6 +9,7 @@ expirations separate. The v2 path is additive: callers that omit
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+import re
 from typing import Any, Mapping
 
 
@@ -76,6 +77,11 @@ def canonical_option_contract(
         "schema_version": schema_version,
         "provider": provider,
         "contract_id": contract_id,
+        "underlying_contract_id": (
+            str(message["underlying_contract_id"]).strip()
+            if message.get("underlying_contract_id") not in (None, "")
+            else None
+        ),
         "contract_symbol": message.get("contract_symbol"),
         "symbol": symbol,
         "strike": strike,
@@ -140,6 +146,18 @@ def parse_market_datetime(value: Any) -> datetime | None:
     if parsed.tzinfo is None:
         return None
     return parsed.astimezone(timezone.utc)
+
+
+def market_timestamp_order_key(value: Any) -> tuple[datetime, int] | None:
+    """Keep provider nanosecond ordering beyond datetime's microsecond precision."""
+    parsed = parse_market_datetime(value)
+    if parsed is None:
+        return None
+    fractional = re.search(r"[T ]\d{2}:\d{2}:\d{2}[.,](\d+)", str(value))
+    nanosecond_remainder = (
+        int(fractional.group(1)[:9].ljust(9, "0")[6:]) if fractional else 0
+    )
+    return parsed, nanosecond_remainder
 
 
 def expiry_datetime(value: Any) -> datetime | None:

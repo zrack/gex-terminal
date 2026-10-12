@@ -13,6 +13,7 @@ from gex_terminal.contracts import (
     days_until_expiry,
     expiry_date,
     is_zero_dte,
+    market_timestamp_order_key,
     parse_market_datetime,
 )
 from gex_terminal.engine import IntradayGexEngine
@@ -69,6 +70,9 @@ class StatefulGexConsumer:
         self._legacy_expiry_state: Dict[str, Dict[float, Dict[str, Any]]] = {}
         # {(provider, contract_id, position_source): mutable v2 contract state}
         self.contract_state: Dict[tuple[str, str, str], Dict[str, Any]] = {}
+        self._underlying_contract_state: Dict[str, Dict[str, Any]] = {}
+        self._retired_underlying_contract_ids: Dict[str, set[str]] = {}
+        self._rejected_underlying_quote_count = 0
         self._v1_option_count = 0
         self._v2_option_count = 0
         self._option_update_serial = 0
@@ -147,6 +151,9 @@ class StatefulGexConsumer:
             self._legacy_chain_state.clear()
             self._legacy_expiry_state.clear()
             self.contract_state.clear()
+            self._underlying_contract_state.clear()
+            self._retired_underlying_contract_ids.clear()
+            self._rejected_underlying_quote_count = 0
             self._v1_option_count = 0
             self._v2_option_count = 0
             self._option_update_serial = 0
@@ -258,6 +265,7 @@ class StatefulGexConsumer:
             )))
         snapshot["duplicate_message_count"] = self.duplicate_message_count
         snapshot["cumulative_reset_count"] = self.cumulative_reset_count
+        snapshot["underlying_identity"] = self.underlying_identity_snapshot()
         if self.fallback_iv_tick_count:
             existing_notes = tuple(
                 note for note in snapshot["notes"] if note != "feed checks clean"
@@ -291,6 +299,8 @@ class StatefulGexConsumer:
                     self.dropped_message_count += 1
                     return False
                 async with self.state_lock:
+                    if not self._accept_underlying_identity_locked(data):
+                        return False
                     self.current_spot = float(data["price"])
                     if self.session_open == 0.0:
                         self.session_open = self.current_spot
@@ -299,6 +309,7 @@ class StatefulGexConsumer:
                             self.market_time = event_time
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
+                    self._rebuild_public_projections_locked()
                 return True
 
             # 2. Update Options Traded Volume
@@ -334,6 +345,68 @@ class StatefulGexConsumer:
             self.malformed_message_count += 1
             LOGGER.error("Failed parsing normalized market-data message: %s", e)
         return False
+
+    def _accept_underlying_identity_locked(
+        self, message: Dict[str, Any],
+    ) -> bool:
+        provider = str(message.get("provider") or "legacy").lower()
+        contract_id = (
+            message.get("contract_id")
+            if int(message.get("schema_version", 1)) >= 2 else None
+        )
+        previous = self._underlying_contract_state.get(provider)
+        if contract_id is None:
+            if previous is None:
+                return True  # Legacy sessions have no authoritative future identity.
+        else:
+            contract_id = str(contract_id).strip()
+            previous_time = market_timestamp_order_key(previous["event_time"]) if previous else None
+            next_time = market_timestamp_order_key(message["event_time"])
+            retired = self._retired_underlying_contract_ids.get(provider, set())
+            stale = previous_time is not None and next_time < previous_time
+            ambiguous_switch = previous is not None and (
+                contract_id != previous["contract_id"] and next_time <= previous_time
+            )
+            if contract_id not in retired and not stale and not ambiguous_switch:
+                if previous is not None and contract_id != previous["contract_id"]:
+                    self._retired_underlying_contract_ids.setdefault(provider, set()).add(
+                        previous["contract_id"]
+                    )
+                self._underlying_contract_state[provider] = {
+                    "contract_id": contract_id, "event_time": message["event_time"],
+                }
+                return True
+        self._rejected_underlying_quote_count += 1
+        self.dropped_message_count += 1
+        return False
+
+    def is_contract_underlying_current(self, state: Dict[str, Any]) -> bool:
+        """Check an optional option-to-future link within its provider namespace."""
+        linked_id = state.get("underlying_contract_id")
+        if linked_id is None:
+            return True
+        current = self._underlying_contract_state.get(
+            str(state.get("provider") or "legacy").lower()
+        )
+        return current is not None and str(linked_id) == current["contract_id"]
+
+    def underlying_identity_snapshot(self) -> dict[str, Any]:
+        """Return retained identity provenance without exposing mutable state."""
+        return {
+            "current_contract_ids": {
+                provider: state["contract_id"]
+                for provider, state in sorted(self._underlying_contract_state.items())
+            },
+            "retired_contract_ids": {
+                provider: sorted(ids)
+                for provider, ids in sorted(self._retired_underlying_contract_ids.items())
+            },
+            "quarantined_option_states": sum(
+                not self.is_contract_underlying_current(state)
+                for state in self.contract_state.values()
+            ),
+            "rejected_quotes": self._rejected_underlying_quote_count,
+        }
 
     def _update_v1_projection_locked(
         self,
@@ -380,8 +453,8 @@ class StatefulGexConsumer:
                     self.duplicate_message_count += 1
                     return False
                 if reference_date == existing_reference_date and (
-                    parse_market_datetime(contract["event_time"])
-                    <= parse_market_datetime(existing["event_time"])
+                    market_timestamp_order_key(contract["event_time"])
+                    <= market_timestamp_order_key(existing["event_time"])
                 ):
                     self.duplicate_message_count += 1
                     return False
@@ -423,6 +496,19 @@ class StatefulGexConsumer:
             raise ValueError("contract identity changed: contract_multiplier")
         if supplied_multiplier is None and known_multipliers:
             contract = {**contract, "contract_multiplier": next(iter(known_multipliers))}
+        known_underlying_ids = {
+            row["underlying_contract_id"]
+            for source in ("open_interest", "trade_volume")
+            if (row := self.contract_state.get((*state_key[:2], source)))
+            and row.get("underlying_contract_id") is not None
+        }
+        supplied_underlying_id = contract.get("underlying_contract_id")
+        if known_underlying_ids and supplied_underlying_id is not None and (
+            known_underlying_ids != {supplied_underlying_id}
+        ):
+            raise ValueError("contract identity changed: underlying_contract_id")
+        if supplied_underlying_id is None and known_underlying_ids:
+            contract = {**contract, "underlying_contract_id": next(iter(known_underlying_ids))}
         if contract.get("contract_multiplier_source") is None:
             known_source = next((
                 row["contract_multiplier_source"]
@@ -632,6 +718,7 @@ class StatefulGexConsumer:
             for state in (selected_contracts if pure_v2 else ())
         }) if pure_v2 else ["legacy_volume_proxy"]
         data["position_source_conflict_count"] = position_conflicts
+        data["underlying_identity"] = self.underlying_identity_snapshot()
         data["as_of"] = reference_time.astimezone(timezone.utc).isoformat().replace(
             "+00:00", "Z"
         )
@@ -711,7 +798,9 @@ class StatefulGexConsumer:
         contracts: list[Dict[str, Any]] | None = None,
     ) -> tuple[str, ...]:
         """Return stable non-session expiry labels present in contract state."""
-        values = contracts if contracts is not None else list(self.contract_state.values())
+        values, _ = self._select_position_states(
+            contracts if contracts is not None else list(self.contract_state.values())
+        )
         contract_values = {
             str(state.get("expiry"))
             for state in values
@@ -767,8 +856,8 @@ class StatefulGexConsumer:
             if str(state.get("expiry", "")).lower() == normalized
         ]
 
-    @staticmethod
     def _select_position_states(
+        self,
         contracts: list[Dict[str, Any]],
     ) -> tuple[list[Dict[str, Any]], int]:
         """Choose one exposure basis per provider contract.
@@ -779,7 +868,7 @@ class StatefulGexConsumer:
         """
         grouped: Dict[tuple[str, str], list[Dict[str, Any]]] = {}
         for state in contracts:
-            if state.get("open_interest_invalidated"):
+            if state.get("open_interest_invalidated") or not self.is_contract_underlying_current(state):
                 continue
             key = (str(state.get("provider")), str(state.get("contract_id")))
             grouped.setdefault(key, []).append(state)

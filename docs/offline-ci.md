@@ -12,6 +12,12 @@ definition and statistics records exercise fixed-point units, unset fields,
 reference dates and deletion actions in every matrix job. These regressions use
 no provider client, credentials or market-data connection.
 
+Installed-wheel verification also runs the 18-case Databento CLI/binary/terminal
+functional harness outside the checkout and verifies installed bytes against
+the candidate wheel. The source checkout runs the provider-handler load gate.
+The bounded evidence inventory retains their JSON reports; generated synthetic
+inputs, exports and terminal SVGs remain in the runner's disposable directory.
+
 The lifecycle step also prepares a local setup bundle, runs its installer twice
 to check reuse, and exercises doctor and synthetic export through the generated
 launcher. The wrapper prefers the selected supported `python3` so these checks

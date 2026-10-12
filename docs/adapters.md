@@ -87,6 +87,18 @@ Missing supported dollar metadata leaves the normalized multiplier absent;
 the consumer then uses its explicit configured fallback and records that
 fallback in snapshot provenance.
 
+Schema-v2 underlying ticks may carry a provider-scoped `contract_id`; option
+ticks may link to it through `underlying_contract_id`. Linked positions are
+eligible for calculation only while that provider's current futures contract
+matches. A rollover preserves old raw quantities and OI tombstones for
+inspection but quarantines their exposure. A later quote on a retired contract,
+an older quote, or an identity-less quote replacing an identified quote is
+rejected. Returning to a retired mapping requires an explicit consumer
+`reset_state` and a fresh identity session. Identity-free legacy sessions keep
+their existing behavior; a known option link survives later metadata omissions.
+Provider timestamps preserve nanosecond ordering, including revisions within
+the same microsecond.
+
 Schema v2 may also carry optional trade-direction provenance. `aggressor_side`
 is `buy` or `sell`; `direction_source` is `provider` or `quote_inference`.
 Known direction is valid only for incremental `trade_volume`. Missing direction,

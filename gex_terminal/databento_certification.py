@@ -157,6 +157,7 @@ async def build_databento_certification_report(
         state
         for state in consumer.contract_state.values()
         if isinstance(state, Mapping)
+        and consumer.is_contract_underlying_current(state)
     ]
     trade_states = [
         state
@@ -356,6 +357,9 @@ async def build_databento_certification_report(
     oi_deletions = _diagnostic_count(
         open_interest_diagnostics, "deletions", _counter(adapter, "_open_interest_delete_count"),
     )
+    oi_current_observations = _diagnostic_count(
+        open_interest_diagnostics, "current_observations", oi_observations,
+    )
     statistics_requested = bool(
         open_interest_diagnostics.get("statistics_requested", False)
     )
@@ -390,7 +394,9 @@ async def build_databento_certification_report(
         )
     )
     oi_status = oi_status_candidate if oi_status_valid else "unsupported"
-    open_interest_observed = bool(oi_status == "observed" and oi_observations > 0)
+    open_interest_observed = bool(
+        oi_status == "observed" and oi_observations > 0 and oi_current_observations > 0
+    )
 
     lifecycle_diagnostics = _mapping(diagnostics.get("lifecycle"))
     lifecycle_available = bool(lifecycle_diagnostics)
@@ -684,6 +690,7 @@ async def build_databento_certification_report(
                 _mapping(diagnostics.get("subscriptions")).get("option_product_roots_observed", [])
             ),
             "complete_chain_coverage": "unverified",
+            "underlying_identity": consumer.underlying_identity_snapshot(),
             "underlying_continuous": f"{adapter.target_underlying}.v.0",
             "configured_contract_multiplier": validated_multiplier,
             "canonical_contract_multiplier": (
@@ -836,6 +843,7 @@ async def build_databento_certification_report(
         },
         "open_interest": {
             "deletions": oi_deletions,
+            "current_observations": oi_current_observations,
             "status": oi_status,
             "status_valid": oi_status_valid,
             "statistics_requested": statistics_requested,

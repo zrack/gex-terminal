@@ -266,6 +266,14 @@ does not replace the separate positive trade-volume state. Provider units and
 sentinel validation belong to the adapter; configured multiplier fallback and
 selected-position calculation belong to the consumer/model boundary.
 
+Provider-scoped futures identity is also consumer-owned. The Databento adapter
+emits the quote contract ID and each option's underlying link; quote acceptance
+advances the current identity. Retained rows for another futures contract are
+quarantined from projections, pricing and current certification coverage.
+Retired mappings and delayed quote frames cannot restore old exposure within
+the same session. A reset clears the identity session together with market
+state. Historic raw quantities and deletion tombstones remain inspectable.
+
 Schema v1 remains a legacy replay path; schema v2 is the contract-aware path.
 Validation, filtering, pricing-model routing, IV provenance, and direction rules
 belong to the adapter and model topic guides rather than this component map.

@@ -162,6 +162,7 @@ async def replay_databento_records(
             "option_trades": adapter._option_trade_count,
             "open_interest_updates": adapter._open_interest_count,
             "open_interest_deletions": adapter._open_interest_delete_count,
+            "current_open_interest_states": adapter.diagnostics()["open_interest"]["current_observations"],
             "control_or_dropped_records": control_records,
             "inverted_iv_ticks": adapter._inverted_iv_count,
             "fallback_iv_ticks": adapter._iv_fallback_count,
@@ -176,6 +177,7 @@ async def replay_databento_records(
             "incomplete_underlying_books": adapter._incomplete_underlying_book_count,
         },
         "feed_quality": consumer.feed_quality_snapshot(),
+        "underlying_identity": consumer.underlying_identity_snapshot(),
         "snapshot": snapshot,
         "result": {
             "software_path_certified": software_path_certified,

@@ -619,6 +619,54 @@ class DatabentoCertificationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(report["result"]["chain_ingestion_certified"])
         self.assertTrue(report["result"]["quantitative_gex_input_certified"])
 
+    async def test_quarantined_contracts_do_not_satisfy_current_chain_coverage(self):
+        class _RolledAdapter(_PassingAdapter):
+            async def stream_market_data(self):
+                await self._populate()
+                from datetime import timedelta
+                original_time = self.consumer.market_time
+                for state in self.consumer.contract_state.values():
+                    state["underlying_contract_id"] = "202"
+                for offset, contract_id in ((1, "202"), (2, "303")):
+                    await self.consumer.update_market_state(json.dumps({
+                        "schema_version": 2, "type": "underlying_tick",
+                        "provider": "databento", "symbol": self.target_underlying,
+                        "price": 6100, "contract_id": contract_id,
+                        "event_time": (original_time + timedelta(seconds=offset)).isoformat(),
+                    }))
+                await asyncio.Event().wait()
+
+        with patch("gex_terminal.databento_certification.DatabentoAdapter", _RolledAdapter):
+            report = await build_databento_certification_report(
+                symbol="ES", contract_multiplier=50, risk_free_rate=0.045,
+                duration_seconds=0.1, ack_live_network=True,
+            )
+        self.assertEqual(report["chain"]["normalized_option_states"], 0)
+        self.assertGreater(report["target"]["underlying_identity"]["quarantined_option_states"], 0)
+        self.assertFalse(report["result"]["chain_ingestion_certified"])
+
+    async def test_historical_oi_observations_without_current_state_do_not_validate_window(self):
+        class _HistoricalOiAdapter(_PassingAdapter):
+            def diagnostics(self):
+                diagnostics = super().diagnostics()
+                diagnostics["open_interest"].update({
+                    "status": "observed", "statistics_requested": True,
+                    "observations": 2, "provider_observations": 2,
+                    "current_observations": 0,
+                })
+                return diagnostics
+
+        with patch("gex_terminal.databento_certification.DatabentoAdapter", _HistoricalOiAdapter):
+            report = await build_databento_certification_report(
+                symbol="ES", contract_multiplier=50, risk_free_rate=0.045,
+                duration_seconds=0.1, ack_live_network=True,
+            )
+        self.assertEqual(report["open_interest"]["observations"], 2)
+        self.assertEqual(report["open_interest"]["current_observations"], 0)
+        self.assertFalse(report["result"]["open_interest_observed"])
+        self.assertFalse(report["result"]["open_interest_window_validated"])
+        self.assertTrue(report["result"]["quantitative_gex_input_certified"])
+
     async def test_legacy_test_double_without_diagnostics_returns_fail_closed_report(self):
         with patch(
             "gex_terminal.databento_certification.DatabentoAdapter",

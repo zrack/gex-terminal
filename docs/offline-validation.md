@@ -25,6 +25,61 @@ computed snapshot. `software_path_certified=true` requires aligned timestamps,
 matching futures identity, at least one converged IV inversion, no fallback IV,
 and no parse errors. `live_transport_certified` is always false.
 
+## Expanded Databento Verification
+
+The issue #35 test package adds three complementary forms of evidence:
+
+- `tests/test_databento_parameters.py` exercises 1,774 parameter cases across
+  all 52 ES/NQ product families, calls/puts, expiry horizons, units/fallbacks,
+  SDK/decoded inputs and invalid boundaries. It uses an independent scalar
+  Black-76 oracle.
+- `tests/test_databento_state_machine.py` checks 6,000 events against a separate
+  dictionary oracle with seeds `35`, `2035`, `6502` and `99035`, plus 256
+  predefinition/prequote arrivals. Every accepted or rejected operation is
+  reconciled, including zero, deletes, stale revisions and sequence resets.
+- `tests/test_databento_rollover.py` verifies contract isolation, retired and
+  delayed reconnect quotes, preserved raw state, reset behavior and nanosecond
+  ordering. Old-month exposure must never use a different future's quote.
+
+Run them without credentials:
+
+```bash
+python -m unittest -v tests.test_databento_parameters tests.test_databento_state_machine tests.test_databento_rollover
+```
+
+For installed functionality, first build a candidate wheel and install it with
+its `.[databento]` dependency in a fresh virtual environment. Then run:
+
+```bash
+python scripts/verify_databento_functional.py --python /path/to/fresh-env/bin/python --wheel /path/to/candidate.whl --output /tmp/databento-functional.json
+```
+
+The worker runs outside the checkout, verifies all installed package bytes
+against the candidate wheel and blocks socket connections. It invokes the
+public CLI for equivalent synthetic JSONL and DBN sessions, checks independently
+calculated GEX, quantities, multiplier provenance and futures identity, and
+exercises terminal replay, keyboard export and the empty state after rollover.
+The 18 cases cover initial OI, revisions, deletion and rollover for both ES/NQ;
+the report retains an explicit inventory of generated inputs, outputs and SVGs.
+Screenshots are headless Textual evidence, not a manual accessibility review.
+
+Measure the changed provider handler rather than only normalized input:
+
+```bash
+python -m scripts.verify_databento_load --output /tmp/databento-provider-load.json
+```
+
+The default run streams 6,570 synthetic raw provider records over 52 families
+and 208 contracts. It checks exact trade/OI state and accepted counts, revisions,
+deletions, selected quantities and bounded state. Timing excludes snapshots,
+tracemalloc and asyncio debug; a separate replay measures memory and repeats
+correctness checks. The report records source hashes, environment, workload,
+actual measurements and configured budgets; exit `2` means a gate failed.
+Defaults are at least 50 records/second, at most 1,000 ms per sampled snapshot
+and at most 256 MiB peak memory. These are offline test budgets, not live
+capacity promises. Use `--help` to select a bounded larger workload or stricter
+explicit budget.
+
 ## Temporal Integrity
 
 Black-76 trade-price inversion records option and futures event times,

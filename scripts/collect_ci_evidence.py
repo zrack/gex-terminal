@@ -52,6 +52,8 @@ ARTIFACTS = {
     "gex-wheel-properties.json": "wheel",
     "gex-wheel-faults.json": "wheel",
     "gex-wheel-performance.json": "wheel",
+    "gex-databento-functional.json": "wheel",
+    "gex-databento-provider-load.json": "wheel",
     "gex-wheel-experiment/manifest.json": "wheel",
     "gex-wheel-experiment/report.json": "wheel",
     "gex-wheel-reproduction/manifest.json": "wheel",

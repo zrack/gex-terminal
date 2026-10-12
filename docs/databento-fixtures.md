@@ -160,6 +160,23 @@ Diagnostics expose `subscriptions.option_parents`,
 separate `model_inputs.provider_multiplier_definitions` from
 `model_inputs.fallback_multiplier_definitions`.
 
+Databento underlying quotes emit `contract_id` from `instrument_id`; option
+messages emit `underlying_contract_id` from the definition's `underlying_id`.
+The consumer owns the current identity for each provider. After a continuous
+future switches contracts, older-month trade and OI rows are retained but
+excluded from projections and GEX. Retired or stale quotes cannot reactivate
+them on reconnect; deliberate reuse of a retired mapping needs `reset_state`.
+Adapter quote caches advance only after the consumer accepts the quote.
+Snapshots and offline reports expose `underlying_identity`, with current and
+retired contract IDs, quarantined option-state counts and rejected-quote counts.
+This is a conservative session policy, not proof of real provider rollover.
+
+OI `observations` and `deletions` count accepted historical operations.
+`current_observations` counts noninvalidated OI rows for the currently identified
+future. Certification requires current observations for OI-window validation
+and excludes quarantined rows from current chain coverage. Raw undefined
+timestamps fail closed, and nanosecond publication/quote order is retained.
+
 `Live.subscribe(...)` returns a local integer request ID. The adapter records
 which schemas returned IDs and which failed synchronously, but does not label an
 ID as a provider acknowledgement. Provider records and explicit error frames

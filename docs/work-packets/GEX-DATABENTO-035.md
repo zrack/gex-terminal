@@ -27,6 +27,14 @@ optional metadata to the normalized contract and affect canonical OI state.
 The change does not authorize paid/live access, a protected-branch merge, a
 version promotion, a tag, or a release.
 
+The maintainer subsequently authorized the proposed offline functional,
+parameter, generated-sequence, rollover/reconnect, binary-format and provider
+load test package. This amendment includes repair of the reproduced rollover
+gap: retained positions must never be priced against another futures contract.
+Fresh-wheel public CLI and terminal checks must verify the installed application
+outside the source checkout. Live reconciliation remains a separate external
+observation requiring provider/data-owner authority.
+
 ## Problem And Intended Outcome
 
 Databento's deliverable multiplier is currently interpreted as a dollar
@@ -63,6 +71,10 @@ locally without provider I/O.
 | Existing contracts and offline workflows continue to pass | Full source suite, compile, model evidence, provider certification and documentation checks | Offline verified |
 | Documentation matches behavior and proof ceiling | Canonical adapter, mapping and architecture docs | Verified |
 | Changes are reviewable and issue #5 links completed work | Feature branch history, its pull request and issue #5 discussion own delivery identities/state | Tracked in GitHub |
+| Retained exposure stays bound to its futures contract across rollover/reconnect | Rollover regression and session test | Offline verified |
+| Parameter combinations and generated sequences agree with independent expectations | Deterministic matrix and seeded state-machine tests | Offline verified |
+| Installed CLI, terminal/export and SDK binary records reproduce controlled results | Fresh-wheel functional report outside checkout | Offline verified |
+| Changed provider path handles sustained family/revision/deletion traffic within declared budgets | Provider ingestion report with correctness and environment evidence | Offline verified |
 
 ## Local Verification — October 11, 2026
 
@@ -88,6 +100,52 @@ locally without provider I/O.
 Hosted checks and protected-branch merge remain integration evidence, separate
 from the completed offline implementation. GitHub records the exact delivered
 commit, review discussion, check results and issue closure.
+
+## Expanded Offline Verification — October 11, 2026
+
+- The final full source suite passed all 602 tests. Compile, patch hygiene,
+  five Markdown destination tests, numerical evidence, twelve offline provider
+  cases, seven fault cases and candidate-wheel Twine checks also passed.
+
+- Fifteen new rollover/identity tests exercise retained trade/OI isolation,
+  provider namespaces, missing IDs, reset behavior and nanosecond ordering.
+  The original scenario now retains raw OI for provenance while quarantining
+  its exposure when the quote moves to another futures contract.
+- 1,774 parameter cases passed, including 24 real SDK cases and independent
+  scalar Black-76 calculations. Four seeds checked 6,000 operations against a
+  dictionary state oracle; 256 bootstrap arrivals were checked separately.
+- The parameter suite found and now covers an undefined raw publication
+  timestamp incorrectly interpreted as a date in 2554. Timestamp decoding now
+  rejects undefined values and retains exact nanosecond ordering.
+- Eighteen installed-wheel functional cases passed: ES/NQ initial, revised,
+  deleted and rolled sessions through the public CLI in JSONL/DBN form,
+  independent GEX, selected quantities, units/provenance and identity parity,
+  plus terminal replay, visible values, keyboard export and rollover empty state.
+  All 117 installed package members matched the tested candidate wheel.
+  Connections were blocked in the worker and child CLI processes.
+- Visible-card checks found stale terminal GEX after the active chain emptied.
+  The repair clears derived metrics, quantities, expiry totals and flow while
+  showing the latest quote and blocking stale exports. A dedicated UI
+  regression covers the display transition.
+- A larger load run passed all ten correctness/budget gates with 18,954 raw
+  records across 52 families and 416 contracts: 4,741.8 records/second,
+  maximum sampled snapshot 5.54 ms, peak process memory 47.53 MiB, and 624
+  position states within the 832 bound. These observations apply to the
+  recorded macOS ARM64/Python 3.12 environment and synthetic workload.
+- Rerunnable functional and provider-load harnesses are added to the existing
+  Linux/macOS/Python 3.11/3.12 CI path. Its bounded collector retains their
+  report JSON without uploading the full generated input/export inventory.
+- Retained local evidence is under ignored
+  `dist/databento-issue-35-verification/2026-10-11/`: `summary.json`,
+  `functional.json`, `provider-load.json`, candidate wheel, source-suite log,
+  offline evidence and generated synthetic functional artifacts. Candidate
+  bytes and source hashes identify this test build; the existing release tag
+  and application version are unchanged.
+
+The tested pricing flow has one selected provider/root per consumer. Legacy
+unlinked sessions remain compatible; the new identity evidence does not certify
+mixed-vendor forward equivalence. Retired mappings deliberately require a
+consumer reset before reuse. Live reconciliation remains external observation.
 
 ## Recovery And Evidence Ceiling
 

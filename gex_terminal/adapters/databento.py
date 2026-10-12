@@ -500,6 +500,12 @@ class DatabentoAdapter(MarketDataAdapter):
                 "provider_observations": self._open_interest_provider_observation_count,
                 "observations": self._open_interest_count,
                 "deletions": self._open_interest_delete_count,
+                "current_observations": sum(
+                    state.get("position_source") == "open_interest"
+                    and not state.get("open_interest_invalidated", False)
+                    and self.consumer.is_contract_underlying_current(state)
+                    for state in getattr(self.consumer, "contract_state", {}).values()
+                ),
             },
             "model_inputs": {
                 "provider_multiplier_definitions": self._provider_multiplier_definition_count,
@@ -581,13 +587,15 @@ class DatabentoAdapter(MarketDataAdapter):
                     self._incomplete_underlying_book_count += 1
                 self._record_consumer("record_dropped_message")
                 return
+            accepted = await self.consumer.update_market_state(dumps_normalized_message(message))
+            if not accepted:
+                return
             self.latest_underlying_price = float(message["price"])
             self.latest_underlying_event_time = str(message["event_time"])
             self.latest_underlying_instrument_id = _safe_int(
                 _lookup(values, "instrument_id", "instrumentId")
             )
             self._underlying_quote_count += 1
-            await self.consumer.update_market_state(dumps_normalized_message(message))
             return
         if kind == "option_trade":
             instrument_id = _safe_int(_lookup(values, "instrument_id", "instrumentId"))
@@ -683,6 +691,7 @@ class DatabentoAdapter(MarketDataAdapter):
                 live_oi = any(
                     state.get("position_source") == "open_interest"
                     and not state.get("open_interest_invalidated", False)
+                    and self.consumer.is_contract_underlying_current(state)
                     for state in getattr(self.consumer, "contract_state", {}).values()
                 )
                 self._open_interest_status = "observed" if live_oi else "invalidated"
@@ -819,7 +828,7 @@ class DatabentoAdapter(MarketDataAdapter):
         if price is None:
             return None
 
-        return {
+        message = {
             "schema_version": 2,
             "type": "underlying_tick",
             "provider": "databento",
@@ -829,6 +838,10 @@ class DatabentoAdapter(MarketDataAdapter):
                 _lookup(record, "ts_event", "tsEvent", "event_time", "timestamp")
             ),
         }
+        instrument_id = _safe_int(_lookup(record, "instrument_id", "instrumentId"))
+        if instrument_id is not None:
+            message["contract_id"] = str(instrument_id)
+        return message
 
     @staticmethod
     def _normalize_option_trade_record(
@@ -876,6 +889,9 @@ class DatabentoAdapter(MarketDataAdapter):
             "pricing_model": "black_76",
             "event_time": event_time,
         }
+        underlying_id = _safe_int(metadata.get("underlying_id"))
+        if underlying_id is not None:
+            message["underlying_contract_id"] = str(underlying_id)
         aggressor_side = _aggressor_side(_lookup(record, "side", "aggressor_side"))
         message["aggressor_side"] = aggressor_side
         message["direction_source"] = (
@@ -1061,6 +1077,9 @@ class DatabentoAdapter(MarketDataAdapter):
             value = metadata.get(field)
             if value not in (None, ""):
                 message[field] = value
+        underlying_id = _safe_int(metadata.get("underlying_id"))
+        if underlying_id is not None:
+            message["underlying_contract_id"] = str(underlying_id)
         if "contract_multiplier" in message:
             message["contract_multiplier_source"] = metadata.get("contract_multiplier_source")
         return message
@@ -1342,9 +1361,11 @@ def _timestamp_text(value: Any) -> str:
         parsed = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     if isinstance(value, int):
-        return datetime.fromtimestamp(value / 1_000_000_000, tz=timezone.utc).isoformat().replace(
-            "+00:00", "Z"
-        )
+        if value < 0 or value >= DATABENTO_UNDEF_TIMESTAMP:
+            return ""
+        seconds, nanoseconds = divmod(value, 1_000_000_000)
+        timestamp = datetime.fromtimestamp(seconds, tz=timezone.utc)
+        return f"{timestamp.strftime('%Y-%m-%dT%H:%M:%S')}.{nanoseconds:09d}Z"
     text = str(value).strip()
     parsed = parse_market_datetime(text)
     if parsed is not None:
