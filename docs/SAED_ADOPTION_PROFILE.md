@@ -44,10 +44,11 @@ Closed [GEX-START-001](work-packets/GEX-START-001.md) owns the unified offline
 starter and managed combined launch. It changes setup helpers while preserving
 the application version and immutable `v0.6.0` release identity.
 
-Open [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md) owns the issue #35
-dollar-multiplier, option-product subscription and OI reference/deletion fixes.
-Its acceptance is offline software evidence; live-provider observation and
-protected-branch integration remain separate gates.
+Closed [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md) owns the issue #35
+dollar-multiplier, option-product subscription and OI reference/deletion fixes,
+integrated through [PR #36](https://github.com/zrack/gex-terminal/pull/36).
+Its acceptance is offline software evidence; credentialed provider observation
+remains open and Databento readiness remains `live-uncertified`.
 
 ## Purpose And Entry Boundary
 
