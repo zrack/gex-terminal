@@ -50,6 +50,10 @@ integrated through [PR #36](https://github.com/zrack/gex-terminal/pull/36).
 Its acceptance is offline software evidence; credentialed provider observation
 remains open and Databento readiness remains `live-uncertified`.
 
+Open [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md) owns the
+offline acknowledgement-frame repair and regression evidence. The maintainer
+authorized commit and merge; issue #4 remains open for actual provider payloads.
+
 ## Purpose And Entry Boundary
 
 `gex-terminal` is an open, local-first market-structure research workbench. It

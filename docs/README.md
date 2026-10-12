@@ -41,6 +41,9 @@ change. Closed [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md) records th
 Databento issue #35 correctness fixes and offline verification integrated through
 [PR #36](https://github.com/zrack/gex-terminal/pull/36). Credentialed provider
 observation remains open.
+Open [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md) owns the
+Tradovate acknowledgement-frame repair, independently of issue #4's actual
+provider-payload requirement.
 Closed [GEX-START-001](work-packets/GEX-START-001.md) owns the unified
 offline starter and its bounded process lifecycle; the original `0.6.0` release
 identity remains unchanged. Closed [GEX-WIND-001](work-packets/GEX-WIND-001.md) owns the Market

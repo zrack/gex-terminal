@@ -452,11 +452,17 @@ class TradovateAdapter(MarketDataAdapter):
             if raw in {"h", "o", "[]"}:
                 continue
             payloads = self._decode_frame(raw)
+            acknowledgement: dict[str, Any] | None = None
             for event in payloads:
                 if event.get("i") == request_id:
                     status = int(event.get("s", 0))
                     if status == 200:
-                        return event
+                        if acknowledgement is None:
+                            acknowledgement = event
+                        # A response does not end its enclosing event frame.
+                        # Later data must be routed and explicit errors must
+                        # still prevent acknowledgement success.
+                        continue
                     self._record_consumer("mark_subscription_error")
                     if status in _ENTITLEMENT_STATUSES:
                         self._record_consumer("record_entitlement_error")
@@ -472,6 +478,8 @@ class TradovateAdapter(MarketDataAdapter):
                     raise PermissionError(f"Tradovate {operation} returned an error event")
                 if event.get("e") == "md":
                     await self._route_market_data_event(event)
+            if acknowledgement is not None:
+                return acknowledgement
 
     async def _subscribe_quote(self, websocket, request_id: int, symbol: str | int) -> None:
         body = json.dumps({"symbol": symbol}, separators=(",", ":"))

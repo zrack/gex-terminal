@@ -440,8 +440,13 @@ timeout triggers the termination fallback and records a stop error. The outer
 certification task also has a bounded cancellation grace period.
 
 Tradovate is still a scaffold. Its official-protocol implementation waits for
-raw-token authorization and subscription acknowledgements, but only the
-explicit, redacted `tradovate-certify --ack-live-network` workflow can measure a
+raw-token authorization and subscription acknowledgements. Each wait processes
+the successful response's full event frame before reporting success: market
+data retains wire order, while a matching failed response or an `error`/`md/error`
+event prevents success even after an earlier acknowledgement.
+Connection/subscription state gates remain owned by the existing lifecycle.
+Only the explicit, redacted
+`tradovate-certify --ack-live-network` workflow can measure a
 credential/environment/run window. Fixture success cannot promote registry
 status or establish native-IV availability.
 
