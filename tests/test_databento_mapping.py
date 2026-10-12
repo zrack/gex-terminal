@@ -8,6 +8,7 @@ from gex_terminal.adapters.databento import (
     DEFAULT_DATABENTO_DATASET,
     DatabentoAdapter,
     databento_option_parent_symbol,
+    databento_option_parent_symbols,
 )
 from gex_terminal.market_data_adapter import (
     AdapterConfigurationError,
@@ -38,6 +39,17 @@ class DatabentoMappingTests(unittest.TestCase):
         self.assertEqual(databento_option_parent_symbol("ES"), "ES.OPT")
         self.assertEqual(databento_option_parent_symbol("nq"), "NQ.OPT")
         self.assertEqual(databento_option_parent_symbol("ES.OPT"), "ES.OPT")
+
+    def test_option_parent_environment_override_is_scoped_to_target(self):
+        with patch.dict("os.environ", {"DATABENTO_OPTION_PARENTS": " EW.OPT,EW.OPT,E1A.OPT "}):
+            adapter = DatabentoAdapter(None, target_underlying="ES")
+        self.assertEqual(adapter.option_parents, ("EW.OPT", "E1A.OPT"))
+        self.assertEqual(len(databento_option_parent_symbols("NQ")), 26)
+        for override in ("", "NQ.OPT", "SPX.OPT", "ES.FUT"):
+            with self.subTest(override=override), patch.dict(
+                "os.environ", {"DATABENTO_OPTION_PARENTS": override},
+            ), self.assertRaises(AdapterConfigurationError):
+                DatabentoAdapter(None, target_underlying="ES")
 
     def test_definition_records_build_option_metadata(self):
         payload = _load_fixture("databento_definition_records.json")
@@ -123,6 +135,7 @@ class DatabentoMappingTests(unittest.TestCase):
                 "schema_version": 2,
                 "type": "underlying_tick",
                 "provider": "databento",
+                "contract_id": "9001003",
                 "symbol": "ES",
                 "price": 5943.25,
                 "event_time": "2026-06-18T14:30:00.000000000Z",

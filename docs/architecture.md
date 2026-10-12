@@ -223,10 +223,10 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Configuration | `gex_terminal/config.py` | Read the invocation directory's `.env` and environment defaults into a typed `GexConfig`. |
 | Offline preflight | `gex_terminal/doctor.py` | Inspect local package/configuration/resources and temporary storage without a live adapter or optional SDK import; report safe structural diagnostics. |
 | Local support and recovery | `gex_terminal/local_support.py`, `gex_terminal/artifact_lifecycle.py` | Separate redacted support evidence from owner-only private backups; verify whole recognized research groups and require a backup-bound, separately confirmed retention plan. |
-| Provider adapters | `gex_terminal/adapters/`, `gex_terminal/market_data_adapter.py`, `gex_terminal/contracts.py` | Convert live, delayed, provider-shaped, or replay payloads into versioned normalized messages with contract identity and timing semantics. |
+| Provider adapters | `gex_terminal/adapters/`, `gex_terminal/market_data_adapter.py`, `gex_terminal/contracts.py` | Convert live, delayed, provider-shaped, or replay payloads into versioned normalized messages; preserve product versus underlying identity, validated units, publication time and optional OI reference/action provenance. |
 | Provider certification | `gex_terminal/tradovate_certification.py`, `gex_terminal/databento_certification.py`, `gex_terminal/databento_certification_policy.py` | Select a versioned target policy before I/O, run acknowledged and bounded live-network gates, and derive redacted exact-run evidence without converting fixture evidence into a live claim. |
 | Provider fixture and replay intake | `gex_terminal/provider_injector.py`, `gex_terminal/databento_offline.py` | Route provider-shaped local records through production mapping and adversarial checks without opening a live connection. |
-| State consumer | `gex_terminal/consumer.py` | Own spot, provider-scoped contract positions, projections, expiry selection, lifecycle, and feed-quality state behind an async lock. |
+| State consumer | `gex_terminal/consumer.py` | Own spot, provider-scoped contract positions, projections, expiry selection, lifecycle, and feed-quality state behind an async lock; order referenced OI by trading date then publication revision and retain deletion tombstones. |
 | GEX model | `gex_terminal/engine.py`, `gex_terminal/regime.py`, `gex_terminal/model_evidence.py` | Price Black-Scholes/Black-76 contract rows, aggregate dollar GEX, derive structural levels, and export bounded numerical evidence. |
 | Evaluation models | `gex_terminal/model_comparison.py`, `gex_terminal/position_model_comparison.py`, `gex_terminal/price_action_validation.py` | Compare separated position models and descriptive later-price paths without promoting predictive validity. |
 | Capture and research authority | `gex_terminal/capture_governance.py`, `gex_terminal/session_capture.py`, `gex_terminal/model_profiles.py`, `gex_terminal/experiment_manifest.py`, `gex_terminal/research_corpus.py` | Fail closed on ambiguous live-capture decisions, bind captures to policy identity, validate versioned assumptions, and maintain reproducible experiment and append-only corpus identity. |
@@ -256,6 +256,23 @@ trade-direction provenance. Mutable state is keyed by provider, contract, and
 position source. Incremental values accumulate, cumulative values replace, and
 open interest is never summed with trade volume. Contract rows are priced before
 equal strikes are aggregated.
+
+Optional OI reference-date and update-action provenance distinguishes a later
+publication from a later trading-date observation. The consumer orders such OI
+first by reference date, then publication time; deletion retains zero state as a
+tombstone so a delayed older observation cannot restore it. Added zero,
+withdrawn data and unavailable data remain distinct states. OI revision handling
+does not replace the separate positive trade-volume state. Provider units and
+sentinel validation belong to the adapter; configured multiplier fallback and
+selected-position calculation belong to the consumer/model boundary.
+
+Provider-scoped futures identity is also consumer-owned. The Databento adapter
+emits the quote contract ID and each option's underlying link; quote acceptance
+advances the current identity. Retained rows for another futures contract are
+quarantined from projections, pricing and current certification coverage.
+Retired mappings and delayed quote frames cannot restore old exposure within
+the same session. A reset clears the identity session together with market
+state. Historic raw quantities and deletion tombstones remain inspectable.
 
 Schema v1 remains a legacy replay path; schema v2 is the contract-aware path.
 Validation, filtering, pricing-model routing, IV provenance, and direction rules
@@ -382,6 +399,18 @@ The three required requests are `definition`, `mbp-1`, and `trades`; the
 local request IDs. They show that a request returned without a synchronous
 exception; they are not provider acknowledgements. Actual records, distinct
 chain coverage, and explicit errors supply the observation evidence.
+
+Databento requests use a declared universe of distinct ES/NQ option-product
+parents alongside the selected futures parent and continuous quote. The adapter
+normalizes product families to the intended futures underlying while retaining
+the definition `underlying_id` guard against another contract month for trades
+and OI additions. Before a usable matching future quote, OI additions are counted
+and dropped without buffering; deletes can invalidate known OI without that
+quote because they create no exposure. Configured
+parents and observed families are separate diagnostic evidence; neither a
+subscription request nor synthetic family fixtures prove live universe
+completeness. Dollar multipliers come only from validated point-value metadata,
+not Databento's deliverable-count `contract_multiplier`.
 
 The offline `live_population_contract` module is a preparation boundary around
 future recurring observation, not another adapter or runner. It validates a

@@ -66,6 +66,45 @@ provider contract and position source. `position_source` is `trade_volume` or
 `open_interest`. If both exist, the consumer prefers positive trade volume and
 otherwise falls back to open interest rather than summing them.
 
+Open-interest messages may additionally carry the pair
+`open_interest_reference_date` (an ISO `YYYY-MM-DD` date) and
+`open_interest_update_action` (`add` or `delete`). They are valid only for
+cumulative `open_interest` and must appear together. The reference date identifies
+the trading date measured; `event_time` remains the publication or revision time.
+The reference date cannot follow the UTC publication date.
+The consumer selects the newest reference date before comparing publication
+times within that date. A delete carries zero quantity and retains a tombstone,
+so an older observation cannot restore the deleted value. An added zero is an
+observed zero; a delete means withdrawn data, and an absent observation remains
+unavailable. Messages omitting both fields retain their existing sequence
+behavior, but cannot replace a dated OI observation once one exists. Positive
+trade volume stays a separate state and retains precedence.
+
+`contract_multiplier` is the dollar value of one price point per option contract.
+A provider field with the same name may instead count deliverable contracts;
+adapters must establish its unit before emitting a normalized multiplier.
+Missing supported dollar metadata leaves the normalized multiplier absent;
+the consumer then uses its explicit configured fallback and records that
+fallback in snapshot provenance.
+
+Schema-v2 underlying ticks may carry a provider-scoped `contract_id`; option
+ticks may link to it through `underlying_contract_id`. Linked positions are
+eligible for calculation only while that provider's current futures contract
+matches. A rollover preserves old raw quantities and OI tombstones for
+inspection but quarantines their exposure. A later quote on a retired contract,
+an older quote, or an identity-less quote replacing an identified quote is
+rejected. Returning to a retired mapping requires an explicit consumer
+`reset_state` and a fresh identity session. Identity-free legacy sessions keep
+their existing behavior; a known option link survives later metadata omissions.
+Provider timestamps preserve nanosecond ordering, including revisions within
+the same microsecond.
+
+Feed-quality reports include `underlying_identity` when a current/retired
+contract, quarantined position or rejected quote provides identity evidence.
+Identity-free legacy sessions omit the empty field so saved research receipts
+retain their original decision hashes; identity evidence remains bound by the
+receipt integrity check.
+
 Schema v2 may also carry optional trade-direction provenance. `aggressor_side`
 is `buy` or `sell`; `direction_source` is `provider` or `quote_inference`.
 Known direction is valid only for incremental `trade_volume`. Missing direction,
@@ -179,10 +218,18 @@ NQ. It validates `DATABENTO_API_KEY` and the optional SDK, then opens one
 mixed-schema `GLBX.MDP3` session. It submits three required requests and one
 optional request:
 
-- `definition` replay for `<ROOT>.OPT` and `<ROOT>.FUT` with parent symbology.
+- `definition` replay for the configured option-product parent universe and
+  `<ROOT>.FUT` with parent symbology.
 - `mbp-1` for the volume-based continuous future `<ROOT>.v.0`.
-- `trades` for `<ROOT>.OPT` with provider aggressor side preserved.
-- Optional `statistics` for `<ROOT>.OPT` open interest.
+- `trades` for that option-product universe with provider aggressor side preserved.
+- Optional `statistics` for the same universe's open interest.
+
+ES/NQ daily, weekly, end-of-month and quarterly options have distinct product
+parents. The adapter keeps those provider product families separate from the
+normalized `ES`/`NQ` futures underlying. Diagnostics record configured parents and
+families actually observed; a submitted parent list does not establish complete
+live coverage. [Databento Fixture Mapping](databento-fixtures.md) owns the defaults
+and provider-specific field units.
 
 The integer returned by the SDK for each request is a local request ID, not a
 provider acknowledgement. Diagnostics therefore distinguish requested schemas,
@@ -197,17 +244,34 @@ uses `iv_source=black_76_inverted` and carries an `iv_provenance` object. Missin
 out-of-bounds, or non-convergent inputs use the separately labeled configured
 fallback and degrade feed quality.
 An option definition's `underlying_id` must match the current continuous-future
-instrument ID; other futures months are counted and dropped rather than priced
-against the wrong forward.
+instrument ID for both trades and OI additions; other futures months are counted
+and dropped rather than priced against the wrong forward. OI additions arriving
+before a usable quote identifies the selected future are dropped without
+buffering. A statistics delete can invalidate known OI without a current quote
+because it creates no exposure. Bootstrap and identity-mismatch counters make
+those drops explicit.
+
+Databento's definition `contract_multiplier` counts deliverables and is not used
+as the app's dollar multiplier. Supported, scaled `unit_of_measure_qty` with
+`USD`/`IPNT` units and the canonical ES/NQ point value supplies dollar metadata;
+otherwise the app retains its configured fallback. Undefined provider values
+cannot become plausible prices, multipliers or added OI quantities. A statistics
+delete carries zero regardless of its unused provider quantity.
 
 Open interest remains a separate cumulative position source. Its status is one
-of `observed`, `unavailable`, `unsupported`, `entitlement_denied`, or
+of `observed`, `invalidated`, `unavailable`, `unsupported`, `entitlement_denied`, or
 `not_requested`. Optional OI failure does not silently become trade volume and
 does not block a trade-volume certification path. The report distinguishes
 `open_interest_observed` from `open_interest_window_validated`. The latter is
 true only when OI was observed and the chain-ingestion gate passed. An explicit
 unavailable/unsupported state may leave the trade-volume path eligible, but it
 does not validate OI for that window.
+Statistics must carry a valid reference trading date and add/delete action.
+The adapter preserves publication `ts_event` as `event_time` and emits the
+reference date/action separately. Consumer revision ordering and deletion rules
+are defined in [Normalized Messages](#normalized-messages).
+Accepted deletes are counted separately; `invalidated` means no active OI
+observation remains after deletion, while an accepted added zero is `observed`.
 
 The live client requests the SDK reconnect policy and registers a callback.
 Diagnostics distinguish callback registration, callback errors, observed

@@ -7,6 +7,27 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Databento Correctness
+
+- Replace Databento's deliverable multiplier with validated dollar contract
+  units, retaining a visible configured fallback when metadata is unavailable.
+- Subscribe to declared ES/NQ quarterly, daily, weekly and month-end option
+  products and preserve their actual futures underlying identity.
+- Reject undefined OI quantities, preserve reference dates and update actions,
+  and invalidate deleted OI without replacing newer-reference observations or
+  disturbing trade volume. Add offline regressions including real SDK records.
+- [GEX-DATABENTO-035](docs/work-packets/GEX-DATABENTO-035.md) owns this change's
+  verification and integration status. Databento remains `live-uncertified`.
+- Preserve provider-scoped futures identity through rollover and reconnect,
+  quarantining retained old-contract exposure. Reject undefined timestamps and
+  preserve nanosecond ordering. Add independent parameter/state tests, fresh
+  installed CLI/DBN/terminal verification and a measured provider-path load gate;
+  [Offline Validation](docs/offline-validation.md) owns reproduction commands.
+- Clear stale terminal metrics, expiry totals, selected quantities and flow
+  when a rollover leaves no active contracts; stale snapshot export is blocked.
+- Preserve saved identity-free research decision hashes by emitting feed-quality
+  identity provenance only when contract, quarantine or rejection evidence exists.
+
 ## 2026-09-27 — Unified Starter
 
 - Fresh setup folders offer **Terminal**, **Wind Tunnel** or **Both** through

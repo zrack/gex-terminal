@@ -44,6 +44,11 @@ Closed [GEX-START-001](work-packets/GEX-START-001.md) owns the unified offline
 starter and managed combined launch. It changes setup helpers while preserving
 the application version and immutable `v0.6.0` release identity.
 
+Open [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md) owns the issue #35
+dollar-multiplier, option-product subscription and OI reference/deletion fixes.
+Its acceptance is offline software evidence; live-provider observation and
+protected-branch integration remain separate gates.
+
 ## Purpose And Entry Boundary
 
 `gex-terminal` is an open, local-first market-structure research workbench. It

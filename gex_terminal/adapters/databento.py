@@ -4,7 +4,7 @@ import math
 import os
 import re
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
@@ -25,6 +25,21 @@ DEFAULT_MAX_UNDERLYING_AGE_SECONDS = 2.0
 DEFAULT_DATABENTO_STOP_TIMEOUT_SECONDS = 2.0
 DATABENTO_OPEN_INTEREST_STAT_TYPE = 9
 DATABENTO_FLAG_MAYBE_BAD_BOOK = 4
+DATABENTO_UNDEF_PRICE = (1 << 63) - 1
+DATABENTO_UNDEF_STAT_QUANTITY = (1 << 63) - 1
+DATABENTO_UNDEF_TIMESTAMP = (1 << 64) - 1
+# CME's option product roots are distinct from the underlying futures root.
+# Sources: Databento symbology and CME's Equity Index Options Bloomberg sheet.
+DATABENTO_OPTION_PRODUCT_ROOTS = {
+    "ES": (
+        "ES", "EW", *(f"EW{week}" for week in range(1, 5)),
+        *(f"E{week}{day}" for day in "ABCD" for week in range(1, 6)),
+    ),
+    "NQ": (
+        "NQ", "QNE", *(f"QN{week}" for week in range(1, 5)),
+        *(f"Q{week}{day}" for day in "ABCD" for week in range(1, 6)),
+    ),
+}
 DATABENTO_SCHEMAS = {
     "definitions": "definition",
     "option_trades": "trades",
@@ -66,6 +81,34 @@ def databento_option_parent_symbol(underlying: str) -> str:
     return f"{symbol}.OPT"
 
 
+def databento_option_parent_symbols(underlying: str) -> tuple[str, ...]:
+    """Return the supported quarterly, month-end, and weekday option parents."""
+    root = underlying.strip().upper()
+    if root not in DATABENTO_OPTION_PRODUCT_ROOTS:
+        raise AdapterConfigurationError("Databento option parents require ES or NQ")
+    return tuple(f"{product}.OPT" for product in DATABENTO_OPTION_PRODUCT_ROOTS[root])
+
+
+def _configured_option_parents(
+    underlying: str, option_parents: Iterable[str] | None,
+) -> tuple[str, ...]:
+    configured = os.getenv("DATABENTO_OPTION_PARENTS") if option_parents is None else None
+    if configured is not None:
+        option_parents = configured.split(",")
+    if option_parents is None:
+        return databento_option_parent_symbols(underlying)
+    if isinstance(option_parents, str):
+        option_parents = option_parents.split(",")
+    parents = tuple(dict.fromkeys(str(item).strip().upper() for item in option_parents))
+    allowed = set(databento_option_parent_symbols(underlying))
+    if not parents or any(parent not in allowed for parent in parents):
+        raise AdapterConfigurationError(
+            "Databento option parents must be a nonempty selection of supported "
+            f"{underlying} .OPT product parents"
+        )
+    return parents
+
+
 class DatabentoAdapter(MarketDataAdapter):
     def __init__(
         self,
@@ -77,10 +120,16 @@ class DatabentoAdapter(MarketDataAdapter):
         default_iv: float = DEFAULT_DATABENTO_IV,
         max_underlying_age_seconds: float = DEFAULT_MAX_UNDERLYING_AGE_SECONDS,
         request_open_interest: bool = True,
+        option_parents: Iterable[str] | None = None,
         live_client_factory=None,
     ):
         self.consumer = consumer
         self.target_underlying = target_underlying.upper()
+        self.option_parents = _configured_option_parents(
+            self.target_underlying, option_parents,
+        )
+        self.option_product_roots = tuple(parent[:-4] for parent in self.option_parents)
+        self._observed_option_product_roots: set[str] = set()
         self.dataset = dataset or os.getenv("DATABENTO_DATASET", DEFAULT_DATABENTO_DATASET)
         self.api_key = os.getenv("DATABENTO_API_KEY")
         self.risk_free_rate = float(risk_free_rate)
@@ -96,6 +145,8 @@ class DatabentoAdapter(MarketDataAdapter):
         self.subscription_ids: list[int] = []
         self._connected_once = False
         self._definition_count = 0
+        self._provider_multiplier_definition_count = 0
+        self._fallback_multiplier_definition_count = 0
         self._underlying_quote_count = 0
         self._option_trade_count = 0
         self._open_interest_count = 0
@@ -128,6 +179,7 @@ class DatabentoAdapter(MarketDataAdapter):
         self._statistics_requested = False
         self._open_interest_status = "not_requested"
         self._open_interest_provider_observation_count = 0
+        self._open_interest_delete_count = 0
         self._subscription_requested_schemas: list[str] = []
         self._subscription_request_id_schemas: list[str] = []
         self._subscription_failed_schemas: list[str] = []
@@ -178,7 +230,7 @@ class DatabentoAdapter(MarketDataAdapter):
         self.validate()
         sdk = None if self.live_client_factory is not None else _load_databento_sdk()
         client_factory = self.live_client_factory or sdk.Live
-        option_parent = databento_option_parent_symbol(self.target_underlying)
+        option_parents = self.option_parents
         future_parent = f"{self.target_underlying}.FUT"
         continuous_future = f"{self.target_underlying}.v.0"
         self._lifecycle_state = "connecting"
@@ -195,7 +247,7 @@ class DatabentoAdapter(MarketDataAdapter):
                     {
                         "dataset": self.dataset,
                         "schema": "definition",
-                        "symbols": (option_parent, future_parent),
+                        "symbols": (*option_parents, future_parent),
                         "stype_in": "parent",
                         "start": 0,
                     },
@@ -214,7 +266,7 @@ class DatabentoAdapter(MarketDataAdapter):
                     {
                         "dataset": self.dataset,
                         "schema": "trades",
-                        "symbols": option_parent,
+                        "symbols": option_parents,
                         "stype_in": "parent",
                     },
                 ),
@@ -235,7 +287,7 @@ class DatabentoAdapter(MarketDataAdapter):
                     statistics_request = {
                         "dataset": self.dataset,
                         "schema": "statistics",
-                        "symbols": option_parent,
+                        "symbols": option_parents,
                         "stype_in": "parent",
                         "start": 0,
                     }
@@ -430,6 +482,9 @@ class DatabentoAdapter(MarketDataAdapter):
                 "resubscription_strategy": "sdk_reconnect_policy",
             },
             "subscriptions": {
+                "option_parents": list(self.option_parents),
+                "option_product_roots_observed": sorted(self._observed_option_product_roots),
+                "complete_chain_coverage": "unverified",
                 "statistics_requested": self._statistics_requested,
                 "statistics_subscription_attempted": (
                     "statistics" in self._subscription_requested_schemas
@@ -444,8 +499,17 @@ class DatabentoAdapter(MarketDataAdapter):
                 "statistics_requested": self._statistics_requested,
                 "provider_observations": self._open_interest_provider_observation_count,
                 "observations": self._open_interest_count,
+                "deletions": self._open_interest_delete_count,
+                "current_observations": sum(
+                    state.get("position_source") == "open_interest"
+                    and not state.get("open_interest_invalidated", False)
+                    and self.consumer.is_contract_underlying_current(state)
+                    for state in getattr(self.consumer, "contract_state", {}).values()
+                ),
             },
             "model_inputs": {
+                "provider_multiplier_definitions": self._provider_multiplier_definition_count,
+                "fallback_multiplier_definitions": self._fallback_multiplier_definition_count,
                 "iv_inversion_attempts": self._iv_inversion_attempt_count,
                 "iv_inversion_failures": self._iv_inversion_failure_count,
                 "iv_inversion_status_counts": dict(
@@ -494,9 +558,24 @@ class DatabentoAdapter(MarketDataAdapter):
             metadata = self._normalize_definition_record(values)
             if metadata and metadata.get("instrument_id") is not None:
                 underlying = str(metadata.get("underlying") or "").upper()
-                if underlying in {"", self.target_underlying}:
+                product_root = str(metadata.get("option_product_root") or "").upper()
+                if (
+                    underlying == self.target_underlying
+                    and product_root in self.option_product_roots
+                ):
+                    if metadata.get("contract_multiplier") is None:
+                        configured_multiplier = _safe_float(
+                            getattr(getattr(self.consumer, "engine", None), "multiplier", None)
+                        )
+                        if configured_multiplier is not None and configured_multiplier > 0:
+                            metadata["contract_multiplier_source"] = "configured_default"
                     self.contract_metadata[int(metadata["instrument_id"])] = metadata
                     self._definition_count += 1
+                    self._observed_option_product_roots.add(product_root)
+                    if metadata.get("contract_multiplier_source") == "provider_unit_of_measure":
+                        self._provider_multiplier_definition_count += 1
+                    elif metadata.get("contract_multiplier_source") == "configured_default":
+                        self._fallback_multiplier_definition_count += 1
             return
         if kind == "underlying_quote":
             book_status = _underlying_book_status(values)
@@ -508,13 +587,15 @@ class DatabentoAdapter(MarketDataAdapter):
                     self._incomplete_underlying_book_count += 1
                 self._record_consumer("record_dropped_message")
                 return
+            accepted = await self.consumer.update_market_state(dumps_normalized_message(message))
+            if not accepted:
+                return
             self.latest_underlying_price = float(message["price"])
             self.latest_underlying_event_time = str(message["event_time"])
             self.latest_underlying_instrument_id = _safe_int(
                 _lookup(values, "instrument_id", "instrumentId")
             )
             self._underlying_quote_count += 1
-            await self.consumer.update_market_state(dumps_normalized_message(message))
             return
         if kind == "option_trade":
             instrument_id = _safe_int(_lookup(values, "instrument_id", "instrumentId"))
@@ -578,17 +659,46 @@ class DatabentoAdapter(MarketDataAdapter):
             await self.consumer.update_market_state(dumps_normalized_message(message))
             return
         if kind == "statistics":
-            if self._open_interest_from_statistics(values) is not None:
-                self._open_interest_provider_observation_count += 1
             message = self._normalize_statistics_record(
                 values, self.contract_metadata, default_iv=self.default_iv
             )
             if message is None:
                 self._record_consumer("record_dropped_message")
                 return
-            await self.consumer.update_market_state(dumps_normalized_message(message))
-            self._open_interest_count += 1
-            self._open_interest_status = "observed"
+            if message["open_interest_update_action"] == "add":
+                if (
+                    self.latest_underlying_price is None
+                    or self.latest_underlying_instrument_id is None
+                ):
+                    self._dropped_before_underlying_count += 1
+                    self._record_consumer("record_dropped_message")
+                    return
+                metadata = _metadata_for_instrument(
+                    _safe_int(message["contract_id"]), self.contract_metadata,
+                ) or {}
+                option_underlying_id = _safe_int(metadata.get("underlying_id"))
+                if option_underlying_id != self.latest_underlying_instrument_id:
+                    self._dropped_underlying_mismatch_count += 1
+                    self._record_consumer("record_dropped_message")
+                    return
+            accepted = await self.consumer.update_market_state(
+                dumps_normalized_message(message)
+            )
+            if not accepted:
+                return
+            if message["open_interest_update_action"] == "delete":
+                self._open_interest_delete_count += 1
+                live_oi = any(
+                    state.get("position_source") == "open_interest"
+                    and not state.get("open_interest_invalidated", False)
+                    and self.consumer.is_contract_underlying_current(state)
+                    for state in getattr(self.consumer, "contract_state", {}).values()
+                )
+                self._open_interest_status = "observed" if live_oi else "invalidated"
+            else:
+                self._open_interest_provider_observation_count += 1
+                self._open_interest_count += 1
+                self._open_interest_status = "observed"
 
     def _record_underlying_age(self, timing: Mapping[str, Any]) -> None:
         status = str(timing.get("status") or "unknown")
@@ -650,6 +760,23 @@ class DatabentoAdapter(MarketDataAdapter):
         if strike is None or option_type is None:
             return None
 
+        product_root = _text(_lookup(record, "asset", "product")).strip().upper()
+        actual_underlying = _text(_lookup(record, "underlying")).strip().upper()
+        if not product_root and actual_underlying in DATABENTO_OPTION_PRODUCT_ROOTS:
+            product_root = actual_underlying  # Legacy decoded fixtures.
+        normalized_underlying = next((
+            root for root, products in DATABENTO_OPTION_PRODUCT_ROOTS.items()
+            if product_root in products
+        ), None)
+        if normalized_underlying is None:
+            return None
+        if actual_underlying and not (
+            actual_underlying == normalized_underlying
+            or re.fullmatch(rf"{normalized_underlying}[FGHJKMNQUVXZ]\d{{1,2}}", actual_underlying)
+        ):
+            return None
+        dollar_multiplier = _dollar_contract_multiplier(record)
+
         expiry_value = _lookup(
             record,
             "expiration_time",
@@ -665,7 +792,9 @@ class DatabentoAdapter(MarketDataAdapter):
         return {
             "instrument_id": _safe_int(_lookup(record, "instrument_id", "instrumentId")),
             "raw_symbol": raw_symbol,
-            "underlying": _text(_lookup(record, "asset", "underlying", "product")),
+            "underlying": normalized_underlying,
+            "option_product_root": product_root,
+            "underlying_contract_symbol": actual_underlying,
             "underlying_id": _safe_int(
                 _lookup(record, "underlying_id", "underlyingId")
             ),
@@ -677,8 +806,9 @@ class DatabentoAdapter(MarketDataAdapter):
             "min_price_increment": _safe_float(
                 _lookup(record, "min_price_increment", "minPriceIncrement")
             ),
-            "contract_multiplier": _safe_float(
-                _lookup(record, "contract_multiplier", "contractMultiplier")
+            "contract_multiplier": dollar_multiplier,
+            "contract_multiplier_source": (
+                "provider_unit_of_measure" if dollar_multiplier is not None else None
             ),
         }
 
@@ -698,7 +828,7 @@ class DatabentoAdapter(MarketDataAdapter):
         if price is None:
             return None
 
-        return {
+        message = {
             "schema_version": 2,
             "type": "underlying_tick",
             "provider": "databento",
@@ -708,6 +838,10 @@ class DatabentoAdapter(MarketDataAdapter):
                 _lookup(record, "ts_event", "tsEvent", "event_time", "timestamp")
             ),
         }
+        instrument_id = _safe_int(_lookup(record, "instrument_id", "instrumentId"))
+        if instrument_id is not None:
+            message["contract_id"] = str(instrument_id)
+        return message
 
     @staticmethod
     def _normalize_option_trade_record(
@@ -755,6 +889,9 @@ class DatabentoAdapter(MarketDataAdapter):
             "pricing_model": "black_76",
             "event_time": event_time,
         }
+        underlying_id = _safe_int(metadata.get("underlying_id"))
+        if underlying_id is not None:
+            message["underlying_contract_id"] = str(underlying_id)
         aggressor_side = _aggressor_side(_lookup(record, "side", "aggressor_side"))
         message["aggressor_side"] = aggressor_side
         message["direction_source"] = (
@@ -857,6 +994,7 @@ class DatabentoAdapter(MarketDataAdapter):
         multiplier = _safe_float(metadata.get("contract_multiplier"))
         if multiplier is not None and multiplier > 0:
             message["contract_multiplier"] = multiplier
+            message["contract_multiplier_source"] = metadata.get("contract_multiplier_source")
         return message
 
     @staticmethod
@@ -868,7 +1006,10 @@ class DatabentoAdapter(MarketDataAdapter):
         if not _is_open_interest_stat_type(stat_type):
             return None
 
-        open_interest = _safe_int(
+        action = _statistics_update_action(record)
+        if action is None or _statistics_reference_date(record) is None:
+            return None
+        open_interest = 0 if action == "delete" else _statistics_quantity(
             _lookup(record, "open_interest", "openInterest", "quantity", "value")
         )
         if open_interest is None:
@@ -897,10 +1038,18 @@ class DatabentoAdapter(MarketDataAdapter):
         if strike is None or option_type not in {"C", "P"}:
             return None
         iv = _safe_float(metadata.get("iv"))
-        event_time = _timestamp_text(
-            _lookup(record, "ts_event", "tsEvent", "event_time", "timestamp")
-        )
-        if parse_market_datetime(event_time) is None:
+        try:
+            event_time = _timestamp_text(
+                _lookup(record, "ts_event", "tsEvent", "event_time", "timestamp")
+            )
+            publication_time = parse_market_datetime(event_time)
+        except (OverflowError, ValueError, OSError):
+            return None
+        if publication_time is None:
+            return None
+        reference_date = _statistics_reference_date(record)
+        publication_date = publication_time.astimezone(timezone.utc).date().isoformat()
+        if reference_date is None or reference_date > publication_date:
             return None
         message = {
             "schema_version": 2,
@@ -915,6 +1064,8 @@ class DatabentoAdapter(MarketDataAdapter):
             "instrument_class": "futures_option",
             "volume_semantics": "cumulative",
             "position_source": "open_interest",
+            "open_interest_reference_date": reference_date,
+            "open_interest_update_action": _statistics_update_action(record),
             "pricing_model": "black_76",
             "iv": iv if iv is not None else float(default_iv),
             "iv_source": "provider" if iv is not None else "configured_default",
@@ -926,6 +1077,11 @@ class DatabentoAdapter(MarketDataAdapter):
             value = metadata.get(field)
             if value not in (None, ""):
                 message[field] = value
+        underlying_id = _safe_int(metadata.get("underlying_id"))
+        if underlying_id is not None:
+            message["underlying_contract_id"] = str(underlying_id)
+        if "contract_multiplier" in message:
+            message["contract_multiplier_source"] = metadata.get("contract_multiplier_source")
         return message
 
 
@@ -935,6 +1091,75 @@ def _lookup(record: Mapping[str, Any], *fields: str) -> Any:
         if value not in (None, ""):
             return value
     return None
+
+
+def _dollar_contract_multiplier(record: Mapping[str, Any]) -> float | None:
+    """Read dollar value per index point; delivery contract_multiplier is unrelated."""
+    unit = _text(_lookup(record, "unit_of_measure", "unitOfMeasure")).strip().upper()
+    if unit not in {"USD", "IPNT"}:
+        return None
+    quantity = _safe_float(_lookup(
+        record, "pretty_unit_of_measure_qty", "unit_of_measure_qty",
+    ))
+    product = _text(_lookup(record, "asset", "product", "underlying")).upper()
+    root = next((
+        key for key, products in DATABENTO_OPTION_PRODUCT_ROOTS.items()
+        if product in products
+    ), None)
+    expected = {"ES": 50.0, "NQ": 20.0}.get(root)
+    if quantity is None or expected is None or not math.isclose(
+        quantity, expected, rel_tol=0.0, abs_tol=1e-12,
+    ):
+        return None
+    return quantity
+
+
+def _statistics_quantity(value: Any) -> int | None:
+    """Decode integral OI without rounding the int64 undefined sentinel."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        if isinstance(value, (int, str)):
+            quantity = int(value)
+        else:
+            number = float(value)
+            if not math.isfinite(number) or not number.is_integer():
+                return None
+            quantity = int(number)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if quantity < 0 or quantity >= DATABENTO_UNDEF_STAT_QUANTITY:
+        return None
+    return quantity
+
+
+def _statistics_update_action(record: Mapping[str, Any]) -> str | None:
+    value = _lookup(record, "update_action", "updateAction")
+    value = getattr(value, "value", value)
+    if isinstance(value, bool):
+        return None
+    action = str(value).strip().upper()
+    return {"1": "add", "ADD": "add", "2": "delete", "DELETE": "delete"}.get(action)
+
+
+def _statistics_reference_date(record: Mapping[str, Any]) -> str | None:
+    value = _lookup(record, "ts_ref", "tsRef")
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int) and (value < 0 or value >= DATABENTO_UNDEF_TIMESTAMP):
+        return None
+    text = str(value).strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        try:
+            return datetime.strptime(text, "%Y-%m-%d").date().isoformat()
+        except ValueError:
+            return None
+    try:
+        timestamp = _timestamp_text(value)
+        parsed = parse_market_datetime(timestamp)
+    except (OverflowError, ValueError, OSError):
+        return None
+    return parsed.astimezone(timezone.utc).date().isoformat() if parsed is not None else None
 
 
 def _aggressor_side(value: Any) -> str:
@@ -956,7 +1181,7 @@ def _text(value: Any) -> str:
 def _safe_float(value: Any) -> float | None:
     try:
         result = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     if not math.isfinite(result):
         return None
@@ -980,7 +1205,7 @@ def _reject_nonfinite_record_numbers(record: Mapping[str, Any]) -> None:
         ("publisher_id", "publisherId"),
         ("channel_id", "channelId"),
         ("strike_price", "strikePrice", "strike"),
-        ("contract_multiplier", "contractMultiplier", "multiplier"),
+        # The delivery contract_multiplier is deliberately ignored.
         ("bid_px_00", "bid_price", "bid"),
         ("ask_px_00", "ask_price", "ask"),
         ("price",),
@@ -988,7 +1213,7 @@ def _reject_nonfinite_record_numbers(record: Mapping[str, Any]) -> None:
         ("sequence", "seq"),
         ("flags",),
         ("stat_type", "statType"),
-        ("quantity", "value"),
+        # OI quantity is checked separately, including delete/sentinel handling.
         ("iv", "implied_volatility", "impliedVolatility"),
     ):
         value = _lookup(record, *field_names)
@@ -1075,6 +1300,7 @@ def _record_mapping(record: Any, kind: str) -> dict[str, Any]:
         "underlying_id",
         "instrument_class",
         "contract_multiplier",
+        "unit_of_measure",
         "side",
         "size",
         "sequence",
@@ -1088,6 +1314,16 @@ def _record_mapping(record: Any, kind: str) -> dict[str, Any]:
     values["ts_event"] = _first_record_value(record, "pretty_ts_event", "ts_event")
     values["received_time"] = _first_record_value(record, "pretty_ts_recv", "ts_recv")
     if kind == "definition":
+        raw_quantity = getattr(record, "unit_of_measure_qty", None)
+        if raw_quantity != DATABENTO_UNDEF_PRICE:
+            pretty_quantity = getattr(record, "pretty_unit_of_measure_qty", None)
+            if pretty_quantity is not None:
+                values["unit_of_measure_qty"] = pretty_quantity
+            elif raw_quantity is not None:
+                quantity = _safe_float(raw_quantity)
+                values["unit_of_measure_qty"] = (
+                    quantity / 1_000_000_000 if quantity is not None else None
+                )
         values["strike_price"] = _first_record_value(
             record, "pretty_strike_price", "strike_price"
         )
@@ -1103,6 +1339,8 @@ def _record_mapping(record: Any, kind: str) -> dict[str, Any]:
     elif kind == "option_trade":
         values["price"] = _first_record_value(record, "pretty_price", "price")
     elif kind == "statistics":
+        values["ts_ref"] = _first_record_value(record, "pretty_ts_ref", "ts_ref")
+        values["update_action"] = _first_record_value(record, "update_action")
         values["stat_type"] = _first_record_value(record, "stat_type")
         values["quantity"] = _first_record_value(record, "quantity")
     return values
@@ -1123,9 +1361,11 @@ def _timestamp_text(value: Any) -> str:
         parsed = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     if isinstance(value, int):
-        return datetime.fromtimestamp(value / 1_000_000_000, tz=timezone.utc).isoformat().replace(
-            "+00:00", "Z"
-        )
+        if value < 0 or value >= DATABENTO_UNDEF_TIMESTAMP:
+            return ""
+        seconds, nanoseconds = divmod(value, 1_000_000_000)
+        timestamp = datetime.fromtimestamp(seconds, tz=timezone.utc)
+        return f"{timestamp.strftime('%Y-%m-%dT%H:%M:%S')}.{nanoseconds:09d}Z"
     text = str(value).strip()
     parsed = parse_market_datetime(text)
     if parsed is not None:

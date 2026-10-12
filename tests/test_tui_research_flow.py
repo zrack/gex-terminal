@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from textual.widgets import DataTable, OptionList, Static
+from rich.text import Text
 
 from gex_terminal.cli import seed_demo_session
 from gex_terminal.tui_views import ReplayPicker, ResearchInfo
@@ -14,6 +15,39 @@ from tests.test_replay_keyboard import _app
 
 
 class ResearchFlowTests(unittest.IsolatedAsyncioTestCase):
+    async def test_rollover_empty_state_clears_visible_exposure_and_blocks_export(self):
+        from gex_terminal.adapters.databento import DatabentoAdapter
+        from tests.test_databento_regressions import definition, quote, trade
+
+        app = _app(data_mode="replay")
+        def visible(selector):
+            content = app.query_one(selector, Static).content
+            return content.plain if isinstance(content, Text) else Text.from_markup(str(content)).plain
+        adapter = DatabentoAdapter(app.consumer, target_underlying="ES")
+        for record in (definition(), quote(), trade()):
+            await adapter._handle_live_record(record)
+        async with app.run_test(size=(140, 42)) as pilot:
+            await pilot.pause()
+            self.assertGreater(app.query_one("#gex-table", DataTable).row_count, 0)
+            self.assertNotEqual(visible("#stat-netgex"), "--")
+            await adapter._handle_live_record(quote(
+                instrument_id=303, bid_px_00=6099.75, ask_px_00=6100.25,
+                ts_event="2026-08-06T16:01:00Z",
+            ))
+            await app.refresh_terminal_data()
+            self.assertIsNone(app._last_data)
+            self.assertEqual(app._last_breakdown, {})
+            self.assertEqual(app.query_one("#gex-table", DataTable).row_count, 0)
+            for selector in ("#stat-netgex", "#stat-wall", "#stat-zero", "#stat-imbalance"):
+                self.assertEqual(visible(selector), "--")
+            self.assertEqual(visible("#stat-spot"), "6,100.00")
+            self.assertEqual(visible("#structure-meta"), "by expiry · --")
+            self.assertFalse(app.query_one("#gex-flow").display)
+            self.assertEqual(list(app._gex_flow), [])
+            with patch("gex_terminal.tui.write_snapshot") as writer:
+                await pilot.press("e")
+            writer.assert_not_called()
+
     async def test_offline_health_summary_keeps_raw_connection_state_in_details(self):
         app = _app()
         await seed_demo_session(app.consumer)

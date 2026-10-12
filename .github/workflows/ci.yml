@@ -40,7 +40,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install build twine packaging
-          python -m pip install -e .
+          python -m pip install -e '.[databento]'
 
       - name: Compile source
         id: compile
@@ -79,10 +79,15 @@ jobs:
         run: |
           python -m venv "$GEX_CI_ROOT/gex-terminal-wheel-smoke"
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/pip" install "$GEX_CI_ROOT/gex-terminal-dist/"*.whl
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/pip" install 'databento>=0.83.0,<0.84.0'
           mkdir -p "$GEX_CI_ROOT/gex-wheel-config"
           printf 'GEX_SYMBOL=NQ\nGEX_DATA_MODE=replay\n' > "$GEX_CI_ROOT/gex-wheel-config/.env"
           cd "$GEX_CI_ROOT/gex-wheel-config"
           test "$("$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/python" -c 'from gex_terminal.config import GexConfig; c = GexConfig.from_env(); print(c.symbol + ":" + c.data_mode)')" = "NQ:replay"
+          cd "$GEX_CI_ROOT"
+          python "$GITHUB_WORKSPACE/scripts/verify_databento_functional.py" --python "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/python" --wheel "$GEX_CI_ROOT/gex-terminal-dist/"*.whl --output "$GEX_CI_ROOT/gex-databento-functional.json"
+          cd "$GITHUB_WORKSPACE"
+          python -m scripts.verify_databento_load --output "$GEX_CI_ROOT/gex-databento-provider-load.json"
           cd "$GEX_CI_ROOT"
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" --version
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" doctor --json > "$GEX_CI_ROOT/gex-wheel-doctor.json"
