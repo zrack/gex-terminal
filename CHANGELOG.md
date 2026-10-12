@@ -7,6 +7,15 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Tradovate Acknowledgement Frames
+
+- Preserve market-data events after a successful acknowledgement in the same
+  WebSocket frame; process the frame before reporting authorization or
+  subscription success, and reject trailing explicit errors.
+- Add synthetic frame/session regressions and document their reproduction and
+  evidence limits. [GEX-TRADOVATE-ACK-001](docs/work-packets/GEX-TRADOVATE-ACK-001.md)
+  owns the repair. Issue #4 remains open pending actual Tradovate ES/NQ payloads.
+
 ## Unreleased — Databento Correctness
 
 - Replace Databento's deliverable multiplier with validated dollar contract

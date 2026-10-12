@@ -5,6 +5,26 @@ position-source comparisons, and saved-price behavior without opening a market
 data connection. Passing these workflows is software evidence, not live-provider
 or predictive certification.
 
+## Tradovate Acknowledgement Frames
+
+Run the in-memory frame and scripted-session regressions without credentials:
+
+```bash
+python -m unittest -v tests.test_tradovate_ack_frames tests.test_tradovate_adapter tests.test_tradovate_protocol tests.test_tradovate_certification
+```
+
+The cases exercise matching acknowledgements interleaved with market data,
+trailing errors, unrelated request IDs and authorization/subscription state
+gates. Frames pass through the production adapter; controlled sessions verify
+delivery to the consumer. A successful response must not discard later events
+from its frame, and matching failed responses or `error`/`md/error` events in
+that frame prevent success.
+
+These constructed frames verify software behavior. They do not satisfy the
+actual-provider-payload requirement of
+[issue #4](https://github.com/zrack/gex-terminal/issues/4). Tradovate remains
+`scaffold`; no live access or payload capture is part of this test command.
+
 ## Databento Record Replay
 
 Replay mixed `definition`, `mbp-1`, `trades`, and `statistics` records from

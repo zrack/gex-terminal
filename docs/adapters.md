@@ -189,6 +189,20 @@ The Tradovate adapter currently includes:
 - Malformed quote quarantine so one bad option tick does not block other valid
   quotes in the same frame.
 
+Acknowledgement waits process each frame's event array in wire order. A matching
+successful response is retained while later market-data events are routed;
+success is returned only after the frame has been processed. A matching failed
+response or an `error`/`md/error` event prevents success, including when it
+appears after a successful response in the same frame. Unrelated request IDs
+cannot satisfy the acknowledgement wait. Connected/subscribed transitions occur
+only after the corresponding wait succeeds. Processing stops at a fatal error;
+market updates accepted before that error remain retained.
+
+The synthetic acknowledgement-frame regressions and reproduction command are
+documented in [Offline Validation](offline-validation.md#tradovate-acknowledgement-frames).
+This repair does not complete [issue #4](https://github.com/zrack/gex-terminal/issues/4),
+which remains open pending actual sanitized Tradovate ES/NQ payloads.
+
 Sanitized fixtures ship under `gex_terminal/data/provider_fixtures/` and are
 exercised from any installed location with `gex-terminal fixture-lab OUTPUT`.
 They prove parser and software-path behavior, not credential, entitlement,

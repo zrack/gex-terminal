@@ -25,6 +25,11 @@ changes.
   implementing the same scope in parallel; do not merge or close issue #4 on
   this evidence. No provider access was attempted during this review.
 
+The separate [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md)
+repairs a reproduced acknowledgement-frame handling defect using synthetic
+tests. It does not supply the observed raw ES/NQ payloads required by issue #4
+or accept PR #10; the issue remains open until that evidence is available.
+
 ## 1. Extend Replay Expectations For A Distinct Scenario
 
 Labels: `good first issue`, `help wanted`, `testing`, `replay`
