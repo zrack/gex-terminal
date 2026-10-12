@@ -11,7 +11,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from gex_terminal.adapters.databento import ADAPTER_INFO, DatabentoAdapter
+from gex_terminal.adapters.databento import (
+    ADAPTER_INFO, DatabentoAdapter, databento_option_parent_symbols,
+)
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.databento_certification_policy import (
     DatabentoCertificationPolicy,
@@ -30,6 +32,7 @@ _OI_STATUSES = {
     "unsupported",
     "entitlement_denied",
     "not_requested",
+    "invalidated",
 }
 _LIFECYCLE_STATES = {
     "initialized",
@@ -350,6 +353,9 @@ async def build_databento_certification_report(
         "provider_observations",
         oi_observations,
     )
+    oi_deletions = _diagnostic_count(
+        open_interest_diagnostics, "deletions", _counter(adapter, "_open_interest_delete_count"),
+    )
     statistics_requested = bool(
         open_interest_diagnostics.get("statistics_requested", False)
     )
@@ -364,6 +370,11 @@ async def build_databento_certification_report(
                 oi_status_candidate == "observed"
                 and statistics_requested
                 and oi_observations > 0
+            )
+            or (
+                oi_status_candidate == "invalidated"
+                and statistics_requested
+                and oi_deletions > 0
             )
             or (
                 oi_status_candidate == "not_requested"
@@ -665,7 +676,14 @@ async def build_databento_certification_report(
         "target": {
             "dataset": adapter.dataset,
             "symbol": adapter.target_underlying,
-            "option_parent": f"{adapter.target_underlying}.OPT",
+            "option_parent": getattr(adapter, "option_parents", (f"{adapter.target_underlying}.OPT",))[0],
+            "option_parents": list(getattr(
+                adapter, "option_parents", databento_option_parent_symbols(adapter.target_underlying),
+            )),
+            "option_product_roots_observed": list(
+                _mapping(diagnostics.get("subscriptions")).get("option_product_roots_observed", [])
+            ),
+            "complete_chain_coverage": "unverified",
             "underlying_continuous": f"{adapter.target_underlying}.v.0",
             "configured_contract_multiplier": validated_multiplier,
             "canonical_contract_multiplier": (
@@ -817,6 +835,7 @@ async def build_databento_certification_report(
             "sequence_integrity": sequence_integrity,
         },
         "open_interest": {
+            "deletions": oi_deletions,
             "status": oi_status,
             "status_valid": oi_status_valid,
             "statistics_requested": statistics_requested,
@@ -828,6 +847,12 @@ async def build_databento_certification_report(
             "combined_with_trade_volume": False,
         },
         "model_inputs": {
+            "provider_multiplier_definitions": _diagnostic_count(
+                _mapping(diagnostics.get("model_inputs")), "provider_multiplier_definitions", 0,
+            ),
+            "fallback_multiplier_definitions": _diagnostic_count(
+                _mapping(diagnostics.get("model_inputs")), "fallback_multiplier_definitions", 0,
+            ),
             "iv_sources_observed": sorted(state_iv_sources),
             "provider_iv_ticks": provider_iv_count,
             "black_76_inverted_ticks": inverted_iv_count,

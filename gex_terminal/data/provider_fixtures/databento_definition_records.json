@@ -10,7 +10,10 @@
       "underlying": "ES",
       "strike_price": 5950,
       "expiration": "2026-06-19",
-      "min_price_increment": 0.25
+      "min_price_increment": 0.25,
+      "contract_multiplier": 1,
+      "unit_of_measure": "IPNT",
+      "unit_of_measure_qty": 50
     },
     {
       "instrument_id": 9001002,
@@ -19,7 +22,10 @@
       "underlying": "ES",
       "strike_price": 5900,
       "expiration": "2026-06-19",
-      "min_price_increment": 0.25
+      "min_price_increment": 0.25,
+      "contract_multiplier": 1,
+      "unit_of_measure": "IPNT",
+      "unit_of_measure_qty": 50
     },
     {
       "instrument_id": 9001004,
@@ -28,7 +34,10 @@
       "underlying": "ES",
       "strike_price": 6000,
       "expiration": "2026-06-19",
-      "min_price_increment": 0.25
+      "min_price_increment": 0.25,
+      "contract_multiplier": 1,
+      "unit_of_measure": "IPNT",
+      "unit_of_measure_qty": 50
     },
     {
       "instrument_id": 9001003,
@@ -36,7 +45,10 @@
       "instrument_class": "F",
       "underlying": "ES",
       "expiration": "2026-06-19",
-      "min_price_increment": 0.25
+      "min_price_increment": 0.25,
+      "contract_multiplier": 1,
+      "unit_of_measure": "IPNT",
+      "unit_of_measure_qty": 50
     }
   ]
 }

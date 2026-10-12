@@ -95,6 +95,7 @@ async def replay_databento_records(
                 + adapter._underlying_quote_count
                 + adapter._option_trade_count
                 + adapter._open_interest_count
+                + adapter._open_interest_delete_count
             )
             await adapter._handle_live_record(record)
             after = (
@@ -102,6 +103,7 @@ async def replay_databento_records(
                 + adapter._underlying_quote_count
                 + adapter._option_trade_count
                 + adapter._open_interest_count
+                + adapter._open_interest_delete_count
             )
             if after == before:
                 control_records += 1
@@ -159,6 +161,7 @@ async def replay_databento_records(
             "underlying_quotes": adapter._underlying_quote_count,
             "option_trades": adapter._option_trade_count,
             "open_interest_updates": adapter._open_interest_count,
+            "open_interest_deletions": adapter._open_interest_delete_count,
             "control_or_dropped_records": control_records,
             "inverted_iv_ticks": adapter._inverted_iv_count,
             "fallback_iv_ticks": adapter._iv_fallback_count,
@@ -283,7 +286,8 @@ def _base_records() -> list[dict[str, Any]]:
             "record_type": "definition", "instrument_id": 101,
             "raw_symbol": "ESQ6 C6000", "asset": "ES", "underlying_id": 202,
             "strike_price": 6000.0, "instrument_class": "C",
-            "expiration": "2026-08-20T20:00:00Z", "contract_multiplier": 50,
+            "expiration": "2026-08-20T20:00:00Z", "contract_multiplier": 1,
+            "unit_of_measure": "IPNT", "unit_of_measure_qty": 50,
         },
         {
             "record_type": "mbp-1", "instrument_id": 202,

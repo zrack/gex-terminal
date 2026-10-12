@@ -2,6 +2,7 @@ import json
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from gex_terminal.contracts import (
@@ -10,6 +11,7 @@ from gex_terminal.contracts import (
     INSTRUMENT_CLASSES,
     IV_SOURCES,
     NORMALIZED_SCHEMA_VERSION,
+    OPEN_INTEREST_UPDATE_ACTIONS,
     POSITION_SOURCES,
     PRICING_MODELS,
     VOLUME_SEMANTICS,
@@ -52,6 +54,10 @@ class AdapterInfo:
 def validate_normalized_message(message: NormalizedMessage) -> None:
     schema_version = _schema_version(message)
     message_type = message.get("type")
+    if any(field in message for field in (
+        "open_interest_reference_date", "open_interest_update_action"
+    )) and (message_type != "options_volume_tick" or schema_version < 2):
+        raise ValueError("open-interest reference fields require a schema-v2 option message")
 
     if message_type == "underlying_tick":
         _require_fields(message, ("symbol", "price"))
@@ -259,12 +265,45 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
     if expiry_date(message["expiry"]) is None:
         raise ValueError("expiry must be an ISO-8601 date or timestamp")
     _require_aware_timestamp(message, "event_time")
+    _validate_open_interest_reference(message, position_source, volume_semantics)
     if message.get("received_time") not in (None, ""):
         _require_aware_timestamp(message, "received_time")
     if message.get("expiry_timestamp") not in (None, ""):
         _require_aware_timestamp(message, "expiry_timestamp")
     if message.get("contract_multiplier") not in (None, ""):
         _require_positive_number(message, "contract_multiplier")
+    if message.get("contract_multiplier_source") not in (None, ""):
+        if message["contract_multiplier_source"] != "provider_unit_of_measure":
+            raise ValueError("Unsupported contract_multiplier_source")
+        _require_fields(message, ("contract_multiplier",))
+
+
+def _validate_open_interest_reference(
+    message: NormalizedMessage,
+    position_source: str,
+    volume_semantics: str,
+) -> None:
+    fields = ("open_interest_reference_date", "open_interest_update_action")
+    if not any(field in message for field in fields):
+        return
+    _require_fields(message, fields)
+    if position_source != "open_interest" or volume_semantics != "cumulative":
+        raise ValueError("open-interest reference fields require cumulative open_interest")
+    reference_text = message["open_interest_reference_date"]
+    try:
+        reference_date = date.fromisoformat(reference_text)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("open_interest_reference_date must be an ISO date YYYY-MM-DD") from exc
+    if reference_date.isoformat() != reference_text:
+        raise ValueError("open_interest_reference_date must be an ISO date YYYY-MM-DD")
+    event_time = parse_market_datetime(message["event_time"])
+    if reference_date > event_time.date():
+        raise ValueError("open_interest_reference_date cannot follow event_time UTC date")
+    action = str(message["open_interest_update_action"]).lower()
+    if action not in OPEN_INTEREST_UPDATE_ACTIONS:
+        raise ValueError(f"Unsupported open_interest_update_action: {action}")
+    if action == "delete" and int(message["volume"]) != 0:
+        raise ValueError("open_interest_update_action=delete requires volume=0")
 
 
 def _require_aware_timestamp(message: NormalizedMessage, field: str) -> None:

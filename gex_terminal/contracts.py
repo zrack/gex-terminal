@@ -17,6 +17,7 @@ INSTRUMENT_CLASSES = {"equity_option", "futures_option", "index_option"}
 PRICING_MODELS = {"black_scholes", "black_76"}
 VOLUME_SEMANTICS = {"incremental", "cumulative"}
 POSITION_SOURCES = {"trade_volume", "open_interest"}
+OPEN_INTEREST_UPDATE_ACTIONS = {"add", "delete"}
 IV_SOURCES = {"provider", "black_76_inverted", "configured_default"}
 AGGRESSOR_SIDES = {"buy", "sell", "unknown"}
 DIRECTION_SOURCES = {"provider", "quote_inference", "unknown"}
@@ -88,6 +89,12 @@ def canonical_option_contract(
             message.get("volume_semantics") or "incremental"
         ).lower(),
         "position_source": position_source,
+        "open_interest_reference_date": message.get("open_interest_reference_date"),
+        "open_interest_update_action": (
+            str(message["open_interest_update_action"]).lower()
+            if message.get("open_interest_update_action") not in (None, "")
+            else None
+        ),
         "aggressor_side": str(
             message.get("aggressor_side") or "unknown"
         ).lower(),
@@ -97,6 +104,7 @@ def canonical_option_contract(
         "contract_multiplier": _optional_positive_float(
             message.get("contract_multiplier")
         ),
+        "contract_multiplier_source": message.get("contract_multiplier_source"),
         "iv_source": (
             str(message["iv_source"]).lower()
             if message.get("iv_source") not in (None, "")

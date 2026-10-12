@@ -583,6 +583,42 @@ class DatabentoCertificationTests(unittest.IsolatedAsyncioTestCase):
                     report["open_interest"]["combined_with_trade_volume"]
                 )
 
+    async def test_deleted_oi_is_invalidated_without_blocking_trade_certification(self):
+        class _InvalidatedOiAdapter(_PassingAdapter):
+            def diagnostics(self):
+                diagnostics = super().diagnostics()
+                diagnostics["open_interest"].update({
+                    "status": "invalidated",
+                    "statistics_requested": True,
+                    "observations": 2,
+                    "provider_observations": 2,
+                    "deletions": 1,
+                })
+                return diagnostics
+
+        with patch(
+            "gex_terminal.databento_certification.DatabentoAdapter",
+            _InvalidatedOiAdapter,
+        ):
+            report = await build_databento_certification_report(
+                symbol="ES",
+                contract_multiplier=50,
+                risk_free_rate=0.045,
+                duration_seconds=0.1,
+                ack_live_network=True,
+            )
+        self.assertEqual(report["open_interest"]["status"], "invalidated")
+        self.assertTrue(report["open_interest"]["status_valid"])
+        self.assertEqual(report["open_interest"]["observations"], 2)
+        self.assertEqual(report["open_interest"]["deletions"], 1)
+        self.assertFalse(report["open_interest"]["observed_in_window"])
+        self.assertFalse(report["open_interest"]["window_validated"])
+        self.assertFalse(report["result"]["open_interest_observed"])
+        self.assertFalse(report["result"]["open_interest_window_validated"])
+        self.assertTrue(report["result"]["transport_certified"])
+        self.assertTrue(report["result"]["chain_ingestion_certified"])
+        self.assertTrue(report["result"]["quantitative_gex_input_certified"])
+
     async def test_legacy_test_double_without_diagnostics_returns_fail_closed_report(self):
         with patch(
             "gex_terminal.databento_certification.DatabentoAdapter",

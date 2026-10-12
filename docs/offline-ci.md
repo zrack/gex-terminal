@@ -7,6 +7,11 @@ failure on one combination does not cancel the others. Application commands use
 bundled synthetic data without live provider credentials. Dependency and build
 tool installation can use the network.
 
+Source verification installs the optional Databento SDK so locally constructed
+definition and statistics records exercise fixed-point units, unset fields,
+reference dates and deletion actions in every matrix job. These regressions use
+no provider client, credentials or market-data connection.
+
 The lifecycle step also prepares a local setup bundle, runs its installer twice
 to check reuse, and exercises doctor and synthetic export through the generated
 launcher. The wrapper prefers the selected supported `python3` so these checks

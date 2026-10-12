@@ -154,7 +154,11 @@ class DatabentoLiveAdapterTests(unittest.IsolatedAsyncioTestCase):
             "trades",
             "statistics",
         ])
-        self.assertEqual(client.subscriptions[0]["symbols"], ("ES.OPT", "ES.FUT"))
+        self.assertEqual(client.subscriptions[0]["symbols"], (*adapter.option_parents, "ES.FUT"))
+        self.assertIn("E1A.OPT", adapter.option_parents)
+        self.assertIn("EW4.OPT", adapter.option_parents)
+        self.assertEqual(client.subscriptions[2]["symbols"], adapter.option_parents)
+        self.assertEqual(client.subscriptions[3]["symbols"], adapter.option_parents)
         self.assertEqual(client.subscriptions[1]["symbols"], "ES.v.0")
         self.assertNotIn("snapshot", client.subscriptions[1])
         self.assertTrue(client.stopped)
@@ -265,15 +269,25 @@ class DatabentoLiveAdapterTests(unittest.IsolatedAsyncioTestCase):
                 "instrument_id": 101,
                 "raw_symbol": "ESZ6 C6050",
                 "asset": "ES",
+                "underlying_id": 202,
                 "strike_price": 6050.0,
                 "instrument_class": "C",
                 "expiration": "2026-12-18T20:00:00Z",
+            },
+            {
+                "record_type": "mbp-1",
+                "instrument_id": 202,
+                "bid_px_00": 5999.75,
+                "ask_px_00": 6000.25,
+                "ts_event": "2026-08-06T16:00:00Z",
             },
             {
                 "record_type": "statistics",
                 "instrument_id": 101,
                 "stat_type": 9,
                 "quantity": 1200,
+                "ts_ref": "2026-08-05",
+                "update_action": 1,
                 "ts_event": "2026-08-06T16:00:00Z",
                 "sequence": 50,
             },

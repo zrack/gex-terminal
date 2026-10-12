@@ -8,7 +8,9 @@
       "raw_symbol": "ESM6 C5950",
       "stat_type": "open_interest",
       "open_interest": 1200,
-      "ts_ref": "2026-06-18"
+      "ts_ref": "2026-06-18",
+      "update_action": 1,
+      "ts_event": "2026-06-19T00:05:00Z"
     }
   ]
 }

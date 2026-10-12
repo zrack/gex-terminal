@@ -371,7 +371,21 @@ class StatefulGexConsumer:
         state_key = contract_storage_key(contract)
         existing = self.contract_state.get(state_key)
         sequence = contract.get("sequence")
-        if (
+        reference_date = contract.get("open_interest_reference_date")
+        if contract["position_source"] == "open_interest" and existing is not None:
+            existing_reference_date = existing.get("open_interest_reference_date")
+            if existing_reference_date:
+                # An unreferenced legacy observation cannot replace dated OI.
+                if not reference_date or reference_date < existing_reference_date:
+                    self.duplicate_message_count += 1
+                    return False
+                if reference_date == existing_reference_date and (
+                    parse_market_datetime(contract["event_time"])
+                    <= parse_market_datetime(existing["event_time"])
+                ):
+                    self.duplicate_message_count += 1
+                    return False
+        if not reference_date and (
             existing is not None
             and sequence is not None
             and existing.get("last_sequence") is not None
@@ -409,6 +423,15 @@ class StatefulGexConsumer:
             raise ValueError("contract identity changed: contract_multiplier")
         if supplied_multiplier is None and known_multipliers:
             contract = {**contract, "contract_multiplier": next(iter(known_multipliers))}
+        if contract.get("contract_multiplier_source") is None:
+            known_source = next((
+                row["contract_multiplier_source"]
+                for source in ("open_interest", "trade_volume")
+                if (row := self.contract_state.get((*state_key[:2], source)))
+                and row.get("contract_multiplier_source") is not None
+            ), None)
+            if known_source is not None:
+                contract = {**contract, "contract_multiplier_source": known_source}
 
         volume = int(message["volume"])
         previous = int(existing.get("accumulated_volume", 0) if existing else 0)
@@ -447,6 +470,10 @@ class StatefulGexConsumer:
             "directional_volume": directional_volume,
             "direction_sources": sorted(direction_sources),
         })
+        if contract["position_source"] == "open_interest":
+            state["open_interest_invalidated"] = (
+                contract.get("open_interest_update_action") == "delete"
+            )
         self.contract_state[state_key] = state
         self._rebuild_public_projections_locked()
         return True
@@ -752,6 +779,8 @@ class StatefulGexConsumer:
         """
         grouped: Dict[tuple[str, str], list[Dict[str, Any]]] = {}
         for state in contracts:
+            if state.get("open_interest_invalidated"):
+                continue
             key = (str(state.get("provider")), str(state.get("contract_id")))
             grouped.setdefault(key, []).append(state)
 
