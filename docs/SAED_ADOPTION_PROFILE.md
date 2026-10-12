@@ -50,9 +50,11 @@ integrated through [PR #36](https://github.com/zrack/gex-terminal/pull/36).
 Its acceptance is offline software evidence; credentialed provider observation
 remains open and Databento readiness remains `live-uncertified`.
 
-Open [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md) owns the
-offline acknowledgement-frame repair and regression evidence. The maintainer
-authorized commit and merge; issue #4 remains open for actual provider payloads.
+Closed [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md) owns the
+offline acknowledgement-frame repair and regression evidence integrated through
+[PR #38](https://github.com/zrack/gex-terminal/pull/38). The maintainer authorized
+commit and merge; issue #4 remains open for actual provider payloads, and
+Tradovate readiness remains `scaffold`.
 
 ## Purpose And Entry Boundary
 

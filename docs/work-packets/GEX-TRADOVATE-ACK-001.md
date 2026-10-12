@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: "Open — offline verified; protected-branch integration pending"
+status: closed
 baseline: main@06ea877
 branch: codex/tradovate-ack-frames
 created: 2026-10-11
@@ -67,8 +67,26 @@ Revert the repair merge for recovery; no user-data migration occurs.
   tested source. The package version and release tags are unchanged.
 - Generated logs, reports and candidate-wheel identity are retained locally under
   ignored `dist/tradovate-ack-verification/2026-10-11/`. These are synthetic
-  implementation checks; hosted checks and merged-tree verification remain the
-  technical integration gates.
+  implementation checks; completed hosted and merged-tree integration evidence
+  is recorded below.
+
+## Technical Closeout
+
+The maintainer-authorized [PR #38](https://github.com/zrack/gex-terminal/pull/38)
+merged reviewed head `617482a6aa730fb2ee829537461ccaf4d2c28540` as
+`a959272ccb22a288d19c2bca60d38d35cfade39f` at `2026-10-12T05:55:33Z`. The final hosted runs
+[38209638603](https://github.com/zrack/gex-terminal/actions/runs/38209638603) and
+[38209581980](https://github.com/zrack/gex-terminal/actions/runs/38209581980)
+passed all eight jobs. Clean merged-main verification passed all 614 source tests
+at that merge commit before this documentation closeout.
+
+This closes the offline technical shipment only. The external outcome and
+[issue #4](https://github.com/zrack/gex-terminal/issues/4) remain open for actual
+Tradovate ES/NQ payload observation; contributor PR #10 is unchanged. Existing
+lifecycle, credential and evidence boundaries remain in force. Tradovate stays
+`scaffold`, predictive validity stays `unmeasured`, and application version
+`0.6.0` and existing release tags remain unchanged. No live access, new tag,
+release or publication is claimed.
 
 ## Evidence Ceiling
 
