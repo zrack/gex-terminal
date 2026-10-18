@@ -44,3 +44,5 @@
 }
 
 .loaded-grid-note{font:10px/1.5 var(--mono);color:var(--muted);margin:0 0 12px}
+
+.intake-step{border-top:1px solid var(--border);padding-top:2px;margin-top:18px}.intake-step>label:not(.checkbox-control){display:block;font-size:12px;color:var(--muted);margin:12px 0 8px}.intake-step input[type=file]{display:block;max-width:100%;font-size:12px;color:var(--muted)}.intake-step .intake-privacy{font-size:12px;line-height:1.6;margin:14px 0}.intake-rights{align-items:flex-start;max-width:100%;line-height:1.5;margin:14px 0 18px}.intake-rights input{flex:none;margin-top:4px}#intake-status{font-size:12px;margin:18px 0 0}#intake-status.error{color:var(--danger)}.intake-warnings{color:var(--amber);font-size:12px;line-height:1.6;padding-left:20px;margin:16px 0}.intake-warnings:empty{display:none}.intake-step .intake-checkpoint-note{font-size:12px;margin-top:10px}.intake-step select{width:100%;font-size:12px}#intake-details dd{overflow-wrap:anywhere}#intake-dialog .primary-button{margin-top:14px}@media(max-width:600px){#open-session{font-size:11px}.header-actions{flex-wrap:wrap;justify-content:flex-end}.intake-step select{font-size:11px}}

@@ -87,6 +87,32 @@ product label is a defect even if the moderator knows the intended answer.
 
 ## Copyable scorecard
 
+### Current Guided-Intake Cohort
+
+For a newly frozen build with guided intake, use the separately versioned
+[guided-intake protocol](study-kit/protocol.json) and its frozen participant and
+moderator materials from [Study Build](study-build.md). The September cohort
+keeps its original tasks and artifacts. Never pool task times across these
+cohorts without retaining their build, task and fixture identities.
+
+| Task ID | Observed action | Success evidence |
+| --- | --- | --- |
+| GI-01 | Install and obtain offline readiness | Exact kit wheel/version and fresh environment; preinstallation is assisted preparation |
+| GI-02 | Inspect the assigned local synthetic capture | Correct instrument, source, multiplier, times, integrity and assumptions; integrity is not source rights |
+| GI-03 | Select the final prefix and explain a level and limitation | Cutoff matches fixture answer key; model/units and quality match the receipt |
+| GI-04 | Compare available separate models and change a parameter | No summed quantities or invented unavailable coverage; frozen source stays fixed |
+| GI-05 | Save/export and reproduce in a fresh server | Verified receipt in an empty workspace without original upload or source process |
+| GI-06 | Use Terminal's `w` handoff and explain evidence limits | Captured identity/assumptions visible; neither live reliability nor predictive value is established |
+
+Use all six IDs in each preregistered scorecard, retaining assistance, failures,
+refusals and not-started attempts. Record time from beginning GI-01 through a
+correct source/model/quality explanation, plus task-level start/stop times.
+The existing activation, loop, trust and replacement definitions below still
+apply, with the cohort's six named tasks as the loop denominator. Automated
+tests and maintainer rehearsal supply no participant outcomes.
+
+### Observation Rows
+
 One row per participant/task; empty means not observed, never zero.
 
 | Participant ID | Segment / buying role | Wheel / OS / Python / fixture | Task | Start / stop | Outcome (unaided / assisted / failed / not attempted) | Help count | Observed confusion or error | Exact replacement named | Follow-up consent |

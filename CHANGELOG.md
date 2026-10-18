@@ -7,6 +7,21 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Guided Session Intake And Current-Build Study
+
+- Open a local complete capture in Wind Tunnel, verify integrity, inspect source,
+  time and model assumptions, and freeze a selected capture prefix. Use the
+  production consumer and existing opaque portable checkpoint/receipt format.
+- Bound uploads and in-memory retention; omit arbitrary private metadata and
+  extensions from responses and artifacts. Preserve the previous valid source
+  when an inspection fails or is canceled.
+- Prepare a separately identified current-build study kit with synthetic ES/NQ
+  captures, frozen task/scoring materials, exact wheel/source/dependency hashes
+  and blank participant scorecards. Preserve the September study unchanged;
+  automated rehearsal does not count as observed participant evidence.
+- [GEX-INTAKE-STUDY-001](docs/work-packets/GEX-INTAKE-STUDY-001.md) owns acceptance.
+  Issue #4 stays open for actual Tradovate payloads.
+
 ## Unreleased — Terminal Checkpoint Handoff
 
 - Press `w` in Terminal to freeze demo/replay state and open Wind Tunnel on

@@ -1,18 +1,81 @@
 # Offline Study Build
 
-This guide owns preparation and handoff of one exact offline first-use build.
+This guide owns preparation and handoff of exact offline first-use builds.
 [Product Validation](product-validation.md) owns the study tasks, scoring key,
 participant selection and consent. [First Run](first-run.md) owns installation
 and the application journey. A prepared bundle is not a completed user study.
 
 The prepared [September 20 build record](studies/offline-first-use-2026-09-20.md)
-identifies the repaired wheel, frozen materials, fixture hashes and rehearsal.
-Use that exact artifact for this cohort; rebuilding creates a new candidate
-unless its wheel and declared material/runtime identities match.
+identifies that cohort's repaired wheel, frozen materials, fixture hashes and
+rehearsal. Preserve it unchanged. Guided session intake and Terminal checkpoint
+handoff use a separate current-build cohort and the frozen GI-01 through GI-06
+supplement in [Product Validation](product-validation.md). A matching version
+number cannot substitute for source, wheel, runtime and material identities.
+
+The prepared [October 18 guided-intake build](studies/guided-intake-2026-10-18.md)
+binds the current wheel, separate cohort, synthetic fixtures and execution
+evidence. Use that exact kit for its cohort; preserve both historical records.
+
+## Prepare the guided intake cohort
+
+Commit the reviewed implementation and materials first. Use the same Python and
+build tools intended for the study runtime. Prepare exact application dependency
+constraints from the intended installed environment; remove editable/local URLs
+and provider extras. The helper rejects anything other than unique exact
+`name==version` pins, requires direct wheel dependencies to be covered and never
+downloads or installs dependencies.
+
+```bash
+python scripts/build_study_kit.py \
+  --commit FULL_REVIEWED_COMMIT_SHA \
+  --study-id guided-intake-YYYY-MM-DD-rehearsal \
+  --requirements-lock /path/to/requirements-lock.txt
+```
+
+The helper exports that exact commit twice, builds both wheels using the commit
+timestamp as `SOURCE_DATE_EPOCH` and stops if their names or hashes differ. It
+packages a source archive, exact wheel and dependency constraints, frozen docs,
+the [guided protocol](study-kit/protocol.json), participant/moderator guides,
+blank de-identified scorecards and synthetic ES/NQ captured-session files. The
+captures are generated through the frozen commit's `CapturedSessionWriter`
+using genuine fixture event timestamps; no provider data, wall-clock fallback
+or personal account metadata is introduced. `fixture-answer-key.json` freezes
+the final event index and as-of without inventing model coverage or level values.
+
+Build logs and capture integrity are preparation checks. The initial manifest
+explicitly marks installation and browser interaction `not_run`. Rehearse its
+exact wheel outside the checkout, including local-capture inspection, selecting
+a checkpoint, a scenario calculation, save/export and reproduction on a fresh
+server with an empty workspace. Rehearse Terminal `w` separately. Preserve
+failed attempts and distinguish all automated checks from observed participants.
+
+Freeze the resulting execution record with the final kit using a new identity:
+
+```bash
+python scripts/build_study_kit.py \
+  --commit SAME_REVIEWED_COMMIT_SHA \
+  --study-id guided-intake-YYYY-MM-DD \
+  --requirements-lock /path/to/requirements-lock.txt \
+  --rehearsal-record /path/to/execution.json
+```
+
+The execution JSON uses schema `gex-terminal.study-rehearsal.v1`, exact
+`source_commit` and `wheel_sha256`, integer `participant_sessions: 0`, and a
+nonempty `checks` list. Every check has a name and explicit `passed`, `failed`
+or `not_run` status; retain commands, runtime and artifact evidence with it.
+The helper validates that identity binding and copies/hashes the entire record.
+It does not independently establish the truth of reported observations.
+
+Output is a new ignored `dist/study/STUDY_ID/` directory, sibling ZIP and ZIP
+checksum. Existing directories, ZIPs or checksums are never replaced; failed
+preparation retains its reserved identity and logs. `SHA256SUMS` covers every
+kit file except itself. `verify_inventory` in the build helper also rejects
+added files, changed bytes and links. Any amendment after freezing requires a
+new identity and reviewed inventory. No existing release tag is moved.
 
 ## Freeze the source and materials
 
-Use a reviewed commit containing the [replay-picker repair](work-packets/GEX-UX-001.md).
+Use a reviewed commit containing the intended workflow and regression repairs.
 Record the full source commit, Git tree, application version and build tools.
 Build from a clean export of that commit with the existing
 [contributor procedure](../CONTRIBUTING.md#verification). Keep the original

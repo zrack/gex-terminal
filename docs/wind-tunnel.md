@@ -2,7 +2,8 @@
 
 The Wind Tunnel answers a conditional research question: **if these assumptions
 change, how does the modeled structure change?** It reconstructs a bundled
-replay or accepts a frozen Terminal demo/replay checkpoint, keeps its contract
+replay, accepts a frozen Terminal demo/replay checkpoint, or guides you through
+a local captured session. It keeps the selected checkpoint's contract
 quantities fixed and reprices scenarios
 through the same calculation engine as the terminal.
 
@@ -81,6 +82,47 @@ choose filesystem paths. This is a single-state handoff, not a general session
 importer or live synchronization. Live-state capture is rejected pending its
 separate governed authority. Mixed legacy/v2 state, missing market time and
 invalid/oversized inputs also fail closed.
+
+### Bring A Local Captured Session
+
+Choose **Open local session** in the workbench. Select a complete
+`*.gex-session.jsonl` made by the [capture recorder](captured-sessions.md), then
+review its integrity result, declared source, genuine market times, effective
+model assumptions and fallback warnings. Recorded footer quality describes the
+end of the original session; the opened checkpoint shows replay-computed quality
+for the selected prefix. Arbitrary CSV/provider files are not
+supported. Inspect your original file for sensitive content and confirm your
+source permits this local use before selecting it.
+
+Choose a capture-sequence checkpoint and explicitly open it. The production
+consumer reconstructs only that prefix; later events cannot enter the frozen
+input. The selection preview shows the maximum genuine message time in the
+capture prefix, so a late record never moves that preview backward. The opened
+checkpoint shows the consumer's authoritative accepted-state time, which can be
+earlier when later captured records were ignored. A prefix without usable underlying and
+option state cannot open. Missing genuine message clocks fail closed even if
+the capture envelope used receipt-time fallback.
+
+The upload is bounded to 4 MiB and 5,000 events. Up to four inspected sessions
+are retained in server memory; discard an inspection before adding a fifth.
+If an interrupted tab loses those inspection IDs, restart the local server to
+clear its registry; saved receipts remain available.
+Cancel/discard release inspected state (a pending verification is discarded when
+its response arrives); server shutdown clears the registry. Raw uploads are not
+written to the workspace. The browser sends bytes rather than a filesystem path;
+unknown header labels and message extensions are removed after integrity
+verification. Source contract identifiers become stable opaque aliases while
+preserving contract linkage. Receipts still contain market data: inspect them
+before sharing. Checksums establish integrity, not authenticity or
+source rights. Original files remain under their owner's retention policy.
+
+The opened source is a **Frozen captured checkpoint**. Its generated provenance
+binds the complete capture content digest and selected event number. Calculation,
+model comparison and save/export/reopen use the existing checkpoint workflow.
+The receipt embeds its frozen input and reproduces on a fresh server without the
+capture file. Reopening a receipt does not restore the full session for scrubbing;
+select the original capture again to choose a different prefix. Canceling or a
+failed inspection leaves the current validated research source available.
 
 ### Bundled Synthetic Sessions
 

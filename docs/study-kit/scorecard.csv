@@ -1,0 +1,7 @@
+participant_id,segment_buying_role,study_id,source_commit,wheel_sha256,os_architecture,python_version,fixture,task_id,start,stop,outcome,help_count,observed_confusion_or_error,exact_replacement_named,follow_up_consent
+,,,,,,,,GI-01,,,,,,,
+,,,,,,,,GI-02,,,,,,,
+,,,,,,,,GI-03,,,,,,,
+,,,,,,,,GI-04,,,,,,,
+,,,,,,,,GI-05,,,,,,,
+,,,,,,,,GI-06,,,,,,,
