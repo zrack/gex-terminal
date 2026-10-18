@@ -9,11 +9,13 @@ belongs in [Competitive Landscape](docs/market-analysis.md).
 Priorities reviewed October 18, 2026 against the current `0.6.0` source and
 the refreshed [Competitive Landscape](docs/market-analysis.md) and
 [Application Review](docs/application-review.md). The maintainer authorized
-the checkpoint handoff into Wind Tunnel, its regression coverage and
-documentation, and commit/merge. The implemented demo/replay handoff and its
+the checkpoint handoff into Wind Tunnel, followed by guided local-session
+intake and a separately frozen current-build study kit, with regression coverage,
+documentation and commit/merge. The implemented demo/replay handoff and its
 integration gates belong to [GEX-WIND-HANDOFF-001](docs/work-packets/GEX-WIND-HANDOFF-001.md);
 it is not repeated as future feature work here. [Wind Tunnel](docs/wind-tunnel.md)
-owns its user contract. Broader features below remain demand-gated;
+owns its user contract. [GEX-INTAKE-STUDY-001](docs/work-packets/GEX-INTAKE-STUDY-001.md)
+owns intake and study preparation. Broader features below remain demand-gated;
 [Changelog](CHANGELOG.md) and the routed work packet own shipped acceptance.
 
 ## Current Work Order
@@ -21,8 +23,8 @@ owns its user contract. Broader features below remain demand-gated;
 Defer broad feature expansion until the chosen research job has been observed
 with real users. Correctness regressions still interrupt product work. Permit
 bounded engineering that removes a concrete obstacle to testing that job. The
-authorized checkpoint implementation does not authorize the remaining feature
-candidates.
+authorized guided intake and current-build study preparation remove that testing
+obstacle; broader feature candidates still need their own owner decision.
 
 Prepared protocols are ready to use, but preparation is not a passed gate.
 Preserve the exact repaired build and frozen September 20 materials identified
@@ -34,7 +36,7 @@ results to imply that the newer experience was observed.
 
 | Order | Work | Why now | Completion evidence |
 | --- | --- | --- | --- |
-| 1 — Observe the current workflow | Freeze a new current-build study and run six observed offline task sessions, including the explicit checkpoint handoff | Tests cannot establish whether a non-developer understands or trusts the result | Unaided outcomes, timing, non-starts, intervention log, recurring job and reproduced trust defects |
+| 1 — Observe the current workflow | Run six observed offline task sessions on the new guided-intake study kit, including local session intake and the explicit checkpoint handoff | Tests cannot establish whether a non-developer understands or trusts the result | Unaided outcomes, timing, non-starts, intervention log, recurring job and reproduced trust defects |
 | 2 — Qualify user input and the offer | Test one rights-authorized historical/capture path, recruit design partners, compare concepts and obtain price/cost evidence | The research job and commercial path can be tested without recurring live operation | Phase 0 gates plus input lineage, quality limits, repeat use and a lawful historical research offer |
 | 3 — Choose the narrow beta | Enter the historical-research branch of Phase 3 when its gates pass; run live ES only under separately accepted authority | Historical research and a live cockpit have different operating obligations | Branch-specific activation, use, replacement, trust and product-path decision |
 

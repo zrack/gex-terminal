@@ -167,6 +167,7 @@ canonical guide:
 
 | Goal | Starting command | Guide |
 | --- | --- | --- |
+| Inspect a local captured session | `gex-terminal wind-tunnel` → **Open local session** | [Guided Intake](docs/wind-tunnel.md#bring-a-local-captured-session) |
 | Stress market structure offline | `gex-terminal wind-tunnel` | [Market Wind Tunnel](docs/wind-tunnel.md) |
 | Diagnose a local installation | `gex-terminal doctor` | [Offline Doctor](docs/doctor.md) |
 | Explore bundled market days | `gex-terminal --replay-session trend-day` | [Replay Research](docs/replay-research.md) |

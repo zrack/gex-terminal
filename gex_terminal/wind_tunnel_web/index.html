@@ -16,6 +16,7 @@
   <span class="header-source" id="header-source">Local research</span>
   <span class="local-badge">LOCAL · OFFLINE</span>
   <div class="header-actions">
+    <button type="button" id="open-session" class="quiet">Open local session</button>
     <button type="button" id="open-examples" class="quiet">Examples</button>
     <button type="button" id="open-receipts" class="quiet"><img src="/static/icons/folder-open.svg" alt="">Saved scenarios</button>
     <button type="button" id="open-help" class="quiet"><img src="/static/icons/question.svg" alt="">Help</button>
@@ -92,6 +93,22 @@
   </section>
   <footer class="evidence-footer"><span id="evidence-limit">Synthetic inputs · conditional model output · predictive validity unmeasured</span><span id="source-fingerprint">Local calculations. No market connection.</span></footer>
 </main>
+<dialog id="intake-dialog" aria-labelledby="intake-title"><div class="dialog-header"><h2 id="intake-title">Bring a captured session</h2><button type="button" class="icon-button" id="cancel-intake" aria-label="Cancel session intake"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body">
+  <p>Open a complete GEX captured session, inspect its inputs, then freeze one event checkpoint for research.</p>
+  <section class="intake-step" aria-labelledby="intake-file-heading"><h3 id="intake-file-heading">1. Choose and verify</h3>
+    <label for="session-file">Captured session (.gex-session.jsonl, up to 4 MiB)</label><input id="session-file" type="file" accept=".gex-session.jsonl,.jsonl,application/x-ndjson">
+    <p class="intake-privacy">The selected file is sent only to this local Wind Tunnel process for verification. Capture files can contain extension fields or private metadata. Check the file before choosing it; integrity verification does not redact it or establish data rights. No provider connection is made.</p>
+    <label class="checkbox-control intake-rights"><input id="intake-rights" type="checkbox"><span>I have permission to use this file locally and have checked it for private information.</span></label>
+    <button type="button" id="verify-session" class="secondary-button" disabled>Verify session</button>
+  </section>
+  <p id="intake-status" role="status" aria-live="polite">Choose a complete captured session to begin.</p>
+  <section id="intake-review" class="intake-step" aria-labelledby="intake-review-heading" hidden><h3 id="intake-review-heading">2. Inspect the verified inputs</h3>
+    <dl id="intake-details"></dl><ul id="intake-warnings" class="intake-warnings"></ul>
+    <label for="intake-checkpoint">Event checkpoint</label><select id="intake-checkpoint"></select><p id="intake-checkpoint-note" class="intake-checkpoint-note">The chosen event and all preceding events form one frozen checkpoint. Later events are excluded. Times preview the raw captured prefix; the opened checkpoint shows its accepted cutoff. A checkpoint without usable timed market inputs cannot be opened.</p>
+    <h3>3. Open a frozen checkpoint</h3><p>Your current research source changes only after the selected checkpoint passes validation. Save a scenario to keep a portable receipt of its exact inputs and result.</p>
+    <button type="button" id="open-intake-checkpoint" class="primary-button" disabled>Open in Wind Tunnel<img src="/static/icons/arrow-right.svg" alt=""></button>
+  </section>
+</div></dialog>
 <dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-header"><h2 id="info-title">Research help</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div id="info-content" class="dialog-body"></div></dialog>
 <dialog id="save-dialog" aria-labelledby="save-title"><form id="save-form"><div class="dialog-header"><h2 id="save-title">Save this scenario</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body"><p>Keep the exact source, model inputs, and calculated result in a local receipt.</p><label for="scenario-name">Scenario name</label><input id="scenario-name" type="text" maxlength="80" required autocomplete="off"><p id="save-error" class="validation-message" role="alert" hidden></p><button class="primary-button" id="confirm-save" type="submit">Save scenario</button></div></form></dialog>
 <dialog id="receipts-dialog" aria-labelledby="receipts-title"><div class="dialog-header"><h2 id="receipts-title">Saved scenarios</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body"><p>Local receipts preserve inputs and results. Reopening recalculates the saved scenario.</p><div class="receipt-import"><label class="secondary-button" for="receipt-file">Import &amp; verify a receipt</label><input id="receipt-file" type="file" accept=".json,application/json"><p id="import-status" role="status"></p></div><div id="receipts-list" aria-live="polite"></div></div></dialog>

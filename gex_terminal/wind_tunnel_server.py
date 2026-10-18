@@ -22,6 +22,7 @@ from typing import Any
 from aiohttp import web
 
 from . import __version__
+from .session_intake import IntakeError, SessionIntake
 
 
 RECEIPT_SCHEMA = "gex-terminal.wind-tunnel.receipt.v1"
@@ -38,6 +39,7 @@ TOKEN_KEY = web.AppKey("capability", str)
 ORIGIN_KEY = web.AppKey("origin", str)
 LOCK_KEY = web.AppKey("calculation_lock", asyncio.Lock)
 ASSETS_KEY = web.AppKey("assets", dict)
+INTAKE_KEY = web.AppKey("session_intake", object)
 
 
 class ReceiptError(ValueError):
@@ -323,6 +325,8 @@ async def security_boundary(request, handler):
         response = error_response(413, "size", "Request exceeds the 4 MiB limit.")
     except web.HTTPException as exc:
         response = error_response(exc.status, "http", "Request is not supported.")
+    except IntakeError as exc:
+        response = error_response(400, "intake", str(exc))
     except ReceiptError as exc:
         response = error_response(400, "receipt", str(exc))
     except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
@@ -369,6 +373,7 @@ def create_app(workspace: Path | str, *, token: str | None = None,
     app[ORIGIN_KEY] = origin
     app[LOCK_KEY] = asyncio.Lock()
     app[ASSETS_KEY] = packaged_assets() if assets is None else assets
+    app[INTAKE_KEY] = SessionIntake()
 
     async def static_asset(request):
         data, mime = app[ASSETS_KEY][request.path]
@@ -413,7 +418,33 @@ def create_app(workspace: Path | str, *, token: str | None = None,
         body = await read_body(request)
         return await run_bounded(request, lambda: reproduce_receipt(body, core=app[CORE_KEY]))
 
+    async def inspect_intake(request):
+        if request.content_type != "application/octet-stream":
+            raise ReceiptError("Select a captured-session file to inspect.")
+        data = await request.read()
+
+        async def inspect():
+            return app[INTAKE_KEY].inspect(data)
+
+        return await run_bounded(request, inspect)
+
+    async def intake_checkpoint(request):
+        body = await read_body(request)
+        if set(body) != {"intake_id", "sequence"}:
+            raise ReceiptError("Choose an inspected session and checkpoint.")
+
+        async def freeze():
+            artifact = await app[INTAKE_KEY].checkpoint(body["intake_id"], body["sequence"])
+            return {"terminal_checkpoint": artifact}
+
+        return await run_bounded(request, freeze)
+
+    async def discard_intake(request):
+        app[INTAKE_KEY].discard(request.match_info["id"])
+        return web.json_response({"status": "discarded"})
+
     async def cleanup(_):
+        app[INTAKE_KEY].clear()
         app[STORE_KEY].close()
 
     for path in app[ASSETS_KEY]:
@@ -427,6 +458,9 @@ def create_app(workspace: Path | str, *, token: str | None = None,
     app.router.add_get("/api/receipts/{id}", receipt)
     app.router.add_get("/api/receipts/{id}/export", receipt)
     app.router.add_post("/api/reproduce", reproduce)
+    app.router.add_post("/api/intake", inspect_intake)
+    app.router.add_post("/api/intake/checkpoint", intake_checkpoint)
+    app.router.add_delete("/api/intake/{id}", discard_intake)
     app.on_cleanup.append(cleanup)
     # Initialize storage last so asset/route construction cannot leak its descriptor.
     app[STORE_KEY] = ReceiptStore(workspace)

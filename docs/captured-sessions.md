@@ -101,6 +101,15 @@ Noninteractive snapshot workflows, including exports, overlays, sensitivity,
 session-store saves, and journal entries, always replay captures without
 intentional delay. Event-time pacing applies only to the interactive terminal.
 
+## Open A Capture In Wind Tunnel
+
+Start `gex-terminal wind-tunnel`, choose **Open local session**, and follow the
+integrity/context/checkpoint review. [Wind Tunnel](wind-tunnel.md#bring-a-local-captured-session)
+owns the guided intake contract and its bounds. It accepts complete captured
+sessions only, reconstructs a selected prefix through the existing consumer,
+and saves a portable frozen checkpoint in scenario receipts. This does not
+acquire provider data or grant permission to reuse an original capture.
+
 ## Inventory And Research Workflows
 
 List complete, integrity-verified captures in the local session store:

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import io
 import json
+import math
 import os
 import time
 from datetime import datetime, timezone
@@ -320,6 +322,51 @@ def _verify_capture(
     if not path.exists():
         raise FileNotFoundError(f"Captured session not found: {path}")
 
+    with path.open(encoding="utf-8") as capture_file:
+        return _verify_capture_lines(capture_file)
+
+
+def verify_captured_session_bytes(
+    data: bytes, *, max_bytes: int = 4 * 1024 * 1024, max_events: int = 5000,
+) -> tuple[dict[str, Any], dict[str, Any], tuple[dict[str, Any], ...]]:
+    """Verify bounded uploaded bytes without opening or persisting a source path.
+
+    The same digest/contract verifier serves existing file replay. Uploaded JSON
+    additionally rejects duplicate fields and non-finite constants, avoiding an
+    ambiguous interpretation at the browser trust boundary.
+    """
+    if not isinstance(data, bytes) or not data or len(data) > max_bytes:
+        raise CaptureIntegrityError("capture must contain bounded nonempty bytes")
+    try:
+        decoded = data.decode("utf-8")
+        return _verify_capture_lines(io.StringIO(decoded), strict=True, max_events=max_events)
+    except (UnicodeError, RecursionError, OverflowError, TypeError) as exc:
+        raise CaptureIntegrityError("invalid captured-session encoding or structure") from exc
+
+
+def _unique_capture_fields(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate captured-session field")
+        result[key] = value
+    return result
+
+
+def _invalid_capture_constant(value):
+    raise ValueError("non-finite captured-session number")
+
+
+def _finite_capture_float(value):
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError("non-finite captured-session number")
+    return parsed
+
+
+def _verify_capture_lines(
+    capture_file: Iterable[str], *, strict: bool = False, max_events: int | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], tuple[dict[str, Any], ...]]:
     header: dict[str, Any] | None = None
     footer: dict[str, Any] | None = None
     expected_sequence = 0
@@ -328,68 +375,75 @@ def _verify_capture(
     content_digest = hashlib.sha256()
     footer_seen = False
     events: list[dict[str, Any]] = []
-    with path.open(encoding="utf-8") as capture_file:
-        for line_number, line in enumerate(capture_file, start=1):
-            if not line.strip():
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError as exc:
+    for line_number, line in enumerate(capture_file, start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(
+                line, object_pairs_hook=_unique_capture_fields if strict else None,
+                parse_constant=_invalid_capture_constant if strict else None,
+                parse_float=_finite_capture_float if strict else None,
+            )
+        except (ValueError, RecursionError) as exc:
+            raise CaptureIntegrityError(
+                f"invalid capture JSON at line {line_number}"
+            ) from exc
+        if not isinstance(record, dict):
+            raise CaptureIntegrityError("capture records must be JSON objects")
+        record_type = record.get("record_type")
+        if header is None:
+            if record_type != "header":
+                raise CaptureIntegrityError("capture header must be the first record")
+            if record.get("schema") != CAPTURE_SCHEMA:
                 raise CaptureIntegrityError(
-                    f"invalid capture JSON at line {line_number}"
-                ) from exc
-            record_type = record.get("record_type")
-            if header is None:
-                if record_type != "header":
-                    raise CaptureIntegrityError("capture header must be the first record")
-                if record.get("schema") != CAPTURE_SCHEMA:
-                    raise CaptureIntegrityError(
-                        f"unsupported captured-session schema: {record.get('schema')}"
-                    )
-                header = record
-                content_digest.update(_canonical_bytes(record) + b"\n")
-                continue
-            if footer_seen:
-                raise CaptureIntegrityError("capture contains records after its footer")
-            if record_type == "footer":
-                footer = record
-                footer_seen = True
-                continue
-            if record_type != "event":
-                raise CaptureIntegrityError(
-                    f"unexpected capture record type at line {line_number}: {record_type}"
+                    f"unsupported captured-session schema: {record.get('schema')}"
                 )
-            if record.get("sequence") != expected_sequence:
-                raise CaptureIntegrityError(
-                    f"capture sequence mismatch: expected {expected_sequence}, "
-                    f"got {record.get('sequence')}"
-                )
-            message = record.get("message")
-            if not isinstance(message, dict):
-                raise CaptureIntegrityError("capture event message must be an object")
-            try:
-                validate_normalized_message(message)
-            except (TypeError, ValueError) as exc:
-                raise CaptureIntegrityError(
-                    f"invalid normalized message at capture sequence {expected_sequence}: {exc}"
-                ) from exc
-            message_bytes = _canonical_bytes(message)
-            expected_message_hash = hashlib.sha256(message_bytes).hexdigest()
-            if record.get("message_sha256") != expected_message_hash:
-                raise CaptureIntegrityError(
-                    f"message hash mismatch at capture sequence {expected_sequence}"
-                )
-            record_base = dict(record)
-            record_hash = record_base.pop("record_sha256", None)
-            if record_hash != hashlib.sha256(_canonical_bytes(record_base)).hexdigest():
-                raise CaptureIntegrityError(
-                    f"record hash mismatch at capture sequence {expected_sequence}"
-                )
-            message_digest.update(message_bytes + b"\n")
-            records_digest.update(_canonical_bytes(record) + b"\n")
+            header = record
             content_digest.update(_canonical_bytes(record) + b"\n")
-            events.append(record)
-            expected_sequence += 1
+            continue
+        if footer_seen:
+            raise CaptureIntegrityError("capture contains records after its footer")
+        if record_type == "footer":
+            footer = record
+            footer_seen = True
+            continue
+        if record_type != "event":
+            raise CaptureIntegrityError(
+                f"unexpected capture record type at line {line_number}: {record_type}"
+            )
+        if record.get("sequence") != expected_sequence:
+            raise CaptureIntegrityError(
+                f"capture sequence mismatch: expected {expected_sequence}, "
+                f"got {record.get('sequence')}"
+            )
+        message = record.get("message")
+        if not isinstance(message, dict):
+            raise CaptureIntegrityError("capture event message must be an object")
+        try:
+            validate_normalized_message(message)
+        except (TypeError, ValueError) as exc:
+            raise CaptureIntegrityError(
+                f"invalid normalized message at capture sequence {expected_sequence}: {exc}"
+            ) from exc
+        message_bytes = _canonical_bytes(message)
+        expected_message_hash = hashlib.sha256(message_bytes).hexdigest()
+        if record.get("message_sha256") != expected_message_hash:
+            raise CaptureIntegrityError(
+                f"message hash mismatch at capture sequence {expected_sequence}"
+            )
+        record_base = dict(record)
+        record_hash = record_base.pop("record_sha256", None)
+        if record_hash != hashlib.sha256(_canonical_bytes(record_base)).hexdigest():
+            raise CaptureIntegrityError(
+                f"record hash mismatch at capture sequence {expected_sequence}"
+            )
+        message_digest.update(message_bytes + b"\n")
+        records_digest.update(_canonical_bytes(record) + b"\n")
+        content_digest.update(_canonical_bytes(record) + b"\n")
+        if max_events is not None and expected_sequence >= max_events:
+            raise CaptureIntegrityError("capture exceeds the supported event limit")
+        events.append(record)
+        expected_sequence += 1
 
     if header is None:
         raise CaptureIntegrityError("capture is empty")
