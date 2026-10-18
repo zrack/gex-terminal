@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent contributor review
@@ -78,6 +78,28 @@ and matching research builds. No migration or provider-readiness promotion.
 
 ## Evidence
 
-Implementation and verification in progress. The dated study record will bind
-the final wheel/source/material identities and distinguish automated rehearsal
-from participant observation.
+Local acceptance passes 673 methods, including 36 new intake, browser, real
+HTTP and study-kit regressions. Compilation, documentation/heading links,
+whitespace and numerical evidence pass. Independent review repaired overflow
+JSON numbers, cancellation retention, opaque contract linkage/log privacy and
+raw-preview versus accepted-state time labeling. Initial hosted checks exposed
+two test fixtures depending on ambient build-tool metadata; explicit fixture
+versions repair them, and all eight corrected-source jobs pass.
+
+[The dated study record](../studies/guided-intake-2026-10-18.md) binds source
+`0ddfbc4c0d94dd09935590ccb00db5d980863151`, the exact wheel, separate cohort
+`guided-intake-2026-10-18-r1`, frozen materials and dependency versions. Two
+clean exports produce identical wheels; the final kit's 86-file inventory and
+all ZIP entry bytes verify directly. The September kit's 219 files also verify.
+The installed final wheel passes 16 independent functional/keyboard checks;
+actual browser intake/save/export and a fresh final-wheel browser receipt
+reproduction pass. The frozen execution record contains 23 explicit preparation
+checks and zero participants. A rejected rehearsal envelope remains preserved
+under its failed identity; the corrected final kit uses a new one.
+
+[PR #41](https://github.com/zrack/gex-terminal/pull/41) owns the final reviewed
+head and merge. This packet closes the bounded implementation with its
+explicitly authorized merge, conditional on every final-head Ubuntu/macOS and
+Python 3.11/3.12 hosted job passing. Final merged-tree checks and remote equality
+are retained afterward in `dist/guided-intake/2026-10-18/summary.json`.
+Six actual observed sessions and issue #4's actual payload gate remain open.

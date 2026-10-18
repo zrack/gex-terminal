@@ -12,6 +12,10 @@ handoff use a separate current-build cohort and the frozen GI-01 through GI-06
 supplement in [Product Validation](product-validation.md). A matching version
 number cannot substitute for source, wheel, runtime and material identities.
 
+The prepared [October 18 guided-intake build](studies/guided-intake-2026-10-18.md)
+binds the current wheel, separate cohort, synthetic fixtures and execution
+evidence. Use that exact kit for its cohort; preserve both historical records.
+
 ## Prepare the guided intake cohort
 
 Commit the reviewed implementation and materials first. Use the same Python and

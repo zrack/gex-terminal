@@ -105,6 +105,8 @@ the capture envelope used receipt-time fallback.
 
 The upload is bounded to 4 MiB and 5,000 events. Up to four inspected sessions
 are retained in server memory; discard an inspection before adding a fifth.
+If an interrupted tab loses those inspection IDs, restart the local server to
+clear its registry; saved receipts remain available.
 Cancel/discard release inspected state (a pending verification is discarded when
 its response arrives); server shutdown clears the registry. Raw uploads are not
 written to the workspace. The browser sends bytes rather than a filesystem path;

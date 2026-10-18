@@ -58,9 +58,10 @@ Tradovate readiness remains `scaffold`.
 
 ## Purpose And Entry Boundary
 
-Active [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) owns guided
+Closed [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) owns guided
 local captured-session intake and a separately identified current-build study
-kit. It preserves the September study and issue #4's actual-payload gate.
+kit, conditional on its final-head hosted checks and authorized PR #41 merge.
+It preserves the September study and issue #4's actual-payload gate.
 
 Closed [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns the
 maintainer-authorized roadmap reconciliation and immutable offline Terminal
