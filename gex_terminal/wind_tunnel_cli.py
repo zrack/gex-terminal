@@ -19,13 +19,15 @@ from .wind_tunnel_server import (
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="gex-terminal wind-tunnel",
-                                     description="Explore bundled synthetic scenarios in an offline local browser.")
+                                     description="Explore bundled scenarios or an explicit frozen Terminal checkpoint in a local browser.")
     commands = result.add_subparsers(dest="command")
     serve = commands.add_parser("serve", help="Open the local offline workbench (default command).")
     serve.add_argument("--port", type=int, default=8765, help="Loopback port; 0 selects a free port (default: 8765).")
     serve.add_argument("--no-browser", action="store_true", help="Print the local launch URL without opening a browser.")
     serve.add_argument("--workspace", type=Path, default=Path("wind_tunnel_research"),
                        help="Empty or owned research directory, separate from the application.")
+    serve.add_argument("--checkpoint", type=Path,
+                       help="Read one explicit local demo/replay checkpoint; the browser cannot select input paths.")
     example = commands.add_parser("example", help="Calculate a bundled example and produce a portable receipt.")
     example.add_argument("name", choices=core_module().EXAMPLE_NAMES)
     example.add_argument("--output", type=Path, help="Write a new JSON file; otherwise print JSON.")
@@ -66,10 +68,16 @@ def emit_artifact(value: dict, output: Path | None):
     print("Wrote Wind Tunnel JSON artifact.")
 
 
-async def serve(workspace: Path, *, port: int, no_browser: bool) -> int:
-    runner, url = await start_server(workspace, port=port)
+async def serve(workspace: Path, *, port: int, no_browser: bool, checkpoint: Path | None = None) -> int:
+    core = None
+    if checkpoint is not None:
+        from .wind_tunnel import TerminalCheckpointCore
+        from .wind_tunnel_checkpoint import read_checkpoint
+        core = TerminalCheckpointCore(read_checkpoint(checkpoint))
+    runner, url = await start_server(workspace, port=port, core=core)
     try:
-        print("Wind Tunnel is running locally with bundled synthetic data.", flush=True)
+        print("Wind Tunnel is running locally with " +
+              ("a frozen Terminal checkpoint." if core is not None else "bundled synthetic data."), flush=True)
         print(url, flush=True)
         print("Keep this terminal open. Press Ctrl+C to stop. Save receipts to preserve research.", flush=True)
         if not no_browser:
@@ -87,7 +95,10 @@ async def serve(workspace: Path, *, port: int, no_browser: bool) -> int:
 
 async def run(args) -> int:
     if args.command == "serve":
-        return await serve(args.workspace, port=args.port, no_browser=args.no_browser)
+        options = {"port": args.port, "no_browser": args.no_browser}
+        if args.checkpoint is not None:
+            options["checkpoint"] = args.checkpoint
+        return await serve(args.workspace, **options)
     if args.command == "example":
         example = core_module().examples(args.name)
         result = await make_receipt(example["title"], example["operation"], example["request"])

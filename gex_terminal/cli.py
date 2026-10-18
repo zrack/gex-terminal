@@ -365,6 +365,11 @@ async def main():
         )
         return
 
+    if args.wind_tunnel_checkpoint:
+        await export_wind_tunnel_checkpoint(config, args.wind_tunnel_checkpoint,
+                                            quality_scenario=args.quality_scenario)
+        return
+
     if args.tradingview_overlay:
         await export_tradingview_overlay(
             config=config,
@@ -516,7 +521,12 @@ async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
             "Seeded demo data is available only for ES; "
             "use --symbol ES or select a catalog replay built for the requested symbol."
         )
-    consumer.current_spot = 5943.25
+    # The seed is a fixed synthetic checkpoint, not today's market state.
+    demo_time = "2026-07-16T19:30:00Z"
+    await consumer.update_market_state(json.dumps({
+        "type": "underlying_tick", "symbol": "ES", "price": 5943.25,
+        "event_time": demo_time,
+    }))
     consumer.session_open = 5904.50
     seed_rows: Iterable[tuple[int, int, int, float]] = (
         (5875, 2104, 8992, 0.18),
@@ -537,6 +547,7 @@ async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
             "option_type": "C",
             "volume": call_volume,
             "iv": iv,
+            "event_time": demo_time,
         }))
         await consumer.update_market_state(json.dumps({
             "type": "options_volume_tick",
@@ -544,7 +555,28 @@ async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
             "option_type": "P",
             "volume": put_volume,
             "iv": iv,
+            "event_time": demo_time,
         }))
+
+
+async def export_wind_tunnel_checkpoint(
+    config: GexConfig, output_path: str, *, quality_scenario: str | None = None,
+) -> None:
+    """Freeze a complete demo/replay state for an explicit local CLI handoff."""
+    from gex_terminal.wind_tunnel_checkpoint import build_terminal_checkpoint, write_checkpoint
+
+    if config.data_mode.lower() not in {"demo", "replay"}:
+        raise SystemExit("Wind Tunnel checkpoint capture supports demo/replay only; live capture requires separate authority.")
+    _, consumer, _ = await compute_snapshot(config, quality_scenario=quality_scenario)
+    try:
+        artifact = await build_terminal_checkpoint(
+            consumer, fallback_dte=config.days_to_expiry,
+            source_label="Synthetic demo checkpoint" if config.data_mode.lower() == "demo" else "Terminal replay checkpoint",
+        )
+        write_checkpoint(Path(output_path), artifact)
+    except (ValueError, OSError) as exc:
+        raise SystemExit("Cannot write checkpoint; use valid demo/replay state and a new local output file.") from exc
+    print("Saved immutable Wind Tunnel checkpoint.")
 
 
 async def export_demo_screenshot(
@@ -1635,6 +1667,11 @@ def parse_args() -> argparse.Namespace:
         "--export",
         metavar="PATH",
         help="Compute one GEX snapshot and write .json, .csv, or .md, then exit.",
+    )
+    parser.add_argument(
+        "--wind-tunnel-checkpoint",
+        metavar="PATH",
+        help="Freeze demo/replay state and effective assumptions into a new Wind Tunnel checkpoint JSON, then exit.",
     )
     parser.add_argument(
         "--tradingview-overlay",

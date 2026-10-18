@@ -2,15 +2,18 @@
 
 `gex-terminal` has two user-facing components: **Terminal**, a Textual dashboard
 for replay and research workflows, and **Market Wind Tunnel**, a browser
-workbench for exploring synthetic replay scenarios. They use one installed
-Python package and the same calculation code, but run in separate processes
-with separate state. The optional starter opens either component or manages
-both together.
+workbench for exploring bundled scenarios or frozen Terminal checkpoints.
+They use one installed Python package and the same calculation code. Standalone
+and Both launches run separate processes with separate state. Terminal's explicit
+`w` handoff instead owns an additional loopback service inside its process,
+serving a detached immutable checkpoint. The optional starter opens either
+component or manages both together.
 
 Provider-specific data handling, state ownership, model calculation,
 presentation, and export/report workflows stay separated. Starting both
 interfaces does not synchronize their source, replay checkpoint, model controls
-or scenario selections.
+or scenario selections. An explicit handoff copies one demo/replay checkpoint;
+it never synchronizes the mutable consumer with the browser.
 
 This document owns the current architecture, including the C4 views below.
 The diagrams describe shipped source; roadmap items and product concepts are
@@ -26,7 +29,8 @@ provides a replay dashboard and access to research workflows; Market Wind Tunnel
 provides scenario controls, exposure plots and saved experiments. Synthetic
 replay, calculation, comparison, export, and reproduction require no provider
 connection. Optional provider connections belong to separately configured
-terminal/CLI paths; Wind Tunnel accepts bundled synthetic sources only.
+terminal/CLI paths; Wind Tunnel accepts bundled sources or a validated frozen
+Terminal demo/replay artifact. Live checkpoint capture remains separately gated.
 
 ```mermaid
 flowchart LR
@@ -38,6 +42,7 @@ flowchart LR
     providers["External market-data providers<br/>Optional configured connection"]
     researcher <-->|Keyboard controls, metrics and exports| terminal
     researcher <-->|Scenario controls, plots and receipts| wind
+    terminal -.->|Explicit immutable checkpoint handoff| wind
     providers -.->|Separately configured terminal / CLI intake| terminal
 ```
 
@@ -48,7 +53,7 @@ software verification.
 
 ### Containers And Local Storage
 
-The installed package supports separate local runtime containers. Terminal runs
+The standalone/Both layout below shows separate local runtime containers. Terminal runs
 in a Python process with its Textual UI, intake task, consumer and engine.
 Market Wind Tunnel consists of browser code and a separate Python service with
 an aiohttp listener bound to `127.0.0.1`. Its checkpoint consumers and scenario
@@ -89,7 +94,14 @@ flowchart LR
 ```
 
 The repeated consumer and engine instances use the same installed code; there
-is no shared in-memory market state or Terminal-to-Wind Tunnel data connection.
+is no shared mutable market state. Terminal's explicit handoff is a separate
+layout: its owned loopback listener runs inside the Terminal process and serves
+a validated copy from `capture_wind_tunnel_state`, not the live consumer.
+`TerminalHandoff` retains every owned runner until cleanup completes, replaces
+its previous service on a new handoff and stops on Terminal unmount. Existing
+standalone/Both services are independent. Checkpoint files and per-checkpoint
+receipt workspaces live under `wind_tunnel_handoffs/`; scenario requests embed
+the copied input for reproduction without the original file or service.
 Configuration for terminal/CLI workflows is loaded locally by `config.py`;
 provider secrets remain outside the package and research artifacts. Installation
 uses Python package dependencies, while running the frozen replay study and
@@ -119,11 +131,13 @@ remain independent. Existing installer receipts retain their original launcher
 bytes; the setup manifest identifies the installer commit separately when it
 reuses a wheel from another source commit.
 
-The Wind Tunnel reconstructs a declared synthetic replay checkpoint in a fresh
-consumer for each calculation request. It copies checkpoint rows, applies
+The Wind Tunnel reconstructs a declared bundled replay checkpoint in a fresh
+consumer or validates an embedded frozen Terminal artifact for each calculation
+request. It copies checkpoint rows, applies
 scenario assumptions and prices those copies with the existing engine code.
-Its service exposes only bundled source identifiers and bounded operations,
-never arbitrary input paths. An origin check and per-run capability protect the
+Its service exposes bundled or frozen source identifiers and bounded operations,
+never arbitrary input paths. Only the operator's CLI can supply a checkpoint
+file path. An origin check and per-run capability protect the
 API; the capability stays outside saved research. Static browser assets are
 packaged with the wheel, so no external script or chart service is required.
 Receipts bind normalized requests, exact source and calculation identities,
@@ -233,7 +247,8 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Runtime safety | `gex_terminal/logging_config.py`, `gex_terminal/redaction.py` | Configure warning-level process logging by default and recursively sanitize secrets, sensitive identifiers, and labeled private payload fields before configured log or certification output. |
 | Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/tui_views.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows and responsive layout; present focused replay/help views, model controls, source and quality context, event history and exports. |
-| Wind Tunnel calculations | `gex_terminal/wind_tunnel.py` | Reconstruct a bundled replay cutoff with a request-local consumer, copy checkpoint rows, and use engine code to calculate baseline/scenario comparisons, surfaces and bounded searches. |
+| Wind Tunnel calculations | `gex_terminal/wind_tunnel.py` | Reconstruct a bundled replay cutoff or validate a frozen Terminal artifact, copy checkpoint rows, and use engine code for comparisons, surfaces and bounded searches. |
+| Terminal checkpoint transport and lifecycle | `gex_terminal/wind_tunnel_checkpoint.py`, `gex_terminal/wind_tunnel_handoff.py` | Validate allowlisted offline state, preserve no-overwrite local inputs, embed portable source data and own loopback service cleanup. The consumer remains the sole mutable market-state owner. |
 | Wind Tunnel service and CLI | `gex_terminal/wind_tunnel_server.py`, `gex_terminal/wind_tunnel_cli.py` | Serve packaged assets and bounded loopback API operations, protect requests with a per-run capability, and save/verify/reproduce receipts. CLI example and reproduction commands also run without the browser server. |
 | Wind Tunnel browser | `gex_terminal/wind_tunnel_web/` | Hold source/checkpoint/scenario selections, request calculations, render Plotly views and expose receipt controls; never read the Terminal's consumer state. |
 | Setup and starter | `scripts/install_app.py`, `scripts/build_app_bundle.py` | Prepare and verify an owned wheel installation, keep research separate, generate shortcuts and offer Terminal/Wind Tunnel/Both. Both supervises two application children with readiness checks and owned-process cleanup. |

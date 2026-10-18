@@ -45,6 +45,7 @@ class GexTerminalApp(App):
         ("s", "cycle_sort", "Sort"),
         ("f", "cycle_filter", "Filter"),
         ("e", "export_snapshot", "Save"),
+        Binding("w", "open_wind_tunnel", "Stress checkpoint", priority=True),
         ("v", "show_research_details", "Details"),
         ("question_mark", "show_help", "Help"),
         ("q", "quit", "Quit"),
@@ -108,6 +109,7 @@ class GexTerminalApp(App):
         self._full_columns_override: bool | None = None
         self._table_compact: bool | None = None
         self._last_export: Path | None = None
+        self._wind_tunnel_handoff = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
@@ -196,6 +198,10 @@ class GexTerminalApp(App):
         screen.call_later(self.refresh_terminal_data)
         self._apply_terminal_size()
 
+    async def on_unmount(self) -> None:
+        if self._wind_tunnel_handoff is not None:
+            await self._wind_tunnel_handoff.close()
+
     def on_resize(self, event: Resize) -> None:
         screen = self._refresh_screen_owner
         if (
@@ -282,7 +288,7 @@ class GexTerminalApp(App):
         }:
             return self._replay_browser_open and self.screen is self._replay_picker
         if action in {
-            "cycle_sort", "cycle_filter", "export_snapshot", "show_help", "show_research_details",
+            "cycle_sort", "cycle_filter", "export_snapshot", "open_wind_tunnel", "show_help", "show_research_details",
             "refresh_terminal_data", "cycle_expiry_assumption", "cycle_expiry_filter",
             "cycle_multiplier_assumption", "cycle_rate_assumption", "toggle_columns",
         }:
@@ -659,11 +665,53 @@ class GexTerminalApp(App):
             self._event(f"export failed — {error}")
         self._render_events()
 
+    async def action_open_wind_tunnel(self) -> None:
+        """Freeze current consumer state, independent of stale rendered metrics."""
+        from gex_terminal.wind_tunnel_checkpoint import build_terminal_checkpoint
+        from gex_terminal.wind_tunnel_handoff import TerminalHandoff
+
+        screen = self._refresh_screen()
+        if screen is None:
+            return
+        async with self._replay_transition_lock:
+            try:
+                artifact = await build_terminal_checkpoint(
+                    self.consumer, fallback_dte=self.config.days_to_expiry,
+                    source_label=("Synthetic demo checkpoint" if self.config.data_mode == "demo"
+                                  else "Terminal replay checkpoint"),
+                )
+                if self._exit or not self.is_running:
+                    return
+                if self._wind_tunnel_handoff is None:
+                    self._wind_tunnel_handoff = TerminalHandoff()
+                opened = await self._wind_tunnel_handoff.open(artifact)
+                if self._exit or not self.is_running:
+                    await self._wind_tunnel_handoff.close()
+                    return
+                if not self._refresh_screen_is_current(screen):
+                    return
+                path = self._wind_tunnel_handoff.checkpoint_path
+                self._event("Wind Tunnel opened on a frozen checkpoint" if opened
+                            else "checkpoint saved; browser could not open")
+                message = ("Frozen checkpoint opened. Later Terminal changes cannot alter it."
+                           if opened else f"Checkpoint saved to {path}. Open it with gex-terminal wind-tunnel --checkpoint PATH.")
+                self.notify(message, title="Wind Tunnel checkpoint", timeout=10)
+            except (ValueError, OSError) as exc:
+                if not self._refresh_screen_is_current(screen):
+                    return
+                self._event("Wind Tunnel handoff unavailable")
+                # Validation messages contain only controlled field names/reasons.
+                self.notify(str(exc) if isinstance(exc, ValueError) else
+                            "Could not start the local handoff; check the research directory and local port access.",
+                            title="Checkpoint unavailable", severity="warning", timeout=10)
+            if self._refresh_screen_is_current(screen):
+                self._render_events()
+
     def action_show_help(self) -> None:
         text = Text("A short offline research loop\n", style="bold #e9b96e")
         text.append("1  Press p and choose a synthetic replay.\n2  Inspect the source, strike quantities and model levels.\n3  Press e to save a snapshot; v shows details and its destination.\n\n", style="#e9eef3")
         text.append("Navigation\n", style="bold #e9b96e")
-        text.append("p  Open replay picker       ↑ / ↓  Move through strikes\ns  Change sort              f  Change filter\nc  Essential / full columns (scroll horizontally for full detail)\ne  Save snapshot            v  Source, assumptions and health\nr  Refresh                  q  Quit\n\n", style="#c3ced8")
+        text.append("p  Open replay picker       ↑ / ↓  Move through strikes\ns  Change sort              f  Change filter\nc  Essential / full columns (scroll horizontally for full detail)\ne  Save snapshot            v  Source, assumptions and health\nw  Stress frozen checkpoint in Wind Tunnel\nr  Refresh                  q  Quit\n\n", style="#c3ced8")
         text.append("Model assumptions\n", style="bold #e9b96e")
         text.append("d  Cycle fallback days to expiry\nx  Select expiry bucket\nm  Cycle fallback contract multiplier\ni  Cycle risk-free rate\n\n", style="#c3ced8")
         text.append("These keys change research assumptions. Contract-specific schema-v2 metadata takes precedence where supplied. Read current assumptions in Details.\n\n", style="#9aaaba")
@@ -693,6 +741,9 @@ class GexTerminalApp(App):
         text.append(content if isinstance(content, Text) else Text(str(content)))
         text.append("\n\nLast saved snapshot\n", style="bold #e9b96e")
         text.append(str(self._last_export) if self._last_export else "No snapshot saved in this session. Press e to save.", style="#c3ced8")
+        text.append("\n\nWind Tunnel checkpoint\n", style="bold #e9b96e")
+        checkpoint_path = getattr(self._wind_tunnel_handoff, "checkpoint_path", None)
+        text.append(str(checkpoint_path) if checkpoint_path else "Press w to freeze demo/replay state and open Wind Tunnel.", style="#c3ced8")
         text.append("\n\nRecent events\n", style="bold #e9b96e")
         text.append("\n".join(self._events), style="#9aaaba")
         self.push_screen(ResearchInfo("RESEARCH / DETAILS", text))

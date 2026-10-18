@@ -7,6 +7,20 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Terminal Checkpoint Handoff
+
+- Press `w` in Terminal to freeze demo/replay state and open Wind Tunnel on
+  that exact checkpoint. Capture effective assumptions, the expiry filter,
+  source quality and separated quantities without following later events.
+- Preserve Terminal's trade-first/OI-fallback selection as an explicit model;
+  keep volume, OI and directionalized comparison models independent. Export
+  a checkpoint with `--wind-tunnel-checkpoint PATH` and open it with
+  `wind-tunnel --checkpoint PATH`; scenario receipts embed the frozen input.
+- Keep live capture and issue #4's actual Tradovate payload requirement open.
+  [GEX-WIND-HANDOFF-001](docs/work-packets/GEX-WIND-HANDOFF-001.md) owns acceptance.
+- Reconcile the roadmap's historical research and live delivery paths, refresh
+  the current project/market assessments and retain observed-user gates.
+
 ## Unreleased — Tradovate Acknowledgement Frames
 
 - Preserve market-data events after a successful acknowledgement in the same

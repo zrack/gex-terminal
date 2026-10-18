@@ -122,6 +122,23 @@ jobs:
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" corpus-register "$GEX_CI_ROOT/gex-wheel-corpus" "$FIXTURE_DIR/price_action_validation_example.json" "$FIXTURE_DIR/corpus_item_metadata_example.json"
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" corpus-verify "$GEX_CI_ROOT/gex-wheel-corpus" "$GEX_CI_ROOT/gex-wheel-corpus.json"
           "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" wind-tunnel --help
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" --replay-session nq-research-loop --symbol NQ --multiplier 20 --wind-tunnel-checkpoint "$GEX_CI_ROOT/gex-wheel-checkpoint.json"
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/python" - <<'PY'
+          import asyncio
+          import os
+          from pathlib import Path
+          from gex_terminal.wind_tunnel import TerminalCheckpointCore
+          from gex_terminal.wind_tunnel_checkpoint import read_checkpoint
+          from gex_terminal.wind_tunnel_server import canonical_bytes, make_receipt
+          root = Path(os.environ["GEX_CI_ROOT"])
+          source = root / "gex-wheel-checkpoint.json"
+          core = TerminalCheckpointCore(read_checkpoint(source))
+          receipt = asyncio.run(make_receipt("Installed checkpoint", "calculate", {}, core=core))
+          assert receipt["result"]["comparison"]["net_gex_delta"] == 0
+          (root / "gex-wheel-checkpoint-receipt.json").write_bytes(canonical_bytes(receipt))
+          source.unlink()
+          PY
+          "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" wind-tunnel verify "$GEX_CI_ROOT/gex-wheel-checkpoint-receipt.json" --output "$GEX_CI_ROOT/gex-wheel-checkpoint-verified.json"
           mkdir "$GEX_CI_ROOT/gex-wheel-wind-tunnel"
           for example in discovered-break no-break expiry-exclusion; do
             "$GEX_CI_ROOT/gex-terminal-wheel-smoke/bin/gex-terminal" wind-tunnel example "$example" --output "$GEX_CI_ROOT/gex-wheel-wind-tunnel/$example.json"
