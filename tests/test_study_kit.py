@@ -13,6 +13,7 @@ from scripts import build_study_kit as kit
 
 
 ROOT = Path(__file__).resolve().parents[1]
+BUILD_TOOL_VERSIONS = {"build": "1.0.0", "setuptools": "80.0.0", "wheel": "0.45.0"}
 
 
 class StudyKitTests(unittest.TestCase):
@@ -128,12 +129,18 @@ class StudyKitTests(unittest.TestCase):
             (repo / "README.md").write_text("uncommitted private text must not enter kit")
             lock = root / "requirements.txt"
             lock.write_text("numpy==2.4.6\n")
+            # These tests exercise packaging/inventory with a fake wheel build;
+            # the corresponding build-tool metadata belongs to that fixture as
+            # well, even when CI installs build backends only in isolation.
             with patch.object(kit, "_build_wheel", side_effect=self._wheel) as build, \
-                    patch.object(kit, "_prepare_fixtures", side_effect=self._fixtures):
+                    patch.object(kit, "_prepare_fixtures", side_effect=self._fixtures), \
+                    patch.object(kit.importlib.metadata, "version", side_effect=BUILD_TOOL_VERSIONS.__getitem__) as versions:
                 target = kit.prepare(repo, commit, "test-guided-cohort", lock, root / "study")
             self.assertEqual(build.call_count, 2)
+            self.assertEqual(versions.call_args_list, [unittest.mock.call(name) for name in BUILD_TOOL_VERSIONS])
             manifest = json.loads((target / "build-manifest.json").read_text())
             self.assertEqual(manifest["source_commit"], commit)
+            self.assertEqual(manifest["build_environment"]["tools"], BUILD_TOOL_VERSIONS)
             self.assertEqual(manifest["rehearsal"]["installation"], "not_run")
             self.assertEqual(manifest["rehearsal"]["participant_sessions"], 0)
             self.assertEqual((target / "materials/README.md").read_text(), "frozen test source\n")
@@ -193,9 +200,11 @@ class StudyKitTests(unittest.TestCase):
             record = root / "execution.json"
             record.write_text(json.dumps(report))
             with patch.object(kit, "_build_wheel", side_effect=self._wheel), \
-                    patch.object(kit, "_prepare_fixtures", side_effect=self._fixtures):
+                    patch.object(kit, "_prepare_fixtures", side_effect=self._fixtures), \
+                    patch.object(kit.importlib.metadata, "version", side_effect=BUILD_TOOL_VERSIONS.__getitem__):
                 target = kit.prepare(repo, commit, "test-recorded-cohort", lock, root / "study", record)
             manifest = json.loads((target / "build-manifest.json").read_text())
+            self.assertEqual(manifest["build_environment"]["tools"], BUILD_TOOL_VERSIONS)
             self.assertEqual(json.loads((target / "rehearsal/execution.json").read_text()), report)
             self.assertEqual(manifest["rehearsal"]["checks"][0]["status"], "failed")
             self.assertEqual(manifest["rehearsal"]["sha256"], kit.sha256(record))
