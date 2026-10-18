@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent contributor review
@@ -72,7 +72,11 @@ September study and release tags.
 
 Feature branch → reviewed pull request → final-head hosted checks → authorized
 merge → clean main → full merged-tree verification and remote equality.
-Record final identities and measured verification here before closure.
+[PR #40](https://github.com/zrack/gex-terminal/pull/40) owns the integrated
+source and merge identities. This packet closes the bounded implementation
+with that authorized merge, conditional on all final-head Ubuntu/macOS and
+Python 3.11/3.12 hosted jobs passing. The exact merged-main verification and
+remote equality are retained in the local `summary.json` after those gates.
 Recover by reverting the merge; retain research files and matching builds.
 No migration, tag, provider-readiness or predictive-validity promotion occurs.
 
@@ -99,4 +103,5 @@ The first whole-suite run during concurrent edits retained one browser-fixture
 failure; the final settled-tree run passes 637 tests in 99.178 seconds. The
 browser's initial checksum failure was independently reproduced through Node
 and fixed before acceptance. No provider credentials or connections were used.
-Final-head hosted checks, merge and merged-tree verification remain pending.
+Hosted checks and merged-tree acceptance are separate final integration gates;
+their exact run/commit identities belong to PR #40 and the local summary.

@@ -58,9 +58,10 @@ Tradovate readiness remains `scaffold`.
 
 ## Purpose And Entry Boundary
 
-Active [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns the
+Closed [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns the
 maintainer-authorized roadmap reconciliation and immutable offline Terminal
-checkpoint handoff into Wind Tunnel. It adds no live capture authority or
+checkpoint handoff into Wind Tunnel, conditional on its recorded final hosted
+checks and authorized PR #40 merge. It adds no live capture authority or
 provider-readiness promotion and keeps issue #4 open.
 
 `gex-terminal` is an open, local-first market-structure research workbench. It
