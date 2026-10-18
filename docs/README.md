@@ -20,7 +20,7 @@ status checklists into multiple files.
 | Study build handoff | [Study Build](study-build.md) | Exact source/wheel/runtime and frozen materials, automated rehearsal and build-record routing |
 | Dated study build evidence | [Study build records](studies/offline-first-use-2026-09-20.md) | Immutable artifact identities and technical rehearsal results; no private participant records |
 | Install and first use | [First Run](first-run.md) | Reviewed wheel setup, Terminal/Wind Tunnel/Both starter, guided journey and package lifecycle |
-| Market Wind Tunnel | [Wind Tunnel](wind-tunnel.md) | Browser workflow, scenarios, sampled search, portable experiments and worked examples |
+| Market Wind Tunnel | [Wind Tunnel](wind-tunnel.md) | Browser workflow, frozen Terminal checkpoint handoff, scenarios, sampled search, portable experiments and worked examples |
 | Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
 | Local support and recovery | [Local Support](local-support.md) | Shareable diagnostics versus private backup, whole-artifact retention, recovery and credential/uninstall boundaries |
 | Normalized provider contract | [Market-Data Adapters](adapters.md) | Message shapes, quantity semantics, provider readiness, and adapter extension rules |
@@ -37,7 +37,9 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. Closed [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md) records the
+change. [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns the
+roadmap reconciliation and offline Terminal checkpoint handoff acceptance.
+Closed [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md) records the
 Databento issue #35 correctness fixes and offline verification integrated through
 [PR #36](https://github.com/zrack/gex-terminal/pull/36). Credentialed provider
 observation remains open.

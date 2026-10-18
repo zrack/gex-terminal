@@ -127,6 +127,16 @@ For model changes, also run the bounded evidence gate:
 gex-terminal model-evidence /tmp/model_evidence.json
 ```
 
+Checkpoint handoff changes additionally require the focused consumer/browser/
+HTTP/keyboard paths. Node.js runs the shipped browser-controller regression
+harness when available; it adds no application runtime dependency. Preserve
+opaque checkpoint JSON across JavaScript transport rather than reserializing
+signed numeric fields.
+
+```bash
+python -m unittest -v tests.test_wind_tunnel_checkpoint tests.test_wind_tunnel_handoff tests.test_wind_tunnel_assets tests.test_wind_tunnel_cli
+```
+
 For research-contract, provider-normalization, or performance changes, run the
 applicable offline certification gates:
 

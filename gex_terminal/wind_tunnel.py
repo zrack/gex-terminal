@@ -28,11 +28,14 @@ from gex_terminal.contracts import days_until_expiry, expiry_date, parse_market_
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.market_data_adapter import validate_normalized_message
 from gex_terminal.replay_catalog import ReplaySession, bundled_replay_sessions
+from gex_terminal.wind_tunnel_checkpoint import checkpoint_transport, validate_checkpoint
 
 
 VERSION = 1
 REQUEST_SCHEMA = "gex-terminal.wind-tunnel.request.v1"
 MODELS = ("raw_trade_volume", "open_interest", "directionalized_trade_volume")
+CHECKPOINT_MODEL = "terminal_selected"
+CHECKPOINT_MODEL_LABEL = "Terminal selected proxy"
 MODEL_LABELS = {
     "raw_trade_volume": "Volume proxy",
     "open_interest": "Open-interest proxy",
@@ -78,7 +81,7 @@ def _sha(value: Any) -> str:
 
 def calculation_identity() -> dict:
     """Bind numeric behavior and replay projection to exact local implementation."""
-    names = ("wind_tunnel.py", "engine.py", "consumer.py", "contracts.py", "market_data_adapter.py", "replay_catalog.py")
+    names = ("wind_tunnel.py", "wind_tunnel_checkpoint.py", "engine.py", "consumer.py", "contracts.py", "market_data_adapter.py", "replay_catalog.py")
     return {
         "contract_version": VERSION, "application_version": __version__,
         "python": f"{sys.version_info.major}.{sys.version_info.minor}", "numpy": np.__version__,
@@ -93,6 +96,8 @@ def _report(kind: str, **content: Any) -> dict:
         "calculation": identity, "calculation_fingerprint": _sha(identity),
         "limitations": copy.deepcopy(LIMITATIONS), **content,
     }
+    if content.get("source", {}).get("source_kind") == "terminal_checkpoint":
+        result["limitations"]["source_kind"] = "offline_terminal_checkpoint"
     if "request" in content:
         result["request_sha256"] = _sha(content["request"])
         result["model_identity_sha256"] = _sha({
@@ -225,14 +230,33 @@ def normalize_request(request: Mapping[str, Any], operation: str = "calculate") 
         raise ValueError("Expected a Wind Tunnel request object and supported operation")
     extra = {"calculate": set(), "surface": {"spot_shifts", "time_advances"},
              "search": {"x_axis", "y_axis", "x_values", "y_values", "claim", "comparison_model"}}[operation]
-    unknown = set(request) - (set(DEFAULTS) | extra | {"schema", "operation"})
+    unknown = set(request) - (set(DEFAULTS) | extra | {"schema", "operation", "terminal_checkpoint"})
     if unknown:
         raise ValueError("Unknown Wind Tunnel fields: " + ", ".join(sorted(map(str, unknown))))
     if request.get("schema", REQUEST_SCHEMA) != REQUEST_SCHEMA or request.get("operation", operation) != operation:
         raise ValueError("Unsupported Wind Tunnel request schema or operation")
     result = {**DEFAULTS, **dict(request), "schema": REQUEST_SCHEMA, "operation": operation}
-    _session(result["session"])
-    if result["model"] not in MODELS:
+    checkpoint_source = request.get("terminal_checkpoint")
+    if checkpoint_source is not None:
+        artifact = validate_checkpoint(checkpoint_source)
+        if request.get("session", "terminal-checkpoint") != "terminal-checkpoint":
+            raise ValueError("Terminal checkpoint artifact requires session terminal-checkpoint")
+        result.update(terminal_checkpoint=checkpoint_transport(artifact), session="terminal-checkpoint")
+        for field in ("fallback_dte", "risk_free_rate"):
+            if field not in request:
+                result[field] = artifact["parameters"][field]
+        if "model" not in request:
+            result["model"] = CHECKPOINT_MODEL
+        if request.get("checkpoint") not in (None, 0) or isinstance(request.get("checkpoint"), bool):
+            raise ValueError("Terminal checkpoint has only index 0")
+        result["checkpoint"] = 0
+        valid_models = (*MODELS, CHECKPOINT_MODEL)
+    else:
+        if "terminal_checkpoint" in request or result["session"] == "terminal-checkpoint":
+            raise ValueError("Terminal checkpoint session requires an embedded artifact")
+        _session(result["session"])
+        valid_models = MODELS
+    if result["model"] not in valid_models:
         raise ValueError("Unknown quantity model")
     if result["checkpoint"] is not None and (type(result["checkpoint"]) is not int or result["checkpoint"] < 0):
         raise ValueError("checkpoint must be null or a nonnegative integer event index")
@@ -258,7 +282,7 @@ def normalize_request(request: Mapping[str, Any], operation: str = "calculate") 
         result.setdefault("comparison_model", "open_interest")
         if not isinstance(result["claim"], str) or result["claim"] not in {"wall_change", "net_sign", "model_disagreement"}:
             raise ValueError("Unknown fragility claim")
-        if result["comparison_model"] not in MODELS:
+        if result["comparison_model"] not in valid_models:
             raise ValueError("Unknown comparison model")
         if result["claim"] == "model_disagreement" and result["comparison_model"] == result["model"]:
             raise ValueError("Model disagreement requires two different quantity models")
@@ -276,6 +300,17 @@ class _Checkpoint:
 
 
 async def _checkpoint(request: dict) -> _Checkpoint:
+    if "terminal_checkpoint" in request:
+        artifact = validate_checkpoint(request["terminal_checkpoint"])
+        source = copy.deepcopy(artifact["source"])
+        parameters = artifact["parameters"]
+        source.update(session="terminal-checkpoint", source_kind="terminal_checkpoint", checkpoint=0,
+                      source_sha256=artifact["sha256"], checkpoint_sha256=artifact["sha256"],
+                      contract_multiplier=parameters["contract_multiplier"], source_ref=None,
+                      rights_status="user_responsibility", redistributable=False,
+                      later_events_excluded=0, checkpoint_transport_version=artifact["version"])
+        return _Checkpoint(source, parameters["spot"], parse_market_datetime(source["as_of"]),
+                           tuple(copy.deepcopy(artifact["rows"])), source["calculation_mode"], parameters["contract_multiplier"])
     session = _session(request["session"])
     records, raw = _messages(session)
     timeline = _timeline(records)
@@ -333,9 +368,9 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
     advance = request["time_advance"]
     as_of = checkpoint.as_of + timedelta(minutes=advance)
     source_name = "open_interest" if model == "open_interest" else "trade_volume"
-    original = [row for row in checkpoint.rows if row.get("position_source") == source_name]
+    original = [row for row in checkpoint.rows if row.get("terminal_selected")] if model == CHECKPOINT_MODEL else [row for row in checkpoint.rows if row.get("position_source") == source_name]
     result = {
-        "status": "no_data", "reason": None, "model": model, "model_label": MODEL_LABELS[model],
+        "status": "no_data", "reason": None, "model": model, "model_label": CHECKPOINT_MODEL_LABEL if model == CHECKPOINT_MODEL else MODEL_LABELS[model],
         "spot": spot, "as_of": _time(as_of), "matrix": None, "summary": None,
         "counts": {"source_rows": len(original), "selected_rows": 0, "expired_rows": 0,
                    "excluded_nearest_rows": 0, "fallback_expiry_rows": 0},
@@ -386,7 +421,7 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
             active.append(row)
             continue
         if details:
-            result["excluded_contracts"].append({"contract_id": row["contract_id"], "position_source": source_name,
+            result["excluded_contracts"].append({"contract_id": row["contract_id"], "position_source": row["position_source"],
                                                   "expiry": row.get("expiry"), "reason": reason})
     result["counts"]["selected_rows"] = len(active)
     result["counts"]["fallback_expiry_rows"] = sum(row["expiry_authority"] != "exact_timestamp" for row in active)
@@ -440,7 +475,7 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
             result["contracts"].append({
                 "contract_id": row["contract_id"], "provider": row.get("provider"), "strike": float(row["strike"]),
                 "option_type": row["option_type"], "quantity": float(row["accumulated_volume"]),
-                "position_source": source_name, "model": model, "pricing_model": row.get("pricing_model"),
+                "position_source": row["position_source"], "model": model, "pricing_model": row.get("pricing_model"),
                 "expiry": row.get("expiry"), "expiry_timestamp": row.get("expiry_timestamp"),
                 "expiry_authority": row["expiry_authority"], "remaining_dte": row["remaining_dte"],
                 "base_iv": row["base_iv"], "scenario_iv": row["scenario_iv"], "iv_source": row.get("iv_source"),
@@ -536,6 +571,8 @@ async def search(request: Mapping[str, Any]) -> dict:
     if broken:
         smallest = copy.deepcopy(min(broken, key=lambda cell: (cell["distance"], cell["x"], cell["y"])))
         scenario_request = {key: normalized[key] for key in DEFAULTS}
+        if "terminal_checkpoint" in normalized:
+            scenario_request["terminal_checkpoint"] = normalized["terminal_checkpoint"]
         scenario_request.update({normalized["x_axis"]: smallest["x"], normalized["y_axis"]: smallest["y"]})
         smallest["request"] = normalize_request(scenario_request)
         smallest["scenario"] = _state(checkpoint, scenario_request)
@@ -565,3 +602,67 @@ def examples(name: str) -> dict:
     selected = copy.deepcopy(definitions[name])
     selected["request"] = normalize_request(selected["request"], selected["operation"])
     return {"name": name, **selected}
+
+
+class TerminalCheckpointCore:
+    """A server-local immutable source alongside the unchanged bundled catalog."""
+
+    EXAMPLE_NAMES = EXAMPLE_NAMES
+    calculation_identity = staticmethod(calculation_identity)
+    examples = staticmethod(examples)
+
+    def __init__(self, artifact: dict):
+        self._artifact = validate_checkpoint(artifact)
+
+    def _request(self, request: Mapping[str, Any]) -> dict:
+        if not isinstance(request, Mapping):
+            raise ValueError("Expected a Wind Tunnel request object")
+        selected = request.get("session", "terminal-checkpoint")
+        if selected == "terminal-checkpoint":
+            supplied = request.get("terminal_checkpoint", self._artifact)
+            return {**request, "session": selected, "terminal_checkpoint": supplied}
+        return dict(request)
+
+    def catalog(self) -> dict:
+        result = catalog()
+        source, parameters = self._artifact["source"], self._artifact["parameters"]
+        defaults = {**DEFAULTS, "session": "terminal-checkpoint", "checkpoint": 0,
+                    "model": CHECKPOINT_MODEL, "fallback_dte": parameters["fallback_dte"],
+                    "risk_free_rate": parameters["risk_free_rate"]}
+        labels = {**MODEL_LABELS, CHECKPOINT_MODEL: CHECKPOINT_MODEL_LABEL}
+        entry = {"name": "terminal-checkpoint", "label": source["label"], "symbol": source["symbol"],
+                 "description": "Frozen offline Terminal state; quantities and source time remain fixed.",
+                 "contract_multiplier": parameters["contract_multiplier"], "source_ref": None,
+                 "source_sha256": self._artifact["sha256"], "source_kind": "terminal_checkpoint",
+                 "status": "available", "reason": None, "event_count": 1,
+                 "first_as_of": source["as_of"], "last_as_of": source["as_of"], "as_of": source["as_of"],
+                 "expiry_filter": source["expiry_filter"], "quality": source["quality"],
+                 "data_mode": source["data_mode"], "synthetic": source["synthetic"],
+                 "defaults": defaults, "terminal_checkpoint": checkpoint_transport(self._artifact),
+                 "models": {model: {"label": label, "available_in_source": (
+                     any(row["terminal_selected"] for row in self._artifact["rows"]) if model == CHECKPOINT_MODEL else
+                     any(row["position_source"] == "open_interest" for row in self._artifact["rows"]) if model == "open_interest" else
+                     any(row["directional_volume"]["buy"] + row["directional_volume"]["sell"] > 0 for row in self._artifact["rows"]) if model == "directionalized_trade_volume" else
+                     any(row["position_source"] == "trade_volume" for row in self._artifact["rows"]))}
+                            for model, label in labels.items()}}
+        # Rebuild the report rather than retaining an invalid digest after mutation.
+        return _report("catalog", sessions=[copy.deepcopy(entry), *result["sessions"]], models=labels,
+                       bounds=result["bounds"], defaults=defaults, bundled_defaults=DEFAULTS,
+                       examples=result["examples"], max_axis_points=41)
+
+    def checkpoints(self, session: str) -> dict:
+        if session != "terminal-checkpoint":
+            return checkpoints(session)
+        source, parameters = self._artifact["source"], self._artifact["parameters"]
+        return _report("checkpoints", session=session, symbol=source["symbol"], source_sha256=self._artifact["sha256"],
+                       checkpoints=[{"index": 0, "as_of": source["as_of"], "event_type": "terminal_checkpoint",
+                                     "phase": None, "spot": parameters["spot"]}])
+
+    async def calculate(self, request: Mapping[str, Any]) -> dict:
+        return await calculate(self._request(request))
+
+    async def surface(self, request: Mapping[str, Any]) -> dict:
+        return await surface(self._request(request))
+
+    async def search(self, request: Mapping[str, Any]) -> dict:
+        return await search(self._request(request))

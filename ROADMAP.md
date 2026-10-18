@@ -6,41 +6,43 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
-Priorities reviewed September 27, 2026. The maintainer explicitly authorized
-the Market Wind Tunnel as an exception to the earlier feature hold.
-[GEX-WIND-001](docs/work-packets/GEX-WIND-001.md) records the completed `0.6.0` implementation
-and final release gates; [Wind Tunnel](docs/wind-tunnel.md) owns its usage.
-[Changelog](CHANGELOG.md) and [Application Review](docs/application-review.md)
-own implemented capabilities and verification;
-[GEX-UX-002](docs/work-packets/GEX-UX-002.md) owns the setup/interface slice and
-its integration status. The future work below
-requires customer evidence, owner decisions, live access or a later
-demand-driven product choice.
+Priorities reviewed October 18, 2026 against the current `0.6.0` source and
+the refreshed [Competitive Landscape](docs/market-analysis.md) and
+[Application Review](docs/application-review.md). The maintainer authorized
+the checkpoint handoff into Wind Tunnel, its regression coverage and
+documentation, and commit/merge. The implemented demo/replay handoff and its
+integration gates belong to [GEX-WIND-HANDOFF-001](docs/work-packets/GEX-WIND-HANDOFF-001.md);
+it is not repeated as future feature work here. [Wind Tunnel](docs/wind-tunnel.md)
+owns its user contract. Broader features below remain demand-gated;
+[Changelog](CHANGELOG.md) and the routed work packet own shipped acceptance.
 
 ## Current Work Order
 
-Defer further broad feature expansion until the completed offline loop has been tested with real users. Correctness regressions still interrupt product work.
+Defer broad feature expansion until the chosen research job has been observed
+with real users. Correctness regressions still interrupt product work. Permit
+bounded engineering that removes a concrete obstacle to testing that job. The
+authorized checkpoint implementation does not authorize the remaining feature
+candidates.
+
 Prepared protocols are ready to use, but preparation is not a passed gate.
-For observed first use, use the exact reviewed repaired build and frozen
-materials identified through [Study Build](docs/study-build.md). The original
-`v0.5.0` tag or an application version of `0.5.0` alone does not identify a build
-with the repair. Build preparation is separate from participant acceptance.
-The newer setup bundle and redesigned terminal have their own exact build and
-verification record. They do not replace the frozen September 20 study; any
-future study of the new experience needs freshly identified materials.
+Preserve the exact repaired build and frozen September 20 materials identified
+through [Study Build](docs/study-build.md). A study of the current starter,
+terminal, Wind Tunnel and checkpoint workflow needs a new exact build,
+materials and cohort identity. Neither the old tag nor an unchanged package
+version identifies the current implementation; never rewrite historical
+results to imply that the newer experience was observed.
 
 | Order | Work | Why now | Completion evidence |
 | --- | --- | --- | --- |
-| 1 — Observe first use | Run six observed offline task sessions using the prepared study kit | Tests cannot establish whether a non-developer understands or trusts the result | Unaided installation/loop outcomes, timing, intervention log and reproduced trust defects |
-| 2 — Validate the customer and rights path | Recruit design partners, compare the two product concepts, obtain provider answers and price/cost evidence | Avoid committing to a distribution/business model from feature enthusiasm | Phase 0 recurring-job, commitment, rights and economics gates |
-| 3 — Observe live ES | Approve the prepared recurrence packet and execute only within its authority | No live operating envelope exists yet | Complete predeclared population, retained failures and separately reviewed promotion |
-| 4 — Run the narrow beta | Select installation/support scope from observed needs and enter Phase 3 | Turn certified input into a recurring user workflow | Phase 3 activation, use, replacement, trust and product-path decision |
+| 1 — Observe the current workflow | Freeze a new current-build study and run six observed offline task sessions, including the explicit checkpoint handoff | Tests cannot establish whether a non-developer understands or trusts the result | Unaided outcomes, timing, non-starts, intervention log, recurring job and reproduced trust defects |
+| 2 — Qualify user input and the offer | Test one rights-authorized historical/capture path, recruit design partners, compare concepts and obtain price/cost evidence | The research job and commercial path can be tested without recurring live operation | Phase 0 gates plus input lineage, quality limits, repeat use and a lawful historical research offer |
+| 3 — Choose the narrow beta | Enter the historical-research branch of Phase 3 when its gates pass; run live ES only under separately accepted authority | Historical research and a live cockpit have different operating obligations | Branch-specific activation, use, replacement, trust and product-path decision |
 
 Two tracks can progress alongside that order:
 
-- **Customer evidence — Phase 0:** use the prepared [Product Validation](docs/product-validation.md)
-  protocol, comparable paper concepts, scorecard, rights questions and cost
-  worksheet. Recruitment,
+- **Customer evidence — Phase 0:** adapt the prepared [Product Validation](docs/product-validation.md)
+  protocol to the named current-build study while retaining the old materials;
+  use comparable paper concepts, scorecard, rights questions and cost worksheet. Recruitment,
   interviews, commitments, and provider answers require real participants or
   owners; a written protocol does not complete those gates.
 - **Live evidence — Phase 2:** review the prepared [GEX-LIVE-002](docs/work-packets/GEX-LIVE-002.md)
@@ -56,9 +58,13 @@ priorities. A confirmed correctness issue can interrupt feature work; an
 unvalidated feature request needs an explicit owner decision.
 
 Provider queue reconciliation is recorded in [Good First Issues](docs/good-first-issues.md).
-Databento #5 overlaps shipped fixtures; Tradovate #10 requires contributor
-changes and observed provenance. Do not duplicate that work or treat an open
-contribution as accepted/live evidence.
+Databento issues #5 and #35 are closed after the merged fixture/provider
+repairs. Tradovate PR #10 remains unaccepted and needs contributor changes and
+observed provenance. **Keep issue #4 open until actual sanitized demo/live
+Tradovate ES/NQ payloads establish its mapping and availability claims.** The
+merged ACK-frame repair is offline behavior evidence and does not close that
+payload gate. Do not duplicate completed work or treat an open contribution as
+accepted/live evidence.
 
 ## Product Destination
 
@@ -83,37 +89,72 @@ Evidence at one level does not promote the next.
 
 The working lead hypothesis is a packaged **bring-your-own-data professional
 desktop** built around model provenance, dissent, replay, and evidence receipts.
-It is not yet a chosen commercial product. The MIT research kernel remains
-useful and open; a paid layer, if customer evidence supports one, sells
-convenience, certified workflows, automation, integrations, governed storage,
-and support.
+It is not yet a chosen commercial product. The strongest recurring-job
+hypothesis is: inspect what produced a structural read, identify assumptions
+that change it, and reproduce the explanation later. Native futures coverage,
+Black-76, scenario charts, APIs and receipts individually already have market
+substitutes. The MIT research kernel remains useful and open; a paid layer, if
+customer evidence supports one, sells a completed workflow, convenience,
+supported inputs, automation, integrations, governed storage and support.
 
 The strongest alternative is a **hosted ES/NQ tactical cockpit** with simple
 levels, explanations, push alerts, and chart delivery. It has a clearer retail
 promise but requires substantially stronger data licensing, uptime, support,
 mobile UX, and unit economics. Phase 0 decides whether that alternative earns a
-live comparator pilot. Phase 3 is the single authoritative product-path
-decision.
+live comparator pilot. Phase 3 is the authoritative product-path decision for
+the branch actually tested; an authorized historical-research beta can reach
+that decision without passing a live certification gate. It cannot establish
+that a live cockpit is supported or that an unrun alternative is inferior.
 
 ## Priority And Gate Map
 
 Phases describe dependencies, not delivery dates. Phase 0 and bounded offline
-work can overlap; after Phase 3, research evidence and a descriptive paid beta
-can progress in parallel. A phase advances on its exit evidence.
+work can overlap. Historical research follows 0 → 1 → 3 (research) → 5;
+live delivery additionally requires Phase 2 before 3 (live). Phase 4 evidence
+can progress alongside either branch when its source-specific rights and
+point-in-time gates pass. A phase advances on its exit evidence.
 
 | Phase | Outcome | Can proceed without live data? | Primary gate |
 | --- | --- | ---: | --- |
 | 0 — Now | Prove the customer wedge and qualify or retire the hosted alternative | Yes | Repeated user job, design partners, data-rights path, and paid-pilot intent |
 | 1 — Acceptance remaining | Validate clean-machine use of the shipped offline foundation | Yes, with participants | Observed activation and evidence-backed distribution/support choice |
 | 2 — Parallel external gate | Certify one narrow recurring ES/Databento operating envelope | No | Credential, entitlement, capture authority, exact-run evidence, and predeclared recurrence |
-| 3 | Run a design-partner live beta | Partly | Weekly use, reliable activation, workflow replacement, and no severe trust defects |
-| 4 — Evidence track | Build the governed evidence moat | No for real-session evidence | Licensed corpus, preregistered evaluation, reproducibility, and appropriately narrow claims |
-| 5 — Commercial track | Establish a paid descriptive-tool beta after Phase 3 | Partly | Distribution/legal readiness, retention, support load, and positive unit economics; predictive success is not a prerequisite |
+| 3 | Run a design-partner historical-research or certified-live beta | Yes for authorized historical research | Branch-specific activation, weekly use, workflow replacement, and no severe trust defects |
+| 4 — Evidence track | Build the governed evidence moat | Yes with authorized point-in-time history | Licensed corpus, preregistered evaluation, reproducibility, and appropriately narrow claims |
+| 5 — Commercial track | Establish a paid descriptive-tool beta for the accepted Phase 3 branch | Yes for the historical offer | Distribution/legal readiness, retention, support load, and positive unit economics; predictive success is not a prerequisite |
 | 6 | Expand from proven demand | Depends | Independent symbol/provider evidence and demonstrated user demand |
 
 The recommended counts and thresholds below are hypotheses to predeclare in a
 work packet. They are not existing measurements and can be changed before data
 collection with a recorded reason.
+
+## Prioritized Feature Candidates
+
+The checkpoint handoff is implemented in its bounded demo/replay scope; its
+usage and evidence belong to the guide and work packet. The remaining items
+below are hypotheses ordered by dependency and the inspected workflow gaps,
+not measured demand, promised delivery dates, estimated returns or current
+implementation authority. Reuse existing research, export and lifecycle
+capabilities before adding parallel systems.
+
+| Priority | Candidate | Acceptance or demand gate |
+| --- | --- | --- |
+| P1 | Bring your own session | One supported normalized capture/historical format, authorized local intake, source lineage, visible missing/fallback fields and a user completing the named investigation |
+| P1 | Chain health and IV initialization | Distinguish stream health from per-option IV/quote age; expose coverage, spreads, fallback share and exclusions; route provider quote bootstrap and IV policy separately |
+| P1 | Explain this change | Reconcile matched results to contract, expiry, quantity, IV/time/price and assumption changes; expose interactions and describe model-output effects without market-causation claims |
+| P1 | Preserve and compare builds | Retain the executable environment for an old receipt; separately identify original-model reproduction and intentional current-model restatement; fail clearly if unavailable |
+| P1 | Contract/session conventions | Declare exercise style, expiry timezone, session/holiday rules, futures linkage and supported approximations; validate authoritative metadata independently |
+| P2 | Daily research review | Assemble existing journal/corpus tools into a repeated hypothesis → scenario → later review loop; retain null, failed-data and unresolved cases |
+| P2 | Skew and term-structure stresses | Require usable IV inputs and an explicit surface policy; distinguish observed and assumed regions before moving beyond uniform IV shifts |
+| P2 | Quality-aware alerts and one chart handoff | Require observed workflow demand and recurring live scope for live alerts; existing static TradingView export is not a new feature |
+| P2/P3 | Small SDK/read-only API, then MCP | Demonstrated developer job and versioned domain semantics; the internal Wind loopback service is a starting point, not a supported public API |
+| P3 | Native-versus-proxy comparison | Additional licensed chains, aligned cutoffs and visible basis/model differences; do not assume native inputs predict better |
+| P3 | Selected higher Greeks or portfolio P&L | Repeated user task, reliable inputs, contract conventions and independent numerical gates; broad portfolio management requires a separate product choice |
+
+Artifact-grounded assistance remains later work: exact-input citations,
+abstention and evidence-ceiling enforcement must precede a natural-language
+interface. Generalized AI trade calls, broad symbol/provider growth and
+platform breadth do not advance merely because competitors advertise them.
 
 ## Phase 0 — Prove The Wedge
 
@@ -143,7 +184,8 @@ rebuild its templates or concepts.
 
 1. Recruit 12–15 interview candidates split between quantitative/developer
    users and advanced ES/NQ traders. Treat existing personas as hypotheses.
-2. Run at least six observed task sessions using current demo and replay data.
+2. Freeze a separately identified current-build study and run at least six
+   observed task sessions using authorized demo, replay or historical data.
    Ask users to reach a trusted view, explain one level, compare models, save a
    receipt, and replay the session without developer help.
 3. Test the prepared comparable-fidelity product concepts:
@@ -162,7 +204,9 @@ rebuild its templates or concepts.
 ### Exit gate
 
 - Five users commit to a design-partner beta with a named recurring job.
-- At least three will connect a legitimate existing data account.
+- At least three have legitimate access to the selected historical inputs or,
+  for a live offer, will connect an entitled existing data account. Record the
+  actual branch; historical access does not establish live entitlements.
 - At least two accept a defined paid-pilot offer at a tested price, subject to
   the product and commercial terms becoming available.
 - The common recurring job and initial buying-unit hypothesis are explicit;
@@ -197,10 +241,12 @@ Current command and compatibility contracts live in [First Run](docs/first-run.m
 
 ### Remaining acceptance
 
-- Use the frozen [study build](docs/study-build.md) and
-  [Product Validation](docs/product-validation.md) scoring key for the cohort.
-  Record the actual participant environment. Treat a subsequent build change as a separate
-  cohort; keyboard regressions are not unaided user acceptance.
+- Preserve the frozen [study build](docs/study-build.md) and create a new exact
+  build/materials/cohort record for the current starter, terminal and Wind
+  workflow using the [Product Validation](docs/product-validation.md) scoring
+  approach. Record the actual participant environment, assistance, refusals
+  and non-starts. Treat subsequent build changes as separately identified
+  observations; regression tests are not unaided user acceptance.
 - Observe a new user installing without a checkout, reaching a correct replay
   insight in under ten minutes, and completing the scoped loop in under fifteen
   minutes without developer help. These are proposed study thresholds, not
@@ -276,15 +322,25 @@ declared complete from offline evidence.
 
 - If required OI, IV, or chain coverage cannot support the selected job, narrow
   the job or change the source; do not weaken the evidence label.
-- If licensing prohibits the needed use, retain offline certification and stop
-  the commercial path until a lawful alternative exists.
+- If licensing prohibits the needed live use, retain offline certification and
+  stop that live commercial path until a lawful alternative exists. A different
+  authorized historical offer must satisfy its own rights and beta gates.
 - If recurring reliability cannot be demonstrated, do not expose the path as a
   supported live beta.
 
-## Phase 3 — Design-Partner Live Beta
+## Phase 3 — Design-Partner Workflow Beta
 
-**Purpose:** determine whether a certified input becomes a repeated user
-workflow rather than merely a technically successful connection.
+**Purpose:** determine whether supported inputs become a repeated user
+workflow. Select and declare one branch before recruiting or measuring the
+beta. Both require Phase 0 and observed Phase 1 acceptance:
+
+- **Historical research:** authorized historical inputs, explicit quality and
+  point-in-time limits, a complete checkpoint → inspect → stress → reproduce →
+  review workflow, and retained environment/input identity. Recurring live
+  certification is not an entry requirement.
+- **Live cockpit:** the accepted Phase 2 operating envelope in addition to
+  the workflow, recovery and user commitments below. Historical beta success
+  cannot waive that gate.
 
 ### Work
 
@@ -292,18 +348,21 @@ workflow rather than merely a technically successful connection.
   privacy notice, explicit consent for any optional telemetry, data-handling promises,
   risk disclaimer, security/vulnerability path, support limits, and incident
   contact. Phase 5 can harden these for paid scale; it cannot introduce them
-  after live use begins.
-- Deliver four primary live workflows: Today, Explain, Compare, and Replay;
-  Review can begin with daily evidence packs.
+  after beta use begins.
+- Deliver the branch's primary workflows: inspect/Today, Explain, Compare,
+  Replay and Review. Historical research must accept the selected user input
+  and preserve an immutable checkpoint; Review can begin with daily evidence
+  packs. Bundled synthetic examples alone do not establish recurring value.
 - Show OI, raw-volume, and directionalized-volume agreement or dissent without
   blending their quantities.
-- Add local rule-based alerts that carry provider, model, as-of, quality, and
+- For a live branch, add local rule-based alerts that carry provider, model, as-of, quality, and
   readiness provenance. A degraded feed suppresses or clearly downgrades an
   alert according to a predeclared rule.
-- Build one integration selected by Phase 0 evidence. Prefer a local file or
-  webhook/chart bridge before building another full charting surface.
-- Add background operation, bounded recovery, user-visible incident state,
-  and redacted diagnostics.
+- Build one integration only if Phase 0/observed use identifies it as necessary.
+  Prefer a local file or webhook/chart bridge before another charting surface.
+- For live delivery, add background operation, bounded recovery, user-visible
+  incident state and redacted diagnostics. Historical research instead needs
+  reliable local input, save/open and fresh-process reproduction paths.
 - Measure activation and workflow use through observed sessions and weekly
   reviews first. If needed, add opt-in, privacy-safe product analytics;
   never collect raw market data, credentials, private research, or trade/account
@@ -324,8 +383,10 @@ workflow rather than merely a technically successful connection.
   risk, and data-handling commitments were usable throughout the pilot.
 - At least five design partners use the product weekly for four consecutive
   weeks.
-- At least 80% install and connect without developer intervention.
-- Median launch-to-trusted-live-view is under five minutes after setup.
+- At least 80% install and reach the selected branch's supported source without
+  developer intervention.
+- Median launch-to-trusted-view is under five minutes after setup: a selected
+  historical checkpoint for research, or a live view within accepted scope.
 - At least three users say it replaced a named manual step or paid-tool
   workflow and demonstrate that replacement during observation.
 - At least two users agree to a paid beta for the same defined product.
@@ -334,8 +395,11 @@ workflow rather than merely a technically successful connection.
 
 ### Product decision
 
+Record whether the accepted local offer is historical research or live
+delivery. Its commercial offer cannot imply capabilities of the other branch.
 If the hosted-cockpit pilot qualified and ran, compare its results with the
-local beta. Choose the hosted path only if its activation, four-week retention,
+local beta while disclosing different data/operating scope. Choose the hosted
+path only if its activation, four-week retention,
 and willingness to pay are materially stronger and the data-rights economics
 remain viable. Continue locally only when the local beta meets its own gates.
 If Phase 0 retired the hosted alternative or its rights gate prevented a pilot,
@@ -356,8 +420,10 @@ do not assume evidence from an unrun comparison.
 **Purpose:** learn what the models describe and whether any narrow outcome claim
 survives point-in-time evaluation.
 
-Rights-authorized collection can begin during Phase 2 once the applicable
-capture gate passes. This evidence track can continue alongside Phase 5. A paid
+Rights-authorized historical research can begin without Phase 2 when the
+source's retention, derived-use and point-in-time gates pass. Live collection
+can begin during Phase 2 only after the applicable capture gate passes. This
+evidence track can continue alongside Phase 5. A paid
 descriptive research tool does not require a successful predictive study;
 predictive or execution claims do require their corresponding evidence.
 
@@ -403,9 +469,12 @@ predictive or execution claims do require their corresponding evidence.
 **Purpose:** test whether product value exceeds distribution, data, and support
 costs without weakening the evidence contract.
 
-Entry requires the accepted Phase 3 product decision, supported live scope and
-beta workflow, and the commercial requirements below. Phase 4 may still be in
-progress; its unmeasured outcomes must remain unclaimed.
+Entry requires the accepted Phase 3 product decision, the supported inputs and
+workflow for that branch, and the commercial requirements below. A historical
+research or developer-support offer can enter without recurring live
+certification; it must have an authorized input/rights path and cannot market
+live support. A live offer additionally requires the accepted Phase 2 scope.
+Phase 4 may still be in progress; its unmeasured outcomes remain unclaimed.
 
 ### Local-path offer hypothesis
 
@@ -414,9 +483,10 @@ product. A hosted decision requires a replacement commercial plan before this
 phase begins.
 
 - Keep the MIT offline research kernel available.
-- Sell signed distribution, guided setup, supported live-provider operation,
-  alerts and integrations, governed local evidence storage, updates, and
-  support.
+- Test paid value in guided setup, supported historical investigation,
+  automation/integration, governed local evidence storage, reproducibility,
+  updates and support. Signed distribution or supported live operation/alerts
+  enter the offer only when demand and their separate acceptance gates pass.
 - Use bring-your-own credentials first. Treat bundled or hosted data as a
   separate business decision requiring written provider and exchange authority.
 - Do not make previously MIT-licensed code scarce retroactively; any future
@@ -441,8 +511,9 @@ phase begins.
 
 - Ten paying pilots use the same supported offer.
 - At least 60% remain active through eight weeks.
-- Supported-provider activation is under fifteen minutes for the median new
-  customer.
+- Activation onto the offer's supported historical input or live provider is
+  under fifteen minutes for the median new customer; report the branch and
+  do not combine unlike activation populations.
 - Support burden remains below thirty minutes per customer per week after the
   first two weeks.
 - Gross contribution is positive after provider, distribution, payment,
@@ -457,8 +528,9 @@ Expansion is a sequence of separate gates, not a bundle:
 
 1. **NQ:** certify independently with its multiplier, contract family, chain
    coverage, sessions, and policy. ES evidence cannot certify NQ.
-2. **Headless local service:** expose the stable domain contract through a
-   bounded local process and WebSocket only after the Python contract is stable.
+2. **Supported local service:** stabilize the domain contract around observed
+   developer needs before promoting the existing private Wind loopback service
+   into a public headless/WebSocket contract.
 3. **REST or MCP:** add the interface users actually request while preserving
    the same provenance and rights controls. Do not expose raw licensed data by
    accident.
@@ -485,7 +557,7 @@ Expansion is a sequence of separate gates, not a bundle:
 
 | Dimension | Measure | Why it matters |
 | --- | --- | --- |
-| Activation | Time to first replay insight; time to trusted live view | Separates feature completion from user access |
+| Activation | Time to first replay insight or user checkpoint; time to trusted live view, reported separately | Separates feature completion from user access |
 | Repeated value | Weekly completion of the chosen recurring job | A product needs habit or repeated workflow replacement |
 | Trust | Provenance/staleness defects, suppressed alerts, unresolved data incidents | One silent wrong state can destroy the core promise |
 | Research integrity | Reproducibility rate, corpus coverage, split violations, null-result retention | Measures whether the evidence moat is real |
@@ -518,18 +590,22 @@ phase uses them as a gate.
 - A mobile-first application
 - A centrally hosted raw market-data lake
 - A proprietary composite score that hides model disagreement
-- Multi-provider or multi-asset breadth before one ES path is supported
+- Multi-provider or multi-asset breadth before the selected ES input/workflow is supported
 - Higher Greeks added solely for competitive checklist parity
 - REST, MCP, or numerous chart integrations before the domain contract is stable
 - Predictive, execution, or profitability marketing before corresponding evidence
 
 ## Immediate Continuation Point
 
-Follow the [Current Work Order](#current-work-order): use the completed
-[Product Validation](docs/product-validation.md) kit with real participants,
-starting with observed offline first use on the frozen repaired build. Record
-assistance, failed attempts and trust defects before routing another engineering
-slice. Commercial product selection remains in Phase 3.
+Follow the [Current Work Order](#current-work-order): after the checkpoint
+packet's integration gates, freeze a new current-build study that includes the
+demo/replay handoff, preserving the September 20 study unchanged. Use the
+[Product Validation](docs/product-validation.md)
+approach with real participants and record assistance, non-starts, failed
+attempts and trust defects. Route one supported user-input path from that
+evidence; neither the rest of the candidate list nor a commercial launch is
+implicitly authorized. Product selection remains in the applicable Phase 3
+branch.
 
 Separately, obtain owner approval for the prepared ES observation population
 and use [Live Population Preparation](docs/live-population-prep.md) to validate

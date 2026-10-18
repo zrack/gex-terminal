@@ -1,15 +1,63 @@
 # Application State And Health Review
 
-Updated September 26, 2026 for setup and terminal experience improvements on
-the repaired `0.5.0 — Offline Research Foundation`. This document owns
-the dated state assessment and verification limits; earlier release evidence is
-retained below rather than presented as verification of later changes.
+Updated October 18, 2026 against the current `0.6.0` source, including Market
+Wind Tunnel, the unified starter and the later provider repairs. This document
+owns the dated state assessment and verification limits; earlier release
+evidence is retained below rather than presented as verification of later changes.
 [Architecture](architecture.md) owns implementation structure;
 [Roadmap](../ROADMAP.md) owns remaining work. Earlier assessments remain in Git.
 
 ## Assessment
 
-The application is an offline research alpha with corrected result identity,
+The application is a substantial offline research workbench: contract-aware
+structural calculations, separate quantity models, terminal/replay workflows,
+browser scenarios and fragility searches, journals/experiments/corpus tooling,
+portable receipts, installation helpers and local recovery are available.
+The recent Databento fixes and Tradovate ACK-frame repair strengthen the
+offline provider implementation without certifying real provider operation.
+
+The checkpoint handoff now connects current demo/replay Terminal state to an
+immutable Wind Tunnel baseline. Press `w` in Terminal, or export with
+`--wind-tunnel-checkpoint PATH` and launch `wind-tunnel --checkpoint PATH`.
+The explicit `terminal_selected` model preserves Terminal's per-contract
+positive-trade-volume preference with OI fallback; separate raw/OI/directional
+choices retain their meanings. Source/cutoff, rows and effective assumptions
+are detached from later events, and saved receipts carry the frozen inputs for
+fresh-process reproduction without the original checkpoint/server.
+[Wind Tunnel](wind-tunnel.md) owns the supported user/receipt contract;
+[GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns final integration
+and verification status. This is demo/replay capture only, with no general
+importer, live-state capture, continuous synchronization, provider-readiness
+promotion or observed participant acceptance.
+
+Three remaining technical priorities affect trustworthy functionality:
+
+- The current Databento option path derives IV from trades without requesting
+  option bid/ask quotes. Stream freshness and per-option model-input freshness
+  need separate quality reporting; quote bootstrap is further provider work.
+- Exercise style, exact expiry timezone, calendars/session rules and supported
+  approximations need an explicit contract-domain policy. Uniform IV shocks
+  remain sensitivity tests, not a general skew/term-structure risk engine.
+- An old receipt needs its authorized inputs and compatible executable
+  environment. Original-model reproduction and deliberate current-model
+  restatement must have separate identities.
+
+No recorded participant activation, real-user retention, tested pricing,
+credentialed recurring ES/NQ operating envelope or predictive validity is
+established by these engineering checks. Databento remains `live-uncertified`;
+Tradovate/IBKR remain `scaffold`; `predictive_validity` remains `unmeasured`.
+Issue #4 stays open for actual sanitized Tradovate demo/live payloads.
+
+The [October market review](market-analysis.md) supports testing a complete
+historical-research workflow separately from a live tactical cockpit. The
+former needs authorized inputs and observed repeat use; the latter additionally
+needs recurring live scope. [Roadmap](../ROADMAP.md) owns both branch gates.
+Preserve the frozen September study and identify new current-build materials
+and observations separately.
+
+## Historical Acceptance Through September 26
+
+The repaired `0.5.0` foundation provided corrected result identity,
 fail-closed configuration, isolated replay replacement and verifiable portable
 research packs. All five P1 correctness repairs, compact-terminal support and
 the offline product foundation are accepted. Final hosted verification exposed
@@ -28,7 +76,8 @@ main. This resolves the interaction defect, not real-user acceptance.
 No credentialed provider observation, real-user activation study, customer
 commitment or commercial pilot was performed. Databento remains
 `live-uncertified`; predictive validity remains `unmeasured`. The next product
-evidence is observed use of the offline loop, not another broad feature layer.
+evidence remained observed use of the offline loop; these results did not
+authorize broad feature expansion.
 
 The [September 20 study build](studies/offline-first-use-2026-09-20.md) now freezes
 the repaired wheel, runtime, synthetic inputs and scoring materials. Its
@@ -62,13 +111,15 @@ frozen study; participant acceptance remains unmeasured.
 | --- | --- | --- |
 | Model and state | Contract-aware Black-76/Black-Scholes with separate OI, raw-volume and directionalized-volume paths | Numerical correctness does not establish dealer inventory or forecasting value |
 | Replay and identity | Eleven bundled scenarios including NQ ×20 schema-v2; catalog identity, actual/fallback multipliers and accepted-event chronology are explicit | Synthetic fixtures do not establish provider support for ES or NQ |
-| Research loop | Existing Demo Lab extended to a 20-file portable pack, input copy, three-model ladder and versioned receipt | Strict inventory/runtime compatibility; unkeyed hashes are not signatures |
+| Research loop | Demo Lab, captured sessions, journals, experiments, model profiles, corpus registration, batch comparison and portable receipts | Strict identity/runtime compatibility and source-specific point-in-time gates; unkeyed hashes are not signatures |
+| Wind Tunnel | Packaged browser surfaces, scenarios, expiry removal, comparison and fragility; explicit immutable demo/replay Terminal checkpoint; self-contained save/open/export/reproduce receipts | Default launch uses bundled examples; checkpoint launch uses one frozen source, not general import/live capture or synchronization; shocks freeze quantities and do not forecast future positions |
 | Terminal | Essential columns at 100×32+, full-table view at 140×42; focused picker/help/details and strike selection retained across refresh | Not a mobile interface, screen-reader certification or unaided usability study |
 | Preflight | Offline doctor checks package, resources, config, provider structure and temporary storage with text/JSON exit status | No live authentication, entitlements, SDK behavior or market-quality check |
 | Distribution | Reviewed wheel, local setup handoff, optional platform-specific wheelhouse and disposable lifecycle checks | Python remains required; no signed native installer or customer-selected channel |
-| Local launcher | Reusable offline launcher, exact package-payload checks and separate research directory; no shell activation | Existing direct CLI configuration remains unchanged; observed activation is still open |
+| Local launcher | Unified Terminal/Wind/Both starter, managed child-process lifetime, exact payload checks and separate research directory; `w` performs explicit checkpoint transfer | Combined launch alone coordinates processes, not market state; checkpoint services belong to their Terminal owner and stop with it; observed activation is still open |
+| Local interfaces | Snapshot exports, static TradingView overlay and capability-protected Wind loopback HTTP service | No supported public SDK/REST/MCP contract, continuous chart synchronization or hosted platform |
 | Support and lifecycle | Redacted diagnostics; verified owner-only backup/restore; whole-group retention bound to a verified backup and exact confirmation | POSIX safety support only; no general database, automatic migration or licensed-capture lifecycle claim |
-| Product preparation | Study kit and exact repaired wheel/runtime/materials frozen; ES/NQ installed-wheel rehearsal passed | No participant activation, demand, price, margin, license or conversion measurement |
+| Product preparation | Historical study kit and exact repaired wheel/runtime/materials frozen; later engineering and current-build review evidence retained separately | No participant activation, demand, price, margin, license or conversion measurement; current experience needs a new cohort/build identity |
 | Live preparation | Strict local plan/result contracts bind a declared 12-slot ES population, policy/runtime identity and failed/missed attempts | No execution, report-byte authentication, complete-history proof or external authority |
 | Live readiness | Databento uncertified; Tradovate/IBKR scaffolded; yfinance delayed | No supported recurring live operating envelope |
 
@@ -108,15 +159,21 @@ remain explicit.
   verification reports evaluation eligibility `not_assessed`. Empirical use
   requires the source-specific cutoff/availability gates in
   [Research Governance](research-governance.md).
-- **Provider queue:** [Good First Issues](good-first-issues.md) records the
-  September 4 issue/PR reconciliation. Tradovate PR #10 remains unaccepted; its
-  fixture assertion and unsupported access claims require contributor changes.
+- **Provider queue:** Databento #5 and #35 are closed after the merged offline
+  repairs. Tradovate PR #10 remains unaccepted; its fixture assertion and
+  unsupported access claims require contributor changes. Issue #4 remains
+  open until actual sanitized demo/live Tradovate ES/NQ payloads establish
+  mapping and availability; the ACK-frame repair does not satisfy that gate.
 - **Customer/live gates:** prepared protocols are not observations. The
   [Product Validation](product-validation.md) kit and prepared
   [GEX-LIVE-002](work-packets/GEX-LIVE-002.md) packet do not authorize external
   commitments, credentials, retention or readiness promotion.
 
 ## Verification record
+
+Each row identifies its own historical scope. The October assessment's focused
+checks do not rerun or supersede a prior full-suite result, and neither is
+evidence that a participant used the product successfully.
 
 Local environment: macOS ARM64, CPython 3.12.13. Generated inputs and artifacts
 are synthetic and retained in disposable directories outside the repository.
@@ -135,6 +192,10 @@ Package dependency downloads are not market-data connections.
 | Final lifecycle repair | PR #26 initially exposed the shutdown race on 3.12; 3.11 was fail-fast-cancelled. Independently reviewed repair and root integration each passed 425 tests | Initial green checkpoints do not erase the observed failure; final tag requires repaired-tree hosted/package checks |
 | Independent installed wheel | Full command matrix passed in a fresh Python 3.14.4 environment; NQ identities, redacted support and private backup/restore verified | Additional command smoke only; full-suite baseline remains 3.11/3.12 |
 | September 13 keyboard repair | PR #27 merged as `b5ecfb1`; 431 tests, compilation and documentation links passed on clean pulled main, after four hosted 3.11/3.12 checks and independent installed-wheel keyboard smoke | Exact repair evidence in GEX-UX-001; no new release tag, native-terminal accessibility or real-user study |
+| Market Wind Tunnel and unified starter | Accepted browser scenario/reproduction and managed combined-launch slices; exact source, packaging and hosted gates are owned by [GEX-WIND-001](work-packets/GEX-WIND-001.md) and [GEX-START-001](work-packets/GEX-START-001.md) | Offline technical acceptance; unchanged version alone does not identify later source or establish observed use |
+| Databento issue #35 | PR #36 merged; clean merged main passed 603 source tests after installed-wheel functional, parameter/state-machine and load verification; final hosted jobs passed | Exact environment, populations and software-only ceiling in [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md); no live readiness promotion |
+| Tradovate ACK-frame repair | PR #38 merged as `a959272`; 614 source tests passed on clean merged main, with focused ACK/Tradovate regressions, model/offline-provider/fault and candidate-wheel checks; all eight final hosted jobs passed | [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md) owns exact evidence; #4 remains open and actual payload access is unverified |
+| October 18 assessment | Main `6b5af41502e26351a70180d3144aeeec2b6023d6`, package `0.6.0`; 35 focused tests and seven public CLI smoke checks passed | Dated review of the pre-handoff tree, not a fresh full-suite run or verification of subsequent changes |
 
 The release closeout and annotated tag identify the final verified merged tree;
 [GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) records acceptance without

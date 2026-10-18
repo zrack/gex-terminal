@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 import logging
 import math
@@ -76,6 +77,7 @@ class StatefulGexConsumer:
         self._v1_option_count = 0
         self._v2_option_count = 0
         self._option_update_serial = 0
+        self._untimed_market_event_count = 0
         self.current_spot: float = 0.0
         self.session_open: float = 0.0
         self.market_time: datetime | None = None
@@ -157,6 +159,7 @@ class StatefulGexConsumer:
             self._v1_option_count = 0
             self._v2_option_count = 0
             self._option_update_serial = 0
+            self._untimed_market_event_count = 0
             self.current_spot = 0.0
             self.session_open = 0.0
             self.market_time = None
@@ -312,6 +315,8 @@ class StatefulGexConsumer:
                     if event_time is not None:
                         if self.market_time is None or event_time >= self.market_time:
                             self.market_time = event_time
+                    else:
+                        self._untimed_market_event_count += 1
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
                     self._rebuild_public_projections_locked()
@@ -340,6 +345,8 @@ class StatefulGexConsumer:
                     if event_time is not None:
                         if self.market_time is None or event_time >= self.market_time:
                             self.market_time = event_time
+                    else:
+                        self._untimed_market_event_count += 1
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
                 return True
@@ -836,6 +843,64 @@ class StatefulGexConsumer:
         )
         active, _ = self._active_contract_states(selected, reference_time)
         return active
+
+    async def capture_wind_tunnel_state(self) -> dict:
+        """Freeze the offline calculation inputs under the canonical state lock.
+
+        The transport layer applies its versioned allowlist after this detached
+        snapshot. No second unlocked read may supply calculation parameters.
+        """
+        async with self.state_lock:
+            if self.data_mode not in {"DEMO", "REPLAY"}:
+                raise ValueError("Terminal checkpoint handoff supports demo/replay only; live capture remains gated")
+            if self.market_time is None or self.market_time.tzinfo is None:
+                raise ValueError("Terminal checkpoint requires authoritative timezone-bearing market time")
+            if self._untimed_market_event_count:
+                raise ValueError("Terminal checkpoint cannot include events with missing market time")
+            if self._v1_option_count and self._v2_option_count:
+                raise ValueError("Mixed legacy/v2 state cannot form a Terminal checkpoint")
+            if len(self.contract_state) > 5000 or len(self.chain_state) > 2500:
+                raise ValueError("Terminal checkpoint exceeds the 5000-row limit")
+            selected_filter = (self.expiry_filter or "all").strip()
+            if self._v1_option_count:
+                projection = self._legacy_filter_map(
+                    self.chain_state, self.expiry_state, selected_filter, self.market_time,
+                )
+                rows = []
+                for strike, state in sorted(projection.items()):
+                    for option in ("C", "P"):
+                        rows.append({
+                            "contract_id": f"legacy:{float(strike)!r}:{option}", "provider": "legacy",
+                            "symbol": self.target_underlying, "strike": strike, "option_type": option,
+                            "accumulated_volume": state[option], "position_source": "trade_volume",
+                            "iv": state["iv"], "pricing_model": "black_scholes", "expiry": "legacy aggregate",
+                            "terminal_selected": True,
+                        })
+                mode = "legacy_v1"
+            else:
+                states = [state for state in self.contract_state.values()
+                          if not state.get("open_interest_invalidated") and self.is_contract_underlying_current(state)]
+                identities = {}
+                identity_fields = ("strike", "option_type", "expiry", "expiry_timestamp", "days_to_expiry", "pricing_model", "contract_multiplier")
+                for state in states:
+                    key = (state["provider"], state["contract_id"])
+                    metadata = tuple(state.get(field) for field in identity_fields)
+                    if key in identities and identities[key] != metadata:
+                        raise ValueError("Terminal checkpoint quantity states have conflicting contract identity metadata")
+                    identities[key] = metadata
+                selected, _ = self._select_position_states(states)
+                states = self._filter_contract_states(states, selected_filter, self.market_time)
+                states, _ = self._active_contract_states(states, self.market_time)
+                selected_keys = {contract_storage_key(state) for state in selected}
+                rows = [{**state, "terminal_selected": contract_storage_key(state) in selected_keys} for state in states]
+                mode = "contract_v2"
+            return copy.deepcopy({
+                "rows": rows, "as_of": self.market_time, "spot": self.current_spot,
+                "risk_free_rate": self.risk_free_rate, "contract_multiplier": self.engine.multiplier,
+                "expiry_filter": selected_filter, "symbol": self.target_underlying,
+                "data_mode": self.data_mode, "calculation_mode": mode,
+                "quality": self.feed_quality_snapshot(),
+            })
 
     def _filter_contract_states(
         self,

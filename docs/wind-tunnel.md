@@ -1,8 +1,9 @@
 # Market Wind Tunnel
 
 The Wind Tunnel answers a conditional research question: **if these assumptions
-change, how does the modeled structure change?** It reconstructs a synthetic
-replay checkpoint, keeps its contract quantities fixed and reprices scenarios
+change, how does the modeled structure change?** It reconstructs a bundled
+replay or accepts a frozen Terminal demo/replay checkpoint, keeps its contract
+quantities fixed and reprices scenarios
 through the same calculation engine as the terminal.
 
 ## Open The Workbench
@@ -22,7 +23,8 @@ The direct command opens your browser. Keep its launcher window open; Control-C
 stops the local server. In **Both**, quitting the terminal also stops the server
 that combined session started. Closing a browser tab closes only the view.
 The terminal and browser keep independent source selections and research state;
-launching both does not transfer a checkpoint or scenario between them.
+launching both does not transfer a checkpoint. Press `w` in Terminal to make
+an explicit frozen handoff into a separately owned Wind Tunnel session.
 No provider account, live data, CDN or telemetry is involved.
 The browser connects only to a Python process on this computer. The launcher
 uses a free port; the direct command defaults to port 8765. To select a free
@@ -41,6 +43,46 @@ fragment, when reopening the app. Its random capability grants access to this
 local session. Restarting creates a new capability. Saved receipts exclude it.
 
 ## Explore A Scenario
+
+### Stress A Terminal Checkpoint
+
+In Terminal, load a demo/replay and press **`w` — Stress checkpoint**. The action
+copies the consumer's current state under its lock, including spot, authoritative
+market time, effective rate/DTE/multiplier, expiry filter and source quality.
+Wind Tunnel opens on **Terminal selected proxy**: positive trade volume
+per contract, with OI fallback, matching Terminal without summing both quantities
+for one contract. Alternative volume, OI and directional models remain separate.
+
+The browser labels this as a frozen checkpoint and shows its time, expiry filter
+and captured health. It cannot scrub to other events or broaden the original
+expiry filter. Later ticks, replay loads and assumption changes in Terminal do
+not alter it. Press `w` again for a new checkpoint; that replaces only the handoff
+service owned by this Terminal. Quitting Terminal stops that service and retains
+its files. Other standalone Wind Tunnel sessions remain independent.
+
+Checkpoint JSON and receipt workspaces are saved beneath
+`wind_tunnel_handoffs/` in Terminal's working/research directory. Details (`v`)
+shows the last checkpoint path. If the browser could not open, use that path in
+the command below. Files contain market data; retain/share them only under the
+input source's rights. A replay file is not automatically synthetic or licensed.
+
+For an explicit CLI handoff, export a supported demo/replay checkpoint, then
+open it. These commands run without live provider access:
+
+```bash
+gex-terminal --replay-session nq-research-loop --symbol NQ --multiplier 20 --wind-tunnel-checkpoint nq-checkpoint.json
+gex-terminal wind-tunnel --checkpoint nq-checkpoint.json --port 0
+```
+
+Use a new output filename; an existing checkpoint is never overwritten. Input
+files must be regular, bounded checkpoint JSON, not symlinks. The server reads
+only the path explicitly supplied by its operator; browser requests cannot
+choose filesystem paths. This is a single-state handoff, not a general session
+importer or live synchronization. Live-state capture is rejected pending its
+separate governed authority. Mixed legacy/v2 state, missing market time and
+invalid/oversized inputs also fail closed.
+
+### Bundled Synthetic Sessions
 
 1. Start with **ES Wind Tunnel Lab**, a bundled synthetic multi-expiry chain.
    Move the checkpoint to select the last replay event permitted into the model.
@@ -66,6 +108,10 @@ only tested cells: missing or invalid cells do not mean stability.
 | Time advance | Advance model time in minutes with quantities frozen; later replay events are not consumed |
 | Remove nearest expiry | Remove the expiry cohort nearest at the original checkpoint, even after time advances; never retarget a later cohort |
 | Position model | Select an independent quantity proxy on the same frozen input |
+
+`Terminal selected proxy` is available only for Terminal checkpoints. It
+preserves their explicit per-contract fallback policy; it is not an additional
+source of quantities to sum with the other models.
 
 The IV policy is sticky strike with a uniform shift, not a simulated volatility
 smile. Invalid nonpositive spot or IV, expired contracts and absent quantities
@@ -112,7 +158,9 @@ dealer positioning, support/resistance certainty or prediction is inferred.
 
 Saving recalculates the submitted inputs on the server, then writes an immutable
 receipt containing the normalized request, bundled source/checkpoint identity,
-calculation fingerprint, results and checksum. Open a saved scenario to
+calculation fingerprint, results and checksum. Terminal handoff requests also
+embed their frozen input, so reproduction does not need the original checkpoint
+file or running Terminal. Open a saved scenario to
 recalculate it; export its JSON to retain or transfer it. Receipt verification
 checks content integrity and independently recomputes the result.
 
@@ -127,6 +175,9 @@ Python minor and NumPy version. A changed build can yield a mismatch even if its
 displayed rounded values look alike. A checksum proves content identity, not
 the truth or authorship of a research claim.
 
+Checkpoint inputs are limited to 2 MB and 5,000 copied rows. Requests and saved
+receipts still obey the 4 MiB JSON bound; a detailed large calculation may need
+a narrower source selection before it can be saved. No data is silently truncated.
 The workspace must be empty or already owned by the Wind Tunnel. It holds up to
 100 receipts, 4 MiB per receipt and 64 MiB total. Keep unrelated files elsewhere.
 When full, choose a new workspace and preserve the old one. Browser requests

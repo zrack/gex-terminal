@@ -29,6 +29,14 @@ in-memory state. Both makes them available together; choose and inspect each
 interface's source explicitly. Terminal exports and Wind Tunnel receipts remain
 separate artifacts in the research folder.
 
+To stress the Terminal's current demo/replay state, press **`w`**. It opens a
+frozen Wind Tunnel checkpoint with the effective assumptions and selected
+quantities. Later updates remain separate; press `w` again for a new handoff.
+Quitting Terminal stops its handoff service and retains the checkpoint/receipts.
+Details (`v`) shows the saved input path. Live capture remains separately gated.
+See [Wind Tunnel handoff](wind-tunnel.md#stress-a-terminal-checkpoint) for CLI
+commands, source limits and reproduction.
+
 | Mode | macOS shortcut | Linux command |
 | --- | --- | --- |
 | Terminal | `GEX App/Start Terminal.command` | `"./GEX App/run-gex"` |
