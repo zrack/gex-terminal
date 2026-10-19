@@ -7,6 +7,24 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Full Historical Sessions
+
+- Stream and verify explicit local captures up to 1 GiB / 2 million events,
+  replay only a detached verified disk copy, and keep browser intake bounded
+  at 4 MiB / 5,000 events. Large-session cancellation releases its spool.
+- Expand checkpoint transport to 8 MiB and JSON requests/receipts to 32 MiB
+  for full-session detail, retaining 5,000 rows and separate 4 MiB browser intake.
+- Load long saved sessions without source-time delays; retain 60× replay for
+  short samples. Show the verified time span, event count and selected policy
+  in the starter, with a final checkpoint for Wind Tunnel.
+- Add a metadata-quoted, $5-capped full-day ES/NQ acquisition helper with
+  immutable plans, fresh cost checks, private progress receipts and no retries.
+  Convert native data with a disk-backed causal merge and one consumer across
+  midnight; validate raw quantities, identity, pricing and checkpoint receipts.
+- Keep downloaded payloads, normalized captures and validation evidence private.
+  [Full-day instructions](docs/databento-credit-trial.md#full-trading-day-es-and-nq)
+  define the sampled BBO, matched-future and trade-volume scope.
+
 ## Unreleased — Saved Data Starter
 
 - Add **Saved data — Both** to fresh reviewed setup choosers, with ES/NQ

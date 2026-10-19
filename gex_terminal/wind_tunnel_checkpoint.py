@@ -20,7 +20,7 @@ from gex_terminal.pricing_assumptions import (AMERICAN_FUTURES_MODEL, IV_PROVENA
                                              QUALIFIED_IV_SOURCES)
 
 SCHEMA = "gex-terminal.wind-tunnel.terminal-checkpoint.v1"
-MAX_BYTES = 2_000_000
+MAX_BYTES = 8 * 1024 * 1024
 MAX_ROWS = 5000
 ROW_FIELDS = {
     "contract_id", "provider", "symbol", "strike", "option_type", "expiry", "expiry_timestamp",
@@ -78,7 +78,7 @@ def validate_checkpoint(artifact: Any) -> dict:
     """Validate strict transport and point-in-time semantics; return detached JSON."""
     if isinstance(artifact, str):
         if len(artifact.encode("utf-8")) > MAX_BYTES:
-            raise ValueError("Terminal checkpoint exceeds the 2 MB limit")
+            raise ValueError("Terminal checkpoint exceeds the 8 MiB limit")
         try:
             artifact = json.loads(artifact, object_pairs_hook=_unique_fields)
         except (ValueError, RecursionError):
@@ -88,7 +88,7 @@ def validate_checkpoint(artifact: Any) -> dict:
         raise ValueError("Unsupported Terminal checkpoint version")
     raw = _canonical(artifact)
     if len(raw) > MAX_BYTES:
-        raise ValueError("Terminal checkpoint exceeds the 2 MB limit")
+        raise ValueError("Terminal checkpoint exceeds the 8 MiB limit")
     if not isinstance(artifact["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", artifact["sha256"]):
         raise ValueError("Invalid Terminal checkpoint checksum")
     if checkpoint_sha256(artifact) != artifact["sha256"]:
@@ -291,14 +291,14 @@ def read_checkpoint(path: str | Path) -> dict:
         if not stat.S_ISREG(metadata.st_mode):
             raise ValueError("Terminal checkpoint input must be a regular file")
         if metadata.st_size > MAX_BYTES:
-            raise ValueError("Terminal checkpoint exceeds the 2 MB limit")
+            raise ValueError("Terminal checkpoint exceeds the 8 MiB limit")
     except BaseException:
         os.close(descriptor)
         raise
     with os.fdopen(descriptor, "rb") as stream:
         raw = stream.read(MAX_BYTES + 1)
     if len(raw) > MAX_BYTES:
-        raise ValueError("Terminal checkpoint exceeds the 2 MB limit")
+        raise ValueError("Terminal checkpoint exceeds the 8 MiB limit")
     try:
         value = json.loads(raw, object_pairs_hook=_unique_fields)
     except (ValueError, UnicodeDecodeError, RecursionError):
@@ -310,7 +310,7 @@ def write_checkpoint(path: str | Path, artifact: dict) -> Path:
     value = validate_checkpoint(artifact)
     payload = _canonical(value) + b"\n"
     if len(payload) > MAX_BYTES:
-        raise ValueError("Terminal checkpoint exceeds the 2 MB file limit")
+        raise ValueError("Terminal checkpoint exceeds the 8 MiB file limit")
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)

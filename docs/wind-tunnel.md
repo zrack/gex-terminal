@@ -64,11 +64,17 @@ source and reconstructs its final checkpoint through the installed application.
 [First Run](first-run.md#open-saved-es-or-nq-data) owns capture selection,
 registration/reuse commands, inherited assumptions and missing-value defaults.
 
-Wind Tunnel opens that final checkpoint immediately while Terminal replays the
-capture at 60× speed. Let Terminal reach the endpoint before comparing values.
+Wind Tunnel opens that final checkpoint. Terminal loads long sessions without
+source-time delays; short samples replay at 60×. The starter prints the policy,
+time span and event count. Let Terminal reach the endpoint before comparing values.
 Unavailable IV and raw quantities are preserved, with excluded exposure shown
 in pricing coverage. Subsequent source selections and scenarios are independent.
 This path uses no provider requests or credits.
+
+The explicit local starter accepts captures up to 1 GiB / 2 million events;
+guided browser upload keeps its smaller limits. Frozen checkpoints remain
+bounded to 8 MiB / 5,000 rows. Full-day final checkpoints exclude contracts that
+have already expired, even though their trades remain in the capture.
 
 ### Stress A Terminal Checkpoint
 
@@ -268,11 +274,12 @@ Python minor and NumPy version. A changed build can yield a mismatch even if its
 displayed rounded values look alike. A checksum proves content identity, not
 the truth or authorship of a research claim.
 
-Checkpoint inputs are limited to 2 MB and 5,000 copied rows. Requests and saved
-receipts still obey the 4 MiB JSON bound; a detailed large calculation may need
-a narrower source selection before it can be saved. No data is silently truncated.
+Checkpoint inputs are limited to 8 MiB and 5,000 copied rows. Requests and saved
+receipts obey a 32 MiB JSON bound so full-session checkpoints and their detailed
+results can be retained together. Browser capture intake keeps its separate
+4 MiB / 5,000-event bound. No data is silently truncated.
 The workspace must be empty or already owned by the Wind Tunnel. It holds up to
-100 receipts, 4 MiB per receipt and 64 MiB total. Keep unrelated files elsewhere.
+100 receipts, 32 MiB per receipt and 64 MiB total. Keep unrelated files elsewhere.
 When full, choose a new workspace and preserve the old one. Browser requests
 cannot select arbitrary disk paths. Existing terminal research remains separate.
 

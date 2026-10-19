@@ -246,3 +246,112 @@ establish live authentication/streaming, all option families, licensed OI
 coverage, dealer inventory, or predictive validity. OI needs separately scoped
 statistics and publication-time handling; it is intentionally absent from the
 first credit test.
+
+## Full Trading Day ES And NQ
+
+The full-session workflow uses the same Historical API, but quotes all **26
+application-supported option parents per market**, one explicitly identified
+futures contract per market, and the completed Chicago trading-day window.
+For October 16, 2026 this is **October 15 22:00 UTC through October 16 21:00 UTC**
+(17:00 the prior day through 16:00 Chicago). Exchange pauses remain gaps; this
+is 23 hours of session coverage, not 23 hours of uninterrupted trading.
+
+Check Billing first. The helper requires an explicitly supplied remaining
+free-credit balance and caps the combined quote at **$5**. A quote uses metadata
+only. A download repeats every quote before its first data request, refuses
+changed record/byte counts or an excessive total, and writes private per-request
+progress receipts. It never retries, overwrites an earlier run or silently
+narrows option-family coverage.
+
+```bash
+FULL_DAY_DIR=historical_sessions/databento_trial/full-day-example
+./.venv/bin/python -m scripts.databento_session_download quote \
+  --date 2026-10-16 --output "$FULL_DAY_DIR/quoted-plan.json"
+```
+
+For this date, the default futures identity is read from the previously owned
+ES/NQ `broader-20261019` BBO files. For another date, explicitly supply
+`--es-underlying` and `--nq-underlying` with already-owned BBO files that identify
+its intended futures contracts. The helper does not automatically roll contracts
+or resolve a different underlying after quoting.
+
+Review the saved plan and replace `REMAINING_CREDITS` below with Billing's
+verified numeric balance. This command spends credits:
+
+```bash
+./.venv/bin/python -m scripts.databento_session_download download \
+  --plan "$FULL_DAY_DIR/quoted-plan.json" \
+  --output "$FULL_DAY_DIR/acquisition" \
+  --credits-remaining REMAINING_CREDITS --max-cost 5 --use-credits
+```
+
+Definitions cover two prior UTC days through session end, including intraday
+updates. Underlying BBO-1s starts two seconds before the session; option trades
+cover the session itself. Each market is bounded to five million native records;
+all compressed files together are bounded to 512 MiB. Each request uses its
+quoted count plus one as a sentinel limit; reaching that limit, truncation or an
+empty input stops completion. Partial files may already have used credits.
+Actual billed cost is provider-controlled and remains distinct from the quote.
+Holiday or special session hours require separate calendar verification.
+
+Convert each market into a **new** output folder, entirely offline:
+
+```bash
+./.venv/bin/python -m scripts.databento_session_replay --symbol ES \
+  --definitions "$FULL_DAY_DIR/acquisition/es/definitions.dbn" \
+  --underlying "$FULL_DAY_DIR/acquisition/es/underlying.dbn" \
+  --trades "$FULL_DAY_DIR/acquisition/es/trades.dbn" \
+  --start 2026-10-15T22:00:00Z --end 2026-10-16T21:00:00Z \
+  --output-dir "$FULL_DAY_DIR/replays/es"
+```
+
+Repeat with `NQ` and `nq` paths. The converter uses a private disk index rather
+than loading the raw history into memory, and one adapter/consumer across UTC
+midnight. It preserves native fill fingerprints, interval-end quote availability,
+causal definitions and the existing IV freshness/bounds rules. American-option
+inversion can make this step take several minutes; progress goes to stderr.
+No pricing approximation is weakened to accelerate conversion.
+
+Only option definitions matching the selected futures contract enter the
+capture. Reports count excluded definitions and other-future trade events.
+All supported parents does **not** establish complete-chain coverage, and this
+workflow supplies **trade volume**, with no open interest or observed dealer
+inventory. BBO-1s samples do not reconstruct every book update or original
+network arrival. Rate and model assumptions remain configured research inputs.
+
+Validate the native files against the normalized captures and checkpoint output:
+
+```bash
+./.venv/bin/python -m scripts.validate_full_session \
+  --manifest "$FULL_DAY_DIR/acquisition/download-complete.json" \
+  --replays "$FULL_DAY_DIR/replays" --output "$FULL_DAY_DIR/validation"
+```
+
+The validator builds its own native-data index. It reconciles event occurrences,
+unique fill quantities, identities, causal metadata/quotes and pricing status;
+checks prefixes at opening +15 minutes, 13:40 UTC, immediately before and after
+20:00 UTC expiry, and the close; and reproduces fresh Wind Tunnel receipts.
+Independent European arithmetic is checked directly. Independent American
+finite-difference comparison runs only if QuantLib is already installed and is
+explicitly marked unavailable otherwise. An empty/all-expired prefix cannot
+produce a nonempty canonical checkpoint; its unavailability is reported, with an
+explicit time-advance receipt checked from an earlier valid checkpoint where
+available. No validation step requests provider data or uses credits.
+
+Finally, in a **fresh reviewed setup** with full-session support, register both:
+
+```bash
+"./GEX App/run-gex" --register-saved-data ES \
+  --captured-session "/absolute/path/to/replays/es/es.gex-session.jsonl"
+"./GEX App/run-gex" --register-saved-data NQ \
+  --captured-session "/absolute/path/to/replays/nq/nq.gex-session.jsonl"
+```
+
+Open **Start GEX.command → Saved data — Both → ES or NQ**. Long sessions load
+Terminal to the final state and open that final checkpoint in Wind Tunnel.
+The closing checkpoint excludes already expired contracts; retained raw trade
+quantity and active unpriced quantity are different measures. Checkpoint limits
+remain 8 MiB / 5,000 rows; a larger capture does not bypass those limits.
+[First Run](first-run.md#open-saved-es-or-nq-data) owns reuse and loading behavior.
+Keep the source files, captures and validation evidence private and preserve
+older samples unchanged.

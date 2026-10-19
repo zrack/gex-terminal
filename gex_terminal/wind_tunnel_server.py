@@ -22,12 +22,12 @@ from typing import Any
 from aiohttp import web
 
 from . import __version__
-from .session_intake import IntakeError, SessionIntake
+from .session_intake import IntakeError, MAX_CAPTURE_BYTES, SessionIntake
 
 
 RECEIPT_SCHEMA = "gex-terminal.wind-tunnel.receipt.v1"
 WORKSPACE_SCHEMA = "gex-terminal.wind-tunnel.workspace.v1"
-MAX_JSON_BYTES = 4 * 1024 * 1024
+MAX_JSON_BYTES = 32 * 1024 * 1024
 MAX_WORKSPACE_BYTES = 64 * 1024 * 1024
 MAX_RECEIPTS = 100
 OPERATIONS = ("calculate", "surface", "search")
@@ -57,7 +57,7 @@ def digest(value: Any) -> str:
 
 def decode_json(data: bytes) -> dict:
     if len(data) > MAX_JSON_BYTES:
-        raise ReceiptError("JSON exceeds the 4 MiB limit.")
+        raise ReceiptError("JSON exceeds the 32 MiB limit.")
 
     def unique_pairs(pairs):
         result = {}
@@ -143,7 +143,7 @@ def validate_receipt(receipt: Any) -> dict:
         if not secrets.compare_digest(expected, digest(unsigned)):
             raise ReceiptError("Receipt checksum does not match its content.")
         if len(canonical_bytes(receipt)) > MAX_JSON_BYTES:
-            raise ReceiptError("Receipt exceeds the 4 MiB limit.")
+            raise ReceiptError("Receipt exceeds the 32 MiB limit.")
     except (TypeError, RecursionError, OverflowError) as exc:
         raise ReceiptError("Invalid receipt content.") from exc
     return receipt
@@ -322,7 +322,9 @@ async def security_boundary(request, handler):
     try:
         response = await handler(request)
     except web.HTTPRequestEntityTooLarge:
-        response = error_response(413, "size", "Request exceeds the 4 MiB limit.")
+        message = ("Captured-session upload exceeds the 4 MiB limit."
+                   if request.path == "/api/intake" else "Request exceeds the 32 MiB limit.")
+        response = error_response(413, "size", message)
     except web.HTTPException as exc:
         response = error_response(exc.status, "http", "Request is not supported.")
     except IntakeError as exc:
@@ -351,6 +353,18 @@ async def read_body(request) -> dict:
     if request.content_type != "application/json":
         raise ReceiptError("Send an application/json request.")
     return decode_json(await request.read())
+
+
+async def read_intake_body(request) -> bytes:
+    """Keep browser capture intake small even when portable receipts are larger."""
+    if request.content_length is not None and request.content_length > MAX_CAPTURE_BYTES:
+        raise web.HTTPRequestEntityTooLarge(max_size=MAX_CAPTURE_BYTES, actual_size=request.content_length)
+    data = bytearray()
+    async for block in request.content.iter_chunked(64 * 1024):
+        if len(data) + len(block) > MAX_CAPTURE_BYTES:
+            raise web.HTTPRequestEntityTooLarge(max_size=MAX_CAPTURE_BYTES, actual_size=len(data) + len(block))
+        data.extend(block)
+    return bytes(data)
 
 
 async def run_bounded(request, operation):
@@ -421,7 +435,7 @@ def create_app(workspace: Path | str, *, token: str | None = None,
     async def inspect_intake(request):
         if request.content_type != "application/octet-stream":
             raise ReceiptError("Select a captured-session file to inspect.")
-        data = await request.read()
+        data = await read_intake_body(request)
 
         async def inspect():
             return app[INTAKE_KEY].inspect(data)

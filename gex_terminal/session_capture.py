@@ -8,6 +8,8 @@ import io
 import json
 import math
 import os
+import stat
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +21,9 @@ from gex_terminal.market_data_adapter import validate_normalized_message
 
 CAPTURE_SCHEMA = "gex-terminal.captured-session.v1"
 NORMALIZED_CONTRACT = "gex-terminal.normalized-message"
+LOCAL_CAPTURE_MAX_BYTES = 1024 * 1024 * 1024
+LOCAL_CAPTURE_MAX_EVENTS = 2_000_000
+LOCAL_CAPTURE_MAX_LINE_BYTES = 1024 * 1024
 
 
 class CaptureIntegrityError(ValueError):
@@ -344,6 +349,97 @@ def verify_captured_session_bytes(
         raise CaptureIntegrityError("invalid captured-session encoding or structure") from exc
 
 
+def verify_captured_session_file(
+    path: str | Path, *, copy_to=None, on_event: Callable[[dict[str, Any]], None] | None = None,
+    max_bytes: int = LOCAL_CAPTURE_MAX_BYTES, max_events: int = LOCAL_CAPTURE_MAX_EVENTS,
+    max_line_bytes: int = LOCAL_CAPTURE_MAX_LINE_BYTES,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Strictly verify a bounded local file without retaining its event history.
+
+    An optional binary destination receives the exact bytes being verified.
+    Event callbacks may inspect records but must not publish unverified state:
+    complete aggregate integrity is established only after this call returns.
+    Browser uploads retain the separate, much smaller bytes-API limits.
+    """
+    target = Path(path)
+    if target.name.endswith(".partial"):
+        raise CaptureIntegrityError("incomplete .partial captures cannot be replayed")
+    descriptor = os.open(target, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= max_bytes:
+            raise CaptureIntegrityError("local capture must be a nonempty regular file within the byte limit")
+        byte_count = 0
+        raw_digest = hashlib.sha256()
+
+        def bounded_lines(stream):
+            nonlocal byte_count
+            while True:
+                raw = stream.readline(max_line_bytes + 1)
+                if not raw:
+                    break
+                byte_count += len(raw)
+                if len(raw) > max_line_bytes:
+                    raise CaptureIntegrityError("capture record exceeds the local line limit")
+                if byte_count > max_bytes:
+                    raise CaptureIntegrityError("capture exceeds the local byte limit")
+                raw_digest.update(raw)
+                if copy_to is not None:
+                    copy_to.write(raw)
+                try:
+                    yield raw.decode("utf-8")
+                except UnicodeError as exc:
+                    raise CaptureIntegrityError("invalid captured-session encoding") from exc
+
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            header, footer, _ = _verify_capture_lines(
+                bounded_lines(stream), strict=True, max_events=max_events,
+                collect_events=False, on_event=on_event,
+            )
+        return header, footer, {"bytes": byte_count, "sha256": raw_digest.hexdigest(),
+                                "event_count": footer["event_count"]}
+    finally:
+        os.close(descriptor)
+
+
+def open_verified_capture(path: str | Path, *, cancelled: Callable[[], bool] | None = None):
+    """Return a private on-disk stream of complete verified local capture bytes.
+
+    Verification finishes before the caller can read its first event. Replaying
+    this detached stream cannot observe a changed or replaced original path.
+    The caller owns and must close the returned seekable binary file.
+    """
+    frozen = tempfile.TemporaryFile(mode="w+b", prefix="gex-verified-capture-")
+    try:
+        def inspect_event(_event):
+            if cancelled is not None and cancelled():
+                raise CaptureIntegrityError("local capture verification cancelled")
+
+        verify_captured_session_file(path, copy_to=frozen, on_event=inspect_event if cancelled else None)
+        frozen.flush()
+        frozen.seek(0)
+        return frozen
+    except BaseException:
+        frozen.close()
+        raise
+
+
+def iter_verified_capture_stream(stream) -> Iterable[dict[str, Any]]:
+    """Read event envelopes from a stream produced by open_verified_capture."""
+    stream.seek(0)
+    for line in stream:
+        if line.strip():
+            record = json.loads(line)
+            if record.get("record_type") == "event":
+                yield record
+
+
+def iter_verified_captured_events(path: str | Path) -> Iterable[dict[str, Any]]:
+    """Yield only after full local verification, using bounded on-disk storage."""
+    with open_verified_capture(path) as stream:
+        yield from iter_verified_capture_stream(stream)
+
+
 def _unique_capture_fields(pairs):
     result = {}
     for key, value in pairs:
@@ -366,6 +462,7 @@ def _finite_capture_float(value):
 
 def _verify_capture_lines(
     capture_file: Iterable[str], *, strict: bool = False, max_events: int | None = None,
+    collect_events: bool = True, on_event: Callable[[dict[str, Any]], None] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], tuple[dict[str, Any], ...]]:
     header: dict[str, Any] | None = None
     footer: dict[str, Any] | None = None
@@ -411,7 +508,7 @@ def _verify_capture_lines(
             raise CaptureIntegrityError(
                 f"unexpected capture record type at line {line_number}: {record_type}"
             )
-        if record.get("sequence") != expected_sequence:
+        if (strict and type(record.get("sequence")) is not int) or record.get("sequence") != expected_sequence:
             raise CaptureIntegrityError(
                 f"capture sequence mismatch: expected {expected_sequence}, "
                 f"got {record.get('sequence')}"
@@ -442,7 +539,10 @@ def _verify_capture_lines(
         content_digest.update(_canonical_bytes(record) + b"\n")
         if max_events is not None and expected_sequence >= max_events:
             raise CaptureIntegrityError("capture exceeds the supported event limit")
-        events.append(record)
+        if collect_events:
+            events.append(record)
+        if on_event is not None:
+            on_event(record)
         expected_sequence += 1
 
     if header is None:
@@ -451,7 +551,7 @@ def _verify_capture_lines(
         raise CaptureIntegrityError("capture footer is missing")
     if footer.get("status") != "complete" or footer.get("completed") is not True:
         raise CaptureIntegrityError("capture footer does not mark a complete session")
-    if footer.get("event_count") != expected_sequence:
+    if (strict and type(footer.get("event_count")) is not int) or footer.get("event_count") != expected_sequence:
         raise CaptureIntegrityError("capture event count does not match its footer")
     if footer.get("message_sha256") != message_digest.hexdigest():
         raise CaptureIntegrityError("capture aggregate message hash mismatch")

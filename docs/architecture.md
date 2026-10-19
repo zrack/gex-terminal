@@ -315,6 +315,16 @@ raw capture. These bounds and privacy rules are recorded in
 
 ## Repository Map
 
+The saved-data starter uses a separate explicit local-file path: it verifies
+up to 1 GiB / 2 million events into a private disk copy, then replays the verified
+bytes through one consumer to prepare the final checkpoint. Long captures load
+without event-time delays. The full-day Databento converter stages native records
+in a private SQLite index and merges causally through one adapter across UTC
+midnight. Neither conversion nor saved startup contacts a provider. Checkpoint
+transport allows 8 MiB / 5,000 rows and JSON receipts up to 32 MiB; browser intake limits above are
+unchanged. [First Run](first-run.md#open-saved-es-or-nq-data) and the
+[full-day workflow](databento-credit-trial.md#full-trading-day-es-and-nq) own usage.
+
 | Path | Architectural role |
 | --- | --- |
 | `gex_terminal/` | Installable application package and all runtime, model, and report modules |

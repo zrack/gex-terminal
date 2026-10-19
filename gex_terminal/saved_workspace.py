@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import hashlib
 import ipaddress
 import json
 import math
@@ -15,7 +14,6 @@ import os
 from pathlib import Path
 import shutil
 import socket
-import stat
 import sys
 
 from .adapters.replay import ReplayAdapter
@@ -23,12 +21,20 @@ from .config import GexConfig
 from .consumer import StatefulGexConsumer
 from .contracts import parse_market_datetime
 from .engine import IntradayGexEngine
-from .session_capture import verify_captured_session_bytes
+from .session_capture import (
+    LOCAL_CAPTURE_MAX_BYTES, LOCAL_CAPTURE_MAX_EVENTS, LOCAL_CAPTURE_MAX_LINE_BYTES,
+    verify_captured_session_file,
+)
 from .wind_tunnel_checkpoint import build_terminal_checkpoint, write_checkpoint
 
 
 MAX_CAPTURE_BYTES = 4 * 1024 * 1024
 MAX_CAPTURE_EVENTS = 5000
+# The browser's small upload contract above is unchanged. Explicit local files
+# use a streaming path and separate limits suitable for complete sessions.
+MAX_LOCAL_CAPTURE_BYTES = LOCAL_CAPTURE_MAX_BYTES
+MAX_LOCAL_CAPTURE_EVENTS = LOCAL_CAPTURE_MAX_EVENTS
+MAX_LOCAL_CAPTURE_LINE_BYTES = LOCAL_CAPTURE_MAX_LINE_BYTES
 MULTIPLIERS = {"ES": 50, "NQ": 20}
 
 
@@ -73,19 +79,44 @@ def restrict_network_to_loopback() -> None:
     sys.addaudithook(audit)
 
 
-def _read_capture(path: Path) -> bytes:
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    try:
-        info = os.fstat(descriptor)
-        if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_CAPTURE_BYTES:
-            raise ValueError("Saved data must be a nonempty regular capture no larger than 4 MiB.")
-        with os.fdopen(descriptor, "rb", closefd=False) as stream:
-            data = stream.read(MAX_CAPTURE_BYTES + 1)
-        if not data or len(data) > MAX_CAPTURE_BYTES:
-            raise ValueError("Saved capture exceeds the 4 MiB input limit.")
-        return data
-    finally:
-        os.close(descriptor)
+def _freeze_capture(capture: Path, frozen: Path, symbol: str) -> tuple[dict, dict, dict]:
+    first_time = last_time = None
+    has_underlying = False
+    count = 0
+
+    def inspect_event(event):
+        nonlocal first_time, last_time, has_underlying, count
+        message = event["message"]
+        if message.get("symbol") != symbol:
+            raise ValueError("Saved capture contains events for another or missing symbol.")
+        event_time = parse_market_datetime(message.get("event_time") or message.get("timestamp"))
+        if (event_time is None or event.get("time_source") == "received_time"
+                or parse_market_datetime(event.get("event_time")) != event_time):
+            raise ValueError("Saved capture requires matching authoritative message and envelope event times.")
+        first_time = min(first_time, event_time) if first_time is not None else event_time
+        last_time = max(last_time, event_time) if last_time is not None else event_time
+        has_underlying = has_underlying or message["type"] == "underlying_tick"
+        count += 1
+        if count % 100_000 == 0:
+            print(f"Verified {count:,} saved {symbol} events...", file=sys.stderr, flush=True)
+
+    print(f"Verifying and freezing saved {symbol} data...", file=sys.stderr, flush=True)
+    descriptor = os.open(frozen, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        header, footer, stats = verify_captured_session_file(
+            capture, copy_to=stream, on_event=inspect_event,
+            max_bytes=MAX_LOCAL_CAPTURE_BYTES, max_events=MAX_LOCAL_CAPTURE_EVENTS,
+            max_line_bytes=MAX_LOCAL_CAPTURE_LINE_BYTES,
+        )
+        stream.flush()
+        os.fsync(stream.fileno())
+    if not count or not has_underlying:
+        raise ValueError("Saved capture requires underlying market events.")
+    stats.update(first_event_time=first_time.isoformat().replace("+00:00", "Z"),
+                 last_event_time=last_time.isoformat().replace("+00:00", "Z"),
+                 duration_seconds=(last_time - first_time).total_seconds())
+    frozen.chmod(0o400)
+    return header, footer, stats
 
 
 def _assumptions(inputs: dict, symbol: str) -> tuple[dict, dict]:
@@ -137,48 +168,31 @@ def prepare_saved_workspace(capture: Path, symbol: str, destination: Path) -> di
     """
     if symbol not in MULTIPLIERS:
         raise ValueError("Choose ES or NQ for the saved-data workspace.")
-    data = _read_capture(Path(capture))
-    header, footer, events = verify_captured_session_bytes(
-        data, max_bytes=MAX_CAPTURE_BYTES, max_events=MAX_CAPTURE_EVENTS,
-    )
-    if header.get("normalized_contract") != "gex-terminal.normalized-message":
-        raise ValueError("Saved capture declares an unsupported normalized message contract.")
-    source, inputs = header.get("source"), header.get("model_inputs")
-    if not isinstance(source, dict) or source.get("symbol") != symbol:
-        raise ValueError("Saved capture source symbol does not match the selected symbol.")
-    if not isinstance(inputs, dict):
-        raise ValueError("Saved capture model_inputs must be an object.")
-    if not events or not any(event["message"]["type"] == "underlying_tick" for event in events):
-        raise ValueError("Saved capture requires underlying market events.")
-    if type(footer.get("event_count")) is not int or any(type(event.get("sequence")) is not int for event in events):
-        raise ValueError("Saved capture event counts and sequences must be integers.")
-    for event in events:
-        message = event["message"]
-        if message.get("symbol") != symbol:
-            raise ValueError("Saved capture contains events for another or missing symbol.")
-        event_time = parse_market_datetime(message.get("event_time") or message.get("timestamp"))
-        if (event_time is None or event.get("time_source") == "received_time"
-                or parse_market_datetime(event.get("event_time")) != event_time):
-            raise ValueError("Saved capture requires matching authoritative message and envelope event times.")
-    values, assumptions = _assumptions(inputs, symbol)
     destination = Path(destination).absolute()
     destination.mkdir(mode=0o700, exist_ok=False)
     try:
         frozen = destination / "capture.gex-session.jsonl"
-        descriptor = os.open(frozen, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(data)
-            stream.flush()
-            os.fsync(stream.fileno())
-        frozen.chmod(0o400)
+        header, footer, stats = _freeze_capture(Path(capture), frozen, symbol)
+        if header.get("normalized_contract") != "gex-terminal.normalized-message":
+            raise ValueError("Saved capture declares an unsupported normalized message contract.")
+        source, inputs = header.get("source"), header.get("model_inputs")
+        if not isinstance(source, dict) or source.get("symbol") != symbol:
+            raise ValueError("Saved capture source symbol does not match the selected symbol.")
+        if not isinstance(inputs, dict):
+            raise ValueError("Saved capture model_inputs must be an object.")
+        values, assumptions = _assumptions(inputs, symbol)
+        fast_load = stats["event_count"] > 5000 or stats["duration_seconds"] > 15 * 60
+        clock = "none" if fast_load else "event"
         config = GexConfig(
             symbol=symbol, symbols=(symbol,), data_mode="replay", data_provider="replay",
             contract_multiplier=values["contract_multiplier"], risk_free_rate=values["risk_free_rate"],
             days_to_expiry=values["days_to_expiry"], refresh_interval_seconds=.5,
             stale_after_seconds=10, replay_path=str(frozen), replay_delay_seconds=0,
-            tradovate_environment="demo", expiry_filter="all", replay_clock="event", replay_speed=60,
+            tradovate_environment="demo", expiry_filter="all", replay_clock=clock, replay_speed=60,
         )
-        capture_hash = hashlib.sha256(data).hexdigest()
+        capture_hash = stats["sha256"]
+        print(f"Preparing final {symbol} checkpoint from {stats['event_count']:,} verified events...",
+              file=sys.stderr, flush=True)
         checkpoint = asyncio.run(_checkpoint(config, capture_hash))
         checkpoint_path = destination / "checkpoint.json"
         write_checkpoint(checkpoint_path, checkpoint)
@@ -187,9 +201,13 @@ def prepare_saved_workspace(capture: Path, symbol: str, destination: Path) -> di
             "contract_multiplier": values["contract_multiplier"], "risk_free_rate": values["risk_free_rate"],
             "fallback_dte": values["days_to_expiry"], "capture_sha256": capture_hash,
             "capture_content_sha256": footer["content_sha256"], "assumptions": assumptions,
+            "event_count": stats["event_count"], "capture_bytes": stats["bytes"],
+            "first_event_time": stats["first_event_time"], "last_event_time": stats["last_event_time"],
+            "duration_seconds": stats["duration_seconds"],
+            "replay_policy": "fast_load" if fast_load else "event_time_60x",
             "terminal_args": ["--mode", "replay", "--captured-session", str(frozen), "--symbol", symbol,
                               "--multiplier", str(values["contract_multiplier"]), "--expiry-filter", "all",
-                              "--replay-clock", "event", "--replay-speed", "60", "--refresh", "0.5"],
+                              "--replay-clock", clock, "--replay-speed", "60", "--refresh", "0.5"],
         }
     except BaseException:
         shutil.rmtree(destination)

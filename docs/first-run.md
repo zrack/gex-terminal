@@ -62,8 +62,10 @@ shortcut. Keep the original 0.6.0 setup and your research. No data is moved or m
 
 In a **fresh reviewed setup** that includes this feature, choose **Saved data —
 Both (4)**, then **ES** or **NQ**. On first use, paste the full path to that
-symbol's completed normalized `*.gex-session.jsonl` capture, limited to 4 MiB
-and 5,000 events. Raw provider DBN, CSV, quotes or trade files must first be
+symbol's completed normalized `*.gex-session.jsonl` capture, limited to **1 GiB
+and 2,000,000 events**, with at most 1 MiB per record. Explicit local files use
+streaming verification and a private disk copy; the browser upload limit remains
+4 MiB / 5,000 events. Raw provider DBN, CSV, quotes or trade files must first be
 converted through their supported capture workflow; they cannot be selected
 directly here.
 
@@ -105,10 +107,20 @@ value stops startup. Contract-specific metadata continues to take precedence.
 Startup includes all captured active expirations; the original captured expiry
 filter is recorded separately in the assumptions.
 
-Wind Tunnel opens the final saved checkpoint immediately. Terminal replays
-the capture at **60×** speed until it reaches the same endpoint, so allow replay
-to finish before comparing the two views. Later source changes and scenarios
+The starter prints the verified event count, source time span and loading policy.
+Wind Tunnel opens the final saved checkpoint. Terminal **loads long captures to
+the final state** without source-time delays; captures with at most 5,000 events
+and a span of at most 15 minutes replay at **60×**. Allow loading or replay to
+finish before comparing the two views. Large files require verification and
+checkpoint preparation before the interfaces open. Later source changes and scenarios
 are independent; this launch does not create live synchronization.
+
+For a complete trading day, quantities accumulate across UTC midnight. The final
+checkpoint excludes contracts that expired during the session, while the capture
+retains their trades. Expired quantity is separate from active contracts excluded
+because IV is unavailable. A completed day's terminal view is not a live feed.
+See the [full-day workflow](databento-credit-trial.md#full-trading-day-es-and-nq)
+for download, conversion and validation commands.
 
 Unavailable IV stays unavailable, raw quantities remain captured, and the
 pricing-coverage panels explain excluded exposure. Startup uses no provider

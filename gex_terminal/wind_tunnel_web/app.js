@@ -12,6 +12,7 @@
   const state = {capability: tabCapability, sources: [], checkpoints: [], source: null, checkpoint: null, terminalCheckpoint: null, bundledDefaults: null, view: 'landscape', calculation: null, surface: null, search: null, revision: 0, controller: null, searchController: null, sourceRevision: 0, playback: null, saving: false, valid: true, busy: false, searchBusy: false, webgl: null, surfaceRequest: null, loadedSearchGrid: null};
   const intake = {revision: 0, controller: null, verified: null, busy: false};
   const maxSessionBytes = 4 * 1024 * 1024;
+  const maxReceiptBytes = 32 * 1024 * 1024;
   if (launchCapability) history.replaceState(null, '', location.pathname + location.search);
   const emptyScenario = {spot_shift: 0, iv_shift: 0, time_advance: 0, model: 'raw_trade_volume', exclude_nearest_expiry: false, fallback_dte: .25, risk_free_rate: .045};
   let retainedAssumptions = {fallback_dte: .25, risk_free_rate: .045, minimum_directional_coverage: .5};
@@ -411,7 +412,7 @@
     const file = event.target.files[0]; if (!file) return;
     text('#import-status', 'Verifying the receipt and reproducing its calculation…'); event.target.disabled = true;
     try {
-      if (file.size > 4 * 1024 * 1024) throw new Error('Receipt must be a JSON file no larger than 4 MiB.');
+      if (file.size > maxReceiptBytes) throw new Error('Receipt must be a JSON file no larger than 32 MiB.');
       const rawReceipt = await file.text(); let receipt; try {receipt = JSON.parse(rawReceipt);} catch (_) {throw new Error('This file is not a valid JSON receipt.');}
       const result = await api('reproduce', {method: 'POST', rawBody: rawReceipt}); if (result.status !== 'verified') throw new Error('Receipt did not reproduce exactly. The original file was not changed.');
       await reopenRequest(receipt.kind, result.result?.request || receipt.request, result.result); $('#receipts-dialog').close(); toast('Imported receipt verified and reopened. Save scenario to keep a local copy.'); text('#import-status', 'Verified and reopened.');

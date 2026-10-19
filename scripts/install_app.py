@@ -447,6 +447,21 @@ def remember_saved_data(research: Path, plan: dict) -> None:
     (research / SAVED_DATA).chmod(0o600)
 
 
+def saved_source_note(plan: dict) -> str:
+    """Describe the actual playback policy supplied by the installed helper."""
+    policy = plan.get("replay_policy", "event_time_60x")
+    if policy == "fast_load":
+        playback = ("Terminal fast-loads the same full capture without playback delays. "
+                    "After loading completes, their source inputs match.")
+    elif policy == "event_time_60x":
+        playback = ("Terminal replays the same capture at 60x. After replay completes, "
+                    "their source inputs match.")
+    else:
+        raise ValueError("Saved-data preparation returned an unsupported playback policy; nothing was launched.")
+    return ("Saved data only: zero provider requests or credits. Wind Tunnel opens the final frozen checkpoint; "
+            + playback + " Later source and scenario selections remain independent.")
+
+
 def stop_child(process: subprocess.Popen | None) -> None:
     """Settle only the child we created; never signal a shared process group."""
     if process is None:
@@ -652,11 +667,15 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
                     captured_session = Path(answer)
             plan = prepare_saved_data(environment, research, captured_session, symbol, scratch,
                                       expected_sha256=expected)
+            source_note = saved_source_note(plan)
             # Remember the first checked frozen source, not each subsequent launch copy.
             if expected is None:
                 remember_saved_data(research, plan)
             print(f"Saved {symbol}: multiplier {plan['contract_multiplier']}, configured rate "
                   f"{plan['risk_free_rate']:.2%}, fallback DTE {plan['fallback_dte']:g} days.", flush=True)
+            if all(key in plan for key in ("first_event_time", "last_event_time", "event_count", "duration_seconds")):
+                print(f"Saved period: {plan['first_event_time']} to {plan['last_event_time']} · "
+                      f"{plan['event_count']:,} events · {plan['duration_seconds']:g} seconds.", flush=True)
             if plan.get("assumptions"):
                 print("Assumption sources: " + json.dumps(plan["assumptions"], sort_keys=True), flush=True)
             if register_saved_data:
@@ -669,9 +688,7 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
                           "--no-browser"]
             return run_both([*command, *plan["terminal_args"]], [*command, *saved_wind],
                             cwd=scratch, no_browser=no_browser,
-                            source_note="Saved data only: zero provider requests or credits. Wind Tunnel opens the final frozen "
-                            "checkpoint; Terminal replays the same capture at 60x. After replay completes, their source inputs "
-                            "match. Later source and scenario selections remain independent.")
+                            source_note=source_note)
         command = [str(environment / "bin" / "python"), "-I", "-c", BOOTSTRAP, str(research)]
         if both:
             return run_both([*command, *args], [*command, *wind_args, "--no-browser"],
