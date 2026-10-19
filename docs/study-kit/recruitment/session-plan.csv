@@ -1,0 +1,7 @@
+planned_participant_id,planned_fixture,actual_fixture,invitation_status,session_date,start_time,time_zone_utc_offset,private_meeting_link_reference,prerequisite_check,observation_choice,audio_recording_choice,window_recording_choice,ai_analysis_choice,outcome,notes_reference
+P01,zero-gamma-flip,,,,,,,,,,,,,
+P02,nq-research-loop,,,,,,,,,,,,,
+P03,zero-gamma-flip,,,,,,,,,,,,,
+P04,nq-research-loop,,,,,,,,,,,,,
+P05,zero-gamma-flip,,,,,,,,,,,,,
+P06,nq-research-loop,,,,,,,,,,,,,

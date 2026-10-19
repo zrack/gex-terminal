@@ -1,0 +1,28 @@
+Subject: Confirmed: GEX offline research session — [DATE]
+
+Hi [FIRST NAME],
+
+Thanks for helping. Here are the details:
+
+Date and time: [DAY, DATE, START–END TIME, TIME ZONE AND UTC OFFSET]
+Meeting link: [PRIVATE MEETING LINK]
+Contact or reschedule: [CONTACT EMAIL OR LINK]
+Participant ID: [P01–P06]
+Assigned synthetic session: [ES / zero-gamma-flip OR NQ / nq-research-loop]
+Participant package: [PARTICIPANT-ONLY ZIP LINK]
+Consent form: [CONSENT FORM LINK OR ATTACHMENT]
+Incentive and terms: [AMOUNT AND TERMS, OR NO INCENTIVE; EARLY-STOP TERMS]
+
+Please read the consent form before we meet. We'll confirm your choice before observing any tasks. Audio recording, shared-window recording and AI-assisted analysis of de-identified notes have separate optional choices; declining them does not prevent participation.
+
+Please have your computer, a terminal, and a browser available. We agreed to use [OS / CHIP / PYTHON VERSION OR PREREQUISITE PLAN]. The current kit was rehearsed on Apple Silicon with Python 3.12.13; we'll note any differences in your setup.
+
+You may download and unpack the participant package beforehand, but please don't install GEX, run its commands, or attempt the tasks yet. We'll observe the first installation together. Prerequisite help is available; any moderator help during the study will be recorded. Shipped help remains available.
+
+The session should take 60–75 minutes. We'll use only the supplied synthetic captures. No provider account, live data, personal trading information, or trades are needed. Installing dependencies may require internet access. Close unrelated windows and notifications before sharing only the relevant application window. Keep the local app URL and its capability token private.
+
+You can skip a question, take a break, or stop at any time. If you're unable to attend, a quick reply is enough; you don't need to explain why.
+
+Thanks,
+Scott
+[CONTACT EMAIL]

@@ -1,0 +1,45 @@
+GEX OFFLINE RESEARCH SESSION — PARTICIPANT PACKAGE
+
+Thank you for taking part. Please save and unzip this package before your
+scheduled session, but wait for the moderator before installing or working
+through the tasks. Installation is part of the observed session.
+
+Your scheduling confirmation supplies the moderator's contact, session time,
+meeting link and assigned ES or NQ synthetic capture. If anything is missing,
+reply to the person who invited you. Read the consent form before deciding
+whether to participate. Do not send signed consent into a public repository.
+
+What to have ready
+- A computer and Python environment agreed with the moderator, with permission
+  to create a fresh virtual environment.
+- Python available; the frozen build was rehearsed on Apple Silicon macOS
+  with Python 3.12.13. Tell the moderator about a different environment before
+  the session. Windows use has not been verified for this cohort.
+- A browser, terminal and the ability to share only the relevant application window.
+- Internet for the meeting and possible dependency downloads. The product
+  tasks use supplied synthetic data after installation.
+
+Close private tabs and applications before sharing. Do not open a provider
+account, connect a live feed, upload personal market data, place trades, or
+share passwords, account information or launch capability tokens.
+
+When the moderator starts the session, open participant-guide.md. Its commands
+are the installation path for this package. The general First Run help also
+describes optional setup bundles, which are not included here. Shipped help
+may be used during tasks; explain what is clear or confusing as you work.
+
+You may ask questions, skip a task, take a break or stop. Difficulty using the
+software is useful feedback; this is an evaluation of the software.
+
+Files
+- participant-guide.md: the frozen six task goals and manual-wheel commands.
+- gex_terminal-0.6.0-py3-none-any.whl and requirements-lock.txt: exact study build.
+- fixtures/: the two synthetic captures; use the one assigned by the moderator.
+- materials/docs/: shipped user help, with maintainer-only links shown as text.
+- consent.pdf and consent.txt: the participation information and consent form.
+- build-manifest.json: public build, runtime and fixture identities.
+- SHA256SUMS: checksums for the delivery files.
+
+Study: guided-intake-2026-10-18-r1
+Delivery: guided-intake-2026-10-18-r1-participant-v1
+Use the same delivery revision for all six sessions.

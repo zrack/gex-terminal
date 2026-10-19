@@ -1,22 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title description">
-  <title id="title">GEX: two components, one local installation</title>
-  <desc id="description">The starter offers Terminal, Market Wind Tunnel or Both. Terminal provides a keyboard dashboard in one Python process. Wind Tunnel provides a browser workbench served by another local Python process. Each uses the same installed calculation code and bundled synthetic inputs with separate state. Terminal exports snapshots; Wind Tunnel saves scenario receipts. Both stops its owned Wind Tunnel when Terminal exits. Derived from docs/architecture.md; this is a component overview, not a screenshot or a shared-state service diagram.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1120" viewBox="0 0 1200 1120" role="img" aria-labelledby="title description">
+  <title id="title">GEX: two interfaces and an explicit frozen checkpoint handoff</title>
+  <desc id="description">Start Terminal, Market Wind Tunnel or Both from one local installation. Standalone Wind Tunnel and Both use a separate Wind Tunnel Python process; Terminal and Wind Tunnel own independent mutable state. The browser workbench accepts bundled synthetic inputs and locally selected captured-session bytes after verification. Pressing w in Terminal is a separate explicit path: Terminal freezes its demo or replay state into an immutable checkpoint and owns a loopback Wind Tunnel service inside the Terminal Python process. That service stops when Terminal exits. Later Terminal changes never update the frozen checkpoint. Both stops only its owned separate Wind Tunnel process when Terminal exits; standalone instances remain independent. Shared package arrows mean code reuse. Derived from docs/architecture.md; this is an architectural explanation, not a screenshot or a shared live-state service.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#9aaabb"/></marker>
     <style>
       text{font-family:Arial,Helvetica,sans-serif}
-      .heading{font-size:34px;font-weight:700;fill:#f3f6fa}
-      .label{font-size:13px;font-weight:700;letter-spacing:2px;fill:#9aaabb}
-      .name{font-size:27px;font-weight:700;fill:#f3f6fa}
+      .heading{font-size:32px;font-weight:700;fill:#f3f6fa}
+      .label{font-size:13px;font-weight:700;letter-spacing:1.5px;fill:#9aaabb}
+      .name{font-size:26px;font-weight:700;fill:#f3f6fa}
       .body{font-size:19px;fill:#c5d0dd}
       .small{font-size:16px;fill:#aab8c8}
       .launch{fill:none;stroke:#9aaabb;stroke-width:2;marker-end:url(#arrow)}
       .reuse{fill:none;stroke:#9aaabb;stroke-width:2;stroke-dasharray:6 6;marker-end:url(#arrow)}
     </style>
   </defs>
-  <rect width="1200" height="800" rx="20" fill="#0b121a"/>
+  <rect width="1200" height="1120" rx="20" fill="#0b121a"/>
   <text x="54" y="53" class="label">GEX / LOCAL RESEARCH WORKBENCH</text>
-  <text x="54" y="105" class="heading">Two components. One local installation.</text>
+  <text x="54" y="105" class="heading">Two interfaces. One local installation.</text>
 
   <rect x="310" y="143" width="580" height="104" rx="12" fill="#172331" stroke="#4b5d70"/>
   <text x="600" y="181" text-anchor="middle" class="name">Start GEX</text>
@@ -27,27 +27,46 @@
   <path d="M600 272 H896 V306" class="launch"/>
 
   <rect x="54" y="309" width="500" height="225" rx="12" fill="#10232b" stroke="#69c6d8" stroke-width="2"/>
-  <text x="80" y="346" class="label" style="fill:#69c6d8">01 / TERMINAL WINDOW</text>
-  <text x="80" y="389" class="name">Terminal</text>
-  <text x="80" y="423" class="body">Keyboard dashboard · own market state</text>
+  <text x="80" y="346" class="label" style="fill:#69c6d8">TERMINAL / PYTHON PROCESS</text>
+  <text x="80" y="389" class="name">Terminal dashboard</text>
+  <text x="80" y="423" class="body">Keyboard interface · own market state</text>
   <text x="80" y="455" class="body">Replay sessions, inspect strikes and levels</text>
   <path d="M80 478 H528" stroke="#29464f"/>
-  <text x="80" y="510" class="small">Saves local snapshot exports</text>
+  <text x="80" y="510" class="small">Saves local snapshots and explicit checkpoints</text>
 
   <rect x="646" y="309" width="500" height="225" rx="12" fill="#272319" stroke="#f3c45b" stroke-width="2"/>
-  <text x="672" y="346" class="label" style="fill:#f3c45b">02 / BROWSER + LOCAL PYTHON SERVICE</text>
-  <text x="672" y="389" class="name">Market Wind Tunnel</text>
-  <text x="672" y="423" class="body">Visual workbench · own scenario state</text>
-  <text x="672" y="455" class="body">Stress assumptions, compare and reproduce</text>
+  <text x="672" y="346" class="label" style="fill:#f3c45b">STANDALONE / BOTH: SEPARATE PYTHON PROCESS</text>
+  <text x="672" y="389" class="name">Wind Tunnel service</text>
+  <text x="672" y="423" class="body">Serves browser · request-local calculations</text>
+  <text x="672" y="455" class="body">Bundled inputs or verified local capture bytes</text>
   <path d="M672 478 H1120" stroke="#51462c"/>
-  <text x="672" y="510" class="small">Saves local scenario receipts</text>
+  <text x="672" y="510" class="small">Saves portable scenario receipts</text>
 
-  <path d="M304 534 V586" class="reuse"/>
-  <path d="M896 534 V586" class="reuse"/>
-  <rect x="54" y="590" width="1092" height="99" rx="12" fill="#17202b" stroke="#4b5d70"/>
-  <text x="600" y="626" text-anchor="middle" class="name" style="font-size:23px">Shared package and calculation code</text>
-  <text x="600" y="662" text-anchor="middle" class="body">Same pricing engine and bundled inputs · separate instances in each Python process</text>
+  <path d="M304 534 V580" class="reuse"/>
+  <path d="M896 534 V580" class="reuse"/>
+  <rect x="54" y="584" width="1092" height="99" rx="12" fill="#17202b" stroke="#4b5d70"/>
+  <text x="600" y="620" text-anchor="middle" class="name" style="font-size:23px">Shared installed package and calculation code</text>
+  <text x="600" y="656" text-anchor="middle" class="body">Dashed arrows mean code reuse. Mutable market and scenario state stay independent.</text>
 
-  <text x="600" y="726" text-anchor="middle" class="small">Dashed arrows mean code reuse. Replay selections and scenarios do not synchronize.</text>
-  <text x="600" y="759" text-anchor="middle" class="small">Both starts the two components together; quitting Terminal stops that session's Wind Tunnel.</text>
+  <text x="54" y="733" class="label" style="fill:#69c6d8">EXPLICIT TERMINAL HANDOFF / PRESS w</text>
+  <rect x="54" y="758" width="714" height="235" rx="12" fill="#10232b" stroke="#69c6d8" stroke-width="2"/>
+  <text x="80" y="793" class="label" style="fill:#69c6d8">INSIDE THE TERMINAL PYTHON PROCESS</text>
+  <rect x="80" y="815" width="252" height="130" rx="8" fill="#172331" stroke="#4b5d70"/>
+  <text x="100" y="847" class="body">Current demo/replay</text>
+  <text x="100" y="877" class="body">state and assumptions</text>
+  <text x="100" y="916" class="small">Freeze once on user action</text>
+  <path d="M332 880 H382" class="launch"/>
+  <rect x="388" y="815" width="354" height="130" rx="8" fill="#172331" stroke="#4b5d70"/>
+  <text x="408" y="847" class="body">Terminal-owned loopback service</text>
+  <text x="408" y="877" class="body">Detached immutable checkpoint</text>
+  <text x="408" y="916" class="small">Later Terminal changes cannot alter it</text>
+  <text x="80" y="976" class="small">Terminal owns this listener and stops it on exit.</text>
+  <path d="M768 880 H810" class="launch"/>
+  <rect x="816" y="815" width="330" height="130" rx="8" fill="#272319" stroke="#f3c45b" stroke-width="2"/>
+  <text x="840" y="849" class="name" style="font-size:23px">Wind Tunnel browser</text>
+  <text x="840" y="881" class="body">Stress the fixed checkpoint</text>
+  <text x="840" y="916" class="small">Save and reproduce a receipt</text>
+
+  <text x="600" y="1041" text-anchor="middle" class="small">Both stops its owned Wind Tunnel process when Terminal exits; separately launched instances keep running.</text>
+  <text x="600" y="1080" text-anchor="middle" class="small">Neither launch path automatically follows Terminal replay selections, later events or scenario changes.</text>
 </svg>

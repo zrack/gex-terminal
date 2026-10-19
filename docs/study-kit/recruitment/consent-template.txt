@@ -1,0 +1,92 @@
+GEX PARTICIPANT INFORMATION AND CONSENT
+Cohort: guided-intake-2026-10-18-r1 | Participant delivery: v1
+Expected session: 60-75 minutes | Remote | Synthetic ES/NQ data
+
+ORGANIZER: COMPLETE THESE DETAILS BEFORE REQUESTING CONSENT
+Study contact name and monitored email: [COMPLETE]
+Moderator(s) / other authorized reviewers: [COMPLETE]
+Incentive amount or none; terms including an early stop: [COMPLETE]
+Delete all organizer-held private study records by (YYYY-MM-DD): [COMPLETE]
+Request removal by (YYYY-MM-DD; no later than deletion date): [COMPLETE]
+Participant ID: [COMPLETE]
+Session date / time / time zone: [COMPLETE]
+
+Ask about anything unclear or left blank before deciding. Keep a copy of
+this completed form. Return it privately to the named study contact.
+
+WHAT YOU WILL DO
+In one remote session, you will install the supplied GEX build, share the
+relevant application window, try six short research tasks and discuss your
+experience. We use supplied synthetic ES/NQ data. The exercises need no live
+feed, provider login or trading. Installing dependencies may require internet.
+
+WHAT WE OBSERVE
+We record task attempts, elapsed times, errors, help given, comments, relevant
+research experience and computer/Python setup. We may keep synthetic test
+receipts. Notes use a participant ID. Close unrelated windows and notifications;
+do not show credentials, account IDs, positions, P&L, personal captures or
+licensed market screens. You may pause sharing at any time.
+
+STORAGE AND ACCESS
+The organizer keeps contact details, consent and the ID link separately from
+task notes in private owner-controlled storage, outside the public repository
+and shared study kit. Only the contact and named reviewers above access
+identifiable records. Deletion covers organizer-held contact and scheduling
+records, consent, ID links, individual notes, recordings and copies. Aggregate
+findings without participant identifiers may be retained.
+
+PARTICIPATION AND REMOVAL
+Taking part is voluntary. You may skip a question or task, pause or stop without
+giving a reason. The incentive terms above apply, including an early stop. We
+use the observations to improve the software; identifiable quotes or recordings
+will not be published without separate permission. Contact the organizer by the
+removal date to request removal of material linked to you. After the removal window closes, aggregate findings that no longer identify
+you may not be separable for removal.
+
+YOUR CHOICES
+Choose one answer for each item. All choices start blank. A blank optional
+choice gives no permission. You can participate without any recording or AI
+analysis. An observation Yes is required to begin the session.
+
+1. Observation and written notes (required to take part)
+[ ] Yes   [ ] No
+I agree to participate in the session and let the named study team use the
+observations, de-identified notes and synthetic test receipts for the purposes
+described above.
+
+2. Audio recording (optional)
+[ ] Yes   [ ] No
+I allow session audio to be recorded for review by the named study team. This
+does not authorize automatic transcription or sending audio to an AI service.
+
+3. Shared-window recording (optional)
+[ ] Yes   [ ] No
+I allow the shared application window to be recorded for review by the named
+study team. Camera and full-desktop recording are not requested. I may ask to
+stop recording at any time.
+
+4. AI-assisted analysis of de-identified notes (optional)
+[ ] Yes   [ ] No
+I allow de-identified written task notes and synthetic test receipts to be
+supplied to ChatGPT/OpenAI to help summarize study findings. Names, contact
+details, audio, video and full transcripts are excluded. I may ask the organizer
+about the tool and data handling before choosing.
+
+ACKNOWLEDGMENT
+I have read this information, had an opportunity to ask questions and understand
+that participation is voluntary. My choices above apply to this session. I will
+receive a copy of this completed form.
+Participant name / typed acknowledgment: ______________________________
+Date (YYYY-MM-DD): __________________
+
+MODERATOR CONFIRMATION
+Confirm observation consent before tasks. Audio and window recording follow
+their separate choices; automatic transcription stays off. If silent window-only
+recording cannot be configured, leave recording off. AI analysis requires its
+separate Yes choice and removal of identifying details.
+Moderator name / acknowledgment: ______________________________________
+Date (YYYY-MM-DD): __________________
+
+PRIVATE WHEN COMPLETED
+Keep completed consent, identity mappings and observations outside the public
+repository and shared study kit. Do not save them into this distribution folder.

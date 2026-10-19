@@ -2,7 +2,8 @@
 
 `gex-terminal` has two user-facing components: **Terminal**, a Textual dashboard
 for replay and research workflows, and **Market Wind Tunnel**, a browser
-workbench for exploring bundled scenarios or frozen Terminal checkpoints.
+workbench for exploring bundled scenarios, frozen Terminal checkpoints, or
+checkpoints selected from a verified local captured session.
 They use one installed Python package and the same calculation code. Standalone
 and Both launches run separate processes with separate state. Terminal's explicit
 `w` handoff instead owns an additional loopback service inside its process,
@@ -29,8 +30,11 @@ provides a replay dashboard and access to research workflows; Market Wind Tunnel
 provides scenario controls, exposure plots and saved experiments. Synthetic
 replay, calculation, comparison, export, and reproduction require no provider
 connection. Optional provider connections belong to separately configured
-terminal/CLI paths; Wind Tunnel accepts bundled sources or a validated frozen
-Terminal demo/replay artifact. Live checkpoint capture remains separately gated.
+terminal/CLI paths; Wind Tunnel accepts bundled sources, a validated frozen
+Terminal demo/replay artifact, or bytes from a browser-selected complete capture.
+Guided intake verifies the capture in memory and freezes a chosen event prefix;
+it never opens a provider connection. Live checkpoint capture remains separately
+gated, and capture integrity does not establish authenticity or data rights.
 
 ```mermaid
 flowchart LR
@@ -40,9 +44,12 @@ flowchart LR
         wind["Market Wind Tunnel<br/>Browser scenario workbench"]
     end
     providers["External market-data providers<br/>Optional configured connection"]
+    capture[("Local complete captured session<br/>Operator-authorized offline input")]
     researcher <-->|Keyboard controls, metrics and exports| terminal
     researcher <-->|Scenario controls, plots and receipts| wind
     terminal -.->|Explicit immutable checkpoint handoff| wind
+    researcher -->|Select local file and review verified checkpoint| capture
+    capture -->|Selected bytes; no server file path| wind
     providers -.->|Separately configured terminal / CLI intake| terminal
 ```
 
@@ -64,7 +71,9 @@ In Both mode, the setup helper remains a parent process supervising the two
 application children. The browser is an independently managed application;
 the starter requests that it open the local launch URL. Installed resources and
 research files are storage boundaries, not running services. There is no hosted
-API, external chart service or database in this architecture.
+API, external chart service or database in this architecture. Guided intake sends
+the browser-selected capture bytes to the local service; it does not expose the
+filesystem to the browser or copy raw captures into the receipt workspace.
 
 ```mermaid
 flowchart LR
@@ -77,6 +86,7 @@ flowchart LR
         wind["Wind Tunnel service process<br/>Python / aiohttp; own checkpoint calculations"]
         package[("One installed package<br/>Shared code definitions, inputs and web assets")]
         files[("Terminal / CLI research files<br/>Inputs, packs, journals and exports")]
+        capture[("Selected complete capture<br/>Existing local input file")]
         receipts[("Wind Tunnel receipts<br/>Separate wind-tunnel research subfolder")]
     end
     researcher -->|Choose Terminal, Wind Tunnel or Both| starter
@@ -85,6 +95,8 @@ flowchart LR
     starter -.->|Start and supervise owned child| terminal
     starter -.->|Start and supervise owned child| wind
     browser <-->|Capability-protected loopback HTTP| wind
+    capture -->|File chooser reads selected bytes| browser
+    browser -->|Bounded capture bytes; no input path| wind
     package -->|Load code and resources| terminal
     package -->|Load code, synthetic input and web assets| wind
     files -->|Replay, verify or reproduce input| terminal
@@ -135,20 +147,25 @@ The Wind Tunnel reconstructs a declared bundled replay checkpoint in a fresh
 consumer or validates an embedded frozen Terminal artifact for each calculation
 request. It copies checkpoint rows, applies
 scenario assumptions and prices those copies with the existing engine code.
-Its service exposes bundled or frozen source identifiers and bounded operations,
-never arbitrary input paths. Only the operator's CLI can supply a checkpoint
-file path. An origin check and per-run capability protect the
-API; the capability stays outside saved research. Static browser assets are
-packaged with the wheel, so no external script or chart service is required.
+Guided intake instead verifies selected capture bytes before retaining only
+allowlisted normalized calculation fields in an ephemeral `SessionIntake`
+registry. A chosen prefix is applied to a fresh consumer, then frozen into the
+same opaque checkpoint transport. Its service exposes bundled or frozen source
+identifiers, intake handles and bounded operations, never arbitrary input paths.
+Only the operator's CLI can supply a checkpoint file path. An origin check and
+per-run capability protect the API; the capability stays outside saved research.
+Static browser assets are packaged with the wheel, so no external script or
+chart service is required.
 Receipts bind normalized requests, exact source and calculation identities,
 and semantic results. Reproduction recalculates before declaring agreement.
 
 ### Application Components
 
-This view expands the two Python application processes and the browser client.
-Arrows name calls or data flow inside those boundaries, with HTTP as the browser
-boundary. The two consumer and engine boxes are separate instances of the same
-classes, not a common runtime service. Other research commands reuse those
+These views expand Terminal, the Wind Tunnel service and the browser client.
+The service may run separately or inside Terminal's process under its handoff
+owner. Arrows name calls or data flow inside those boundaries, with HTTP as the
+browser boundary. Consumer and engine boxes represent separate instances of the
+same classes, not a common runtime service. Other research commands reuse those
 classes in their own CLI invocation.
 
 **Terminal components**
@@ -162,6 +179,8 @@ flowchart TB
         engine["Own IntradayGexEngine + regime<br/>Contract pricing and structural levels"]
         tui["Textual terminal<br/>tui.py / tui_views.py"]
         exports["Snapshot writer<br/>snapshot.py"]
+        frozen["wind_tunnel_checkpoint.py<br/>Validate and freeze copied demo / replay state"]
+        handoff["TerminalHandoff<br/>Owned in-process loopback listener"]
         cli -->|Select source| intake
         cli -->|Start UI and transfer replay task ownership| tui
         intake -->|Versioned normalized messages| consumer
@@ -169,7 +188,13 @@ flowchart TB
         tui -->|Snapshots and controlled replay replacement| consumer
         tui -->|Load replay after prior writer settles| intake
         tui -->|Export on request| exports
+        tui -->|Explicit w action| frozen
+        consumer -->|Copy under state lock| frozen
+        frozen -->|Immutable artifact; no mutable state link| handoff
+        tui -->|Own lifecycle and await cleanup| handoff
     end
+    browser["Wind Tunnel browser<br/>Own scenario controls and results"]
+    handoff <-->|Capability-protected loopback HTTP| browser
 ```
 
 **Market Wind Tunnel browser and service components**
@@ -179,22 +204,33 @@ flowchart TB
     subgraph browser["Market Wind Tunnel browser"]
         web["wind_tunnel_web/app.js + Plotly<br/>Own controls, selected checkpoint and rendered results"]
     end
-    subgraph service["Wind Tunnel Python service process"]
+    capture[("Browser-selected local capture")]
+    handoff["TerminalHandoff<br/>Alternative listener owner inside Terminal"]
+    subgraph service["Wind Tunnel service runtime<br/>Separate process or Terminal-owned listener"]
         windcli["wind_tunnel_cli.py<br/>Start server and coordinate shutdown"]
         server["wind_tunnel_server.py<br/>HTTP routes, capability and request bounds"]
+        intake["SessionIntake + capture verifier<br/>Bounded bytes; allowlisted ephemeral registry"]
         core["wind_tunnel.py<br/>Scenarios, surfaces and sampled searches"]
-        checkpoint["Request-local StatefulGexConsumer<br/>Reconstruct bundled replay prefix"]
+        checkpoint["Fresh StatefulGexConsumer<br/>Reconstruct bundled or selected capture prefix"]
+        frozen["wind_tunnel_checkpoint.py<br/>Validated opaque immutable checkpoint"]
         pricing["Request-local IntradayGexEngine<br/>Price copied baseline / scenario rows"]
         receipts["Receipt identity and ReceiptStore<br/>Save, load and reproduce"]
-        windcli -->|Start local listener| server
+        windcli -->|Standalone / Both startup| server
         server -->|Validated operation request| core
+        server -->|Inspect selected bytes; retain safe fields only| intake
+        intake -->|Chosen verified event prefix| checkpoint
+        checkpoint -->|Freeze chosen capture state| frozen
+        frozen -->|Portable source for each scenario request| core
         core -->|Apply source cutoff and replay messages| checkpoint
         checkpoint -->|Copied checkpoint rows| core
         core -->|Reprice explicit assumptions| pricing
         server -->|Requested receipt operation| receipts
         receipts -->|Recalculate and bind exact result identity| core
     end
+    handoff -->|Start and own cleanup of local listener| server
     web <-->|Loopback HTTP: requests and JSON results| server
+    capture -->|File chooser reads bytes| web
+    server -->|Opaque checkpoint after prefix validation| web
 ```
 
 The terminal's seeded demo writes synthetic messages directly through its
@@ -209,6 +245,22 @@ model, and are not additional writers of market state. Wind Tunnel's browser
 holds interface state; its service recalculates from each declared request
 instead of reading the Terminal consumer or following its replay writer.
 
+The Wind Tunnel service component view applies to both launch layouts. A
+standalone/Both service starts through `wind_tunnel_cli.py`; Terminal's `w`
+action starts the same server through `TerminalHandoff` inside its own process.
+The listener's owner, rather than the browser tab, coordinates shutdown.
+
+Guided intake is limited to complete captures no larger than 4 MiB and 5,000
+events, with at most four intakes retained in memory and 200 sampled checkpoint
+choices. Raw bytes are verified before private labels, paths and extension
+fields are discarded; retained contract labels become stable opaque IDs. A
+chosen event includes only its prefix, and the production consumer determines
+the accepted market-state cutoff. The browser discards its intake after opening
+or cancelling it, and service cleanup clears the registry. Saving a scenario
+persists its allowlisted frozen source in a receipt; it does not persist the
+raw capture. These bounds and privacy rules are recorded in
+[ADR-003](decisions/ADR-003-guided-session-intake.md).
+
 ## Repository Map
 
 | Path | Architectural role |
@@ -218,6 +270,7 @@ instead of reading the Terminal consumer or following its replay writer.
 | `gex_terminal/data/` | Packaged synthetic replays and sanitized provider fixtures |
 | `gex_terminal/wind_tunnel_web/` | Packaged browser UI, Plotly, icons and static assets served by the local Wind Tunnel service |
 | `scripts/install_app.py`, `scripts/build_app_bundle.py` | Reviewed-wheel setup, generated launchers, optional Both supervisor and bundle preparation |
+| `scripts/build_study_kit.py`, `scripts/build_participant_delivery.py`, `scripts/build_study_consent.py` | Maintainer preparation of frozen synthetic study kits, bounded participant-only delivery and optional blank consent rendering; no participant collection |
 | `tests/` | Contract, model, provider, TUI, report, package, and documentation regression tests |
 | `docs/` | Canonical technical, workflow, governance, decision, and packet documentation |
 | `assets/` | Derived screenshots, diagrams, and product mockups; never canonical system truth |
@@ -315,9 +368,17 @@ Install.command -> verified application environment -> Start GEX.command chooser
 
 The setup launcher's Terminal path selects `zero-gamma-flip`; the direct
 `gex-terminal --demo` CLI path starts seeded data. Wind Tunnel independently
-selects its own bundled source and checkpoint. Both changes launch and shutdown
-coordination, not either component's source or model state. Its internal terminal
-flow remains:
+selects its own bundled source and checkpoint. Its **Open local session** flow
+lets the operator select capture bytes, verify integrity, inspect source/time,
+quality and model assumptions, choose an event prefix, then open the resulting
+frozen checkpoint. Saving and exporting a scenario receipt makes that selected
+input reproducible after the original file and service are gone. The detailed
+workflow belongs in [Wind Tunnel](wind-tunnel.md).
+
+Both changes launch and shutdown coordination, not either component's source or
+model state. Terminal's explicit `w` action opens a separate frozen-checkpoint
+service and does not change the independent Both service. Its internal terminal
+flow is:
 
 ```text
 gex-terminal --demo
@@ -332,7 +393,8 @@ press p
 TUI opens replay browser -> Up/Down choose session -> Enter loads JSONL
         |
         v
-press x/d/m/i to adjust expiry/model controls, press e to export, or use CLI reports
+press x/d/m/i to adjust expiry/model controls, press e to export,
+press w to freeze an eligible checkpoint in Wind Tunnel, or use CLI reports
 ```
 
 In demo mode, the in-terminal replay browser starts with `zero-gamma-flip`
@@ -478,7 +540,7 @@ summed with trade volume. Detailed mapping and policy values live in
 ## Offline Research Flow
 
 Offline tools reuse the same adapter, consumer, and engine code boundaries
-through six paths, with consumer instances owned by the invoking workflow:
+through eight paths, with consumer instances owned by the invoking workflow:
 
 - **Normalized replay and capture:** packaged/local normalized events and
   integrity-checked captures enter through replay adapters and event-time
@@ -493,12 +555,23 @@ through six paths, with consumer instances owned by the invoking workflow:
 - **Model evaluation:** sensitivity, numerical evidence, position-model
   comparison, and descriptive later-price evaluation derive bounded artifacts
   from the selected source state.
+- **Terminal checkpoint handoff:** explicit `w` or checkpoint export copies
+  eligible demo/replay state under the consumer lock, validates the versioned
+  artifact and freezes its exact source time and assumptions. An owned loopback
+  service or the checkpoint CLI opens the detached copy without following
+  subsequent Terminal updates.
+- **Guided captured-session intake:** the browser uploads bounded selected
+  bytes for complete-capture verification. The ephemeral allowlisted registry
+  exposes source/time, quality, model inputs and event choices. A selected prefix
+  enters a fresh production consumer and becomes an opaque checkpoint; neither
+  arbitrary server paths nor raw captures enter receipt storage.
 - **Wind Tunnel scenarios:** each request reconstructs a bundled synthetic
-  checkpoint, copies its rows and applies explicit spot, IV, time and expiry
-  assumptions. Browser comparisons, surfaces and sampled searches use those
-  copied inputs; they neither consume Terminal's active replay nor fabricate a
-  future market path. Saved receipts retain the normalized request and exact
-  source, calculation and result identities for reproduction.
+  checkpoint or validates an embedded frozen artifact, copies its rows and
+  applies explicit spot, IV, time and expiry assumptions. Browser comparisons,
+  surfaces and sampled searches use those copied inputs; they neither consume
+  Terminal's active replay nor fabricate a future market path. Saved receipts
+  embed a selected frozen source when needed and retain the normalized request
+  and exact source, calculation and result identities for reproduction.
 - **Governed research:** model profiles, experiment manifests, append-only
   corpus registration, and batch comparison bind source identity, assumptions,
   splits, outcomes, costs, and semantic results.
@@ -575,12 +648,16 @@ writer blocks replacement and remains visible at CLI shutdown. Reset clears
 market data and quality counters behind the same lock used by updates. Capture
 and live-source sessions cannot switch replay.
 
-Wind Tunnel creates its own consumer when reconstructing the selected replay
-prefix for a calculation request. It then copies the checkpoint rows for
-scenario pricing, preserving the source checkpoint. Browser control state and
-calculated responses belong to that browser view; they do not replace Terminal's
-consumer, replay task or selected model. The Both supervisor owns process
-lifetime only and provides no shared-memory or replay-synchronization channel.
+Wind Tunnel creates its own consumer when reconstructing a bundled replay prefix
+or freezing a guided intake prefix. A request using an embedded frozen artifact
+validates that artifact directly. Scenario pricing always uses copied rows,
+preserving the source checkpoint. `SessionIntake` owns only its bounded
+allowlisted input registry; each fresh consumer owns the reconstructed mutable
+market state. Browser control state and calculated responses belong to that
+browser view; they do not replace Terminal's consumer, replay task or selected
+model. Terminal's handoff owns a listener and detached artifact, not a second
+writer to its active consumer. The Both supervisor owns process lifetime only
+and provides no shared-memory or replay-synchronization channel.
 
 ## Contributor Boundaries
 
@@ -602,6 +679,10 @@ lifetime only and provides no shared-memory or replay-synchronization channel.
 - Keep Wind Tunnel browser presentation in `wind_tunnel_web/`, request/receipt
   boundaries in `wind_tunnel_server.py`, and synthetic scenario orchestration in
   `wind_tunnel.py`. Reuse engine pricing rather than duplicating it in JavaScript.
+- Keep capture-byte verification in `session_capture.py`, ephemeral intake and
+  allowlisted prefix projection in `session_intake.py`, and immutable checkpoint
+  validation and listener ownership in the checkpoint/handoff modules. Browser
+  requests must not introduce arbitrary filesystem paths or raw-capture storage.
 - Keep setup, chooser and owned-process supervision in `scripts/install_app.py`;
   do not use the starter to transfer market state between the two interfaces.
 - Keep artifact format changes in the relevant export/report module.
@@ -620,6 +701,8 @@ lifetime only and provides no shared-memory or replay-synchronization channel.
 | Model math or structural levels | `tests/test_gex_engine.py`, `tests/test_engine_structure.py`, `tests/test_regime.py` |
 | TUI table or first-run behavior | `tests/test_tui_table.py`, `tests/test_tui_first_run.py`, `tests/test_demo_lab.py` |
 | Wind Tunnel numerical, service or CLI behavior | `tests/test_wind_tunnel.py`, `tests/test_wind_tunnel_server.py`, `tests/test_wind_tunnel_cli.py`; inspect the browser against computed results |
+| Immutable Terminal checkpoint and owned handoff | `tests/test_wind_tunnel_checkpoint.py`, `tests/test_wind_tunnel_handoff.py`, `tests/test_wind_tunnel_assets.py`; inspect demo/replay isolation and fresh-service receipt reproduction |
+| Guided local capture intake | `tests/test_session_intake.py`, `tests/test_session_intake_server.py`, `tests/test_wind_tunnel_intake_assets.py`; inspect selected-byte upload, source review, chosen prefix, cancellation and portable receipt reproduction |
 | Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py`, `tests/test_session_store.py` |
 | Capture integrity, policy, or event clocks | `tests/test_session_capture.py`, `tests/test_capture_governance.py`, `tests/test_replay_adapter.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
@@ -635,6 +718,8 @@ lifetime only and provides no shared-memory or replay-synchronization channel.
 | Reviewed-wheel setup and launch handoff | `tests/test_install_app.py`, `tests/test_app_bundle.py`, `tests/test_starter.py`; fresh-folder installation, reuse and managed-child lifecycle checks |
 | Maintainer preview automation | `tests/test_refresh_previews.py`; staged synthetic previews and local provenance manifest |
 | Retained CI evidence | `tests/test_ci_evidence.py`; bounded synthetic inventory and explicit failed/missing outputs |
+| Frozen study kit preparation | `tests/test_study_kit.py`; verify exact source/build identity, synthetic fixture hashes and retained rehearsal evidence without inferring participant outcomes |
+| Participant delivery packaging | `tests/test_participant_delivery.py`; exact public/material boundaries, preserved frozen inputs, complete inventories, safe paths, no overwrite and remaining local links; PDF visual/form checks remain separate |
 | Documentation paths and heading destinations | `tests/test_release_contract.py` (`DocumentationLinkContractTests`) |
 
 The [offline CI workflow](offline-ci.md) exercises source, installed-wheel and
