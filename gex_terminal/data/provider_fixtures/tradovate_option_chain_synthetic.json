@@ -1,0 +1,372 @@
+{
+  "schema": "gex-terminal.synthetic-tradovate-chain-scenarios.v1",
+  "provenance": {
+    "origin": "constructed",
+    "observed_provider_payload": false,
+    "description": "Synthetic software-contract scenarios. Not an observed Tradovate response, an API schema, a market-coverage sample, or evidence of provider-supplied IV. No credentials or participant data."
+  },
+  "cases": [
+    {
+      "symbol": "ES",
+      "contract_multiplier": 50,
+      "product": {
+        "id": 42000,
+        "name": "ES",
+        "valuePerPoint": 50
+      },
+      "maturities": [
+        {
+          "id": 41100,
+          "expirationDate": "2026-09-18",
+          "lastTradingTime": "2026-09-18T20:00:00Z"
+        },
+        {
+          "id": 41200,
+          "expirationDate": "2026-12-18",
+          "lastTradingTime": "2026-12-18T20:00:00Z"
+        }
+      ],
+      "contracts_by_maturity": {
+        "41100": [
+          {
+            "id": 41000,
+            "name": "ESU6",
+            "contractType": "Future",
+            "contractMaturityId": 41100
+          },
+          {
+            "id": 41001,
+            "name": "ESU6 C6000",
+            "strikePrice": 6000,
+            "callPut": "C",
+            "contractMaturityId": 41100,
+            "impliedVol": 0.2
+          },
+          {
+            "id": 41002,
+            "name": "ESU6 P6000",
+            "strikePrice": 6000,
+            "callPut": "P",
+            "contractMaturityId": 41100,
+            "impliedVol": 0.22
+          }
+        ],
+        "41200": [
+          {
+            "id": 41003,
+            "name": "ESZ6 C6100",
+            "strikePrice": 6100,
+            "callPut": "C",
+            "contractMaturityId": 41200
+          },
+          {
+            "id": 41004,
+            "name": "ESZ6 P6100",
+            "strikePrice": 6100,
+            "callPut": "P",
+            "contractMaturityId": 41200,
+            "impliedVol": 0.24
+          }
+        ]
+      },
+      "suggestions": [
+        {
+          "id": 41001,
+          "name": "ESU6 C6000",
+          "strikePrice": 6000,
+          "callPut": "C",
+          "contractMaturityId": 41100,
+          "impliedVol": 0.2
+        },
+        {
+          "id": 41005,
+          "name": "ESZ6 C6200",
+          "strikePrice": 6200,
+          "callPut": "C",
+          "contractMaturityId": 41200,
+          "impliedVol": 0.26
+        }
+      ],
+      "quote_events": [
+        {
+          "e": "md",
+          "d": {
+            "quotes": [
+              {
+                "contractId": 41000,
+                "timestamp": "2026-08-04T20:00:00Z",
+                "entries": {
+                  "Trade": {
+                    "price": 6025,
+                    "size": 1
+                  }
+                }
+              },
+              {
+                "contractId": 41001,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 21,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 10
+                  },
+                  "OpenInterest": {
+                    "size": 100
+                  }
+                }
+              },
+              {
+                "contractId": 41002,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 22,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 20
+                  },
+                  "OpenInterest": {
+                    "size": 200
+                  }
+                }
+              },
+              {
+                "contractId": 41003,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 23,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 30
+                  },
+                  "OpenInterest": {
+                    "size": 300
+                  }
+                }
+              },
+              {
+                "contractId": 41004,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 24,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 40
+                  },
+                  "OpenInterest": {
+                    "size": 400
+                  }
+                }
+              },
+              {
+                "contractId": 41005,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 25,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 50
+                  },
+                  "OpenInterest": {
+                    "size": 500
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "symbol": "NQ",
+      "contract_multiplier": 20,
+      "product": {
+        "id": 52000,
+        "name": "NQ",
+        "valuePerPoint": 20
+      },
+      "maturities": [
+        {
+          "id": 51100,
+          "expirationDate": "2026-09-18",
+          "lastTradingTime": "2026-09-18T20:00:00Z"
+        },
+        {
+          "id": 51200,
+          "expirationDate": "2026-12-18",
+          "lastTradingTime": "2026-12-18T20:00:00Z"
+        }
+      ],
+      "contracts_by_maturity": {
+        "51100": [
+          {
+            "id": 51000,
+            "name": "NQU6",
+            "contractType": "Future",
+            "contractMaturityId": 51100
+          },
+          {
+            "id": 51001,
+            "name": "NQU6 C20000",
+            "strikePrice": 20000,
+            "callPut": "C",
+            "contractMaturityId": 51100,
+            "impliedVol": 0.2
+          },
+          {
+            "id": 51002,
+            "name": "NQU6 P20000",
+            "strikePrice": 20000,
+            "callPut": "P",
+            "contractMaturityId": 51100,
+            "impliedVol": 0.22
+          }
+        ],
+        "51200": [
+          {
+            "id": 51003,
+            "name": "NQZ6 C20100",
+            "strikePrice": 20100,
+            "callPut": "C",
+            "contractMaturityId": 51200
+          },
+          {
+            "id": 51004,
+            "name": "NQZ6 P20100",
+            "strikePrice": 20100,
+            "callPut": "P",
+            "contractMaturityId": 51200,
+            "impliedVol": 0.24
+          }
+        ]
+      },
+      "suggestions": [
+        {
+          "id": 51001,
+          "name": "NQU6 C20000",
+          "strikePrice": 20000,
+          "callPut": "C",
+          "contractMaturityId": 51100,
+          "impliedVol": 0.2
+        },
+        {
+          "id": 51005,
+          "name": "NQZ6 C20200",
+          "strikePrice": 20200,
+          "callPut": "C",
+          "contractMaturityId": 51200,
+          "impliedVol": 0.26
+        }
+      ],
+      "quote_events": [
+        {
+          "e": "md",
+          "d": {
+            "quotes": [
+              {
+                "contractId": 51000,
+                "timestamp": "2026-08-04T20:00:00Z",
+                "entries": {
+                  "Trade": {
+                    "price": 20025,
+                    "size": 1
+                  }
+                }
+              },
+              {
+                "contractId": 51001,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 21,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 10
+                  },
+                  "OpenInterest": {
+                    "size": 100
+                  }
+                }
+              },
+              {
+                "contractId": 51002,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 22,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 20
+                  },
+                  "OpenInterest": {
+                    "size": 200
+                  }
+                }
+              },
+              {
+                "contractId": 51003,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 23,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 30
+                  },
+                  "OpenInterest": {
+                    "size": 300
+                  }
+                }
+              },
+              {
+                "contractId": 51004,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 24,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 40
+                  },
+                  "OpenInterest": {
+                    "size": 400
+                  }
+                }
+              },
+              {
+                "contractId": 51005,
+                "timestamp": "2026-08-04T20:00:01Z",
+                "entries": {
+                  "Trade": {
+                    "price": 25,
+                    "size": 1
+                  },
+                  "TotalTradeVolume": {
+                    "size": 50
+                  },
+                  "OpenInterest": {
+                    "size": 500
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

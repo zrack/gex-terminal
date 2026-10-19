@@ -198,20 +198,94 @@ cannot satisfy the acknowledgement wait. Connected/subscribed transitions occur
 only after the corresponding wait succeeds. Processing stops at a fatal error;
 market updates accepted before that error remain retained.
 
-The synthetic acknowledgement-frame regressions and reproduction command are
-documented in [Offline Validation](offline-validation.md#tradovate-acknowledgement-frames).
-This repair does not complete [issue #4](https://github.com/zrack/gex-terminal/issues/4),
-which remains open pending actual sanitized Tradovate ES/NQ payloads.
+Acknowledgement IDs must be JSON integers; a boolean or floating-point value
+cannot satisfy a request ID. Status values must be finite integers. Numeric
+inputs reject booleans and nonfinite values before conversion. Prices, strikes,
+IV, multipliers, and timeouts must be positive; contract counts and retry counts
+must be integral, with zero allowed for reconnect attempts. Cumulative
+quantities and sequences may be zero but cannot be negative or fractional.
+Integral numeric strings remain supported. A numeric `Retry-After` is capped
+at 30 seconds; an invalid value uses the bounded exponential retry delay.
 
-Sanitized fixtures ship under `gex_terminal/data/provider_fixtures/` and are
-exercised from any installed location with `gex-terminal fixture-lab OUTPUT`.
-They prove parser and software-path behavior, not credential, entitlement,
-market coverage, or real reconnect behavior.
+Shutdown awaits both owned heartbeat and renewal tasks and attempts subscription
+and socket cleanup even if one background task has already failed. Such a
+failure records a subscription error. Malformed-quote and background-task logs
+retain an exception type instead of arbitrary provider values.
 
-Official quote frames do not establish native implied volatility. If no joined
-metadata supplies IV, the adapter uses its configured fallback, increments a
-counter, and marks the model input degraded. Quantitative GEX is not certified
-for such a run.
+### Implemented Mapping And Evidence Boundaries
+
+The current discovery path calls `product/find`, `contractMaturity/deps`, and
+`contract/deps`, then adds a bounded `contract/suggest` fallback. It enriches
+contracts with the available maturity expiry and product point value,
+deduplicates candidates, selects an underlying, caps option subscriptions, and
+registers metadata by contract ID and symbol. These mechanics can be tested
+locally; they do not establish that the selected contracts cover the current
+ES/NQ option universe.
+
+The [official API reference](https://api.tradovate.com/), reviewed on
+2026-10-18, documents
+`contract/getoptionschain` as a response object containing `products`,
+`contractMaturities`, and `contracts`, rather than a flat chain of fully joined
+option rows. This adapter does not call that endpoint. The published `Contract`
+schema contains `id`, `name`, `contractMaturityId`, and `timestamp`;
+`ContractMaturity` provides `expirationDate` and an optional `underlyingId`.
+The reference alone does not establish the extra option metadata required by
+this adapter's current discovery path.
+
+Accepted aliases such as `strikePrice`, `callPut`/`putCall`/`optionType`,
+`impliedVol`/`impliedVolatility`/`iv`, and extra expiry fields are implementation
+compatibility paths. Their presence in constructed fixtures is not evidence
+that Tradovate returns them for ES/NQ. The legacy flat quote path remains
+schema v1 and incremental; it is not a verified provider chain format.
+
+The documented market-data example is nested: quotes carry `contractId`,
+`timestamp`, and `entries`, including `Trade.price`, `TotalTradeVolume.size`,
+and `OpenInterest.size`. The adapter joins the quote to its registered metadata
+and emits schema-v2 cumulative trade-volume and open-interest messages
+separately. Repeated absolute values replace prior state rather than adding
+again. Positive trade volume takes precedence for calculation; otherwise
+positive OI can supply the fallback position source. The two quantities are
+never summed, and neither establishes dealer inventory.
+
+The documented quote example does not establish native implied volatility.
+When no IV value is present in the quote and joined metadata, the adapter
+uses its configured fallback, increments a counter, and marks the input
+degraded. Quantitative GEX is not certified for such a run. A tolerated IV alias
+with a synthetic value proves only that the software accepts that input;
+actual field availability, units, and provenance still require provider
+evidence. A missing or timezone-naive quote clock similarly produces a labeled
+receipt-time fallback rather than proof of a provider event time.
+
+The bounded, explicitly synthetic chain fixture lives at
+`gex_terminal/data/provider_fixtures/tradovate_option_chain_synthetic.json`.
+Its regression tests drive the production adapter and consumer; they do not
+authenticate an observed provider payload. Other local provider fixtures can
+be exercised from an installed location with `gex-terminal fixture-lab OUTPUT`.
+The [offline regression matrix](offline-validation.md#tradovate-offline-regression-matrix)
+covers discovery, mapping, malformed inputs, acknowledgement ordering, scripted
+lifecycle behavior, and negative certification gates without credentials.
+
+### Provider Access And Remaining Qualification
+
+Tradovate's [retail API-access instructions](https://tradovate.zendesk.com/hc/en-us/articles/4403105829523-How-Do-I-Get-Access-to-the-Tradovate-API)
+currently require a live account holding more than $1,000, the CME information
+license agreement, and the API Access add-on to generate a retail API key.
+The key's [Contract Library and Market Data permissions](https://tradovate.zendesk.com/hc/en-us/articles/4408873526547-How-Do-I-Change-My-API-Key-Permissions)
+are separate. Choosing the demo environment selects the simulation REST
+service; it does not establish a waiver of API access or market-data rights.
+The [market-data guidance](https://tradovate.zendesk.com/hc/en-us/articles/115011506088-What-are-the-non-professional-market-data-rates)
+distinguishes top of book from market depth and requires depth for the DOM.
+It does not establish that Level 2 is universally required to discover a full
+option chain. Record the actual account's permissions, subscriptions, and
+observed response rather than infer them from an environment flag.
+
+[Issue #4](https://github.com/zrack/gex-terminal/issues/4) remains open until
+actual sanitized **demo or live** ES/NQ payloads and their field mappings are
+reviewed, including the IV field or its absence and entitlement/setup notes.
+Synthetic regressions do not satisfy that requirement. This payload-mapping
+gate is distinct from broader credentialed coverage, latency, reconnect, and
+quantitative-input qualification; closing the mapping issue would not
+automatically certify those broader capabilities or promote registry status.
 
 Run the explicit read-only certification gate only when you intend to open a
 credentialed external connection:
@@ -222,8 +296,32 @@ gex-terminal tradovate-certify /tmp/tradovate-certification.json \
 ```
 
 The report is redacted and the command exits nonzero unless transport is
-certified. The adapter remains registry status `scaffold`; this repository does
-not claim a successful live or demo certification.
+certified. Transport requires authentication, acknowledged authorization and
+subscriptions, frames and normalized messages, a connected state at the end of
+the observation window, and no recorded probe or entitlement errors. The probe
+reads the connection state before its own cancellation closes an otherwise
+healthy session; an earlier disconnect cannot pass on old success flags. It
+reads final subscription and error counters after awaited cleanup, so a failure
+discovered during shutdown still invalidates the result.
+
+A transport pass can contain only underlying messages. The separate
+quantitative gate also requires accepted underlying and option state, no IV
+or receipt-time fallback, and no recorded parse, dropped-message, or malformed
+input errors. It requires zero accepted legacy option ticks and zero untimed
+market events, reported as `model_inputs.legacy_option_tick_count` and
+`model_inputs.untimed_market_event_count` in JSON and in the Markdown report.
+The legacy flat compatibility path remains available, but its schema-v1 option
+ticks cannot pass the quantitative gate even if a timestamp is supplied.
+Reported option-contract counts deduplicate the trade-volume and OI states for
+the same provider/contract identity. Authentication capability flags are known
+only when the response contains a literal JSON boolean; strings, numbers and
+other values are reported as unknown.
+`native_implied_volatility_observed` describes the implementation's
+accepted IV inputs; the name does not turn an unverified alias or synthetic
+value into provider evidence. Report errors retain an exception type and a
+fixed reason rather than arbitrary provider/library message text. The adapter
+remains registry status `scaffold`; this repository does not claim a successful
+live or demo certification.
 
 ## Databento Adapter
 

@@ -7,6 +7,20 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Tradovate Offline Verification
+
+- Rework PR #10 into explicitly synthetic ES/NQ discovery and quote coverage
+  through the production adapter, consumer and engine. Replace fixture-only
+  checks and add parameter, lifecycle and negative certification regressions.
+- Reject malformed numeric parameters and quantities before lossy coercion;
+  bound retry delays, preserve complete owned cleanup after background failures,
+  and keep raw provider values out of rejection logs and probe errors.
+- Tighten probe evidence gates and document implemented mappings, unverified
+  aliases and access requirements. Actual sanitized ES/NQ demo or live payloads
+  remain required by issue #4; Tradovate stays `scaffold`.
+- [GEX-TRADOVATE-OFFLINE-010](docs/work-packets/GEX-TRADOVATE-OFFLINE-010.md)
+  owns acceptance and integration of [PR #10](https://github.com/zrack/gex-terminal/pull/10).
+
 ## Unreleased — Documentation And Recruitment Source Closeout
 
 - Reconcile architecture and component diagrams with guided capture intake and
