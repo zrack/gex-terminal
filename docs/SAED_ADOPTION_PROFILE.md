@@ -58,10 +58,11 @@ Tradovate readiness remains `scaffold`.
 
 ## Purpose And Entry Boundary
 
-Active [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) owns current
+Closed [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) owns current
 documentation/diagram reconciliation, reusable blank recruitment sources and
 delivery packaging verification. It preserves frozen study/delivery identities,
-private participant-record boundaries and issue #4's actual-payload gate.
+private participant-record boundaries and issue #4's actual-payload gate,
+conditional on its final-head hosted checks and authorized PR #42 merge.
 
 Closed [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) owns guided
 local captured-session intake and a separately identified current-build study

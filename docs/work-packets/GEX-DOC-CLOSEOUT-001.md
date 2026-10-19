@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 packet_owner: project maintainer
 spec_steward: implementation agent
 evidence_reviewer: independent contributor review
@@ -55,4 +55,25 @@ study and recruitment artifacts are preserved.
 
 ## Evidence
 
-Final verification and integration evidence will be recorded before closure.
+Local full-suite verification passes 686 methods, including 13 new packaging
+regressions. Compilation, documentation/heading links and staged whitespace
+checks pass. Independent review repaired nested output mutating the frozen
+parent, unchecked retained help anchors and incomplete amendment membership;
+the original reproductions now reject. The builder explicitly supports only
+the reviewed October participant-v1 identity until its templates/form receive
+an amendment.
+
+A rebuild from committed sources matches all 20 participant files and nine
+organizer files byte-for-byte. The source CSV uses LF and its delivery copy
+preserves CRLF. Both original study inventories and original delivery archives
+verify unchanged. The optional PDF generator reproduces the original text and
+form definitions; the 15-field/two-page blank defaults, synthetic filling
+roundtrip and both rendered pages pass. The component SVG render and source
+manifest verify, with no clipped labels or arrows.
+
+[PR #42](https://github.com/zrack/gex-terminal/pull/42) owns integration. This
+packet closes the bounded implementation with the maintainer-authorized merge,
+conditional on all eight final-head Ubuntu/macOS Python 3.11/3.12 hosted checks
+passing. Final merged-tree full-suite, remote equality and branch inventory
+checks are retained afterward in `dist/docs-closeout/2026-10-18/summary.json`.
+Contributor PR #10 remains `CHANGES_REQUESTED`; issue #4 remains open.

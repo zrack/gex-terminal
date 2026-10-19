@@ -39,8 +39,10 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) owns the
-documentation, recruitment-source and branch closeout slice.
+change. Closed [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) records
+the documentation, recruitment-source and branch closeout slice through
+[PR #42](https://github.com/zrack/gex-terminal/pull/42), subject to its final
+integration conditions.
 Closed [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) records guided
 capture intake and the separately frozen current-build study integrated through
 [PR #41](https://github.com/zrack/gex-terminal/pull/41).
