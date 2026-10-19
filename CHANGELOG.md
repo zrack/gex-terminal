@@ -7,6 +7,18 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Pricing Coverage Displays
+
+- Add visible Terminal and Wind Tunnel coverage panels with priced/selected
+  contract and quantity counts, percentages, and explicit complete, partial,
+  all-unpriced, empty and unreported states.
+- Explain unavailable IV using captured premium bounds and quote inputs in
+  details. Preserve unavailable IV and raw quantity; scenario shifts do not
+  rewrite the original failed-inversion evidence or fill its exposure.
+- Add presentation and browser/Terminal regressions for pricing gaps, retained
+  IV, empty selections, rounding and stale-source clearing. Pricing calculations
+  and portable result formats are unchanged.
+
 ## Unreleased — IV Resolution And American Futures Pricing
 
 - Replace new Databento 15% IV defaults with qualified earlier same-contract

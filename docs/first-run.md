@@ -201,12 +201,36 @@ keyboard controls. Replay replacement is available only in demo/replay mode
 and is blocked during capture. Press `q` to quit when finished.
 
 Press `?` for the short research loop and keyboard guide. Press `v` to inspect
-source, fallback assumptions, quality, recent events and the last export path;
-these details remain reachable at every supported size. Press `e` to save the
+source, pricing coverage, assumptions, quality, recent events and the last export
+path; these details remain reachable at every supported size. Press `e` to save the
 current snapshot. The app confirms its destination and uses a distinct filename
 for each save. The bundle launcher saves in its research folder; a direct CLI
 launch saves in its current working directory. Sorting, refreshes and column
 changes retain the selected strike when it is still present.
+
+### Read pricing coverage
+
+The **Pricing coverage** panel above the strike table shows priced/selected
+contracts and priced/selected quantity separately, with percentages. Quantity
+means the current selected volume or open-interest quantity, not the number of
+incoming messages. Changing the expiry selection changes these denominators.
+An earlier valid IV counts as priced and is separately labeled.
+
+| State | How to read the exposure |
+| --- | --- |
+| Complete | All selected contracts and quantity have pricing inputs |
+| Partial | Some selected exposure is unpriced; the displayed GEX uses the priced portion |
+| All unpriced | Raw quantities remain, but GEX is unavailable rather than zero |
+| No selected contracts | The current selection has no active contracts; coverage percentages are not applicable |
+| Not reported | Contract-level records are unavailable, so coverage cannot be established |
+
+Partial coverage never rounds up to 100%. Press **`v`** for each unpriced
+contract's identity, quantity and reason. When supplied, details include the
+original captured premium, violated model bound, gap, underlying input and
+quote age. These explain why that captured IV calculation failed; they do not
+establish why the market inputs disagreed or supply a replacement IV.
+[Model Assumptions](model-assumptions.md#quantity-and-position-sources) owns the
+pricing and retention policy.
 
 ## Compare, Replay and Review
 

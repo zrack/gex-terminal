@@ -2,6 +2,7 @@ import asyncio
 import json
 import time
 from collections import deque
+from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
@@ -27,7 +28,8 @@ from gex_terminal.replay_catalog import (
 )
 from gex_terminal.regime import build_regime_map
 from gex_terminal.provider_readiness import runtime_provider_readiness
-from gex_terminal.pricing_assumptions import build_pricing_assumptions
+from gex_terminal.pricing_assumptions import build_pricing_assumptions, pricing_coverage
+from gex_terminal.pricing_display import build_pricing_display
 from gex_terminal.snapshot import build_snapshot, write_snapshot
 from gex_terminal.table_rows import arrange_rows, filter_rows, sort_rows
 from gex_terminal.tui_views import ReplayPicker, ResearchInfo
@@ -98,6 +100,10 @@ class GexTerminalApp(App):
         self._sort_mode = "strike"
         self._filter_mode = "all"
         self._last_data: dict | None = None
+        self._last_selected_contract_rows: list[dict] = []
+        self._last_pricing_display = build_pricing_display(None)
+        self._last_pricing_assumptions: dict | None = None
+        self._pricing_refresh_generation = 0
         self._last_breakdown: dict = {}
         self._last_refresh_at: str = "--:--:--"
         self._replay_sessions = bundled_replay_sessions()
@@ -139,6 +145,7 @@ class GexTerminalApp(App):
                 yield Static("waiting for runtime configuration", id="matrix-meta", classes="subtle")
                 yield Static("", id="matrix-controls", classes="subtle")
                 yield Static("", id="matrix-state", classes="state-banner")
+                yield Static("", id="pricing-coverage", classes="state-banner")
                 yield DataTable(id="gex-table")
 
             with VerticalScroll(id="structure-panel"):
@@ -191,6 +198,7 @@ class GexTerminalApp(App):
         self.query_one("#matrix-state", Static).display = False
         self._render_controls()
         self._render_first_run_guide(self.consumer.runtime_status)
+        self._render_pricing_coverage()
         self._render_status_bar(self.consumer.runtime_status)
         screen = self.screen
         self._refresh_screen_owner = screen
@@ -370,6 +378,7 @@ class GexTerminalApp(App):
         selected = choices[(index + 1) % len(choices)]
         self.config = replace(self.config, expiry_filter=selected)
         self.consumer.set_expiry_filter(selected)
+        self._clear_pricing_presentation()
         self._event(f"expiry filter -> {selected}")
         self._render_controls()
         await self.refresh_terminal_data()
@@ -440,6 +449,7 @@ class GexTerminalApp(App):
         )
         self._symbols = self.config.symbols
         self.consumer.engine.multiplier = self.config.contract_multiplier
+        self._reset_terminal_session_state()
         await self.consumer.reset_state(
             data_mode="replay",
             target_underlying=self.config.symbol,
@@ -449,7 +459,6 @@ class GexTerminalApp(App):
         self.consumer.set_expiry_filter(self.config.expiry_filter)
         self.consumer.mark_connected()
         self.consumer.mark_subscribed(1)
-        self._reset_terminal_session_state()
         self._active_replay_session = session
         self._replay_index = self._session_index(session)
         self._replay_browser_index = self._replay_index
@@ -467,6 +476,7 @@ class GexTerminalApp(App):
         await self.refresh_terminal_data()
 
     def _reset_terminal_session_state(self) -> None:
+        self._clear_pricing_presentation()
         self._gex_flow.clear()
         self._latencies.clear()
         self._events.clear()
@@ -480,6 +490,16 @@ class GexTerminalApp(App):
         self._last_data = None
         self._last_breakdown = {}
         self._last_refresh_at = "--:--:--"
+
+    def _clear_pricing_presentation(self) -> None:
+        """Invalidate delayed details whenever the selected research changes."""
+        self._pricing_refresh_generation += 1
+        self._last_selected_contract_rows = []
+        self._last_pricing_assumptions = None
+        self._last_pricing_display = build_pricing_display(None)
+        owner = self._refresh_screen_owner
+        if owner is not None and owner.is_mounted:
+            self._render_pricing_coverage(screen=owner)
 
     def _load_replay_messages(self, session: ReplaySession) -> Iterable[dict]:
         path = Path(session.path)
@@ -735,7 +755,18 @@ class GexTerminalApp(App):
         text.append(f"Provider readiness  {runtime_provider_readiness(self.config)}\nFallback assumptions  {self.config.days_to_expiry:g} DTE · {self.config.risk_free_rate:.2%} rate · ×{self.config.contract_multiplier}\nExpiry selection  {self.config.expiry_filter}\n", style="#c3ced8")
         if self._last_data is not None:
             text.append(f"Quantity sources  {', '.join(self._last_data.get('position_sources', ['legacy_volume_proxy']))}\n", style="#c3ced8")
-            assumptions = self._pricing_assumptions(self._last_data)
+        text.append("\nPricing coverage\n", style="bold #e9b96e")
+        display = self._last_pricing_display
+        text.append(display["summary"] + "\n", style="#e9eef3")
+        if display["reason_summary"]:
+            text.append(display["reason_summary"] + "\n", style="#c3ced8")
+        if display["details"]:
+            text.append("\nUnpriced contracts · captured observations\n", style="bold #e9b96e")
+            for detail in display["details"]:
+                text.append(detail + "\n\n", style="#c3ced8")
+        assumptions = (self._pricing_assumptions(self._last_data)
+                       if self._last_data is not None else self._last_pricing_assumptions)
+        if assumptions:
             text.append("\nPricing assumptions\n", style="bold #e9b96e")
             text.append(assumptions["summary"] + "\n", style="#e9eef3")
             for note in assumptions.get("limitations", ()):
@@ -743,6 +774,7 @@ class GexTerminalApp(App):
             text.append(assumptions["rate_note"] + "\n", style="#c3ced8")
             if assumptions.get("time_note"):
                 text.append(assumptions["time_note"] + "\n", style="#c3ced8")
+        if self._last_data is not None:
             text.append("\nModel context\n", style="bold #e9b96e")
             for selector in ("#dealer-regime", "#balance-pressure", "#vol-boundary", "#regime-map"):
                 content = self.query_one(selector, Static).content
@@ -766,14 +798,34 @@ class GexTerminalApp(App):
         if refresh_screen is None:
             return
 
+        self._pricing_refresh_generation += 1
+        generation = self._pricing_refresh_generation
+
         started = time.perf_counter()
         data = await self.consumer.process_latest_snapshot(
             days_to_expiry=self.config.days_to_expiry,
             expiry_filter=self.config.expiry_filter,
         )
         latency_ms = (time.perf_counter() - started) * 1000
-        if not self._refresh_screen_is_current(refresh_screen):
+        if not self._pricing_refresh_is_current(refresh_screen, generation):
             return
+
+        snapshot_message_count = self.consumer.message_count
+        rows = await self.consumer.selected_contract_rows(expiry_filter=self.config.expiry_filter)
+        if not self._pricing_refresh_is_current(refresh_screen, generation):
+            return
+        # A contended state lock may have admitted a newer tick since the
+        # matrix was captured. Do not attach that tick's details to this matrix.
+        if self.consumer.message_count != snapshot_message_count:
+            rows = []
+        selected_rows = deepcopy(rows)
+        coverage = data.get("pricing_coverage")
+        # This existing consumer error is emitted only for a pure contract-v2
+        # source whose active expiry selection is empty. Legacy/empty-source
+        # errors cannot supply a contract denominator and remain unreported.
+        if coverage is None and data.get("error", "").startswith("No active option contracts match expiry filter"):
+            coverage = pricing_coverage([])
+        pricing_display = build_pricing_display(coverage, selected_rows)
 
         if "error" in data:
             self._last_latency_ms = latency_ms
@@ -781,29 +833,43 @@ class GexTerminalApp(App):
             self._last_refresh_at = self._timestamp()
             self._last_data = None
             self._last_breakdown = {}
+            self._last_selected_contract_rows = selected_rows
+            self._last_pricing_display = pricing_display
+            self._last_pricing_assumptions = deepcopy(data.get("pricing_assumptions"))
             self._render_expiry({})
             status = self.consumer.runtime_status
             self._render_lifecycle()
             self._render_status_bar(status)
             self._render_quality()
             self._render_empty_state(data["error"], status)
+            self._render_pricing_coverage()
+            if self._last_pricing_assumptions:
+                self._render_pricing_assumptions(data)
             return
 
         breakdown = await self.consumer.process_expiry_breakdown(
             days_to_expiry=self.config.days_to_expiry
         )
-        if not self._refresh_screen_is_current(refresh_screen):
+        if not self._pricing_refresh_is_current(refresh_screen, generation):
             return
+
+        if self.consumer.message_count != snapshot_message_count:
+            selected_rows = []
+            pricing_display = build_pricing_display(coverage)
 
         self._last_latency_ms = latency_ms
         self._latencies.append(latency_ms)
         self._last_refresh_at = self._timestamp()
         self._last_data = data
         self._last_breakdown = breakdown
+        self._last_selected_contract_rows = selected_rows
+        self._last_pricing_display = pricing_display
+        self._last_pricing_assumptions = deepcopy(data.get("pricing_assumptions"))
         status = self.consumer.runtime_status
         self._render_lifecycle()
         self._render_status_bar(status)
         self._render_quality()
+        self._render_pricing_coverage()
         self._gex_flow.append(float(data["total_net_gex"]))
         self._record_events(data)
         self._render_metrics(data)
@@ -837,6 +903,19 @@ class GexTerminalApp(App):
             and self.screen is screen
         )
 
+    def _pricing_refresh_is_current(self, screen: Screen, generation: int) -> bool:
+        return (generation == self._pricing_refresh_generation
+                and self._refresh_screen_is_current(screen))
+
+    def _render_pricing_coverage(self, *, screen: Screen | None = None) -> None:
+        display = self._last_pricing_display
+        color = "#e9b96e" if display["status"] in {"partial", "unavailable"} else "#c3ced8"
+        text = Text(display["summary"], style="bold " + color)
+        if display["reason_summary"]:
+            text.append("\n" + display["reason_summary"], style=color)
+        text.append("\nv: pricing details", style="#9aaaba")
+        (screen or self.screen).query_one("#pricing-coverage", Static).update(text)
+
     def _render_empty_state(self, reason: str, status: str) -> None:
         self.query_one("#gex-table", DataTable).clear()
         self.query_one("#stat-spot", Static).update(
@@ -845,18 +924,26 @@ class GexTerminalApp(App):
         self.query_one("#stat-spot-foot", Static).update("Latest underlying quote")
         for selector in ("#stat-netgex", "#stat-wall", "#stat-zero", "#stat-imbalance"):
             self.query_one(selector, Static).update("--")
-        self.query_one("#stat-netgex-foot", Static).update("No active contracts")
-        self.query_one("#stat-imbalance-foot", Static).update("No selected quantities")
-        self.query_one("#feed-proxy", Static).update("Selected quantities\n  unavailable")
+        unpriced = self._last_pricing_display["status"] == "unavailable"
+        self.query_one("#stat-netgex-foot", Static).update(
+            "No priced contracts · IV unavailable" if unpriced else "No active contracts")
+        self.query_one("#stat-imbalance-foot", Static).update(
+            "Raw quantity retained · IV unavailable" if unpriced else "No selected quantities")
+        self.query_one("#feed-proxy", Static).update(
+            "Selected quantities\n  retained · GEX unavailable" if unpriced else "Selected quantities\n  unavailable")
         self._gex_flow.clear()
         self.query_one("#gex-flow", Sparkline).display = False
         self.query_one("#flow-message", Static).display = True
-        self.query_one("#flow-message", Static).update("Waiting for active contracts")
+        self.query_one("#flow-message", Static).update(
+            "Raw quantities retained; GEX requires valid IV" if unpriced else "Waiting for active contracts")
         self.query_one("#stat-latency", Static).update(f"{self._last_latency_ms:.0f}ms")
 
         banner = self.query_one("#matrix-state", Static)
         banner.display = True
-        if status == "DISCONNECTED":
+        if unpriced:
+            banner.update(Text("GEX UNAVAILABLE · " + reason, style="bold #e9b96e"))
+            self.query_one("#feed-chain", Static).update("Option chain\n  selected contracts unpriced")
+        elif status == "DISCONNECTED":
             banner.update("[#fb7185]■ DISCONNECTED[/]  trying to reach the market-data provider — no snapshot yet")
             self.query_one("#feed-chain", Static).update("[#fb7185]*[/] Option chain\n  disconnected")
         elif status == "CONNECTED":
@@ -1018,6 +1105,10 @@ class GexTerminalApp(App):
             f"Historical strike-profile field; predictive effect unmeasured.\n"
             f"70% band {band_low}–{band_high}."
         )
+        self._render_pricing_assumptions(data)
+        self._render_regime_map(data)
+
+    def _render_pricing_assumptions(self, data: dict) -> None:
         assumptions = self._pricing_assumptions(data)
         model_text = Text("Pricing Assumptions\n", style="bold #e9b96e")
         model_text.append(assumptions["summary"] + "\n", style="#e9eef3")
@@ -1025,14 +1116,7 @@ class GexTerminalApp(App):
             f"Rate {self.config.risk_free_rate:.2%} configured · ACT/365 · v for details.",
             style="#94a3b8",
         )
-        coverage = data.get("pricing_coverage")
-        if coverage and coverage["unpriced_contract_count"]:
-            model_text.append(f"\nPriced {coverage['priced_quantity']:,}/{coverage['selected_quantity']:,} selected quantity; "
-                              f"{coverage['unpriced_contract_count']} contract(s) unpriced.", style="#e9b96e")
-        if coverage and coverage["retained_iv_contract_count"]:
-            model_text.append(f"\n{coverage['retained_iv_contract_count']} contract(s) use an earlier valid IV.", style="#e9b96e")
         self.query_one("#pricing-assumptions", Static).update(model_text)
-        self._render_regime_map(data)
 
     def _pricing_assumptions(self, data: dict) -> dict:
         return data.get("pricing_assumptions") or build_pricing_assumptions(

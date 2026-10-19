@@ -56,11 +56,105 @@
   function chartLayout(extra = {}) {return {paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: {family: 'SFMono-Regular, Consolas, monospace', color: colors.text, size: 11}, margin: {l: 55, r: 18, t: 16, b: 55}, showlegend: false, hoverlabel: {bgcolor: '#142333', font: {color: '#f0f4fb', size: 12}}, xaxis: {gridcolor: colors.grid, zerolinecolor: '#4c6278', linecolor: '#40546b', title: {text: 'Strike'}, tickformat: ',.0f'}, yaxis: {gridcolor: colors.grid, zerolinecolor: '#8297ad', title: {text: 'Net GEX (billions)'}}, ...extra};}
   async function draw(selector, traces, layout) {const target = $(selector); if (target.classList.contains('plot-empty')) target.replaceChildren(); target.classList.remove('plot-empty'); if (!window.Plotly) {emptyPlot(selector, 'Chart library unavailable.', 'The local Plotly asset could not be loaded. Values remain available in Compare and source details.'); return;} await Plotly.react(target, traces, layout, {responsive: true, displaylogo: false, displayModeBar: false, scrollZoom: false});}
   function summaryOf(value) {return value?.summary || {};}
+  function coverageOf(value) {
+    const explicit = value?.pricing_coverage || value?.pricing_assumptions?.pricing_coverage;
+    if (explicit) return explicit;
+    // Older bundled calculations have no qualified-IV metadata. Their detailed
+    // contributing records prove completeness only when every selected row is present.
+    const rows = value?.contracts;
+    if (value?.status !== 'available' || !Array.isArray(rows) || !rows.length || value.counts?.selected_rows !== rows.length || !rows.every(row => Number.isFinite(row?.quantity) && row.quantity >= 0)) return undefined;
+    const quantity = rows.reduce((sum, row) => sum + row.quantity, 0);
+    if (!Number.isFinite(quantity) || rows.some(row => row.provider === 'legacy' || row.iv_source === 'legacy_unspecified') || (value.excluded_contracts || []).some(row => row.reason === 'iv_unavailable')) return undefined;
+    const retained = rows.filter(row => row.iv_source === 'prior_valid');
+    return {status: 'complete', selected_contract_count: rows.length, priced_contract_count: rows.length,
+      selected_quantity: quantity, priced_quantity: quantity, unpriced_contract_count: 0, unpriced_quantity: 0,
+      retained_iv_contract_count: retained.length, retained_iv_quantity: retained.reduce((sum, row) => sum + row.quantity, 0)};
+  }
+  const unpricedOf = value => (value?.excluded_contracts || []).filter(row => row.reason === 'iv_unavailable');
+  function coverageStatus(coverage) {
+    const values = ['selected_contract_count', 'priced_contract_count', 'selected_quantity', 'priced_quantity'].map(key => coverage?.[key]);
+    if (!values.every(value => Number.isFinite(value) && value >= 0)) return 'Coverage unavailable';
+    const [selected, priced, quantity, pricedQuantity] = values;
+    if (priced > selected || pricedQuantity > quantity) return 'Coverage unavailable';
+    if (!selected) return 'No selected contracts';
+    if (!priced) return 'Unavailable — no selected contracts are priced';
+    return priced < selected || pricedQuantity < quantity ? 'Partial' : 'Complete';
+  }
+  function coveragePercent(priced, selected) {
+    if (!selected) return 'not applicable';
+    const percent = priced / selected * 100;
+    // A small omission must never appear as complete after rounding.
+    return percent < 100 && Number(percent.toFixed(2)) === 100 ? '<100%' : `${formatNumber(percent)}%`;
+  }
+  function coverageSummary(coverage) {
+    if (coverageStatus(coverage) === 'Coverage unavailable') return 'Contract and quantity coverage metadata are unavailable.';
+    return `${formatNumber(coverage.priced_contract_count, 0)} / ${formatNumber(coverage.selected_contract_count, 0)} contracts priced (${coveragePercent(coverage.priced_contract_count, coverage.selected_contract_count)}) · ${formatNumber(coverage.priced_quantity, 0)} / ${formatNumber(coverage.selected_quantity, 0)} selected quantity priced (${coveragePercent(coverage.priced_quantity, coverage.selected_quantity)}).`;
+  }
+  function coverageStates(report) {
+    if (!report) return [];
+    const states = [['Original', report.baseline], ['Scenario', report.scenario]].filter(([, value]) => value);
+    if (states.length === 2 && JSON.stringify([coverageOf(states[0][1]), unpricedOf(states[0][1])]) === JSON.stringify([coverageOf(states[1][1]), unpricedOf(states[1][1])])) return [['Original & scenario', states[0][1]]];
+    return states;
+  }
+  function unpricedExplanation(row) {
+    const p = row.iv_provenance || {}, price = p.option_price;
+    if (p.status === 'outside_no_arbitrage_bounds') {
+      if (Number.isFinite(price) && Number.isFinite(p.lower_bound) && price < p.lower_bound) return `Captured premium ${formatNumber(price)} points is below the captured model minimum of ${formatNumber(p.lower_bound)} points; no valid IV fits those inputs.`;
+      if (Number.isFinite(price) && Number.isFinite(p.upper_bound) && price > p.upper_bound) return `Captured premium ${formatNumber(price)} points is above the captured model maximum of ${formatNumber(p.upper_bound)} points; no valid IV fits those inputs.`;
+      return 'The captured option premium is outside the model price bounds; no valid IV fits those inputs.';
+    }
+    return 'IV is unavailable for this contract. No substitute IV is applied.';
+  }
+  function unpricedIdentity(row) {
+    // Read checkpoint metadata only for a label; retain the canonical artifact bytes.
+    const metadata = checkpointMetadata(state.terminalCheckpoint);
+    const original = metadata.rows?.find(item => item.contract_id === row.contract_id && item.expiry === row.expiry);
+    const name = original && Number.isFinite(original.strike) && ['C', 'P'].includes(original.option_type)
+      ? `${original.symbol ? original.symbol + ' ' : ''}${formatNumber(original.strike)} ${original.option_type === 'P' ? 'put' : 'call'} · ` : '';
+    return `${name}Contract ${row.contract_id ?? 'unidentified'} · expiry ${row.expiry || 'unavailable'}`;
+  }
+  function renderPricingCoverage(report) {
+    const box = $('#pricing-coverage-content'); box.replaceChildren();
+    const states = coverageStates(report);
+    if (!states.length) {box.append(node('p', report ? 'Pricing coverage unavailable. No calculation coverage metadata.' : 'Pricing coverage pending. Select a source and allow calculation to complete.')); return;}
+    for (const [label, value] of states) {
+      const coverage = coverageOf(value), card = node('div', undefined, 'coverage-state');
+      const status = coverageStatus(coverage); card.append(node('h3', `${label} · ${status}`, status === 'Partial' || status.startsWith('Unavailable') ? 'coverage-warning' : undefined), node('p', coverageSummary(coverage)));
+      if (coverage?.unpriced_contract_count) {
+        card.append(node('p', `${formatNumber(coverage.unpriced_contract_count, 0)} contract(s), ${formatNumber(coverage.unpriced_quantity, 0)} selected quantity remain unpriced and excluded from modeled GEX. Raw quantities are retained.`));
+        const excluded = unpricedOf(value);
+        if (excluded.length) card.append(node('p', unpricedExplanation(excluded[0])));
+        card.append(node('p', 'See Source & assumptions for each unpriced contract and its captured pricing inputs.', 'muted'));
+      }
+      if (coverage?.retained_iv_contract_count) card.append(node('p', `${formatNumber(coverage.retained_iv_contract_count, 0)} contract(s) use an earlier valid IV observation.`, 'muted'));
+      box.append(card);
+    }
+  }
+  function appendPricingCoverageDetails(body, report) {
+    body.append(node('h3', 'Pricing coverage'));
+    for (const [label, value] of coverageStates(report)) {
+      const coverage = coverageOf(value);
+      body.append(node('h3', `${label} · ${coverageStatus(coverage)}`), node('p', coverageSummary(coverage)));
+      if (coverage?.retained_iv_contract_count) body.append(node('p', `${formatNumber(coverage.retained_iv_contract_count, 0)} contract(s) use an earlier valid IV observation.`));
+      const excluded = unpricedOf(value);
+      if (coverage?.unpriced_contract_count) body.append(node('p', 'Unpriced quantities remain captured and are excluded from modeled GEX. These diagnostics describe the original captured IV inversion inputs, not shifted scenario inputs. They do not establish why the sampled inputs disagree.'));
+      if (coverage?.unpriced_contract_count && !excluded.length) body.append(node('p', 'Per-contract IV diagnostics are unavailable in this calculation.'));
+      for (const row of excluded) {
+        body.append(node('h3', unpricedIdentity(row)), node('p', unpricedExplanation(row)));
+        const p = row.iv_provenance || {}, details = node('dl');
+        for (const [name, value] of [['Unpriced selected quantity', row.quantity], ['IV status', p.status], ['Captured option premium (points)', p.option_price], ['Captured model minimum (points)', p.lower_bound], ['Captured model maximum (points)', p.upper_bound], ['Captured underlying price', p.underlying_price], ['Captured underlying age (ms)', p.underlying_price_age_ms]]) {
+          if (value !== undefined && value !== null) details.append(node('dt', name), node('dd', typeof value === 'number' ? formatNumber(value, 6) : String(value)));
+        }
+        body.append(details);
+      }
+    }
+  }
   function renderPricingAssumptions(report) {
+    renderPricingCoverage(report);
     const baseline = report?.baseline?.pricing_assumptions;
     const scenario = report?.scenario?.pricing_assumptions;
     const descriptions = [...new Set([baseline?.summary, scenario?.summary].filter(Boolean))];
-    const coverage = scenario?.pricing_coverage || baseline?.pricing_coverage;
+    const coverage = coverageOf(report?.scenario) || coverageOf(report?.baseline);
     const coverageText = coverage && coverage.unpriced_contract_count
       ? ` Priced ${formatNumber(coverage.priced_quantity, 0)} of ${formatNumber(coverage.selected_quantity, 0)} selected quantity; ${coverage.unpriced_contract_count} contract(s) have unavailable IV.` : '';
     const retainedText = coverage?.retained_iv_contract_count ? ` ${coverage.retained_iv_contract_count} contract(s) use an earlier valid IV observation.` : '';
@@ -140,7 +234,7 @@
   function linspace(low, high, count) {return Array.from({length: count}, (_, index) => Number((low + (high - low) * index / (count - 1)).toFixed(6)));}
   async function calculate() {
     const request = requestFromControls(); if (!request || !state.source) return;
-    const revision = ++state.revision; state.controller?.abort(); const controller = new AbortController(); state.controller = controller; state.surface = null; state.busy = true; toggleBusy(); status('Recalculating from local source…');
+    const revision = ++state.revision; state.controller?.abort(); const controller = new AbortController(); state.controller = controller; state.calculation = null; state.surface = null; renderPricingAssumptions(null); state.busy = true; toggleBusy(); status('Recalculating from local source…');
     try {
       const report = await post('calculate', request, controller.signal); if (revision !== state.revision) return;
       state.calculation = report; if (state.source === terminalSession && report.request?.terminal_checkpoint) state.terminalCheckpoint = report.request.terminal_checkpoint; renderCalculation();
@@ -291,8 +385,7 @@
           if (!seenAssumptions.has(copy)) {body.append(node('p', copy)); seenAssumptions.add(copy);}
         }
       }
-      const coverage = r.scenario?.pricing_coverage || r.baseline?.pricing_coverage;
-      if (coverage) body.append(node('h3', 'Pricing coverage'), node('p', `Priced ${formatNumber(coverage.priced_quantity, 0)} of ${formatNumber(coverage.selected_quantity, 0)} selected quantity across ${coverage.priced_contract_count} of ${coverage.selected_contract_count} contracts. ${coverage.retained_iv_contract_count || 0} contract(s) use an earlier valid IV. Unpriced quantities remain in the captured state and are excluded from modeled GEX.`));
+      appendPricingCoverageDetails(body, r);
       body.append(node('h3', 'Calculation provenance'), node('pre', JSON.stringify({source: r.source, terminal_provenance: checkpointMetadata(state.terminalCheckpoint).source || source?.provenance, checkpoint: r.checkpoint, counts: r.scenario?.counts, reasons: r.scenario?.reason, calculation_fingerprint: r.calculation_fingerprint}, null, 2))); if (r.scenario?.contracts) {const details = node('details'); details.append(node('summary', 'Inspect contributing contract records'), node('pre', JSON.stringify(r.scenario.contracts, null, 2))); body.append(details);}} showDialog('#info-dialog');}
   async function listReceipts() {showDialog('#receipts-dialog'); const list = $('#receipts-list'); list.replaceChildren(node('p', 'Loading local receipts…')); try {const result = await api('receipts'); list.replaceChildren(); if (!result.receipts?.length) {list.append(node('p', 'No saved scenarios yet. Recalculate a scenario, then choose Save scenario.')); return;} for (const receipt of result.receipts) {const row = node('div', undefined, 'receipt-item'); const meta = node('div'); meta.append(node('h3', receipt.name), node('p', `${receipt.kind} · ${receipt.created_at}`)); const actions = node('div', undefined, 'receipt-actions'); const reopen = node('button', 'Reopen'); reopen.type = 'button'; reopen.addEventListener('click', () => reopenReceipt(receipt.id, reopen)); const download = node('button', 'Export JSON'); download.type = 'button'; download.addEventListener('click', () => exportReceipt(receipt.id, download)); actions.append(reopen, download); row.append(meta, actions); list.append(row);}} catch (error) {list.replaceChildren(node('p', error.message, 'validation-message'));}}
   async function exportReceipt(id, button) {button.disabled = true; try {const blob = await api(`receipts/${encodeURIComponent(id)}/export`, {blob: true}); const url = URL.createObjectURL(blob); const link = node('a'); link.href = url; link.download = `gex-wind-tunnel-${id.slice(0, 12)}.json`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); toast('Portable receipt exported.');} catch (error) {toast(error.message);} finally {button.disabled = false;}}
