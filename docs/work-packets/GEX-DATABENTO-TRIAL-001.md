@@ -3,7 +3,8 @@
 Status: implemented and locally validated. ES and corrected NQ historical
 acquisition and app replay have been observed. Follow-up raw-data reconciliation,
 independent math, sparse-side displays, pricing disclosures and scenario
-reproduction pass. The complete regression suite passes all 836 tests.
+reproduction pass. The corrected-tree regression run passed all 836 tests;
+six additional historical-research compatibility regressions also pass.
 
 Authority: the maintainer asked to try Databento's free credits and be walked
 through setting up ES/NQ options in the app. This authorizes private historical
@@ -91,6 +92,11 @@ Follow-up data validation and corrections on October 19, 2026:
 - Local pre-PR compilation, numerical evidence, model properties, provider-fault
   certification, bounded performance, wheel/sdist build and Twine checks passed.
   Hosted CI and merge state are recorded on the pull request.
+- The installed-wheel prior-version gate verifies the original 0.5.0 research
+  bytes and explicitly reviews the known first-point sparse-side corrections.
+  Exact historical reproduction continues to refuse changed decision hashes;
+  the corrected current pack and prior experiment reproduce exactly. Six new
+  regressions reject unrelated numerical, alert, metadata and JSON-type drift.
 
 Recovery: remove these checkout scripts/docs or revert their patch. Local keys,
 raw data and captures remain ignored private operator files and are never

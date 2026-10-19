@@ -20,6 +20,10 @@ Release is claimed.
 - Add sparse-data and model-provenance regressions. Saved ES/NQ validation now
   checks current displays, exports and raw-data re-normalization in addition to
   independent arithmetic and scenario reproduction, without provider requests.
+- Keep exact historical Demo Lab reproduction strict when corrected sparse-side
+  metrics change decision hashes. The prior-version gate verifies immutable old
+  evidence, checks only documented corrections and metadata additions, and
+  requires exact reproduction of the corrected current pack.
 
 ## Unreleased — Databento Historical Credit Trial
 

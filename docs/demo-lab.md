@@ -64,6 +64,15 @@ model profile, regenerates the pack, verifies the result, and compares all bound
 decision-content hashes. It does not read the catalog's original replay file.
 The source pack and output directory must be separate.
 
+An accepted historical producer version establishes readability and integrity,
+not a promise that bug fixes preserve its decision hashes. Older NQ packs can
+contain a calls-only timeline point with a fabricated put wall and zero ratio.
+The current calculation makes those values unavailable, so exact reproduction
+of that old pack fails with a decision-content mismatch. The original remains
+unchanged and verifiable; the regenerated output has its own current receipt.
+Review corrected results as new research rather than replacing the old pack or
+claiming its numerical results matched. Current packs reproduce strictly.
+
 ## Receipt And Failure Rules
 
 `review-receipt.json` records:
