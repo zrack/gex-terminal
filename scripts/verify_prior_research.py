@@ -1,4 +1,4 @@
-"""Verify actual 0.5.0 research and its explicit sparse-side correction.
+"""Verify actual 0.5.0 research and its explicit, bounded corrections.
 
 Creates only disposable environments/research; never edits the supplied wheel.
 Dependencies are inherited from the caller's tested environment. The producer
@@ -21,9 +21,23 @@ import venv
 
 
 PRIOR_NQ_SOURCE_SHA256 = "1935529bdf4e594c56d26fdc8f5139f78d3eefbada8bbb70d7adb138c67b73c6"
+PRIOR_NQ_PROFILE_SHA256 = "98bd782e1d5b402928449ba9b874f9ec4580ad1035f16994bf28f4f94afdd1a6"
 EXPECTED_REPRODUCTION_ERROR = (
-    "Demo Lab reproduction decision content mismatch: replay_lab.json, snapshot.json"
+    "Demo Lab reproduction decision content mismatch: manifest.json, replay_lab.json, snapshot.json"
 )
+# The bundled Databento mapper fixture formerly used three 15% default IVs.
+# Its explicit expiry instants now let all three premiums invert successfully.
+# This changes the aggregate synthetic fixture health score, not NQ research
+# pricing. Freeze the entire old/new scorecard, including JSON numeric types;
+# only these two counters may differ in this source-bound migration review.
+EXPECTED_PRIOR_PROVIDER_SCORECARD = {
+    "degraded": 2, "dropped_messages": 1, "failed": 0, "healthy": 0,
+    "normalized_messages": 26, "parse_errors": 1, "passed": 5,
+    "provider_frames": 13, "simulated": 3, "total": 5,
+}
+EXPECTED_CURRENT_PROVIDER_SCORECARD = {
+    **EXPECTED_PRIOR_PROVIDER_SCORECARD, "degraded": 1, "simulated": 4,
+}
 EPHEMERAL_RUNTIME_FIELDS = frozenset({
     "elapsed_seconds", "last_message_age_seconds", "last_snapshot_age_seconds",
     "latency_ms", "p95_latency_ms", "runtime_seconds",
@@ -80,6 +94,7 @@ def verify_known_prior_output_changes(previous: Path, current: Path) -> dict:
             or new_receipt["application"]["version"] != "0.6.0"
             or old_receipt["source"]["session_name"] != "nq-research-loop"
             or old_receipt["source"]["sha256"] != PRIOR_NQ_SOURCE_SHA256
+            or old_receipt["model"].get("profile_sha256") != PRIOR_NQ_PROFILE_SHA256
             or _canonical_json(old_receipt["source"]) != _canonical_json(new_receipt["source"])
             or _canonical_json(old_receipt["model"]) != _canonical_json(new_receipt["model"])):
         raise AssertionError("Prior sparse-side migration source/model identity changed")
@@ -96,6 +111,7 @@ def verify_known_prior_output_changes(previous: Path, current: Path) -> dict:
 
     additions = []
     corrections = []
+    fixture_corrections = []
 
     def remove_addition(old, new, key, path, expected=None):
         if key in old or key not in new or (expected is not None and new[key] != expected):
@@ -113,7 +129,18 @@ def verify_known_prior_output_changes(previous: Path, current: Path) -> dict:
         old = load(previous, reference)
         new = load(current, reference)
         projected = deepcopy(new)
-        if reference == "snapshot.json":
+        if reference == "manifest.json":
+            if (_canonical_json(old.get("provider_fixture_lab")) != _canonical_json(EXPECTED_PRIOR_PROVIDER_SCORECARD)
+                    or _canonical_json(projected.get("provider_fixture_lab")) != _canonical_json(EXPECTED_CURRENT_PROVIDER_SCORECARD)):
+                raise AssertionError("Unexpected prior synthetic fixture scorecard correction")
+            for key in ("degraded", "simulated"):
+                fixture_corrections.append({
+                    "path": reference + ".provider_fixture_lab." + key,
+                    "previous": old["provider_fixture_lab"][key],
+                    "current": projected["provider_fixture_lab"][key],
+                })
+                projected["provider_fixture_lab"][key] = old["provider_fixture_lab"][key]
+        elif reference == "snapshot.json":
             project_snapshot(old, projected, reference)
         elif reference == "replay_lab.json":
             if len(old["sessions"]) != 1 or len(projected["sessions"]) != 1:
@@ -136,13 +163,14 @@ def verify_known_prior_output_changes(previous: Path, current: Path) -> dict:
                         new_point[key] = old_value
         if _canonical_json(_without_runtime(old)) != _canonical_json(_without_runtime(projected)):
             raise AssertionError(f"Unexpected prior decision content drift: {reference}")
-    if len(additions) != 32 or len(corrections) != 2:
+    if len(additions) != 32 or len(corrections) != 2 or len(fixture_corrections) != 2:
         raise AssertionError("Prior migration expected changes were not all observed")
     return {
         "old_exact_reproduction": False,
-        "reason": "known_sparse_side_corrections",
+        "reason": "known_sparse_side_and_synthetic_fixture_corrections",
         "additive_metadata_paths": additions,
         "corrected_values": corrections,
+        "synthetic_fixture_scorecard_corrections": fixture_corrections,
         "all_other_decision_content_equal": True,
     }
 
@@ -192,8 +220,8 @@ def verify(previous: Path, reader: Path) -> dict:
 
         before = identity()
         run(reader, "-m", "gex_terminal.cli", "demo-lab", "verify", root / "pack")
-        # Corrected sparse-side semantics intentionally cannot claim the old
-        # phantom put wall and zero ratio were reproduced exactly.
+        # Corrected sparse-side semantics and the repaired synthetic provider
+        # fixture scorecard intentionally cannot claim exact old reproduction.
         run(reader, "-m", "gex_terminal.cli", "demo-lab", "reproduce", root / "pack",
             root / "corrected-pack", expected_error=EXPECTED_REPRODUCTION_ERROR)
         run(reader, "-m", "gex_terminal.cli", "demo-lab", "verify", root / "corrected-pack")
@@ -218,6 +246,7 @@ def verify(previous: Path, reader: Path) -> dict:
                 "current_pack_exact_reproduction": True,
                 "current_pack_input_preserved": True,
                 "checks": ["demo_receipt_verify", "prior_sparse_correction_review",
+                           "prior_synthetic_fixture_scorecard_review",
                            "current_demo_receipt_reproduce", "experiment_reproduce", "input_preservation"]}
 
 
@@ -231,7 +260,7 @@ def main():
     with args.output.open("x", encoding="utf-8") as stream:
         json.dump(report, stream, indent=2, sort_keys=True)
         stream.write("\n")
-    print("Prior 0.5.0 inputs verified unchanged; sparse-side corrections reviewed; corrected 0.6.0 pack and prior experiment reproduce exactly.")
+    print("Prior 0.5.0 inputs verified unchanged; sparse-side and synthetic fixture corrections reviewed; corrected 0.6.0 pack and prior experiment reproduce exactly.")
 
 
 if __name__ == "__main__":
