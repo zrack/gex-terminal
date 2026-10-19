@@ -8,6 +8,8 @@ from typing import Any
 from gex_terminal.contracts import (
     AGGRESSOR_SIDES,
     DIRECTION_SOURCES,
+    EXERCISE_STYLES,
+    EXERCISE_STYLE_SOURCES,
     INSTRUMENT_CLASSES,
     IV_SOURCES,
     NORMALIZED_SCHEMA_VERSION,
@@ -16,6 +18,7 @@ from gex_terminal.contracts import (
     PRICING_MODELS,
     VOLUME_SEMANTICS,
     expiry_date,
+    exercise_style_from_cfi,
     pricing_model_for_instrument,
     parse_market_datetime,
 )
@@ -180,6 +183,19 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
     )
     if "underlying_contract_id" in message:
         _require_contract_identifier(message, "underlying_contract_id")
+    style = str(message.get("exercise_style") or "unknown").lower()
+    style_source = str(message.get("exercise_style_source") or "missing").lower()
+    if style not in EXERCISE_STYLES or style_source not in EXERCISE_STYLE_SOURCES:
+        raise ValueError("Unsupported option exercise style or provenance")
+    cfi = message.get("provider_cfi")
+    if cfi is not None and (not isinstance(cfi, str) or len(cfi) != 6 or not cfi.isalpha() or not cfi.isascii()):
+        raise ValueError("provider_cfi must be a six-letter CFI classification")
+    if style_source == "provider_cfi" and (cfi is None or style != exercise_style_from_cfi(cfi)):
+        raise ValueError("exercise style conflicts with provider CFI")
+    if cfi is not None and exercise_style_from_cfi(cfi) != "unknown" and style != exercise_style_from_cfi(cfi):
+        raise ValueError("exercise style conflicts with provider CFI")
+    if style != "unknown" and style_source == "missing":
+        raise ValueError("Known exercise style requires provider provenance")
 
     instrument_class = str(message["instrument_class"]).lower()
     if instrument_class not in INSTRUMENT_CLASSES:

@@ -35,6 +35,7 @@ _MESSAGE_FIELDS = {
     "open_interest", "open_interest_reference_date", "open_interest_update_action", "aggressor_side",
     "direction_source", "contract_multiplier", "contract_multiplier_source", "event_time", "timestamp",
     "sequence", "iv_provenance",
+    "exercise_style", "exercise_style_source", "provider_cfi",
 }
 _IV_FIELDS = {
     "method", "status", "option_price", "option_price_source", "underlying_price",

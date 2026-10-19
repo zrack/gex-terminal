@@ -12,7 +12,7 @@ separately in [model-validation.md](model-validation.md).
 
 Schema-v2 contract rows are priced before aggregation:
 
-- Futures options use Black-76 gamma.
+- Futures options use Black-76 gamma, which assumes European exercise.
 - Equity and index options use Black-Scholes gamma. The engine API supports a
   continuous carry/dividend rate; normalized adapters currently use their
   documented value or zero.
@@ -20,6 +20,29 @@ Schema-v2 contract rows are priced before aggregation:
 - Dollar GEX is expressed in USD gamma exposure per 1% underlying move.
 - The day-count convention is `ACT/365`.
 - Equal-strike rows are aggregated only after contract-level pricing.
+
+Exercise style is a separate contract attribute from pricing model. Databento
+definitions preserve supported exercise-style metadata, including the option
+CFI classification. American contracts still use the European formula: early
+exercise is **not modeled**, and its effect on IV and Greeks is an unmeasured
+approximation. In particular, CME quarterly ES/NQ options allow early exercise;
+weekly and end-of-month families have different exercise rules. See the current
+[ES contract rules](https://www.cmegroup.com/rulebook/CME/IV/350/358A/358A.pdf) and
+[NQ contract rules](https://www.cmegroup.com/rulebook/CME/IV/350/359A/359A.pdf).
+Do not infer exercise style from the underlying symbol alone.
+
+Missing exercise style remains `unknown`, including older captures that did not
+save it. Replaying those captures does not recover discarded metadata or
+silently classify the contracts as European. Terminal details, snapshot exports
+and Wind Tunnel results expose the European exercise assumption and the
+qualification for American or unknown styles. Matching a European exercise
+style only qualifies this particular assumption; it does not certify fair
+value, all pricing inputs, dealer positioning or predictive validity.
+
+The risk-free rate is a configured annual rate rather than an observed historical
+yield curve. It is held fixed within a calculation/scenario. Timestamp-derived
+DTE, the configured DTE fallback, contract multipliers, and IV provenance remain
+separate inputs; none changes an American contract into a European one.
 
 A timezone-bearing `expiry_timestamp` is the authoritative source for
 fractional DTE and takes precedence over an explicit `days_to_expiry` value. If
@@ -117,6 +140,17 @@ a portfolio zero-gamma root would exceed the implemented evidence.
 The gamma wall is the strike with the largest absolute net GEX concentration.
 The call wall and put wall are based on the largest call-side and absolute
 put-side exposure respectively.
+
+A side without nonzero modeled exposure has no wall. Its wall is `null` in JSON,
+unavailable in text and omitted from plotted/exported levels. The first strike
+in an all-zero side is not a wall. This applies symmetrically to calls and puts.
+
+Call/put imbalance is call exposure divided by absolute put exposure. With no
+put exposure the ratio is undefined and exported as `null`; the display says
+**Calls only** when only calls contribute, **Puts only** when only puts
+contribute, or **No selected quantities** when neither contributes. A put-only
+ratio of zero is valid but does not imply that call observations exist. These
+side labels describe the selected quantities, not market-wide positioning.
 
 The concentration band reports the smallest strike range that contains the
 configured share of absolute net GEX. It describes clustering in the selected

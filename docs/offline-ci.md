@@ -33,8 +33,16 @@ the disposable runner directory.
 
 The lifecycle step separately builds the tagged 0.5.0 producer and verifies its
 unchanged Demo Lab and experiment research with the installed candidate reader.
+The old NQ Demo Lab timeline contains a phantom put wall and a zero ratio at its
+first calls-only point. Exact reproduction must refuse those changed decision
+hashes. The gate verifies both packs, checks the two documented sparse-side
+corrections and the explicit additive metadata, rejects any other decision
+change, then reproduces the corrected current pack exactly. The experiment
+still reproduces exactly. This separates reading historical evidence from
+claiming that an obsolete calculation was reproduced unchanged.
 The compatibility report records the previous wheel checksum, producer and
-reader versions, verification results and preserved input file hashes. This does
+reader versions, exact-reproduction status, correction details and preserved
+input file hashes. This does
 not migrate or upload the complete disposable research folders.
 
 Testing a runner is software verification for that run, not a supported-platform

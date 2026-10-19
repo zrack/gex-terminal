@@ -20,6 +20,7 @@ from gex_terminal.contracts import (
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.feed_quality import build_feed_quality_snapshot
 from gex_terminal.market_data_adapter import validate_normalized_message
+from gex_terminal.pricing_assumptions import build_pricing_assumptions
 
 LOGGER = logging.getLogger(__name__)
 
@@ -531,6 +532,26 @@ class StatefulGexConsumer:
             if known_source is not None:
                 contract = {**contract, "contract_multiplier_source": known_source}
 
+        # Exercise metadata is immutable contract identity once supplied. Older
+        # messages may omit it; omissions cannot erase a provider qualification.
+        related = [row for source in ("open_interest", "trade_volume")
+                   if (row := self.contract_state.get((*state_key[:2], source)))]
+        known_styles = {row.get("exercise_style") for row in related
+                        if row.get("exercise_style") not in (None, "unknown")}
+        supplied_style = contract.get("exercise_style", "unknown")
+        if known_styles and supplied_style != "unknown" and known_styles != {supplied_style}:
+            raise ValueError("contract identity changed: exercise_style")
+        known_cfis = {row["provider_cfi"] for row in related if row.get("provider_cfi")}
+        supplied_cfi = contract.get("provider_cfi")
+        if known_cfis and supplied_cfi and known_cfis != {supplied_cfi}:
+            raise ValueError("contract identity changed: provider_cfi")
+        if supplied_style == "unknown" and known_styles:
+            known = next(row for row in related if row.get("exercise_style") in known_styles)
+            contract = {**contract, "exercise_style": known["exercise_style"],
+                        "exercise_style_source": known["exercise_style_source"]}
+        if not supplied_cfi and known_cfis:
+            contract = {**contract, "provider_cfi": next(iter(known_cfis))}
+
         volume = int(message["volume"])
         previous = int(existing.get("accumulated_volume", 0) if existing else 0)
         previous_directional = dict(
@@ -573,6 +594,9 @@ class StatefulGexConsumer:
                 contract.get("open_interest_update_action") == "delete"
             )
         self.contract_state[state_key] = state
+        for related_state in related:
+            for field in ("exercise_style", "exercise_style_source", "provider_cfi"):
+                related_state[field] = state.get(field)
         self._rebuild_public_projections_locked()
         return True
 
@@ -881,7 +905,7 @@ class StatefulGexConsumer:
                 states = [state for state in self.contract_state.values()
                           if not state.get("open_interest_invalidated") and self.is_contract_underlying_current(state)]
                 identities = {}
-                identity_fields = ("strike", "option_type", "expiry", "expiry_timestamp", "days_to_expiry", "pricing_model", "contract_multiplier")
+                identity_fields = ("strike", "option_type", "expiry", "expiry_timestamp", "days_to_expiry", "pricing_model", "contract_multiplier", "exercise_style", "provider_cfi")
                 for state in states:
                     key = (state["provider"], state["contract_id"])
                     metadata = tuple(state.get(field) for field in identity_fields)
@@ -1132,6 +1156,8 @@ class StatefulGexConsumer:
             if isinstance(state.get("iv_provenance"), dict)
             and state.get("iv_provenance", {}).get("method")
         })
+        matrix["risk_free_rate"] = self.risk_free_rate
+        matrix["pricing_assumptions"] = build_pricing_assumptions(contracts, self.risk_free_rate)
         return matrix
 
     @staticmethod
@@ -1185,7 +1211,7 @@ class StatefulGexConsumer:
         days_to_expiry: float,
     ) -> dict:
         sorted_strikes = sorted(strikes_map)
-        return self.engine.compute_intraday_gex_matrix(
+        matrix = self.engine.compute_intraday_gex_matrix(
             spot_price=spot,
             strikes=np.array(sorted_strikes, dtype=float),
             days_to_expiry=days_to_expiry,
@@ -1200,6 +1226,12 @@ class StatefulGexConsumer:
                 [strikes_map[k]["P"] for k in sorted_strikes], dtype=float
             ),
         )
+        matrix["risk_free_rate"] = self.risk_free_rate
+        matrix["pricing_assumptions"] = build_pricing_assumptions(
+            [{"pricing_model": "black_scholes", "exercise_style": "unknown"}
+             for _ in sorted_strikes], self.risk_free_rate,
+        )
+        return matrix
 
     def _bucket_net_gex(self, strikes_map: Dict[float, Dict[str, Any]], spot: float, days_to_expiry: float) -> float:
         """Compute total net dollar GEX for one strike->volume bucket."""

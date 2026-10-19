@@ -13,6 +13,7 @@ from typing import Any, Iterable
 from gex_terminal.config import GexConfig
 from gex_terminal.provider_injector import inject_provider_fixture
 from gex_terminal.package_data import provider_fixture_path
+from gex_terminal.metric_values import optional_float
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -211,8 +212,8 @@ def summarize_provider_fixture_snapshot(
         "total_net_gex": float(metrics.get("total_net_gex", 0.0)),
         "gamma_wall": float(metrics.get("gamma_wall", 0.0)),
         "zero_gamma": float(metrics.get("zero_gamma", 0.0)),
-        "call_wall": float(metrics.get("call_wall", 0.0)),
-        "put_wall": float(metrics.get("put_wall", 0.0)),
+        "call_wall": optional_float(metrics.get("call_wall")),
+        "put_wall": optional_float(metrics.get("put_wall")),
         "normalized_messages": int(injection.get("normalized_messages", 0) or 0),
         "message_count": int(quality.get("message_count", 0) or 0),
         "frame_count": int(quality.get("frame_count", 0) or 0),
@@ -484,8 +485,8 @@ def _failed_summary(case: ProviderFixtureCase, exc: Exception) -> dict[str, Any]
         "total_net_gex": 0.0,
         "gamma_wall": 0.0,
         "zero_gamma": 0.0,
-        "call_wall": 0.0,
-        "put_wall": 0.0,
+        "call_wall": None,
+        "put_wall": None,
         "normalized_messages": 0,
         "message_count": 0,
         "frame_count": 0,

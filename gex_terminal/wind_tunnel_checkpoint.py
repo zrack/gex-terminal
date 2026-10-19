@@ -14,7 +14,8 @@ import re
 import stat
 from typing import Any
 
-from gex_terminal.contracts import days_until_expiry, expiry_date, is_zero_dte, parse_market_datetime
+from gex_terminal.contracts import (EXERCISE_STYLES, EXERCISE_STYLE_SOURCES, days_until_expiry,
+                                    exercise_style_from_cfi, expiry_date, is_zero_dte, parse_market_datetime)
 
 SCHEMA = "gex-terminal.wind-tunnel.terminal-checkpoint.v1"
 MAX_BYTES = 2_000_000
@@ -25,6 +26,7 @@ ROW_FIELDS = {
     "contract_multiplier", "iv_source", "event_time", "directional_volume", "direction_sources",
     "terminal_selected", "open_interest_reference_date",
 }
+OPTIONAL_ROW_FIELDS = {"exercise_style", "exercise_style_source", "provider_cfi", "iv_inversion_risk_free_rate"}
 QUALITY_FIELDS = {"status", "health", "message_count", "malformed_count", "dropped_count",
                   "duplicate_message_count", "cumulative_reset_count", "fallback_iv_tick_count"}
 
@@ -118,13 +120,31 @@ def validate_checkpoint(artifact: Any) -> dict:
         raise ValueError("Terminal checkpoint requires between 1 and 5000 rows")
     identities, selected = {}, {}
     for row in rows:
-        _fields(row, ROW_FIELDS, "checkpoint row")
+        # Optional additive metadata keeps v1 checkpoints/captures readable and
+        # their original checksums intact. Missing style stays unknown.
+        if not isinstance(row, dict) or not ROW_FIELDS <= set(row) or set(row) - ROW_FIELDS - OPTIONAL_ROW_FIELDS:
+            raise ValueError("Unsupported checkpoint row fields")
         for key in ("contract_id", "provider", "symbol", "expiry"):
             _text(row[key], key)
         if row["symbol"] != source["symbol"]:
             raise ValueError("Checkpoint row symbol/type mismatch")
         _choice(row["option_type"], {"C", "P"}, "checkpoint option type")
         _choice(row["pricing_model"], {"black_scholes", "black_76"}, "checkpoint pricing model")
+        style = row.get("exercise_style") or "unknown"
+        style_source = row.get("exercise_style_source") or "missing"
+        _choice(style, EXERCISE_STYLES, "checkpoint exercise style")
+        _choice(style_source, EXERCISE_STYLE_SOURCES, "checkpoint exercise style source")
+        cfi = row.get("provider_cfi")
+        if cfi is not None and (not isinstance(cfi, str) or not re.fullmatch(r"[A-Z]{6}", cfi)):
+            raise ValueError("Invalid checkpoint provider CFI")
+        if style_source == "provider_cfi" and (cfi is None or exercise_style_from_cfi(cfi) != style):
+            raise ValueError("Checkpoint exercise style conflicts with provider CFI")
+        if cfi is not None and exercise_style_from_cfi(cfi) != "unknown" and exercise_style_from_cfi(cfi) != style:
+            raise ValueError("Checkpoint exercise style conflicts with provider CFI")
+        if style != "unknown" and style_source == "missing":
+            raise ValueError("Known checkpoint exercise style requires provenance")
+        if row.get("iv_inversion_risk_free_rate") is not None:
+            _number(row["iv_inversion_risk_free_rate"], "captured IV inversion rate", -.1, 1)
         _choice(row["position_source"], {"trade_volume", "open_interest"}, "checkpoint quantity source")
         _number(row["strike"], "strike", 1e-12, 1e9)
         _number(row["iv"], "iv", 1e-12, 5)
@@ -179,6 +199,9 @@ def validate_checkpoint(artifact: Any) -> dict:
         expected = trade if trade and trade["accumulated_volume"] > 0 else oi or trade
         if trade and oi and any(trade[key] != oi[key] for key in ("strike", "option_type", "expiry", "expiry_timestamp", "days_to_expiry", "pricing_model", "contract_multiplier")):
             raise ValueError("Checkpoint quantity rows disagree on contract identity")
+        if trade and oi and any(trade.get(key, "unknown" if key == "exercise_style" else None) != oi.get(key, "unknown" if key == "exercise_style" else None)
+                                for key in ("exercise_style", "provider_cfi")):
+            raise ValueError("Checkpoint quantity rows disagree on exercise metadata")
         if selected.get(identity) != expected:
             raise ValueError("Terminal selected quantity does not match trade-first/OI-fallback policy")
     if not sum(row["accumulated_volume"] for row in selected.values()):
@@ -196,6 +219,10 @@ async def build_terminal_checkpoint(consumer, *, fallback_dte: float, source_lab
     rows = []
     for raw in frozen["rows"]:
         row = {key: raw.get(key) for key in ROW_FIELDS}
+        row.update({key: raw[key] for key in OPTIONAL_ROW_FIELDS if key in raw})
+        provenance = raw.get("iv_provenance")
+        if raw.get("iv_source") == "black_76_inverted" and isinstance(provenance, dict):
+            row["iv_inversion_risk_free_rate"] = provenance.get("risk_free_rate")
         row["directional_volume"] = raw.get("directional_volume") or {"buy": 0, "sell": 0, "unknown": raw["accumulated_volume"]}
         row["direction_sources"] = raw.get("direction_sources") or []
         rows.append(row)

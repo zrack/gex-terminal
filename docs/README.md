@@ -29,6 +29,7 @@ status checklists into multiple files.
 | Model meaning | [Model Assumptions](model-assumptions.md) | Equations, pricing models, units, position proxies, levels, and limitations |
 | Model evidence | [Model Validation](model-validation.md) | Numerical oracles, deterministic gates, provenance, and proof ceiling |
 | Databento mapping | [Databento Fixture Mapping](databento-fixtures.md) | Provider-specific requests, record mapping, certification policy, and lifecycle evidence semantics |
+| Databento credit setup | [Databento Credit Trial](databento-credit-trial.md) | Private API-key setup, cost-previewed historical ES/NQ downloads, and local dashboard replay |
 | Offline provider evidence | [Offline Validation](offline-validation.md) | Replay, temporal, adversarial, and scripted-lifecycle checks plus their proof ceiling |
 | Capture safety | [Capture Governance](capture-governance.md) | Pre-capture rights, retention, redaction, research-use decisions, and logging safeguards |
 | Tradovate raw evidence | [Tradovate Raw-Payload Capture](tradovate-capture.md) | Read-only bounded ES/NQ collection, private output, omissions, review and actual-payload validation gate |
@@ -40,9 +41,10 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md)
-owns the read-only raw collector and its offline regression evidence; actual
-ES/NQ collection and validation remain open under issue #4.
+change. Closed [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md)
+records the read-only raw collector and its offline regression evidence,
+integrated through [PR #43](https://github.com/zrack/gex-terminal/pull/43).
+Actual ES/NQ collection and validation remain open under issue #4.
 Closed [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
 records PR #10's bounded offline rework and integration conditions; actual Tradovate payloads remain required
 by issue #4. Closed [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) records

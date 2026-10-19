@@ -12,6 +12,7 @@ import numpy as np
 
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.contracts import days_until_expiry
+from gex_terminal.metric_values import optional_float
 
 
 @dataclass(frozen=True)
@@ -109,8 +110,8 @@ def build_sensitivity_report(
             "total_net_gex": float(metric_source["total_net_gex"]),
             "gamma_wall": float(metric_source["gamma_wall_strike"]),
             "zero_gamma": float(metric_source["zero_gamma_strike"]),
-            "call_wall": float(metric_source["call_wall_strike"]),
-            "put_wall": float(metric_source["put_wall_strike"]),
+            "call_wall": optional_float(metric_source["call_wall_strike"]),
+            "put_wall": optional_float(metric_source["put_wall_strike"]),
         }
         if base_metrics is None:
             base_metrics = metrics
@@ -216,18 +217,19 @@ def _assert_base_matrix_parity(
     mismatches = [
         field
         for field in numeric_fields
-        if not np.isclose(
-            float(calculated[field]),
-            float(expected[field]),
-            rtol=1e-12,
-            atol=1e-8,
-        )
+        if not _same_metric(calculated[field], expected[field])
     ]
     if mismatches:
         raise ValueError(
             "Sensitivity base scenario does not match the selected snapshot: "
             + ", ".join(mismatches)
         )
+
+
+def _same_metric(calculated: Any, expected: Any) -> bool:
+    if calculated is None or expected is None:
+        return calculated is None and expected is None
+    return bool(np.isclose(float(calculated), float(expected), rtol=1e-12, atol=1e-8))
 
 
 def sensitivity_to_csv(report: dict[str, Any]) -> str:

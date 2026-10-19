@@ -7,6 +7,12 @@ a local captured session. It keeps the selected checkpoint's contract
 quantities fixed and reprices scenarios
 through the same calculation engine as the terminal.
 
+The pricing notice above the charts identifies the formula and exercise-style
+qualification. **Source & assumptions** explains early exercise, the configured
+risk-free rate and ACT/365 timing. Black-76 uses European exercise; American
+contracts carry an unmeasured-approximation label. Older captures without
+exercise metadata remain explicitly unknown. See [model assumptions](model-assumptions.md).
+
 ## Open The Workbench
 
 In a fresh setup folder with the unified starter, open **Start GEX.command**

@@ -112,6 +112,12 @@ cumulative volume, and open interest remain explicitly unknown rather than being
 inferred. See [model-comparison.md](model-comparison.md).
 
 Futures options map to Black-76; equity and index options map to Black-Scholes.
+Optional `exercise_style` is `american`, `european`, or `unknown`; omission stays
+unknown. `exercise_style_source` and `provider_cfi` retain supporting provider
+metadata. Style describes the contract rather than selecting a different
+formula: both implemented formulas assume European exercise. American rows are
+explicitly labeled as an approximation with unmeasured error; unknown rows
+remain unqualified. See [model assumptions](model-assumptions.md).
 `iv_source` is `provider`, `black_76_inverted`, or `configured_default`.
 Black-76 inversion requires its complete timing and solver provenance. Adapters
 that use a configured fallback IV must label it and expose degraded feed

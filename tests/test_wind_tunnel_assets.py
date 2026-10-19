@@ -115,7 +115,7 @@ global.fetch = async (url, options) => {
   let result;
   if (path === 'catalog') result = {sessions: bundledOnly ? [bundled] : [terminal, bundled], defaults: bundledOnly ? bundledDefaults : defaults, bundled_defaults: bundledDefaults};
   else if (path.startsWith('checkpoints?')) {assert(!path.includes('terminal-checkpoint'), 'Portable checkpoint must not require a server file or registered source'); result = {checkpoints: [{index: 0, as_of: '2026-09-01T14:00:00Z'}, {index: 3, as_of: '2026-09-01T14:01:00Z'}]};}
-  else if (path === 'calculate') {const value = {spot: 6000, summary: {total_net_gex: 1, gamma_wall_strike: 6000}}; result = {request: body, baseline: value, scenario: value, result_sha256: 'b'.repeat(64)};}
+  else if (path === 'calculate') {const value = {spot: 6000, summary: {total_net_gex: 1, gamma_wall_strike: 6000}, pricing_assumptions: {summary: 'Black-76: American exercise: approximation error unmeasured.', limitations: ['European-exercise formulas; early exercise is not modeled.'], rate_note: 'Risk-free rate 3.70% is configured, not observed market data.', time_note: 'ACT/365'}}; result = {request: body, baseline: value, scenario: value, result_sha256: 'b'.repeat(64)};}
   else if (path === 'surface') result = {request: body, axes: {}, points: [], result_sha256: 'c'.repeat(64)};
   else if (path === 'search') result = {request: body, outcome: 'no_break_found', cells: [], result_sha256: 'd'.repeat(64)};
   else if (path === 'receipts') {saved = body; result = {id: 'receipt-id'};}
@@ -125,11 +125,23 @@ global.fetch = async (url, options) => {
 };
 let app = fs.readFileSync(root + '/app.js', 'utf8');
 assert(app.includes('  initialize();'));
-app = app.replace('  initialize();', '  globalThis.browser = {initialize, loadSource, requestFromControls, calculate, playReplay, runSearch, reopenRequest, saveReceipt, importReceipt, state};');
+app = app.replace('  initialize();', '  globalThis.browser = {initialize, loadSource, requestFromControls, calculate, renderPricingAssumptions, playReplay, runSearch, reopenRequest, saveReceipt, importReceipt, state};');
 vm.runInThisContext(app, {filename: 'app.js'});
 (async () => {
   await browser.initialize();
   assert.equal(browser.state.source, 'terminal-checkpoint', 'Captured source is preferred at launch');
+  assert.match(elements.get('#pricing-model-context').textContent, /Black-76.*American.*unmeasured/);
+  elements.get('#source-details').listeners.click();
+  const renderedText = element => [element.textContent, ...element.children.map(renderedText)].join(' ');
+  const details = renderedText(elements.get('#info-content'));
+  assert.match(details, /early exercise is not modeled/);
+  assert.match(details, /configured, not observed/);
+  assert.match(details, /ACT\/365/);
+  browser.renderPricingAssumptions({baseline: {pricing_assumptions: {summary: 'Black-76: exercise style unknown: model compatibility unqualified.'}}});
+  assert.match(elements.get('#pricing-model-context').textContent, /unknown.*unqualified/);
+  assert(!elements.get('#pricing-model-context').textContent.includes('American'), 'New source must not retain the old American qualification');
+  browser.renderPricingAssumptions({});
+  assert.match(elements.get('#pricing-model-context').textContent, /unavailable.*early exercise is not modeled/);
   let request = browser.requestFromControls();
   assert.equal(request.model, 'terminal_selected'); assert.equal(request.fallback_dte, .75); assert.equal(request.risk_free_rate, .037);
   assert.deepEqual(request.terminal_checkpoint, artifact); assert.equal(request.checkpoint, 0, elements.get('#connection-error').textContent);

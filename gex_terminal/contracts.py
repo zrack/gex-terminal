@@ -22,6 +22,8 @@ OPEN_INTEREST_UPDATE_ACTIONS = {"add", "delete"}
 IV_SOURCES = {"provider", "black_76_inverted", "configured_default"}
 AGGRESSOR_SIDES = {"buy", "sell", "unknown"}
 DIRECTION_SOURCES = {"provider", "quote_inference", "unknown"}
+EXERCISE_STYLES = {"american", "european", "unknown"}
+EXERCISE_STYLE_SOURCES = {"provider_cfi", "provider", "missing"}
 
 FUTURES_OPTION_ROOTS = {"ES", "MES", "NQ", "MNQ"}
 INDEX_OPTION_ROOTS = {"SPX"}
@@ -42,6 +44,18 @@ def pricing_model_for_instrument(instrument_class: str) -> str:
     if instrument_class == "futures_option":
         return "black_76"
     return "black_scholes"
+
+
+def exercise_style_from_cfi(value: Any) -> str:
+    """Decode the ISO 10962 option exercise attribute without guessing by root.
+
+    Databento definitions use the third CFI character for option exercise style.
+    Unspecified/non-option classifications stay unknown, even for familiar roots.
+    """
+    cfi = str(value or "").strip().upper()
+    if not re.fullmatch(r"O[A-Z]{5}", cfi):
+        return "unknown"
+    return {"A": "american", "E": "european"}.get(cfi[2], "unknown")
 
 
 def canonical_option_contract(
@@ -91,6 +105,10 @@ def canonical_option_contract(
         "days_to_expiry": _optional_positive_float(message.get("days_to_expiry")),
         "instrument_class": instrument_class,
         "pricing_model": pricing_model,
+        "exercise_style": str(message.get("exercise_style") or "unknown").lower(),
+        "exercise_style_source": str(message.get("exercise_style_source") or "missing").lower(),
+        "provider_cfi": (str(message["provider_cfi"]).strip().upper()
+                         if message.get("provider_cfi") not in (None, "") else None),
         "volume_semantics": str(
             message.get("volume_semantics") or "incremental"
         ).lower(),

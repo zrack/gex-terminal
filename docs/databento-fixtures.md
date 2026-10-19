@@ -7,6 +7,16 @@ the live service.
 
 ## Current Status
 
+- For a small real historical sample using signup credits, follow
+  [Databento Credit Trial](databento-credit-trial.md). The checkout helpers
+  preview/download bounded schema files and convert them to local captured
+  sessions without promoting live readiness.
+- That historical helper uses one-second BBO midpoints for the underlying and
+  full-resolution option trades. The replay bridge applies a BBO book at its
+  `ts_recv` interval end, retains the last-sale `ts_event` separately, and labels
+  IV provenance `databento_bbo_1s_midpoint`. Its two-second freshness gate measures
+  time since the snapshot boundary, not the originating book event. The live
+  subscription remains `mbp-1` with its existing midpoint source and timing.
 - Dataset target: `GLBX.MDP3`.
 - Option subscriptions use an explicit product-parent universe for the selected
   ES or NQ futures underlying. Quarterly, daily, weekly and end-of-month option
@@ -78,6 +88,8 @@ status, not an assumption.
 | `option_type` | Definition class/put-call field, or `C`/`P` parsed from raw option symbol |
 | `volume` | Trade `size`, `quantity`, or `volume` |
 | `expiry` | Definition `expiration`, `expiration_date`, or `expiry` |
+| `exercise_style` | Third option-CFI character in the definition (`A` American / `E` European); unavailable classifications stay `unknown`. The symbol alone is not evidence of exercise style |
+| `exercise_style_source` / `provider_cfi` | Preserve the definition classification behind the style. Black-76 still assumes European exercise, so American rows carry an unmeasured-approximation qualification |
 | `iv` | Positive provider IV when present; otherwise a converged Black-76 inversion from option trade price and the latest futures midpoint; otherwise the explicit configured fallback. |
 | `contract_id` | Stable Databento `instrument_id` scoped to provider `databento` |
 | `event_time` | Timezone-bearing `ts_event` or equivalent provider event time |

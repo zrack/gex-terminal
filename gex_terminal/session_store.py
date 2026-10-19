@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from gex_terminal.session_capture import CaptureIntegrityError, inspect_captured_session
+from gex_terminal.metric_values import metric_delta, optional_float
 
 
 SESSION_RECORD_SCHEMA = "gex-terminal.session-record.v1"
@@ -116,9 +117,9 @@ def build_session_record(
             "total_net_gex": float(metrics["total_net_gex"]),
             "gamma_wall": float(metrics["gamma_wall"]),
             "zero_gamma": float(metrics["zero_gamma"]),
-            "call_wall": float(metrics["call_wall"]),
-            "put_wall": float(metrics["put_wall"]),
-            "imbalance": float(metrics["imbalance"]),
+            "call_wall": optional_float(metrics["call_wall"]),
+            "put_wall": optional_float(metrics["put_wall"]),
+            "imbalance": optional_float(metrics["imbalance"]),
             "strike_count": len(snapshot.get("strikes", ())),
         },
         "feed_quality": snapshot.get("feed_quality"),
@@ -229,7 +230,7 @@ def session_store_report_to_markdown(report: dict[str, Any]) -> str:
             f"- Net GEX delta: `{_money(deltas['total_net_gex'])}`",
             f"- Gamma wall delta: `{deltas['gamma_wall']:+,.1f}`",
             f"- Zero gamma delta: `{deltas['zero_gamma']:+,.1f}`",
-            f"- Imbalance delta: `{deltas['imbalance']:+,.2f}`",
+            f"- Imbalance delta: `{_optional_delta(deltas['imbalance'])}`",
         ])
 
     lines.extend(["", "## Uses", ""])
@@ -335,8 +336,12 @@ def _comparison_side(record: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _delta(from_summary: dict[str, Any], to_summary: dict[str, Any], field: str) -> float:
-    return float(to_summary.get(field, 0.0)) - float(from_summary.get(field, 0.0))
+def _delta(from_summary: dict[str, Any], to_summary: dict[str, Any], field: str) -> float | None:
+    return metric_delta(from_summary, to_summary, field)
+
+
+def _optional_delta(value: float | None) -> str:
+    return "unavailable" if value is None else f"{value:+,.2f}"
 
 
 def _record_path(store_dir: str | Path, record_id: str) -> Path:
