@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import json
+import os
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -155,6 +156,7 @@ from gex_terminal.tradovate_certification import (
     build_tradovate_certification_report,
     write_tradovate_certification_report,
 )
+from gex_terminal.tradovate_capture import capture_tradovate_payloads
 
 async def main():
     args = parse_args()
@@ -268,6 +270,10 @@ async def main():
     if args.command == "tradovate-certify":
         config = apply_cli_overrides(GexConfig.from_env(), args)
         await tradovate_certification_command(config, args)
+        return
+
+    if args.command == "tradovate-capture":
+        await tradovate_capture_command(args)
         return
 
     if args.command == "databento-certify":
@@ -975,6 +981,50 @@ async def inject_provider_command(config: GexConfig, args: argparse.Namespace) -
         )
 
 
+async def tradovate_capture_command(args: argparse.Namespace) -> None:
+    """Collect private provider evidence independently of GEX model settings."""
+    if not args.command_path or args.command_args:
+        raise SystemExit(
+            "Usage: gex-terminal tradovate-capture NEW_PRIVATE_DIRECTORY "
+            "--ack-live-network --capture-policy POLICY.json"
+        )
+    if not args.ack_live_network:
+        raise SystemExit("Tradovate raw capture requires --ack-live-network")
+    if not args.capture_policy:
+        raise SystemExit("Tradovate raw capture requires --capture-policy PATH")
+    if (args.record_session or args.capture_path or args.capture_label or args.export
+            or args.wind_tunnel_checkpoint or args.demo or args.mode or args.provider):
+        raise SystemExit(
+            "tradovate-capture uses its own private output directory; "
+            "omit runtime mode, provider, recording, and export flags"
+        )
+    try:
+        policy = load_capture_policy(args.capture_policy)
+    except CapturePolicyError:
+        raise SystemExit("Capture policy rejected; validate it with capture-policy-validate") from None
+    try:
+        manifest = await capture_tradovate_payloads(
+            args.command_path,
+            symbol=args.symbol or os.getenv("GEX_SYMBOL", "ES"),
+            environment=args.tradovate_environment or os.getenv("TRADOVATE_ENV", "demo"),
+            capture_policy=policy,
+            ack_live_network=args.ack_live_network,
+            duration_seconds=args.capture_duration,
+            max_option_contracts=args.max_option_contracts,
+            max_maturities=args.capture_max_maturities,
+            max_requests=args.capture_max_requests,
+            max_frames=args.capture_max_frames,
+            max_total_bytes=args.capture_max_bytes,
+            max_frame_bytes=args.capture_max_frame_bytes,
+        )
+    except (ValueError, OSError):
+        # Output paths and arbitrary exception values may contain private data.
+        raise SystemExit("Tradovate raw capture rejected; check limits, credentials, and new private output directory") from None
+    print("Saved private Tradovate raw capture; review manifest.json and payloads locally before sharing. Issue #4 remains open.")
+    if manifest.get("status") != "complete":
+        raise SystemExit(2)
+
+
 async def tradovate_certification_command(
     config: GexConfig, args: argparse.Namespace
 ) -> None:
@@ -1475,6 +1525,7 @@ def parse_args() -> argparse.Namespace:
             "fixture-lab",
             "inject-provider",
             "tradovate-certify",
+            "tradovate-capture",
             "databento-certify",
             "databento-replay",
             "databento-offline-certify",
@@ -1630,7 +1681,7 @@ def parse_args() -> argparse.Namespace:
         "--capture-policy",
         metavar="PATH",
         help=(
-            "Validated capture-governance JSON. Required before live session capture; "
+            "Validated capture-governance JSON. Required before live session or Tradovate raw capture; "
             "optional for replay capture and required to register a captured session "
             "into a research corpus."
         ),
@@ -1644,6 +1695,21 @@ def parse_args() -> argparse.Namespace:
         "--capture-label",
         help="Optional human label stored in the captured-session header.",
     )
+    parser.add_argument(
+        "--capture-duration", type=_safe_float_argument, default=60.0,
+        help="Total Tradovate raw-capture network budget in seconds, up to 300. Default: 60.",
+    )
+    for flag, default, description in (
+        ("maturities", 2, "Maximum raw-capture maturity dependency lookups (up to 12)."),
+        ("requests", 12, "Maximum raw-capture discovery requests (up to 64)."),
+        ("frames", 1000, "Maximum raw-capture WebSocket frames (up to 10000)."),
+        ("bytes", 16777216, "Maximum raw-capture output bytes including manifest reserve (up to 67108864)."),
+        ("frame-bytes", 1048576, "Maximum raw response/frame bytes (up to 16777216)."),
+    ):
+        parser.add_argument(
+            "--capture-max-" + flag, type=_safe_integer_argument, default=default,
+            help=description + f" Default: {default}.",
+        )
     parser.add_argument(
         "--log-level",
         type=str.upper,
@@ -1708,7 +1774,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--ack-live-network",
         action="store_true",
-        help="Acknowledge credentialed, read-only network access for provider certification.",
+        help="Acknowledge credentialed, read-only network access for provider certification or raw capture.",
     )
     parser.add_argument(
         "--certification-duration",
@@ -1726,7 +1792,7 @@ def parse_args() -> argparse.Namespace:
         "--max-option-contracts",
         type=_safe_integer_argument,
         default=12,
-        help="Maximum option subscriptions during Tradovate certification. Default: 12.",
+        help="Maximum sampled option/chain subscriptions during Tradovate certification or raw capture. Default: 12.",
     )
     parser.add_argument(
         "--corpus-id",
@@ -1777,7 +1843,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--tradovate-environment",
         choices=("demo", "live"),
-        help="Tradovate environment for live mode or certification. Overrides TRADOVATE_ENV.",
+        help="Tradovate environment for live mode, certification, or raw capture. Overrides TRADOVATE_ENV.",
     )
     parser.add_argument(
         "--screenshot-width",

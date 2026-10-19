@@ -7,6 +7,23 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Read-Only Tradovate Raw Collector
+
+- Add `tradovate-capture` for bounded private contract REST and market-data
+  WebSocket evidence before normalization. Require explicit network
+  acknowledgement, a valid capture policy, and a new owner-only output directory.
+- Exclude authentication and outgoing frames, account for safety omissions,
+  retain policy identity and file hashes, bound requests/frames/bytes/time, and
+  clean up owned network resources. No order operations are available.
+- Disable HTTP redirects and verify the final WebSocket endpoint before sending
+  a Tradovate token. Retrieve simultaneous receive/heartbeat failures so raw
+  provider exceptions do not escape through orphan-task logs.
+- Add offline mocked regressions and an operator guide for separate ES/NQ runs,
+  access/rights decisions, private retention, and review before sharing.
+  [GEX-TRADOVATE-CAPTURE-001](docs/work-packets/GEX-TRADOVATE-CAPTURE-001.md)
+  owns acceptance. Issue #4 remains open until actual ES/NQ payloads are captured
+  and validated; Tradovate readiness stays `scaffold`.
+
 ## Unreleased — Tradovate Offline Verification
 
 - Rework PR #10 into explicitly synthetic ES/NQ discovery and quote coverage

@@ -31,6 +31,7 @@ status checklists into multiple files.
 | Databento mapping | [Databento Fixture Mapping](databento-fixtures.md) | Provider-specific requests, record mapping, certification policy, and lifecycle evidence semantics |
 | Offline provider evidence | [Offline Validation](offline-validation.md) | Replay, temporal, adversarial, and scripted-lifecycle checks plus their proof ceiling |
 | Capture safety | [Capture Governance](capture-governance.md) | Pre-capture rights, retention, redaction, research-use decisions, and logging safeguards |
+| Tradovate raw evidence | [Tradovate Raw-Payload Capture](tradovate-capture.md) | Read-only bounded ES/NQ collection, private output, omissions, review and actual-payload validation gate |
 | Live observation preparation | [Live Population Preparation](live-population-prep.md) | Offline population preregistration, canonical identities, full-result accounting, and external authority gates |
 | Research authority | [Research Governance](research-governance.md) | Model profiles, manifests, corpus gates, split identity, and evidence ladder |
 | Contribution workflow | [Contributing](../CONTRIBUTING.md) | Setup, verification commands, development rules, and pull-request checklist |
@@ -39,7 +40,10 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. Closed [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
+change. [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md)
+owns the read-only raw collector and its offline regression evidence; actual
+ES/NQ collection and validation remain open under issue #4.
+Closed [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
 records PR #10's bounded offline rework and integration conditions; actual Tradovate payloads remain required
 by issue #4. Closed [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) records
 the documentation, recruitment-source and branch closeout slice through
@@ -115,6 +119,8 @@ offline live-population contract that supports that later external gate.
 
 - [Capture Governance](capture-governance.md) — required live-capture policy,
   retention decisions, and logging/redaction safeguards.
+- [Tradovate Raw-Payload Capture](tradovate-capture.md) — bounded private provider
+  shape evidence before normalization, with explicit access and sharing gates.
 - [Captured Sessions](captured-sessions.md) — normalized event files and replay.
 - [Historical Session Store](historical-sessions.md) — computed snapshot archive.
 - [Research Journal](research-journal.md) — local study entries and comparisons.
@@ -126,6 +132,8 @@ offline live-population contract that supports that later external gate.
 ### Work With Providers
 
 - [Market-Data Adapters](adapters.md) — shared contract and provider selection.
+- [Tradovate Raw-Payload Capture](tradovate-capture.md) — prepare and review
+  actual ES/NQ raw samples for issue #4 without order operations.
 - [Databento Fixture Mapping](databento-fixtures.md) — Databento-specific mapping
   and live-certification boundary.
 - [Live Population Preparation](live-population-prep.md) — freeze and validate a

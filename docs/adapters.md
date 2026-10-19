@@ -287,6 +287,17 @@ gate is distinct from broader credentialed coverage, latency, reconnect, and
 quantitative-input qualification; closing the mapping issue would not
 automatically certify those broader capabilities or promote registry status.
 
+The separate read-only `tradovate-capture` command prepares that observation by
+retaining bounded contract REST responses and market-data WebSocket evidence
+before normalization. It requires explicit network acknowledgement and a valid
+capture policy, writes only to a new private directory, excludes authentication
+material, and records limits and omissions. It does not change this adapter's
+discovery implementation, accept unverified aliases as observed fields, or
+automatically produce shareable fixtures. Follow
+[Tradovate Raw-Payload Capture](tradovate-capture.md) for setup, separate ES/NQ
+runs, file interpretation, and review. Actual retained samples still require
+validation before issue #4 can close.
+
 Run the explicit read-only certification gate only when you intend to open a
 credentialed external connection:
 

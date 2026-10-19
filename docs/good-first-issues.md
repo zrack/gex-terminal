@@ -5,7 +5,7 @@ needing live market-data credentials. Maintainers can copy one into GitHub,
 apply `good first issue` and `help wanted`, and adjust scope as the codebase
 changes.
 
-## Existing provider queue — reviewed September 4, 2026
+## Existing Provider Queue — Reconciled October 19, 2026
 
 - [Databento issue #5](https://github.com/zrack/gex-terminal/issues/5) asks for
   dataset/schema selection, synthetic payloads, normalized mappings and known
@@ -13,22 +13,20 @@ changes.
   packaged Databento fixtures and the offline certification tests. Do not assign
   a duplicate implementation. Administrative issue closure is separate from
   these shipped artifacts; live certification remains open.
-- [Tradovate PR #10](https://github.com/zrack/gex-terminal/pull/10), inspected at
-  `03d5ed80e93452c03a9ccce244cf1e671597f91b`, is an existing contribution for
-  issue #4, not accepted live evidence. Its three-file diff adds a fixture and
-  shape-only tests, not an adapter-to-consumer mapping test. The fixture's
-  descriptive string includes `credentials`, so its own blanket substring
-  assertion against `credential` fails. The entitlement/demo-access assertions
-  need provider-source evidence, and the requested observed payload provenance
-  is not established by labeling a fixture sanitized. No hosted checks were
-  attached at inspection. Request changes within that contribution instead of
-  implementing the same scope in parallel; do not merge or close issue #4 on
-  this evidence. No provider access was attempted during this review.
+- [Tradovate PR #10](https://github.com/zrack/gex-terminal/pull/10) is merged
+  after the maintainer-authorized offline rework recorded by
+  [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md).
+  Constructed discovery/quote fixtures now exercise the production adapter,
+  consumer and engine, with parameter/lifecycle and negative certification
+  regressions. They do not establish observed provider provenance. The
+  [raw collector](tradovate-capture.md) prepares private actual ES/NQ evidence;
+  issue #4 stays open until both products' permitted sanitized samples and
+  mappings are validated. No provider access is needed for starter work.
 
 The separate [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md)
 repairs a reproduced acknowledgement-frame handling defect using synthetic
-tests. It does not supply the observed raw ES/NQ payloads required by issue #4
-or accept PR #10; the issue remains open until that evidence is available.
+tests. It does not supply the observed raw ES/NQ payloads required by issue #4;
+the issue remains open until that evidence is available.
 
 ## 1. Extend Replay Expectations For A Distinct Scenario
 
