@@ -77,6 +77,11 @@ date-only `expiry` label supports selection but does not imply an
 exchange-specific settlement instant; the configured scalar DTE is the visible
 fallback.
 
+Native Databento event ordering and fill identities preserve nanoseconds.
+Reported quote-age and fractional-DTE model calculations use Python's
+microsecond datetime clock. Offline validation checks those reported values
+against that clock while checking causal native quote/trade order separately.
+
 Schema-v1 messages remain on the original strike-level Black-Scholes path.
 Mixed v1/v2 option state reports `mixed_legacy_fallback` rather than presenting
 partly contract-aware output as authoritative.

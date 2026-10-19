@@ -71,6 +71,16 @@ def iso(value):
     return datetime.fromtimestamp(seconds, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + f".{fraction:09d}Z"
 
 
+def model_years(expiry_ns, event_ns):
+    """Match the declared datetime pricing clock, independently of the app.
+
+    Native identity and event/quote ordering remain nanosecond precise. Python
+    datetime intentionally truncates each instant to microseconds for DTE and
+    freshness; compare that clock exactly instead of inventing nanosecond math.
+    """
+    return ((expiry_ns // 1000 - event_ns // 1000) / 1_000_000) / (365 * 86400)
+
+
 def number(record, name, native):
     value = field(record, name)
     if value is None:
@@ -301,12 +311,14 @@ class RawTruth:
         if quote is not None:
             require(provenance.get("underlying_price") == quote[1] and ns(provenance.get("underlying_event_time")) == quote[0],
                     "IV inversion did not use latest causally available native quote")
-            require(math.isclose(provenance["underlying_price_age_ms"], (event - quote[0]) / 1e6, abs_tol=1e-6), "IV quote age differs from native nanoseconds")
+            age_ms = (event // 1000 - quote[0] // 1000) / 1000
+            require(math.isclose(provenance["underlying_price_age_ms"], age_ms, rel_tol=1e-12, abs_tol=1e-9),
+                    "IV quote age differs from independently derived datetime microseconds")
         else:
             require(provenance.get("underlying_price") is None, "IV inversion used unavailable underlying quote")
-        years = (metadata["expiry_ns"] - event) / YEAR_NS
+        years = model_years(metadata["expiry_ns"], event)
         if years > 0:
-            require(math.isclose(provenance.get("time_to_expiry_years", -1), years, rel_tol=1e-9, abs_tol=1e-13), "IV remaining time differs from native expiration")
+            require(math.isclose(provenance.get("time_to_expiry_years", -1), years, rel_tol=1e-12, abs_tol=1e-15), "IV remaining time differs from independently derived datetime expiration")
             if quote is not None:
                 discount = math.exp(-provenance["risk_free_rate"] * years)
                 intrinsic = max((quote[1] - metadata["strike"]) * (1 if metadata["option_type"] == "C" else -1), 0.)
@@ -327,7 +339,9 @@ class RawTruth:
         if iv_source in {"black_76_inverted", "american_futures_inverted"}:
             require(provenance.get("status") == "converged" and quote is not None and years > 0,
                     "Inverted IV has no successful causal inversion")
-            require((event - quote[0]) / 1e6 <= provenance["maximum_underlying_age_ms"], "Inverted IV used stale quote")
+            require((event // 1000 - quote[0] // 1000) / 1000 <= provenance["maximum_underlying_age_ms"], "Inverted IV used stale quote")
+            require((event - quote[0]) / 1e6 <= provenance["maximum_underlying_age_ms"],
+                    "Native quote exceeds freshness threshold despite microsecond model alignment; explicit precision-edge review required")
             if iv_source == "black_76_inverted":
                 price, _ = black76(quote[1], metadata["strike"], years, provenance["risk_free_rate"], iv, metadata["option_type"])
                 require(abs(price - premium) <= 1e-6, "Independent Black-76 repricing failed")
@@ -336,6 +350,8 @@ class RawTruth:
             require(prior_ns is not None and 0 < event - prior_ns <= 300 * NANO
                     and provenance.get("prior_iv") == iv and provenance.get("prior_iv_pricing_model") == message["pricing_model"],
                     "Retained IV does not have a valid same-model age/value")
+            require(math.isclose(provenance.get("prior_iv_age_ms", -1), (event - prior_ns) / 1e6, abs_tol=1e-6),
+                    "Retained IV age differs from original nanosecond timestamps")
         self.db.execute("UPDATE trades SET seen=seen+1 WHERE fp=?", (fp,))
         return seen == 0, metadata
 
@@ -492,7 +508,7 @@ async def checkpoint_audit(consumer, ledger, requested_ns, name, output, model_i
                 and current["option_type"] == row["option_type"] and current["pricing_model"] == row["pricing_model"]
                 and current["base_iv"] == row["iv"] and current["multiplier"] == row["contract_multiplier"],
                 "Wind priced detail changed the captured contract/IV/quantity inputs")
-        years = (ns(row["expiry_timestamp"]) - actual_ns) / YEAR_NS
+        years = model_years(ns(row["expiry_timestamp"]), actual_ns)
         if row["pricing_model"] == "black_76":
             _, gamma = black76(consumer.current_spot, row["strike"], years, model_inputs["risk_free_rate"], row["iv"], row["option_type"])
             require(math.isclose(gamma, current["gamma"], rel_tol=1e-9, abs_tol=1e-12), "Independent European checkpoint gamma differs")
@@ -515,7 +531,7 @@ async def checkpoint_audit(consumer, ledger, requested_ns, name, output, model_i
     else:
         snapshot_status = "unavailable: " + matrix["error"]
     for row in stratified([row for row in active if row.get("iv_source") != "unavailable"]):
-        years = (ns(row["expiry_timestamp"]) - actual_ns) / YEAR_NS
+        years = model_years(ns(row["expiry_timestamp"]), actual_ns)
         check = {"contract_id": row["contract_id"], "side": row["option_type"], "strike": row["strike"],
                  "expiry": row["expiry_timestamp"], "exercise_style": row.get("exercise_style"), "model": row["pricing_model"]}
         if row["pricing_model"] == "american_futures_crr":
@@ -673,6 +689,7 @@ async def validate_market(*, files, symbol, capture, conversion_report, output, 
         result = {"schema": "gex-terminal.full-session-validation.v1", "status": "passed", "symbol": symbol,
                   "capture": str(Path(capture).absolute()), "capture_sha256": digest(capture), "inputs": truth.inputs,
                   "raw_accounting": accounting, "normalized_event_count": events, "iv_sources": dict(iv_sources),
+                  "time_precision": "Native fingerprints, causal merge and quote linkage retain nanoseconds; app DTE and reported freshness use independently verified datetime microseconds (each instant truncated by less than1microsecond). Successful inversions additionally pass the exact native freshness limit; no threshold-edge relaxation.",
                   "inversion_statuses": dict(statuses), "checkpoints": checkpoints,
                   "provider_requests": 0, "credits_used": 0,
                   "evidence_ceiling": "Complete reconciliation of these downloaded files, not exchange-chain completeness, live entitlement, economic fair value or predictive validity. American reference checks are sampled; unavailable optional references remain explicit."}

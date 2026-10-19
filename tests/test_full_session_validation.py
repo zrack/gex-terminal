@@ -10,7 +10,7 @@ from unittest.mock import patch
 from gex_terminal.session_capture import CapturedSessionWriter, load_captured_session
 from scripts.databento_session_replay import convert_session
 from scripts.validate_full_session import (RawTruth, black76, native_trade_fingerprint,
-                                          ns, iso, validate_market, raw_records)
+                                          ns, iso, validate_market, raw_records, model_years)
 from tests.test_databento_trial_replay import _files, _records
 
 
@@ -34,7 +34,7 @@ def session_records():
         if "20:00:00" in stamp or "20:59:59" in stamp:
             continue
         sequence += 1
-        trade = {**original[3], "sequence": sequence, "ts_event": iso(ns(stamp) + 500_000_001), "size": 2, "price": 1.}
+        trade = {**original[3], "sequence": sequence, "ts_event": iso(ns(stamp) + 789_677_713), "size": 2, "price": 1.}
         rows.append(trade)
         if "23:59:59" in stamp:
             rows.append(copy.deepcopy(trade))
@@ -187,6 +187,20 @@ class FullSessionValidationTests(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaisesRegex(ValueError, expected):
                     truth.trade(value)
 
+    async def test_native_freshness_edge_is_not_silently_relaxed_by_model_clock(self):
+        records = session_records()
+        first_call = next(row for row in records if row.get("record_type") == "trades" and row["instrument_id"] == 9101)
+        first_call["ts_event"] = "2026-08-05T22:00:02.000000713Z"
+        files, replay = await self.prepare(records)
+        _, messages = load_captured_session(replay["capture"])
+        edge = next(row for row in messages if row.get("contract_id") == "9101")
+        self.assertEqual(edge["iv_source"], "black_76_inverted")
+        self.assertEqual(edge["iv_provenance"]["underlying_price_age_ms"], 2000.)
+        truth = RawTruth(self.root / "edge.sqlite", files, "ES")
+        self.addCleanup(truth.close)
+        with self.assertRaisesRegex(ValueError, "explicit precision-edge review"):
+            truth.trade(edge)
+
     async def test_native_hash_drift_and_converter_accounting_drift_rejected(self):
         files, replay = await self.prepare()
         report_path = Path(replay["report"])
@@ -250,6 +264,10 @@ class FullSessionValidationTests(unittest.IsolatedAsyncioTestCase):
         native = {**first, "ts_event": ns(first["ts_event"]), "price": 12_500_000_000}
         self.assertEqual(native_trade_fingerprint(first), native_trade_fingerprint(native, native=True))
         self.assertEqual(iso(ns(first["ts_event"])), first["ts_event"])
+        expiry = ns("2026-08-06T01:00:00Z")
+        precise = ns("2026-08-06T00:00:00.789677713Z")
+        self.assertEqual(model_years(expiry, precise), model_years(expiry, precise - 713))
+        self.assertNotEqual(model_years(expiry, precise), (expiry - precise) / (365 * 86400 * 1e9))
 
 
 if __name__ == "__main__":
