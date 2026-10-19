@@ -126,6 +126,23 @@ current accumulated quantity, not merely its last trade size. A later valid
 observation can price that quantity from that point forward. Entirely unpriced
 selections produce no modeled exposure rather than fabricated zero gamma.
 
+Terminal and Wind Tunnel show pricing coverage as both priced/selected contracts
+and priced/selected quantity, with percentages. These denominators follow the
+current expiry and quantity-source selection; they are not event counts.
+Earlier valid IVs count as priced and are separately labeled. An empty selection
+shows no selected contracts, while legacy aggregates without contract records
+show coverage as not reported. A partial selection never rounds to 100% coverage.
+
+Terminal's `v` details and Wind Tunnel's Source & assumptions explain each
+unpriced contract. When captured evidence is available, they show the original
+premium, violated model bound, underlying input and quote age. Terminal details
+also show the premium-to-bound gap. Those values
+describe the failed inversion at capture time, including after a scenario shifts
+the underlying; the display does not reinvert or fill missing IV. An incompatible
+premium/input pair explains the model failure, but does not establish the market
+or feed reason for that disagreement. Raw quantities remain visible and unpriced
+exposure stays excluded from GEX.
+
 Contract state is scoped by provider, contract ID, and position source. Sequence
 numbers can suppress duplicate updates. If a cumulative source resets below its
 previous value, the new provider value becomes the current absolute state and a

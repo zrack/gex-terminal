@@ -9,9 +9,12 @@ through the same calculation engine as the terminal.
 
 The pricing notice above the charts identifies the formula and exercise-style
 qualification. **Source & assumptions** explains early exercise, the configured
-risk-free rate and ACT/365 timing. Black-76 uses European exercise; American
-contracts carry an unmeasured-approximation label. Older captures without
-exercise metadata remain explicitly unknown. See [model assumptions](model-assumptions.md).
+risk-free rate and ACT/365 timing. Newly normalized Databento futures options
+with confirmed American exercise use a numerical early-exercise model. Older
+captures keep their recorded model: American contracts priced with Black-76
+retain the European-approximation qualification. Missing exercise metadata
+remains explicitly unknown.
+See [model assumptions](model-assumptions.md).
 
 ## Open The Workbench
 
@@ -146,6 +149,32 @@ Each plotted value comes from a calculation. A 2D view and inspectable tables
 keep results accessible where WebGL is unavailable. Compare uses matched axes
 so a larger-looking plot cannot come from a different scale. Fragility shows
 only tested cells: missing or invalid cells do not mean stability.
+
+## Read Pricing Coverage
+
+The **Pricing coverage** panel above the charts shows priced/selected contracts
+and priced/selected quantity, with percentages. Read **Original** and
+**Scenario** separately; identical coverage shares an **Original & scenario**
+panel. The denominators follow the selected quantity model and eligible expiry
+cohorts, not incoming event counts. Earlier valid IVs count as priced and are
+separately labeled.
+
+**Complete** covers every selected contract and quantity. **Partial** excludes
+unpriced exposure from GEX while retaining its raw quantity, and never rounds
+up to 100%. **Unavailable — no selected contracts are priced** means GEX is
+unavailable rather than zero. **No selected contracts** means the current
+selection is empty, with coverage percentages not applicable. **Coverage
+unavailable** means contract-level coverage cannot be established; a legacy
+aggregate must not be read as complete coverage.
+
+Open **Source & assumptions** for each unpriced contract and its captured
+pricing inputs. Available evidence includes the original premium, violated
+model bound, underlying input and quote age. These describe the failed
+inversion at capture time, even after spot, IV or time changes. Scenario controls
+do not fill unavailable IV or rewrite that evidence. A mismatch explains the
+model failure without establishing its market or feed cause.
+[Model Assumptions](model-assumptions.md#quantity-and-position-sources) owns the
+pricing and retention policy.
 
 ## What The Controls Mean
 

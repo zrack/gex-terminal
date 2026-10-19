@@ -8,6 +8,16 @@ import unittest
 
 
 class WindTunnelAssetTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("node"), "Node.js is needed for pricing coverage browser regressions")
+    def test_browser_pricing_coverage_and_unpriced_diagnostics(self):
+        root = files("gex_terminal").joinpath("wind_tunnel_web")
+        result = subprocess.run(
+            [shutil.which("node"), "-e", BROWSER_COVERAGE_HARNESS, str(root)],
+            text=True, capture_output=True, timeout=15, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("pricing coverage browser regressions passed", result.stdout)
+
     def test_offline_chart_and_icon_assets_match_pinned_release_inventory(self):
         root = files("gex_terminal").joinpath("wind_tunnel_web")
         inventory = json.loads(root.joinpath("vendor/manifest.json").read_text())
@@ -63,7 +73,7 @@ class WindTunnelAssetTests(unittest.TestCase):
         self.assertEqual(asyncio.run(reproduce_receipt(receipt))["status"], "verified")
 
 
-BROWSER_HANDOFF_HARNESS = r"""
+BROWSER_DOM_HARNESS = r"""
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
@@ -100,6 +110,10 @@ global.document = {querySelector: selector => {if (selector.includes('option[val
 global.window = {addEventListener() {}};
 global.location = {origin: 'http://127.0.0.1:12345', hash: '#cap=local-test-capability', pathname: '/', search: ''};
 global.history = {replaceState() {}}; global.sessionStorage = {setItem() {}, getItem() {return null;}, removeItem() {}};
+"""
+
+
+BROWSER_HANDOFF_HARNESS = BROWSER_DOM_HARNESS + r"""
 const artifact = JSON.parse(fs.readFileSync(0, 'utf8')).artifact;
 assert.equal(typeof artifact, 'string');
 const artifactMetadata = JSON.parse(artifact), originalArtifact = artifact;
@@ -197,6 +211,133 @@ vm.runInThisContext(app, {filename: 'app.js'});
   console.log('handoff browser workflow passed');
   console.log(JSON.stringify({artifact: saved.request.terminal_checkpoint, request: requests.filter(item => item.path === 'calculate').find(item => item.body.terminal_checkpoint === artifact).body}));
 })().catch(error => {console.error(error); process.exitCode = 1;});
+"""
+
+
+BROWSER_COVERAGE_HARNESS = BROWSER_DOM_HARNESS + r"""
+let app = fs.readFileSync(root + '/app.js', 'utf8');
+app = app.replace('  initialize();', '  globalThis.browser = {renderPricingAssumptions, showSource, loadSource, calculate, state};');
+vm.runInThisContext(app, {filename: 'app.js'});
+const renderedText = element => [element.textContent, ...element.children.map(renderedText)].join(' ');
+const coverageText = () => renderedText(elements.get('#pricing-coverage-content'));
+const clone = value => JSON.parse(JSON.stringify(value));
+const coverage = {status: 'partial', selected_contract_count: 195, priced_contract_count: 194,
+  selected_quantity: 1692, priced_quantity: 1691, unpriced_contract_count: 1, unpriced_quantity: 1,
+  retained_iv_contract_count: 0};
+const excluded = {contract_id: 'sample-put', expiry: '2026-10-16', quantity: 1, reason: 'iv_unavailable',
+  iv_provenance: {status: 'outside_no_arbitrage_bounds', option_price: 508, lower_bound: 529.6077024442,
+    upper_bound: 30429, underlying_price: 29900.375, underlying_price_age_ms: 493.863121}};
+const original = {pricing_coverage: coverage, excluded_contracts: [excluded]};
+const report = {request: {fallback_dte: .25, risk_free_rate: .045}, baseline: original, scenario: clone(original)};
+browser.state.terminalCheckpoint = JSON.stringify({rows: [{contract_id: 'sample-put', expiry: '2026-10-16', symbol: 'NQ', strike: 30430, option_type: 'P', iv: null}]});
+browser.state.calculation = report;
+const canonicalBefore = JSON.stringify(report), artifactBefore = browser.state.terminalCheckpoint;
+browser.renderPricingAssumptions(report);
+assert.match(coverageText(), /Original & scenario · Partial/);
+assert.match(coverageText(), /194 \/ 195 contracts priced \(99.49%\)/);
+assert.match(coverageText(), /1,691 \/ 1,692 selected quantity priced \(99.94%\)/);
+assert.match(coverageText(), /Captured premium 508 points.*below.*529.61 points.*no valid IV/);
+assert.match(coverageText(), /excluded from modeled GEX.*Raw quantities are retained/);
+assert.match(elements.get('#pricing-model-context').textContent, /Pricing assumptions unavailable/);
+browser.showSource();
+const details = renderedText(elements.get('#info-content'));
+assert.match(details, /NQ 30,430 put · Contract sample-put/);
+assert.match(details, /expiry 2026-10-16/);
+assert.match(details, /captured IV inversion inputs, not shifted scenario inputs/);
+assert.match(details, /do not establish why.*disagree/);
+assert.match(details, /Captured underlying age \(ms\).*493.863121/);
+assert.equal(JSON.stringify(report), canonicalBefore, 'Rendering must preserve canonical calculation payloads');
+assert.equal(browser.state.terminalCheckpoint, artifactBefore, 'Rendering must preserve checkpoint bytes and null IV');
+
+// Ordinary v2 bundled results omit qualified-IV metadata, but include every priced row.
+const bundled = {status: 'available', counts: {selected_rows: 10}, contracts: Array.from({length: 10}, (_, i) => ({contract_id: 'bundled-' + i, quantity: i + 1})), excluded_contracts: []};
+const bundledReport = {baseline: bundled, scenario: clone(bundled)}, bundledBefore = JSON.stringify(bundledReport);
+browser.renderPricingAssumptions(bundledReport);
+assert.match(coverageText(), /Original & scenario · Complete/);
+assert.match(coverageText(), /10 \/ 10 contracts priced \(100%\)/);
+assert.match(coverageText(), /55 \/ 55 selected quantity priced \(100%\)/);
+assert.equal(JSON.stringify(bundledReport), bundledBefore, 'Derived presentation coverage must not mutate bundled results');
+for (const incomplete of [
+  {...bundled, counts: {selected_rows: 11}},
+  {...bundled, counts: {}},
+  {...bundled, contracts: []},
+  {...bundled, contracts: undefined},
+  {...bundled, status: 'invalid_scenario'},
+  {...bundled, status: 'no_data'},
+  {...bundled, contracts: [...bundled.contracts.slice(1), {quantity: -1}]},
+  {...bundled, contracts: [...bundled.contracts.slice(1), {quantity: NaN}]},
+  {...bundled, contracts: [...bundled.contracts.slice(1), {quantity: Infinity}]},
+  {...bundled, contracts: [...bundled.contracts.slice(1), {}]},
+  {...bundled, excluded_contracts: [excluded]},
+  {...bundled, contracts: bundled.contracts.map(row => ({...row, provider: 'legacy', iv_source: 'legacy_unspecified'}))},
+]) {
+  browser.renderPricingAssumptions({scenario: incomplete});
+  assert.match(coverageText(), /Coverage unavailable/, 'Missing rows, invalid quantities or unavailable states cannot imply complete coverage');
+  assert(!coverageText().includes('Complete'));
+}
+
+// Expiry removal changes only the scenario denominator. Keep both coverages visible.
+const reduced = {pricing_coverage: {...coverage, status: 'complete', selected_contract_count: 194,
+  selected_quantity: 1691, unpriced_contract_count: 0, unpriced_quantity: 0}, excluded_contracts: [{...excluded, reason: 'nearest_expiry_excluded'}]};
+const branched = {...report, scenario: reduced};
+browser.state.calculation = branched; browser.renderPricingAssumptions(branched);
+assert.match(coverageText(), /Original · Partial/);
+assert.match(coverageText(), /Scenario · Complete.*194 \/ 194 contracts priced \(100%\)/);
+assert.match(coverageText(), /1,691 \/ 1,691 selected quantity priced \(100%\)/);
+browser.showSource();
+assert.equal((renderedText(elements.get('#info-content')).match(/Contract sample-put/g) || []).length, 1,
+  'Expiry exclusion must not re-label the scenario contract as unavailable IV');
+
+browser.renderPricingAssumptions({baseline: reduced, scenario: clone(reduced)});
+assert.match(coverageText(), /Original & scenario · Complete/);
+assert(!coverageText().includes('508'), 'Complete source must clear old unpriced explanation');
+browser.renderPricingAssumptions({scenario: {pricing_coverage: {...coverage, priced_contract_count: 0, priced_quantity: 0,
+  unpriced_contract_count: 195, unpriced_quantity: 1692}, excluded_contracts: [excluded]}});
+assert.match(coverageText(), /Unavailable — no selected contracts are priced/);
+assert.match(coverageText(), /0 \/ 195 contracts priced \(0%\)/);
+browser.renderPricingAssumptions({scenario: {pricing_coverage: {...coverage, selected_contract_count: 0,
+  priced_contract_count: 0, selected_quantity: 0, priced_quantity: 0, unpriced_contract_count: 0, unpriced_quantity: 0}}});
+assert.match(coverageText(), /No selected contracts/);
+assert.match(coverageText(), /0 \/ 0 contracts priced \(not applicable\)/);
+assert(!coverageText().includes('100%'), 'Empty selection is not complete coverage');
+browser.renderPricingAssumptions({scenario: {pricing_coverage: {...coverage, selected_contract_count: 100000,
+  priced_contract_count: 99999, selected_quantity: 100000, priced_quantity: 99999}}});
+assert.match(coverageText(), /Partial/);
+assert.match(coverageText(), /priced \(<100%\)/, 'Rounding must not hide a very small omission');
+assert(!coverageText().includes('(100%)'));
+
+// Labels and diagnostics are text, including untrusted metadata, never parsed HTML.
+const hostile = {...excluded, contract_id: '<img src=x onerror=alert(1)>', expiry: '<script>bad</script>'};
+browser.state.terminalCheckpoint = null;
+browser.state.calculation = {...report, baseline: {pricing_coverage: coverage, excluded_contracts: [hostile]}, scenario: undefined};
+browser.renderPricingAssumptions(browser.state.calculation); browser.showSource();
+assert.match(renderedText(elements.get('#info-content')), /<img src=x onerror=alert\(1\)>/);
+const descendants = element => [element, ...element.children.flatMap(descendants)];
+assert(!descendants(elements.get('#info-content')).some(element => ['IMG', 'SCRIPT'].includes(element.tagName)));
+browser.renderPricingAssumptions({baseline: {}});
+assert.match(coverageText(), /Coverage unavailable/);
+assert(!coverageText().includes('508'));
+browser.renderPricingAssumptions(null);
+assert.match(coverageText(), /Pricing coverage pending/);
+
+// Exercise the actual source-change path while its local checkpoint request is pending.
+global.fetch = () => new Promise(() => {});
+browser.state.sources = [{name: 'next-source', symbol: 'ES'}];
+browser.state.bundledDefaults = {model: 'raw_trade_volume', fallback_dte: .25, risk_free_rate: .045};
+browser.state.calculation = report; browser.renderPricingAssumptions(report);
+browser.loadSource('next-source');
+assert.equal(browser.state.calculation, null);
+assert.equal(browser.state.terminalCheckpoint, null);
+assert.match(coverageText(), /Pricing coverage pending/);
+assert(!coverageText().includes('508'), 'Loading a new source must clear prior coverage and diagnostic details');
+browser.showSource();
+assert(!renderedText(elements.get('#info-content')).includes('sample-put'));
+browser.state.calculation = report; browser.renderPricingAssumptions(report);
+browser.calculate();
+assert.equal(browser.state.calculation, null, 'Direct replay and breaking-case recalculations must clear stale results');
+assert.match(coverageText(), /Pricing coverage pending/);
+assert(!coverageText().includes('508'));
+console.log('pricing coverage browser regressions passed');
 """
 
 
