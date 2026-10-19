@@ -77,6 +77,18 @@ class AppBundleTests(unittest.TestCase):
         self.assertIn("Both", instructions)
         subprocess.run(["sh", "-n", str(output / "Install.command")], check=True)
 
+    def test_saved_data_instructions_require_both_supporting_modules(self):
+        with zipfile.ZipFile(self.wheel, "a") as archive:
+            archive.writestr("gex_terminal/wind_tunnel_cli.py", "# local browser entry")
+            archive.writestr("gex_terminal/saved_workspace.py", "# saved launch preparation")
+        output = build_bundle(self.wheel, self.root / "saved data", "c" * 40)
+        instructions = (output / "START HERE.txt").read_text()
+        self.assertIn("4 Saved data", instructions)
+        self.assertIn("--saved-data ES (or NQ)", instructions)
+        self.assertIn("completed *.gex-session.jsonl", instructions)
+        self.assertIn("without provider requests or credits", instructions)
+        subprocess.run(["sh", "-n", str(output / "Install.command")], check=True)
+
     def test_setup_wrapper_passes_paths_with_spaces_and_apostrophes_intact(self):
         self.installer.write_text(
             "import json, pathlib, sys\n"

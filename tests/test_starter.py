@@ -58,6 +58,130 @@ class StarterChoiceTests(unittest.TestCase):
                     install_app.choose_action(True)
             self.assertEqual(stdin.tell(), 0)
 
+    def test_saved_option_requires_support_and_symbol_selection_is_explicit(self):
+        output = TTYInput()
+        with patch.object(install_app.sys, "stdin", TTYInput("4\n")), patch.object(install_app.sys, "stdout", output):
+            self.assertEqual(install_app.choose_action(True, saved_data=True), "saved")
+        self.assertIn("no provider requests", output.getvalue())
+        self.assertIsNone(self.choose("4\nq\n")[0])
+        for text, expected in (("ES\n", "ES"), ("2\n", "NQ"), ("oops\nNQ\n", "NQ"), ("\n", None), ("", None)):
+            with patch.object(install_app.sys, "stdin", TTYInput(text)), patch.object(install_app.sys, "stdout", TTYInput()):
+                self.assertEqual(install_app.choose_saved_symbol(), expected)
+
+
+class StarterSavedDataTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix="gex saved starter's ")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.research = self.root / "research"
+        self.research.mkdir()
+        self.capture = self.root / "original.gex-session.jsonl"
+        self.capture.write_bytes(b"test frozen source")
+        self.plan = {"capture_path": str(self.capture), "checkpoint_path": str(self.root / "checkpoint.json"),
+                     "symbol": "NQ", "contract_multiplier": 20, "risk_free_rate": .035,
+                     "fallback_dte": .5, "capture_sha256": install_app.digest(self.capture),
+                     "terminal_args": ["--mode", "replay", "--captured-session", str(self.capture),
+                                       "--symbol", "NQ", "--multiplier", "20", "--expiry-filter", "all",
+                                       "--replay-clock", "event", "--replay-speed", "60"]}
+        self.receipt = {"research_dir": str(self.research), "active": {"payload_sha256": {
+            "gex_terminal/wind_tunnel_cli.py": "1" * 64, "gex_terminal/saved_workspace.py": "2" * 64}}}
+        for name, value in (("owned_target", self.receipt), ("active_environment", self.root / "environment"),
+                            ("verify_payload", "verified")):
+            patcher = patch.object(install_app, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def launch(self, **options):
+        with patch.object(install_app.sys, "stdin", TTYInput()), patch.object(install_app.sys, "stdout", TTYInput()):
+            return install_app.launch(self.root / "app", **options)
+
+    def test_registration_and_remembered_launch_bind_both_children_to_same_frozen_source(self):
+        with patch.object(install_app, "prepare_saved_data", return_value=self.plan) as prepare, \
+                patch.object(install_app, "run_both", return_value=0) as both:
+            self.assertEqual(self.launch(register_saved_data="NQ", captured_session=self.capture), 0)
+            both.assert_not_called()
+            record = install_app.saved_sources(self.research)
+            self.assertEqual(record["sessions"]["NQ"]["capture_sha256"], self.plan["capture_sha256"])
+            self.assertEqual((self.research / install_app.SAVED_DATA).stat().st_mode & 0o777, 0o600)
+            self.assertEqual(self.launch(saved_data="NQ", no_browser=True), 0)
+        self.assertEqual(prepare.call_args.kwargs["expected_sha256"], self.plan["capture_sha256"])
+        terminal, wind = both.call_args.args
+        self.assertIn(install_app.SAVED_BOOTSTRAP, terminal)
+        self.assertEqual(terminal[:7], wind[:7])
+        self.assertEqual(terminal[4:7], ["0.035", "0.5", str(self.research)])
+        self.assertEqual(terminal[-len(self.plan["terminal_args"]):], self.plan["terminal_args"])
+        self.assertEqual(wind[wind.index("--checkpoint") + 1], self.plan["checkpoint_path"])
+        self.assertTrue(both.call_args.kwargs["no_browser"])
+        self.assertIn("final frozen", both.call_args.kwargs["source_note"])
+
+    def test_first_use_menu_selects_nq_and_registers_provided_capture(self):
+        with patch.object(install_app.sys, "stdin", TTYInput(f"4\n2\n'{self.capture}'\n")), \
+                patch.object(install_app.sys, "stdout", TTYInput()), \
+                patch.object(install_app, "prepare_saved_data", return_value=self.plan) as prepare, \
+                patch.object(install_app, "run_both", return_value=0):
+            self.assertEqual(install_app.launch(self.root / "app", choose=True), 0)
+        self.assertEqual(prepare.call_args.args[2:4], (self.capture, "NQ"))
+        self.assertIn("NQ", install_app.saved_sources(self.research)["sessions"])
+
+    def test_saved_mode_cannot_fall_back_when_preparation_fails(self):
+        with patch.object(install_app, "prepare_saved_data", side_effect=ValueError("invalid capture")), \
+                patch.object(install_app, "run_both") as both, patch.object(install_app.subprocess, "run") as run:
+            with self.assertRaisesRegex(ValueError, "invalid capture"):
+                self.launch(saved_data="NQ", captured_session=self.capture)
+        both.assert_not_called()
+        run.assert_not_called()
+        self.assertFalse((self.research / install_app.SAVED_DATA).exists())
+
+    def test_legacy_wheel_and_noninteractive_saved_launch_fail_before_preparation(self):
+        with patch.object(install_app, "prepare_saved_data") as prepare:
+            del self.receipt["active"]["payload_sha256"]["gex_terminal/saved_workspace.py"]
+            with self.assertRaisesRegex(ValueError, "no saved-data starter"):
+                self.launch(saved_data="ES", captured_session=self.capture)
+            self.receipt["active"]["payload_sha256"]["gex_terminal/saved_workspace.py"] = "2" * 64
+            with patch.object(install_app.sys, "stdin", io.StringIO()), self.assertRaisesRegex(ValueError, "interactive terminal"):
+                install_app.launch(self.root / "app", saved_data="ES", captured_session=self.capture)
+        prepare.assert_not_called()
+
+    def test_cancelled_capture_prompt_does_not_prepare_or_launch(self):
+        with patch.object(install_app, "prepare_saved_data") as prepare, patch.object(install_app, "run_both") as both:
+            self.assertEqual(self.launch(saved_data="NQ"), 0)
+        prepare.assert_not_called()
+        both.assert_not_called()
+
+    def test_supplied_capture_cannot_be_silently_ignored_by_chooser(self):
+        with patch.object(install_app.sys, "stdin", TTYInput("3\n")), \
+                patch.object(install_app.sys, "stdout", TTYInput()), \
+                patch.object(install_app, "run_both") as both, \
+                self.assertRaisesRegex(ValueError, "no synthetic workspace"):
+            install_app.launch(self.root / "app", choose=True, captured_session=self.capture)
+        both.assert_not_called()
+
+    def test_bad_registry_and_unrelated_capture_argument_fail_closed(self):
+        path = self.research / install_app.SAVED_DATA
+        path.symlink_to(self.capture)
+        with self.assertRaises(ValueError):
+            self.launch(saved_data="NQ")
+        path.unlink()
+        path.write_text(json.dumps({"schema": install_app.SAVED_SCHEMA, "sessions": {"ES": {"capture_path": "relative"}}}))
+        with self.assertRaises(ValueError):
+            install_app.saved_sources(self.research)
+        with self.assertRaisesRegex(ValueError, "Use --captured-session"):
+            self.launch(captured_session=self.capture)
+
+    def test_preparation_has_no_inherited_provider_settings_and_rejects_changed_source(self):
+        completed = subprocess.CompletedProcess([], 0, json.dumps(self.plan), "")
+        with patch.dict(os.environ, {"GEX_DATA_MODE": "live", "DATABENTO_API_KEY": "private-test-key"}), \
+                patch.object(install_app.subprocess, "run", return_value=completed) as run:
+            plan = install_app.prepare_saved_data(self.root / "env", self.research, self.capture, "NQ", self.root)
+            self.assertEqual(plan, self.plan)
+            self.assertNotIn("GEX_DATA_MODE", run.call_args.kwargs["env"])
+            self.assertNotIn("DATABENTO_API_KEY", run.call_args.kwargs["env"])
+            self.assertIn("restrict_network_to_loopback", run.call_args.args[0][3])
+            with self.assertRaisesRegex(ValueError, "Remembered saved data changed"):
+                install_app.prepare_saved_data(self.root / "env", self.research, self.capture, "NQ", self.root,
+                                               expected_sha256="0" * 64)
+
 
 CHILD = r'''
 import json, os, signal, socket, sys, time

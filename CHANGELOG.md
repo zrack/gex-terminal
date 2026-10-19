@@ -7,6 +7,22 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Saved Data Starter
+
+- Add **Saved data — Both** to fresh reviewed setup choosers, with ES/NQ
+  selection and explicit CLI launch or registration-only commands.
+- Verify completed normalized captures, retain a private frozen source by symbol
+  in the research folder, and reconstruct a fresh final checkpoint on each
+  launch without modifying the original capture.
+- Apply captured multiplier, rate and fallback DTE to both views, with explicit
+  defaults only for missing values and refusal of supplied invalid assumptions.
+- Open Wind Tunnel on the final checkpoint while Terminal replays at 60×;
+  subsequent selections remain independent. Preserve unpriced exposure and
+  use no provider requests or credits.
+- Keep existing installed launchers unchanged; a fresh reviewed setup supplies
+  the new saved-data choice. [First Run](docs/first-run.md#open-saved-es-or-nq-data)
+  owns startup and source-registration instructions.
+
 ## Unreleased — Pricing Coverage Displays
 
 - Add visible Terminal and Wind Tunnel coverage panels with priced/selected

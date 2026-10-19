@@ -8,7 +8,8 @@ session and its strike-level structure. Use the **Market Wind Tunnel** to change
 assumptions and explore how that structure responds. Start either component on
 its own, or choose **Both** in the starter.
 
-Both components work offline with bundled synthetic data.
+Both components work offline with bundled synthetic data. **Saved data — Both**
+opens a completed ES or NQ capture in both views without new provider requests.
 
 [Install](#install) · [Quick start](#quick-start) ·
 [Architecture](docs/architecture.md#c4-views) · [Roadmap](ROADMAP.md)
@@ -62,6 +63,8 @@ Choosing **Both** starts the two components together. Quitting Terminal stops
 that session's Wind Tunnel server; closing only the browser tab does not.
 A separately launched instance keeps running. Replay choices, checkpoints and
 scenario changes are **not automatically synchronized** between the views.
+**Saved data — Both** starts both views from one verified private capture;
+subsequent selections and scenarios remain independent.
 Press **`w`** in Terminal to freeze its current demo/replay checkpoint and open
 Wind Tunnel with the same effective assumptions and quantities. This explicit
 handoff owns its listener inside the Terminal process and stops it on exit.
@@ -77,8 +80,8 @@ Use Python 3.11/3.12 and a reviewed setup folder supplied by your maintainer.
 On macOS, open **Install.command**; on Linux, run `sh Install.command`.
 Setup checks the build. In a fresh Wind Tunnel-capable setup, open
 **GEX App/Start GEX.command** on macOS or run **`"./GEX App/run-gex" --choose`**
-on Linux to choose **Terminal**, **Wind Tunnel** or **Both**. The interactive
-installer offers the same choice. No environment activation or provider
+on Linux to choose **Terminal**, **Wind Tunnel**, **Both**, or **Saved data — Both**.
+The interactive installer offers the same choice. No environment activation or provider
 credentials are needed. Research stays in a separate **GEX App Research** folder.
 
 The first setup downloads dependencies unless the supplied folder includes
@@ -90,6 +93,12 @@ Developers start with [Contributing](CONTRIBUTING.md).
 Maintainers preparing observed first use follow [Study Build](docs/study-build.md).
 
 ## Quick Start
+
+To use data you already downloaded, choose **Saved data — Both**, then **ES** or
+**NQ**. On first use, select its completed normalized `*.gex-session.jsonl` capture;
+later launches reuse the remembered private source. See
+[saved-data startup](docs/first-run.md#open-saved-es-or-nq-data) for capture
+selection, launch commands and the fresh-setup requirement.
 
 Choose **Wind Tunnel** in the starter for browser research, or **Both** to
 open it alongside the terminal. Both manages their lifetime together: quitting

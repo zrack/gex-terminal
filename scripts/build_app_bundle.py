@@ -41,6 +41,7 @@ def build_bundle(wheel: Path, output: Path, source_commit: str,
         if "gex_terminal/cli.py" not in archive.namelist():
             raise ValueError("Wheel is missing the GEX application")
         has_wind_tunnel = "gex_terminal/wind_tunnel_cli.py" in archive.namelist()
+        has_saved_data = has_wind_tunnel and "gex_terminal/saved_workspace.py" in archive.namelist()
     dependencies: list[Path] = []
     if wheelhouse is not None:
         if wheelhouse.is_symlink() or not wheelhouse.is_dir():
@@ -113,6 +114,11 @@ if [ -t 0 ] && [ -t 1 ]; then
     wind_note = (
         "CHOOSE YOUR WORKSPACE\n"
         "Interactive setup and GEX App/Start GEX.command offer 1 Terminal, 2 Wind Tunnel, 3 Both, q Cancel.\n"
+        + ("Choose 4 Saved data — Both, then ES or NQ, to use an existing normalized capture without provider requests or credits.\n"
+           "First use asks for a completed *.gex-session.jsonl file; later launches remember a private frozen copy.\n"
+           "Wind Tunnel opens its final checkpoint while Terminal replays the same capture at 60x.\n"
+           "Direct saved launch: GEX App/run-gex --saved-data ES (or NQ).\n"
+           if has_saved_data else "") +
         "On Linux, run GEX App/run-gex --choose in a terminal.\n"
         "Both opens Terminal and the browser workbench in one managed session.\n"
         "Quitting Terminal, Control-C or closing its launch window stops that session's Wind Tunnel too.\n"

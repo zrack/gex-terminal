@@ -31,12 +31,29 @@ OWNER = ".gex-owner.json"
 RECEIPT = "installation.json"
 SCHEMA = "gex-terminal.local-install.v1"
 SESSION = "zero-gamma-flip"
+SAVED_DATA = "saved-data.json"
+SAVED_SCHEMA = "gex-terminal.starter-saved-data.v1"
 LAUNCH_FILES = ("launcher.py", "run-gex", "Start GEX.command")
 WIND_LAUNCH_FILES = ("run-wind-tunnel", "Start Wind Tunnel.command")
 STARTER_LAUNCH_FILES = ("Start Terminal.command",)
 BOOTSTRAP = (
     "import os,runpy,sys; import gex_terminal.config; "
     "os.chdir(sys.argv.pop(1)); runpy.run_module('gex_terminal.cli',run_name='__main__')"
+)
+SAVED_BOOTSTRAP = (
+    "import os,runpy,sys; "
+    "from gex_terminal.saved_workspace import restrict_network_to_loopback; "
+    "restrict_network_to_loopback(); "
+    "os.environ['GEX_RISK_FREE_RATE']=sys.argv.pop(1); "
+    "os.environ['GEX_DAYS_TO_EXPIRY']=sys.argv.pop(1); "
+    "import gex_terminal.config; "
+    "os.chdir(sys.argv.pop(1)); runpy.run_module('gex_terminal.cli',run_name='__main__')"
+)
+SAVED_PREPARE = (
+    "import json,sys; from pathlib import Path; "
+    "from gex_terminal.saved_workspace import prepare_saved_workspace,restrict_network_to_loopback; "
+    "restrict_network_to_loopback(); "
+    "print(json.dumps(prepare_saved_workspace(Path(sys.argv[1]),sys.argv[2],Path(sys.argv[3]))))"
 )
 
 
@@ -345,7 +362,7 @@ def install(wheel: Path, expected_sha256: str, source_commit: str, target: Path,
     return {**receipt, "reused": False}
 
 
-def choose_action(wind_tunnel: bool) -> str | None:
+def choose_action(wind_tunnel: bool, *, saved_data: bool = False) -> str | None:
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         raise ValueError("The starter needs an interactive terminal. Use run-gex for Terminal, "
                          "run-wind-tunnel for Wind Tunnel, or run-gex --both in a terminal.")
@@ -353,12 +370,16 @@ def choose_action(wind_tunnel: bool) -> str | None:
     if wind_tunnel:
         print("  2  Market Wind Tunnel\n  3  Both\n", flush=True)
         print("Both opens two independent views. Quitting Terminal stops that Wind Tunnel session.")
+        if saved_data:
+            print("  4  Saved data (ES / NQ) — Both · no provider requests\n", flush=True)
     else:
         print("\nThis installed version supports Terminal only.")
     print("  q or Return  Cancel\n", flush=True)
     choices = {"1": "terminal", "q": None, "": None}
     if wind_tunnel:
         choices.update({"2": "wind", "3": "both"})
+        if saved_data:
+            choices["4"] = "saved"
     while True:
         try:
             answer = input("Choose an option: ").strip().lower()
@@ -367,7 +388,63 @@ def choose_action(wind_tunnel: bool) -> str | None:
             return None
         if answer in choices:
             return choices[answer]
-        print("Choose 1, 2, 3 or q." if wind_tunnel else "Choose 1 or q.", flush=True)
+        print("Choose one of the displayed options or q.", flush=True)
+
+
+def choose_saved_symbol() -> str | None:
+    print("\nSaved data — Terminal + Wind Tunnel\n  1  ES\n  2  NQ\n  q or Return  Cancel\n")
+    while True:
+        try:
+            answer = input("Choose ES or NQ: ").strip().upper()
+        except (EOFError, KeyboardInterrupt):
+            return None
+        if answer in {"", "Q"}:
+            return None
+        if answer in {"1", "ES", "2", "NQ"}:
+            return "ES" if answer in {"1", "ES"} else "NQ"
+        print("Choose ES, NQ or q.", flush=True)
+
+
+def saved_sources(research: Path) -> dict:
+    path = research / SAVED_DATA
+    if not path.exists() and not path.is_symlink():
+        return {"schema": SAVED_SCHEMA, "sessions": {}}
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 16384:
+        raise ValueError("Saved-data settings must be an ordinary bounded local file.")
+    record = read_json(path)
+    sessions = record.get("sessions")
+    if record.get("schema") != SAVED_SCHEMA or not isinstance(sessions, dict) or set(sessions) - {"ES", "NQ"}:
+        raise ValueError("Invalid saved-data settings. Register a capture in a new research folder.")
+    for item in sessions.values():
+        if (not isinstance(item, dict) or set(item) != {"capture_path", "capture_sha256"}
+                or not isinstance(item["capture_path"], str) or not Path(item["capture_path"]).is_absolute()
+                or not isinstance(item["capture_sha256"], str)
+                or not re.fullmatch(r"[a-f0-9]{64}", item["capture_sha256"])):
+            raise ValueError("Invalid saved-data source. Register a capture in a new research folder.")
+    return record
+
+
+def prepare_saved_data(environment: Path, research: Path, capture: Path, symbol: str,
+                       scratch: Path, *, expected_sha256: str | None = None) -> dict:
+    parent = research / "saved-data"
+    if parent.is_symlink() or (parent.exists() and not parent.is_dir()):
+        raise ValueError("Saved-data storage must be an ordinary research folder.")
+    parent.mkdir(mode=0o700, exist_ok=True)
+    destination = parent / f"{symbol.lower()}-{uuid.uuid4().hex}"
+    print(f"Checking saved {symbol} data and preparing its frozen checkpoint. No provider requests.", flush=True)
+    plan = json.loads(run([str(environment / "bin" / "python"), "-I", "-c", SAVED_PREPARE,
+                           str(capture.expanduser().absolute()), symbol, str(destination)],
+                          cwd=scratch, stage="Saved-data preparation"))
+    if expected_sha256 is not None and plan["capture_sha256"] != expected_sha256:
+        raise ValueError("Remembered saved data changed. Register the intended capture again; nothing was launched.")
+    return plan
+
+
+def remember_saved_data(research: Path, plan: dict) -> None:
+    record = saved_sources(research)
+    record["sessions"][plan["symbol"]] = {key: plan[key] for key in ("capture_path", "capture_sha256")}
+    atomic_write(research / SAVED_DATA, (json.dumps(record, indent=2) + "\n").encode())
+    (research / SAVED_DATA).chmod(0o600)
 
 
 def stop_child(process: subprocess.Popen | None) -> None:
@@ -407,7 +484,8 @@ def open_browser(url: str) -> bool:
 
 
 def run_both(command: list[str], wind_command: list[str], *, cwd: Path,
-             no_browser: bool = False, startup_timeout: float = 20.0) -> int:
+             no_browser: bool = False, startup_timeout: float = 20.0,
+             source_note: str | None = None) -> int:
     """Own two children for one launch session, keeping server output off the TUI."""
     wind = terminal = None
     previous_handlers = {}
@@ -458,7 +536,7 @@ def run_both(command: list[str], wind_command: list[str], *, cwd: Path,
                         url = ready_url
                         print("Wind Tunnel is ready locally.\n" + url, flush=True)
                         print("Opening Terminal. Quit Terminal to stop this combined session.\n"
-                              "The two views have independent replay and scenario selections.", flush=True)
+                              + (source_note or "The two views have independent replay and scenario selections."), flush=True)
                         if not no_browser:
                             browser_opened = open_browser(url)
                             if interrupted is not None:
@@ -500,7 +578,9 @@ def run_both(command: list[str], wind_command: list[str], *, cwd: Path,
 
 def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
            export: Path | None = None, session: str = SESSION, wind_tunnel: bool = False,
-           choose: bool = False, both: bool = False, no_browser: bool = False) -> int:
+           choose: bool = False, both: bool = False, no_browser: bool = False,
+           saved_data: str | None = None, captured_session: Path | None = None,
+           register_saved_data: str | None = None) -> int:
     receipt = owned_target(target)
     if not receipt:
         raise ValueError("No completed application installation exists here. Run Install first.")
@@ -509,13 +589,28 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
     if research.is_symlink() or not research.is_dir():
         raise ValueError("Research folder is unavailable. Restore its location before starting GEX.")
     has_wind_tunnel = "gex_terminal/wind_tunnel_cli.py" in receipt["active"]["payload_sha256"]
+    has_saved_data = has_wind_tunnel and "gex_terminal/saved_workspace.py" in receipt["active"]["payload_sha256"]
+    if captured_session is not None and not (saved_data or register_saved_data or choose):
+        raise ValueError("Use --captured-session with --saved-data or --register-saved-data.")
+    if (saved_data or register_saved_data) and not has_saved_data:
+        raise ValueError("This installation has no saved-data starter. Install a new reviewed setup folder; no synthetic fallback was started.")
+    if saved_data not in {None, "ES", "NQ"} or register_saved_data not in {None, "ES", "NQ"}:
+        raise ValueError("Saved-data starter supports ES or NQ.")
     if choose:
-        choice = choose_action(has_wind_tunnel)
+        choice = choose_action(has_wind_tunnel, saved_data=has_saved_data)
         if choice is None:
             return 0
+        if captured_session is not None and choice != "saved":
+            raise ValueError("A supplied capture requires Saved data — Both; no synthetic workspace was started.")
+        if choice == "saved":
+            saved_data = choose_saved_symbol()
+            if saved_data is None:
+                return 0
         wind_tunnel, both = choice == "wind", choice == "both"
-        if choice in {"terminal", "both"}:
+        if choice in {"terminal", "both", "saved"}:
             print("\033[8;40;120t", end="", flush=True)
+    if saved_data:
+        both = True
     if wind_tunnel or both:
         if not has_wind_tunnel:
             raise ValueError("This installed version has no Wind Tunnel. Install a reviewed 0.6.0 or later bundle.")
@@ -530,7 +625,53 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
     # Import config in a newly created directory before entering research, so
     # neither a caller nor research .env can change this offline launcher.
     with tempfile.TemporaryDirectory(prefix="gex-launch-") as directory:
-        verify_payload(environment, receipt["active"]["payload_sha256"], Path(directory))
+        scratch = Path(directory)
+        verify_payload(environment, receipt["active"]["payload_sha256"], scratch)
+        if saved_data or register_saved_data:
+            symbol = saved_data or register_saved_data
+            record = saved_sources(research)
+            remembered = record["sessions"].get(symbol)
+            expected = None
+            if captured_session is None:
+                if register_saved_data:
+                    raise ValueError("Registration needs --captured-session PATH to a completed normalized capture.")
+                if remembered:
+                    captured_session = Path(remembered["capture_path"])
+                    expected = remembered["capture_sha256"]
+                else:
+                    print(f"No saved {symbol} capture is registered. Paste the path to a completed *.gex-session.jsonl file.")
+                    print("Use a normalized capture already on this computer, not a raw provider download. Return cancels.")
+                    try:
+                        answer = input("Capture path: ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        return 0
+                    if not answer:
+                        return 0
+                    if len(answer) > 1 and answer[0] == answer[-1] and answer[0] in {"'", '"'}:
+                        answer = answer[1:-1]
+                    captured_session = Path(answer)
+            plan = prepare_saved_data(environment, research, captured_session, symbol, scratch,
+                                      expected_sha256=expected)
+            # Remember the first checked frozen source, not each subsequent launch copy.
+            if expected is None:
+                remember_saved_data(research, plan)
+            print(f"Saved {symbol}: multiplier {plan['contract_multiplier']}, configured rate "
+                  f"{plan['risk_free_rate']:.2%}, fallback DTE {plan['fallback_dte']:g} days.", flush=True)
+            if plan.get("assumptions"):
+                print("Assumption sources: " + json.dumps(plan["assumptions"], sort_keys=True), flush=True)
+            if register_saved_data:
+                print(f"Registered saved {symbol}. Start with run-gex --saved-data {symbol}.", flush=True)
+                return 0
+            command = [str(environment / "bin" / "python"), "-I", "-c", SAVED_BOOTSTRAP,
+                       str(plan["risk_free_rate"]), str(plan["fallback_dte"]), str(research)]
+            saved_wind = ["wind-tunnel", "serve", "--checkpoint", plan["checkpoint_path"],
+                          "--port", "0", "--workspace", str(Path(plan["checkpoint_path"]).parent / "wind-tunnel"),
+                          "--no-browser"]
+            return run_both([*command, *plan["terminal_args"]], [*command, *saved_wind],
+                            cwd=scratch, no_browser=no_browser,
+                            source_note="Saved data only: zero provider requests or credits. Wind Tunnel opens the final frozen "
+                            "checkpoint; Terminal replays the same capture at 60x. After replay completes, their source inputs "
+                            "match. Later source and scenario selections remain independent.")
         command = [str(environment / "bin" / "python"), "-I", "-c", BOOTSTRAP, str(research)]
         if both:
             return run_both([*command, *args], [*command, *wind_args, "--no-browser"],
@@ -559,13 +700,18 @@ def main() -> int:
     mode.add_argument("--wind-tunnel", action="store_true", help="Open the offline Market Wind Tunnel in your browser")
     mode.add_argument("--choose", action="store_true", help="Choose Terminal, Wind Tunnel or Both interactively")
     mode.add_argument("--both", action="store_true", help="Run Terminal and Wind Tunnel in one managed session")
+    mode.add_argument("--saved-data", choices=("ES", "NQ"), help="Open Terminal and Wind Tunnel together from a saved normalized capture; no provider requests")
+    mode.add_argument("--register-saved-data", choices=("ES", "NQ"), help="Check and remember a local capture without launching either interface")
+    parser.add_argument("--captured-session", type=Path, help="Completed local *.gex-session.jsonl for saved-data registration or launch")
     parser.add_argument("--no-browser", action="store_true", help="Print the Wind Tunnel URL without opening a browser")
     args = parser.parse_args()
     try:
         if args.launch:
             return launch(args.target, doctor=args.doctor, list_replays=args.list_replays,
                           export=args.export, session=args.session, wind_tunnel=args.wind_tunnel,
-                          choose=args.choose, both=args.both, no_browser=args.no_browser)
+                          choose=args.choose, both=args.both, no_browser=args.no_browser,
+                          saved_data=args.saved_data, register_saved_data=args.register_saved_data,
+                          captured_session=args.captured_session)
         if not all((args.wheel, args.sha256, args.source_commit)):
             parser.error("installation requires --wheel, --sha256 and --source-commit")
         receipt = install(args.wheel, args.sha256, args.source_commit, args.target,

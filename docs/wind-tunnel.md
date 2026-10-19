@@ -19,8 +19,9 @@ See [model assumptions](model-assumptions.md).
 ## Open The Workbench
 
 In a fresh setup folder with the unified starter, open **Start GEX.command**
-on macOS or run **`run-gex --choose`** on Linux, then choose **Wind Tunnel** or
-**Both**. The direct **Start Wind Tunnel.command** / **run-wind-tunnel** shortcuts
+on macOS or run **`run-gex --choose`** on Linux, then choose **Wind Tunnel**,
+**Both**, or **Saved data — Both** for an existing ES/NQ capture.
+The direct **Start Wind Tunnel.command** / **run-wind-tunnel** shortcuts
 also remain available, including in the original 0.6.0 setup.
 [First Run](first-run.md#choose-terminal-wind-tunnel-or-both) owns the shortcut
 and update details. Manual wheel installations use:
@@ -32,8 +33,9 @@ gex-terminal wind-tunnel
 The direct command opens your browser. Keep its launcher window open; Control-C
 stops the local server. In **Both**, quitting the terminal also stops the server
 that combined session started. Closing a browser tab closes only the view.
-The terminal and browser keep independent source selections and research state;
-launching both does not transfer a checkpoint. Press `w` in Terminal to make
+The terminal and browser keep independent source selections and research state.
+Ordinary **Both** opens independent synthetic sources; **Saved data — Both**
+initializes both views from one private capture. Press `w` in Terminal to make
 an explicit frozen handoff into a separately owned Wind Tunnel session.
 No provider account, live data, CDN or telemetry is involved.
 The browser connects only to a Python process on this computer. The launcher
@@ -53,6 +55,20 @@ fragment, when reopening the app. Its random capability grants access to this
 local session. Restarting creates a new capability. Saved receipts exclude it.
 
 ## Explore A Scenario
+
+### Open Saved ES Or NQ Data In Both Views
+
+Choose **Saved data — Both** in a fresh reviewed starter, then select ES or NQ.
+The starter validates a completed normalized capture, remembers a private frozen
+source and reconstructs its final checkpoint through the installed application.
+[First Run](first-run.md#open-saved-es-or-nq-data) owns capture selection,
+registration/reuse commands, inherited assumptions and missing-value defaults.
+
+Wind Tunnel opens that final checkpoint immediately while Terminal replays the
+capture at 60× speed. Let Terminal reach the endpoint before comparing values.
+Unavailable IV and raw quantities are preserved, with excluded exposure shown
+in pricing coverage. Subsequent source selections and scenarios are independent.
+This path uses no provider requests or credits.
 
 ### Stress A Terminal Checkpoint
 

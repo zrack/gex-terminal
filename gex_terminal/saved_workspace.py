@@ -1,0 +1,216 @@
+"""Prepare a bounded local capture for a paired, offline research workspace.
+
+The private copy and frozen final checkpoint are derived from the same verified
+bytes. Nothing in this module downloads market data or selects a live adapter.
+"""
+from __future__ import annotations
+
+import argparse
+import asyncio
+import hashlib
+import ipaddress
+import json
+import math
+import os
+from pathlib import Path
+import shutil
+import socket
+import stat
+import sys
+
+from .adapters.replay import ReplayAdapter
+from .config import GexConfig
+from .consumer import StatefulGexConsumer
+from .contracts import parse_market_datetime
+from .engine import IntradayGexEngine
+from .session_capture import verify_captured_session_bytes
+from .wind_tunnel_checkpoint import build_terminal_checkpoint, write_checkpoint
+
+
+MAX_CAPTURE_BYTES = 4 * 1024 * 1024
+MAX_CAPTURE_EVENTS = 5000
+MULTIPLIERS = {"ES": 50, "NQ": 20}
+
+
+def restrict_network_to_loopback() -> None:
+    """Block remote DNS and IP traffic in this process and its Python threads.
+
+    Install in each child process before loading the application. Local browser
+    services and Unix sockets remain available; no global machine setting changes.
+    """
+    def loopback(host) -> bool:
+        if isinstance(host, bytes):
+            try:
+                host = host.decode("ascii")
+            except UnicodeError:
+                return False
+        if not isinstance(host, str):
+            return False
+        if host.lower() in {"localhost", "localhost."}:
+            return True
+        try:
+            return ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            return False
+
+    def audit(event, arguments):
+        if event in {"socket.getaddrinfo", "socket.gethostbyname", "socket.gethostbyaddr"}:
+            host = arguments[0]
+            # None requests local bind addresses, not remote name resolution.
+            if host is not None and not loopback(host):
+                raise PermissionError("Saved-data mode permits loopback networking only.")
+        elif event == "socket.getnameinfo":
+            if not loopback(arguments[0][0]):
+                raise PermissionError("Saved-data mode permits loopback networking only.")
+        elif event in {"socket.connect", "socket.sendto"}:
+            connection = arguments[0]
+            address = arguments[-1]
+            if connection.family in {socket.AF_INET, socket.AF_INET6} and (
+                not isinstance(address, tuple) or not address or not loopback(address[0])
+            ):
+                raise PermissionError("Saved-data mode permits loopback networking only.")
+
+    sys.addaudithook(audit)
+
+
+def _read_capture(path: Path) -> bytes:
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_CAPTURE_BYTES:
+            raise ValueError("Saved data must be a nonempty regular capture no larger than 4 MiB.")
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            data = stream.read(MAX_CAPTURE_BYTES + 1)
+        if not data or len(data) > MAX_CAPTURE_BYTES:
+            raise ValueError("Saved capture exceeds the 4 MiB input limit.")
+        return data
+    finally:
+        os.close(descriptor)
+
+
+def _assumptions(inputs: dict, symbol: str) -> tuple[dict, dict]:
+    defaults = {"contract_multiplier": MULTIPLIERS[symbol], "risk_free_rate": .045,
+                "days_to_expiry": .25}
+    values, sources = {}, {}
+    for name, default in defaults.items():
+        value = inputs.get(name, default)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError(f"Captured {name} must be a finite number.")
+        if name == "contract_multiplier":
+            if type(value) is not int or not 1 <= value <= 10**9:
+                raise ValueError("Captured contract_multiplier must be a positive integer no larger than 1000000000.")
+        elif name == "risk_free_rate" and not -.1 <= value <= 1:
+            raise ValueError("Captured risk_free_rate must be between -0.1 and 1.")
+        elif name == "days_to_expiry" and not .000001 <= value <= 30:
+            raise ValueError("Captured days_to_expiry must be between 0.000001 and 30.")
+        values[name] = value
+        sources[name] = "capture" if name in inputs else "default"
+    supplied_filter = inputs.get("expiry_filter", "all")
+    if not isinstance(supplied_filter, str):
+        raise ValueError("Captured expiry_filter must be text.")
+    if inputs.get("symbol", symbol) != symbol:
+        raise ValueError("Captured model symbol does not match the selected symbol.")
+    return values, {"sources": sources, "defaults_applied": [key for key in sources if sources[key] == "default"],
+                    "captured_expiry_filter": supplied_filter, "effective_expiry_filter": "all"}
+
+
+async def _checkpoint(config: GexConfig, content_hash: str) -> dict:
+    consumer = StatefulGexConsumer(
+        IntradayGexEngine(config.contract_multiplier), target_underlying=config.symbol,
+        risk_free_rate=config.risk_free_rate, data_mode="replay", expiry_filter="all",
+    )
+    replay = ReplayAdapter(consumer, config.replay_path, delay_seconds=0, replay_clock="none")
+    await replay.stream_market_data()
+    if consumer.malformed_message_count:
+        raise ValueError("Saved capture contains conflicting contract state.")
+    return await build_terminal_checkpoint(
+        consumer, fallback_dte=config.days_to_expiry,
+        source_label=f"Saved {config.symbol} capture {content_hash[:16]} · final event",
+    )
+
+
+def prepare_saved_workspace(capture: Path, symbol: str, destination: Path) -> dict:
+    """Freeze one verified ES/NQ capture and its final offline checkpoint.
+
+    Missing numeric assumptions receive recorded defaults. An invalid supplied
+    assumption is never replaced with a default. Destination must be new.
+    """
+    if symbol not in MULTIPLIERS:
+        raise ValueError("Choose ES or NQ for the saved-data workspace.")
+    data = _read_capture(Path(capture))
+    header, footer, events = verify_captured_session_bytes(
+        data, max_bytes=MAX_CAPTURE_BYTES, max_events=MAX_CAPTURE_EVENTS,
+    )
+    if header.get("normalized_contract") != "gex-terminal.normalized-message":
+        raise ValueError("Saved capture declares an unsupported normalized message contract.")
+    source, inputs = header.get("source"), header.get("model_inputs")
+    if not isinstance(source, dict) or source.get("symbol") != symbol:
+        raise ValueError("Saved capture source symbol does not match the selected symbol.")
+    if not isinstance(inputs, dict):
+        raise ValueError("Saved capture model_inputs must be an object.")
+    if not events or not any(event["message"]["type"] == "underlying_tick" for event in events):
+        raise ValueError("Saved capture requires underlying market events.")
+    if type(footer.get("event_count")) is not int or any(type(event.get("sequence")) is not int for event in events):
+        raise ValueError("Saved capture event counts and sequences must be integers.")
+    for event in events:
+        message = event["message"]
+        if message.get("symbol") != symbol:
+            raise ValueError("Saved capture contains events for another or missing symbol.")
+        event_time = parse_market_datetime(message.get("event_time") or message.get("timestamp"))
+        if (event_time is None or event.get("time_source") == "received_time"
+                or parse_market_datetime(event.get("event_time")) != event_time):
+            raise ValueError("Saved capture requires matching authoritative message and envelope event times.")
+    values, assumptions = _assumptions(inputs, symbol)
+    destination = Path(destination).absolute()
+    destination.mkdir(mode=0o700, exist_ok=False)
+    try:
+        frozen = destination / "capture.gex-session.jsonl"
+        descriptor = os.open(frozen, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        frozen.chmod(0o400)
+        config = GexConfig(
+            symbol=symbol, symbols=(symbol,), data_mode="replay", data_provider="replay",
+            contract_multiplier=values["contract_multiplier"], risk_free_rate=values["risk_free_rate"],
+            days_to_expiry=values["days_to_expiry"], refresh_interval_seconds=.5,
+            stale_after_seconds=10, replay_path=str(frozen), replay_delay_seconds=0,
+            tradovate_environment="demo", expiry_filter="all", replay_clock="event", replay_speed=60,
+        )
+        capture_hash = hashlib.sha256(data).hexdigest()
+        checkpoint = asyncio.run(_checkpoint(config, capture_hash))
+        checkpoint_path = destination / "checkpoint.json"
+        write_checkpoint(checkpoint_path, checkpoint)
+        return {
+            "capture_path": str(frozen), "checkpoint_path": str(checkpoint_path), "symbol": symbol,
+            "contract_multiplier": values["contract_multiplier"], "risk_free_rate": values["risk_free_rate"],
+            "fallback_dte": values["days_to_expiry"], "capture_sha256": capture_hash,
+            "capture_content_sha256": footer["content_sha256"], "assumptions": assumptions,
+            "terminal_args": ["--mode", "replay", "--captured-session", str(frozen), "--symbol", symbol,
+                              "--multiplier", str(values["contract_multiplier"]), "--expiry-filter", "all",
+                              "--replay-clock", "event", "--replay-speed", "60", "--refresh", "0.5"],
+        }
+    except BaseException:
+        shutil.rmtree(destination)
+        raise
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("capture", type=Path)
+    parser.add_argument("symbol", choices=tuple(MULTIPLIERS))
+    parser.add_argument("destination", type=Path)
+    args = parser.parse_args(argv)
+    restrict_network_to_loopback()
+    try:
+        result = prepare_saved_workspace(args.capture, args.symbol, args.destination)
+    except (OSError, ValueError, TypeError, OverflowError, RecursionError) as exc:
+        print(f"Saved-data setup: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, sort_keys=True, allow_nan=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
