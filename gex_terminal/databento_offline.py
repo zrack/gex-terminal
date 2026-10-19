@@ -142,7 +142,7 @@ async def replay_databento_records(
         and adapter._definition_count
         and adapter._underlying_quote_count
         and adapter._option_trade_count
-        and adapter._inverted_iv_count
+        and (adapter._inverted_iv_count + adapter._american_inverted_iv_count)
         and adapter._iv_fallback_count == 0
         and timing_failures == 0
         and adapter._dropped_underlying_mismatch_count == 0
@@ -164,7 +164,10 @@ async def replay_databento_records(
             "open_interest_deletions": adapter._open_interest_delete_count,
             "current_open_interest_states": adapter.diagnostics()["open_interest"]["current_observations"],
             "control_or_dropped_records": control_records,
-            "inverted_iv_ticks": adapter._inverted_iv_count,
+            "inverted_iv_ticks": adapter._inverted_iv_count + adapter._american_inverted_iv_count,
+            "american_futures_inverted_iv_ticks": adapter._american_inverted_iv_count,
+            "retained_prior_iv_ticks": adapter._retained_iv_count,
+            "unavailable_iv_ticks": adapter._unavailable_iv_count,
             "fallback_iv_ticks": adapter._iv_fallback_count,
         },
         "temporal_integrity": {

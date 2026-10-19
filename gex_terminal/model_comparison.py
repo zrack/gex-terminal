@@ -152,6 +152,8 @@ def build_model_comparison_report(snapshot: Mapping[str, Any]) -> dict[str, Any]
             "parallel raw-versus-directional trade-volume proxy comparison only; "
             "not dealer inventory, prediction, execution, or profitability evidence"
         ),
+        **({key: snapshot["model"][key] for key in ("pricing_coverage", "pricing_assumptions")
+            if key in snapshot["model"]} if "pricing_coverage" in snapshot.get("model", {}) else {}),
     }
 
 
@@ -177,6 +179,9 @@ def model_comparison_to_csv(report: Mapping[str, Any]) -> str:
         writer.writerow({"record_type": "strike", **row})
     for name, value in report.get("limitations", {}).items():
         writer.writerow({"record_type": "limitation", "name": name, "value": value})
+    for key in ("pricing_coverage", "pricing_assumptions"):
+        if key in report:
+            writer.writerow({"record_type": "model", "name": key, "value": json.dumps(report[key], sort_keys=True)})
     return output.getvalue()
 
 
@@ -198,6 +203,14 @@ def model_comparison_to_markdown(report: Mapping[str, Any]) -> str:
         "- Live provider certified: `false`",
         "- Models may be summed: `false`",
     ]
+    coverage = report.get("pricing_coverage")
+    if coverage:
+        lines.extend([f"- Priced selected quantity: `{coverage['priced_quantity']}/{coverage['selected_quantity']}`",
+                      f"- Unpriced selected quantity: `{coverage['unpriced_quantity']}`",
+                      f"- Contracts using earlier valid IV: `{coverage['retained_iv_contract_count']}`",
+                      "- Unavailable IV quantities remain captured and are excluded from both exposure views."])
+        if report.get("pricing_assumptions"):
+            lines.extend(["", report["pricing_assumptions"]["summary"]])
     if alternate["status"] == "available":
         lines.extend([
             "",

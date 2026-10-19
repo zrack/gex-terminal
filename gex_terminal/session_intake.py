@@ -18,6 +18,7 @@ from typing import Any
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.contracts import parse_market_datetime
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.pricing_assumptions import IV_PROVENANCE_FIELDS
 from gex_terminal.session_capture import CaptureIntegrityError, NORMALIZED_CONTRACT, verify_captured_session_bytes
 from gex_terminal.wind_tunnel_checkpoint import build_terminal_checkpoint, checkpoint_transport
 
@@ -37,7 +38,7 @@ _MESSAGE_FIELDS = {
     "sequence", "provider_trade_event_id", "iv_provenance",
     "exercise_style", "exercise_style_source", "provider_cfi",
 }
-_IV_FIELDS = {
+_IV_FIELDS = IV_PROVENANCE_FIELDS | {
     "method", "status", "option_price", "option_price_source", "underlying_price",
     "underlying_price_source", "underlying_price_age_ms", "maximum_underlying_age_ms", "risk_free_rate",
     "time_to_expiry_years", "iterations", "absolute_price_error",
@@ -101,6 +102,7 @@ def _safe_message(message: dict[str, Any]) -> dict[str, Any]:
     result = {key: value for key, value in message.items() if key in _MESSAGE_FIELDS}
     if isinstance(result.get("iv_provenance"), dict):
         result["iv_provenance"] = {key: value for key, value in result["iv_provenance"].items() if key in _IV_FIELDS}
+        result["iv_provenance"].pop("underlying_instrument_id", None)
     # Provider namespace has identity meaning, so an unknown namespace gets a
     # deterministic opaque alias rather than being collapsed into one provider.
     provider = result.get("provider")
@@ -184,6 +186,7 @@ class SessionIntake:
         if versions == {1}:
             warnings.append("Legacy option events use strike aggregates, Black-Scholes, and fallback DTE where needed.")
         fallback_count = 0
+        unavailable_count = prior_count = 0
         safe_messages, choices = [], []
         retained_bytes = 0
         latest = None
@@ -202,7 +205,11 @@ class SessionIntake:
             first_time = first_time or event_time
             out_of_order = out_of_order or (latest is not None and event_time < latest)
             latest = max(latest, event_time) if latest is not None else event_time
-            if message.get("iv_source") == "configured_default" or (message["type"] == "options_volume_tick" and message.get("iv") in (None, "")):
+            if message.get("iv_source") == "unavailable":
+                unavailable_count += 1
+            elif message.get("iv_source") == "prior_valid":
+                prior_count += 1
+            elif message.get("iv_source") == "configured_default" or (message["type"] == "options_volume_tick" and message.get("iv") in (None, "")):
                 fallback_count += 1
             encoded = json.dumps(_safe_message(message), sort_keys=True, separators=(",", ":"), allow_nan=False)
             retained_bytes += len(encoded.encode("utf-8"))
@@ -214,6 +221,10 @@ class SessionIntake:
                                 "as_of": latest.isoformat().replace("+00:00", "Z"), "event_type": message["type"]})
         if fallback_count:
             warnings.append(f"{fallback_count} option event(s) use fallback IV; inspect the checkpoint quality before interpreting it.")
+        if prior_count:
+            warnings.append(f"{prior_count} option event(s) retain a labeled earlier valid IV for the same contract; inspect its age and failed observation.")
+        if unavailable_count:
+            warnings.append(f"{unavailable_count} option event(s) have unavailable IV; raw quantities remain captured and their unpriced exposure is excluded.")
         if out_of_order:
             warnings.append("Events arrive out of market-time order; each checkpoint cutoff is the latest included market time.")
         synthetic = source.get("synthetic") is True or source.get("source_kind") == "synthetic_fixture"

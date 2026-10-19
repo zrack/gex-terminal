@@ -20,6 +20,7 @@ from gex_terminal.contracts import (
     VOLUME_SEMANTICS,
     expiry_date,
     exercise_style_from_cfi,
+    market_timestamp_order_key,
     pricing_model_for_instrument,
     parse_market_datetime,
 )
@@ -187,7 +188,6 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
             "instrument_class",
             "volume_semantics",
             "position_source",
-            "iv",
             "iv_source",
             "event_time",
         ),
@@ -243,7 +243,46 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
     iv_source = str(message["iv_source"]).lower()
     if iv_source not in IV_SOURCES:
         raise ValueError(f"Unsupported iv_source: {message['iv_source']}")
-    if iv_source == "black_76_inverted":
+    if iv_source == "unavailable":
+        if "iv" not in message or message["iv"] is not None:
+            raise ValueError("unavailable IV must be explicitly null")
+        provenance = message.get("iv_provenance")
+        if not isinstance(provenance, dict) or not provenance.get("status") or provenance["status"] == "converged":
+            raise ValueError("unavailable IV requires a failed or missing-observation status")
+    else:
+        _require_fields(message, ("iv",))
+        _require_positive_number(message, "iv")
+    if iv_source == "prior_valid":
+        provenance = message.get("iv_provenance")
+        if not isinstance(provenance, dict):
+            raise ValueError("prior_valid IV requires observation provenance")
+        _require_fields(provenance, ("prior_iv_event_time", "prior_iv_source", "prior_iv",
+                                    "prior_iv_age_ms", "maximum_prior_iv_age_ms",
+                                    "prior_iv_pricing_model", "status", "failed_inversion_status"))
+        if (provenance["failed_inversion_status"] == "converged"
+                or provenance["status"] != provenance["failed_inversion_status"]):
+            raise ValueError("Retained IV requires a consistent failed current inversion status")
+        _require_aware_timestamp(provenance, "prior_iv_event_time")
+        previous = market_timestamp_order_key(provenance["prior_iv_event_time"])
+        current = market_timestamp_order_key(message.get("event_time"))
+        if previous is None or current is None or previous >= current:
+            raise ValueError("Retained IV must come from an earlier observation")
+        if provenance["prior_iv_source"] not in {"provider", "black_76_inverted", "american_futures_inverted"}:
+            raise ValueError("Retained IV requires an observed source, not another retained/default IV")
+        _require_positive_number(provenance, "prior_iv")
+        if float(provenance["prior_iv"]) != float(message["iv"]):
+            raise ValueError("Retained IV differs from its observed value")
+        age = float(provenance["prior_iv_age_ms"])
+        maximum = float(provenance["maximum_prior_iv_age_ms"])
+        exact_age = ((current[0] - previous[0]).total_seconds() * 1000
+                     + (current[1] - previous[1]) / 1e6)
+        if (not math.isfinite(age) or not math.isfinite(maximum) or not 0 < maximum <= 300000
+                or age <= 0 or age > maximum or abs(age - exact_age) > .001):
+            raise ValueError("Retained IV age is inconsistent or outside its declared limit")
+        selected_model = str(message.get("pricing_model") or "black_76").lower()
+        if provenance["prior_iv_pricing_model"] != selected_model:
+            raise ValueError("Retained IV pricing model changed")
+    if iv_source in {"black_76_inverted", "american_futures_inverted"}:
         provenance = message.get("iv_provenance")
         if not isinstance(provenance, dict):
             raise ValueError("black_76_inverted IV requires iv_provenance")
@@ -264,7 +303,9 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
                 "absolute_price_error",
             ),
         )
-        if provenance["method"] != "black_76_bisection":
+        expected_method = ("american_futures_crr_bisection" if iv_source == "american_futures_inverted"
+                           else "black_76_bisection")
+        if provenance["method"] != expected_method:
             raise ValueError("Unsupported IV inversion method")
         if provenance["status"] != "converged":
             raise ValueError("black_76_inverted IV requires converged provenance")
@@ -297,11 +338,17 @@ def _validate_v2_option_contract(message: NormalizedMessage) -> None:
     if pricing_model not in PRICING_MODELS:
         raise ValueError(f"Unsupported pricing_model: {pricing_model}")
     expected_model = pricing_model_for_instrument(instrument_class)
-    if pricing_model != expected_model:
+    is_american_model = (pricing_model == "american_futures_crr"
+                         and instrument_class == "futures_option" and style == "american")
+    if pricing_model != expected_model and not is_american_model:
         raise ValueError(
             f"pricing_model {pricing_model} conflicts with {instrument_class}; "
             f"expected {expected_model}"
         )
+    if iv_source == "american_futures_inverted" and not is_american_model:
+        raise ValueError("American inverted IV requires the American futures pricing model")
+    if iv_source == "black_76_inverted" and pricing_model != "black_76":
+        raise ValueError("Black-76 inverted IV requires the Black-76 pricing model")
 
     if expiry_date(message["expiry"]) is None:
         raise ValueError("expiry must be an ISO-8601 date or timestamp")

@@ -161,6 +161,7 @@ def position_model_comparison_to_markdown(report: Mapping[str, Any]) -> str:
         "| Model | Status | Total Net GEX | Gamma Wall | Zero Gamma | Coverage |",
         "| --- | --- | ---: | ---: | ---: | ---: |",
     ]
+    pricing_notes = []
     for name in (
         "open_interest",
         "raw_trade_volume",
@@ -174,6 +175,13 @@ def position_model_comparison_to_markdown(report: Mapping[str, Any]) -> str:
             f"{_optional_number(model.get('zero_gamma'))} | "
             f"{_optional_percent(model.get('directional_coverage'))} |"
         )
+        coverage = model.get("pricing_coverage")
+        if coverage:
+            pricing_notes.append(f"\n`{name}` prices {coverage['priced_quantity']}/{coverage['selected_quantity']} selected quantity; "
+                         f"{coverage['unpriced_quantity']} remain unpriced and {coverage['retained_iv_contract_count']} contract(s) use earlier valid IV.\n")
+            if model.get("pricing_assumptions"):
+                pricing_notes.append(model["pricing_assumptions"]["summary"] + "\n")
+    lines.extend(pricing_notes)
     lines.extend([
         "",
         "## Differences, Not Combined Exposure",
@@ -222,6 +230,10 @@ def position_model_comparison_to_csv(report: Mapping[str, Any]) -> str:
             "zero_gamma": model.get("zero_gamma"),
             "directional_coverage": model.get("directional_coverage"),
         })
+        for field in ("pricing_coverage", "pricing_assumptions"):
+            if field in model:
+                writer.writerow({"record_type": field, "name": name,
+                                 "value": json.dumps(model[field], sort_keys=True)})
     for name, value in report["differences"].items():
         writer.writerow({"record_type": "difference", "name": name, "value": value})
     for name, value in report["limitations"].items():
@@ -255,6 +267,9 @@ async def _snapshot_for_messages(
         expiry_filter=config.expiry_filter,
     )
     if "error" in matrix:
+        if "pricing_coverage" in matrix:
+            return {"status": "unavailable", "pricing_coverage": matrix["pricing_coverage"],
+                    "pricing_assumptions": matrix.get("pricing_assumptions")}
         return None
     return build_snapshot(
         symbol=config.symbol,
@@ -275,6 +290,8 @@ async def _snapshot_for_messages(
 def _model_summary(snapshot: Mapping[str, Any] | None) -> dict[str, Any]:
     if not snapshot:
         return {"status": "unavailable"}
+    if snapshot.get("status") == "unavailable":
+        return {"status": "unavailable", **_pricing_fields(snapshot)}
     metrics = snapshot["metrics"]
     return {
         "status": "available",
@@ -283,17 +300,19 @@ def _model_summary(snapshot: Mapping[str, Any] | None) -> dict[str, Any]:
         "zero_gamma": metrics["zero_gamma"],
         "position_sources": snapshot["model"]["position_sources"],
         "contract_count": snapshot["model"]["selected_contract_count"],
+        **_pricing_fields(snapshot),
     }
 
 
 def _directional_summary(snapshot: Mapping[str, Any] | None) -> dict[str, Any]:
     if not snapshot or not isinstance(snapshot.get("directionalized"), Mapping):
-        return {"status": "unavailable"}
+        return {"status": "unavailable", **(_pricing_fields(snapshot) if snapshot else {})}
     model = snapshot["directionalized"]
     if model.get("status") != "available":
         return {
             "status": model.get("status", "unavailable"),
             "directional_coverage": model.get("directional_coverage", 0.0),
+            **_pricing_fields(snapshot),
         }
     return {
         "status": "available",
@@ -302,7 +321,15 @@ def _directional_summary(snapshot: Mapping[str, Any] | None) -> dict[str, Any]:
         "zero_gamma": model["zero_gamma_strike"],
         "directional_coverage": model["directional_coverage"],
         "participant_classification": "unobserved",
+        **_pricing_fields(snapshot),
     }
+
+
+def _pricing_fields(snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    source = snapshot.get("model", snapshot)
+    if "pricing_coverage" not in source:
+        return {}
+    return {key: source[key] for key in ("pricing_coverage", "pricing_assumptions") if key in source}
 
 
 def _optional_money(value: Any) -> str:

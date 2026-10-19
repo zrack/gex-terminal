@@ -150,11 +150,12 @@ class SparseSideTerminalTests(unittest.IsolatedAsyncioTestCase):
                     for _ in range(2):
                         await app.refresh_terminal_data()
                     self.assertFalse(any("imbalance threshold crossed" in event for event in app._events))
-                    self.assertIn("Black-76", visible("#pricing-assumptions"))
-                    self.assertIn("approximation error unmeasured", visible("#pricing-assumptions"))
+                    self.assertIn("American futures CRR", visible("#pricing-assumptions"))
+                    self.assertIn("early exercise is modeled", visible("#pricing-assumptions"))
                     await pilot.press("v")
                     details = app.screen.query_one("#info-content", Static).content.plain
-                    self.assertIn("early exercise is not modeled", details)
+                    self.assertIn("numerical discretization remains", details)
+                    self.assertIn("empirical pricing accuracy is unmeasured", details)
                     self.assertIn("configured, not observed market data", details)
                     await pilot.press("escape")
 

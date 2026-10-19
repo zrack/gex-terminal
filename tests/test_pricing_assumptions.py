@@ -65,18 +65,21 @@ class ExerciseMetadataTests(unittest.TestCase):
 
 
 class PricingQualificationFlowTests(unittest.IsolatedAsyncioTestCase):
-    async def _consumer(self, cfi="OCAFPS"):
+    async def _consumer(self, cfi="OCAFPS", *, legacy_model=False):
         adapter, consumer = adapter_for("NQ")
         metadata = DatabentoAdapter._normalize_definition_record(definition("NQ", cfi=cfi))
         await consumer.update_market_state(json.dumps(adapter._normalize_underlying_quote(quote("NQ"))))
         message = adapter._normalize_option_trade_record(trade(), {101: metadata})
+        if legacy_model:
+            message["pricing_model"] = "black_76"
         self.assertTrue(await consumer.update_market_state(json.dumps(message)))
         return consumer, message
 
     async def test_provider_style_survives_snapshot_checkpoint_and_wind_calculation(self):
         consumer, _ = await self._consumer()
         snapshot = await consumer.process_latest_snapshot(.25)
-        self.assertEqual(snapshot["pricing_assumptions"]["status"], "approximation_unmeasured")
+        self.assertEqual(snapshot["pricing_assumptions"]["status"], "american_exercise_modeled")
+        self.assertTrue(snapshot["pricing_assumptions"]["early_exercise_modeled"])
         artifact = await build_terminal_checkpoint(consumer, fallback_dte=.25)
         self.assertEqual(artifact["rows"][0]["provider_cfi"], "OCAFPS")
         result = await wind_tunnel.calculate({"terminal_checkpoint": artifact})
@@ -98,7 +101,7 @@ class PricingQualificationFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("unqualified", result["baseline"]["pricing_assumptions"]["summary"])
 
     async def test_omitted_metadata_cannot_erase_known_style_or_cross_quantity_enrichment(self):
-        consumer, message = await self._consumer()
+        consumer, message = await self._consumer(legacy_model=True)
         omitted = {key: value for key, value in message.items()
                    if key not in {"exercise_style", "exercise_style_source", "provider_cfi"}}
         self.assertTrue(await consumer.update_market_state(json.dumps(omitted)))
@@ -135,10 +138,10 @@ class PricingQualificationFlowTests(unittest.IsolatedAsyncioTestCase):
         artifact = await build_terminal_checkpoint(consumer, fallback_dte=.25)
         result = await wind_tunnel.calculate({"terminal_checkpoint": artifact, "exclude_nearest_expiry": True})
         self.assertEqual(result["scenario"]["status"], "no_data")
-        self.assertEqual(result["scenario"]["pricing_assumptions"]["models"], ["black_76"])
+        self.assertEqual(result["scenario"]["pricing_assumptions"]["models"], ["american_futures_crr"])
         absent_oi = await wind_tunnel.calculate({"terminal_checkpoint": artifact, "model": "open_interest"})
         self.assertEqual(absent_oi["scenario"]["status"], "no_data")
-        self.assertEqual(absent_oi["scenario"]["pricing_assumptions"]["models"], ["black_76"])
+        self.assertEqual(absent_oi["scenario"]["pricing_assumptions"]["models"], ["american_futures_crr"])
 
     async def test_native_sdk_definitions_preserve_cfi_through_full_adapter_path(self):
         try:
@@ -171,8 +174,8 @@ class PricingQualificationFlowTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(artifact["rows"][0]["exercise_style"], style)
 
     async def test_iv_inversion_rate_provenance_survives_checkpoint_without_private_provenance(self):
-        consumer, _ = await self._consumer()
-        metadata = DatabentoAdapter._normalize_definition_record(definition("NQ", cfi="OCAFPS"))
+        consumer, _ = await self._consumer("OCEFPS")
+        metadata = DatabentoAdapter._normalize_definition_record(definition("NQ", cfi="OCEFPS"))
         inverted = DatabentoAdapter._normalize_option_trade_record(
             trade(iv=None), {101: metadata}, underlying_price=22000,
             underlying_event_time=EVENT, risk_free_rate=.02,
@@ -186,6 +189,26 @@ class PricingQualificationFlowTests(unittest.IsolatedAsyncioTestCase):
         qualification = result["baseline"]["pricing_assumptions"]
         self.assertEqual(qualification["iv_inversion_risk_free_rates"], [.02])
         self.assertTrue(any("does not reinvert" in item for item in qualification["limitations"]))
+
+    async def test_american_inversion_provenance_survives_checkpoint_and_safe_intake_projection(self):
+        consumer, _ = await self._consumer()
+        metadata = DatabentoAdapter._normalize_definition_record(definition("NQ", cfi="OCAFPS"))
+        inverted = DatabentoAdapter._normalize_option_trade_record(
+            trade(iv=None), {101: metadata}, underlying_price=22000,
+            underlying_event_time=EVENT, risk_free_rate=.02,
+        )
+        self.assertEqual(inverted["iv_source"], "american_futures_inverted")
+        self.assertTrue(await consumer.update_market_state(json.dumps(inverted)))
+        artifact = await build_terminal_checkpoint(consumer, fallback_dte=.25)
+        self.assertEqual(artifact["rows"][0]["iv_inversion_risk_free_rate"], .02)
+        provenance = artifact["rows"][0]["iv_provenance"]
+        for key in ("tree_pair_steps", "futures_risk_neutral_drift", "early_exercise_modeled", "gamma_method",
+                    "numerical_method", "error_scope", "empirical_pricing_accuracy"):
+            self.assertEqual(provenance[key], inverted["iv_provenance"][key])
+            self.assertEqual(_safe_message(inverted)["iv_provenance"][key], inverted["iv_provenance"][key])
+        result = await wind_tunnel.calculate({"terminal_checkpoint": artifact})
+        self.assertTrue(result["baseline"]["pricing_assumptions"]["early_exercise_modeled"])
+        self.assertEqual(result["baseline"]["pricing_assumptions"]["iv_inversion_risk_free_rates"], [.02])
 
 
 if __name__ == "__main__":

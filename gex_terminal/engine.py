@@ -1,5 +1,7 @@
 import numpy as np
 
+from .american_futures import american_futures_price_gamma
+
 
 def side_exposure_balance(
     call_total: float, put_total_abs: float,
@@ -42,7 +44,7 @@ class IntradayGexEngine:
         self._validate_gamma_inputs(S, strikes, times, r, vols)
         models = self._pricing_models(pricing_model, strikes.shape)
         carries = self._aligned_values(carry_rate, strikes.shape, "carry_rate")
-        drift = np.where(models == "black_76", 0.0, r - carries)
+        drift = np.where(np.isin(models, ["black_76", "american_futures_crr"]), 0.0, r - carries)
         return (
             np.log(float(S) / strikes) + (drift + 0.5 * vols**2) * times
         ) / (vols * np.sqrt(times))
@@ -57,6 +59,7 @@ class IntradayGexEngine:
         *,
         pricing_model: str | np.ndarray = "black_scholes",
         carry_rate: float | np.ndarray = 0.0,
+        option_types: str | np.ndarray | None = None,
     ) -> np.ndarray:
         """Calculate theoretical gamma under an explicit pricing convention."""
         strikes = np.asarray(K, dtype=float)
@@ -77,11 +80,21 @@ class IntradayGexEngine:
         n_prime_d1 = (1.0 / np.sqrt(2.0 * np.pi)) * np.exp(-0.5 * d1**2)
         base_gamma = n_prime_d1 / (float(S) * vols * np.sqrt(times))
         discount = np.where(
-            models == "black_76",
+            np.isin(models, ["black_76", "american_futures_crr"]),
             np.exp(-r * times),
             np.exp(-carries * times),
         )
-        return base_gamma * discount
+        result = base_gamma * discount
+        american = models == "american_futures_crr"
+        if np.any(american):
+            sides = self._option_types(option_types, strikes.shape)
+            for index in np.flatnonzero(american):
+                result[index] = american_futures_price_gamma(
+                    futures_price=float(S), strike=float(strikes[index]),
+                    time_to_expiry_years=float(times[index]), risk_free_rate=float(r),
+                    volatility=float(vols[index]), option_type=sides[index],
+                ).gamma
+        return result
 
     def compute_intraday_gex_matrix(
         self, 
@@ -96,6 +109,7 @@ class IntradayGexEngine:
         pricing_model: str | np.ndarray = "black_scholes",
         carry_rate: float | np.ndarray = 0.0,
         contract_multipliers: float | np.ndarray | None = None,
+        option_types: str | np.ndarray | None = None,
     ) -> dict:
         """
         Vectorized computation of the intraday Gamma Exposure profile using volume as an OI proxy.
@@ -165,6 +179,7 @@ class IntradayGexEngine:
             implied_vols,
             pricing_model=models,
             carry_rate=carries,
+            option_types=option_types,
         )
         
         # 2. Scale Gamma to Dollar GEX per 1% move
@@ -286,6 +301,7 @@ class IntradayGexEngine:
         pricing_model: str | np.ndarray = "black_scholes",
         carry_rate: float | np.ndarray = 0.0,
         contract_multipliers: float | np.ndarray | None = None,
+        option_types: str | np.ndarray | None = None,
     ) -> dict:
         """Compute an aggressor-directionalized dealer-gamma proxy.
 
@@ -338,6 +354,7 @@ class IntradayGexEngine:
             implied_vols,
             pricing_model=models,
             carry_rate=carries,
+            option_types=option_types,
         )
         scaling = (
             contract_gammas
@@ -472,11 +489,26 @@ class IntradayGexEngine:
             if models.shape != shape:
                 raise ValueError("pricing_model array must align with contract rows")
             models = np.char.lower(models.astype(str)).astype(object)
-        supported = {"black_scholes", "black_76"}
+        supported = {"black_scholes", "black_76", "american_futures_crr"}
         invalid = sorted(set(models.tolist()) - supported)
         if invalid:
             raise ValueError(f"Unsupported pricing model(s): {', '.join(invalid)}")
         return models
+
+    @staticmethod
+    def _option_types(value: str | np.ndarray | None, shape: tuple[int, ...]) -> np.ndarray:
+        if value is None:
+            raise ValueError("option_types is required for American futures pricing")
+        if isinstance(value, str):
+            values = np.full(shape, value.upper(), dtype=object)
+        else:
+            values = np.asarray(value, dtype=object)
+            if values.shape != shape:
+                raise ValueError("option_types array must align with contract rows")
+            values = np.char.upper(values.astype(str)).astype(object)
+        if set(values.tolist()) - {"C", "P"}:
+            raise ValueError("option_types must contain C or P for American futures pricing")
+        return values
 
     @staticmethod
     def _aligned_values(

@@ -27,7 +27,8 @@ from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.contracts import days_until_expiry, expiry_date, parse_market_datetime
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.market_data_adapter import validate_normalized_message
-from gex_terminal.pricing_assumptions import build_pricing_assumptions
+from gex_terminal.pricing_assumptions import (build_pricing_assumptions, has_qualified_pricing,
+                                             is_priced_contract, pricing_coverage)
 from gex_terminal.replay_catalog import ReplaySession, bundled_replay_sessions
 from gex_terminal.wind_tunnel_checkpoint import checkpoint_transport, validate_checkpoint
 
@@ -69,7 +70,7 @@ LIMITATIONS = {
     "expiry_policy": "Exact expiry instants take precedence; otherwise remaining model DTE decreases from the checkpoint fallback.",
     "directional_assumption": "Aggressor buy implies passive counterparty short gamma; sell implies long gamma. Unknown direction is excluded from signed exposure, not coverage.",
     "zero_gamma_semantics": "Legacy strike-profile crossing or neutral-strike fallback, not a portfolio underlying-price root.",
-    "pricing_policy": "Black-76 and Black-Scholes assume European exercise; American early exercise is not modeled and approximation error is unmeasured. Missing exercise style remains unqualified.",
+    "pricing_policy": "Explicit American futures CRR rows model early exercise using a finite lattice. Black-76 and Black-Scholes retain European exercise; American rows using them remain approximations. Missing exercise style remains unqualified.",
     "risk_free_rate_policy": "Configured continuously compounded flat rate, not an observed market curve; exact expiry uses ACT/365.",
 }
 
@@ -84,7 +85,7 @@ def _sha(value: Any) -> str:
 
 def calculation_identity() -> dict:
     """Bind numeric behavior and replay projection to exact local implementation."""
-    names = ("wind_tunnel.py", "wind_tunnel_checkpoint.py", "engine.py", "consumer.py", "contracts.py", "pricing_assumptions.py", "market_data_adapter.py", "replay_catalog.py")
+    names = ("wind_tunnel.py", "wind_tunnel_checkpoint.py", "engine.py", "consumer.py", "contracts.py", "pricing_assumptions.py", "american_futures.py", "implied_volatility.py", "market_data_adapter.py", "replay_catalog.py")
     return {
         "contract_version": VERSION, "application_version": __version__,
         "python": f"{sys.version_info.major}.{sys.version_info.minor}", "numpy": np.__version__,
@@ -402,8 +403,8 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
         row["checkpoint_dte"] = base_dte
         row["remaining_dte"] = base_dte - advance / 1440.0
         row["expiry_authority"] = "exact_timestamp" if exact is not None else "contract_dte" if row.get("days_to_expiry") else "configured_fallback"
-        row["base_iv"] = float(row.get("iv", 0.15))
-        row["scenario_iv"] = row["base_iv"] + request["iv_shift"] / 100.0
+        row["base_iv"] = float(row.get("iv", 0.15)) if is_priced_contract(row) else None
+        row["scenario_iv"] = row["base_iv"] + request["iv_shift"] / 100.0 if row["base_iv"] is not None else None
         prepared.append(row)
     # Freeze the removed expiry cohort at the checkpoint; it does not jump to
     # the next expiry after advancing time.
@@ -431,8 +432,24 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
     if active:
         result["pricing_assumptions"] = build_pricing_assumptions(active, request["risk_free_rate"])
     result["counts"]["fallback_expiry_rows"] = sum(row["expiry_authority"] != "exact_timestamp" for row in active)
+    if has_qualified_pricing(original):
+        coverage = pricing_coverage(active)
+        result["pricing_coverage"] = coverage
+        result["counts"].update(priced_rows=coverage["priced_contract_count"],
+                                unpriced_rows=coverage["unpriced_contract_count"])
     if not active or not sum(row.get("accumulated_volume", 0) for row in active):
         result["reason"] = "No positive quantities remain after expiry and exclusion rules."
+        return result
+    unpriced = [row for row in active if not is_priced_contract(row)]
+    if details:
+        result["excluded_contracts"].extend({
+            "contract_id": row["contract_id"], "position_source": row["position_source"],
+            "expiry": row.get("expiry"), "quantity": row["accumulated_volume"],
+            "reason": "iv_unavailable", "iv_provenance": copy.deepcopy(row.get("iv_provenance")),
+        } for row in unpriced)
+    active = [row for row in active if is_priced_contract(row)]
+    if not active or not sum(row.get("accumulated_volume", 0) for row in active):
+        result["reason"] = "No retained option contracts have an available IV; raw quantities are retained."
         return result
     if any(not 0 < row["scenario_iv"] <= 5.0 for row in active):
         result.update(status="invalid_scenario", reason="Every retained contract IV must remain above 0 and at most 500%; no clamping applied.")
@@ -443,10 +460,11 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
     models = np.array([row.get("pricing_model", "black_scholes") for row in active], dtype=object)
     multipliers = np.array([row.get("contract_multiplier") or checkpoint.multiplier for row in active], dtype=float)
     quantities = np.array([row["accumulated_volume"] for row in active], dtype=float)
+    option_types = np.array([row["option_type"] for row in active], dtype=object)
     engine = IntradayGexEngine(checkpoint.multiplier)
     arguments = dict(spot_price=spot, strikes=strikes, days_to_expiry=dtes,
                      risk_free_rate=request["risk_free_rate"], implied_vols=ivs,
-                     pricing_model=models, contract_multipliers=multipliers)
+                     pricing_model=models, contract_multipliers=multipliers, option_types=option_types)
     if model == "directionalized_trade_volume":
         buys = np.array([row.get("directional_volume", {}).get("buy", 0) for row in active], dtype=float)
         sells = np.array([row.get("directional_volume", {}).get("sell", 0) for row in active], dtype=float)
@@ -467,6 +485,8 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
     total = float(matrix["total_net_gex"])
     matrix["pricing_assumptions"] = copy.deepcopy(result["pricing_assumptions"])
     matrix["risk_free_rate"] = request["risk_free_rate"]
+    if "pricing_coverage" in result:
+        matrix["pricing_coverage"] = copy.deepcopy(result["pricing_coverage"])
     meaningful_wall = any(float(value) != 0 for value in matrix["net_gex"])
     summary = {
         "total_net_gex": total, "gamma_wall": float(matrix["gamma_wall_strike"]) if meaningful_wall else None,
@@ -478,7 +498,7 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
     }
     result.update(status="available", reason=None, matrix=matrix, summary=summary)
     if details:
-        gammas = engine.calculate_gamma(spot, strikes, dtes / 365.0, request["risk_free_rate"], ivs, pricing_model=models)
+        gammas = engine.calculate_gamma(spot, strikes, dtes / 365.0, request["risk_free_rate"], ivs, pricing_model=models, option_types=option_types)
         for row, gamma, multiplier, signed in zip(active, gammas, multipliers, signed_quantities):
             result["contracts"].append({
                 "contract_id": row["contract_id"], "provider": row.get("provider"), "strike": float(row["strike"]),
@@ -497,6 +517,8 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
                 "directional_volume": copy.deepcopy(row.get("directional_volume")),
                 "direction_sources": sorted(row.get("direction_sources", [])),
             })
+            if row.get("iv_provenance") is not None:
+                result["contracts"][-1]["iv_provenance"] = copy.deepcopy(row["iv_provenance"])
     return result
 
 

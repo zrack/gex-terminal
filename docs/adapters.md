@@ -122,17 +122,20 @@ Known direction is valid only for incremental `trade_volume`. Missing direction,
 cumulative volume, and open interest remain explicitly unknown rather than being
 inferred. See [model-comparison.md](model-comparison.md).
 
-Futures options map to Black-76; equity and index options map to Black-Scholes.
+Futures options default to Black-76; equity and index options map to Black-Scholes.
 Optional `exercise_style` is `american`, `european`, or `unknown`; omission stays
 unknown. `exercise_style_source` and `provider_cfi` retain supporting provider
 metadata. Style describes the contract rather than selecting a different
-formula: both implemented formulas assume European exercise. American rows are
-explicitly labeled as an approximation with unmeasured error; unknown rows
-remain unqualified. See [model assumptions](model-assumptions.md).
-`iv_source` is `provider`, `black_76_inverted`, or `configured_default`.
-Black-76 inversion requires its complete timing and solver provenance. Adapters
-that use a configured fallback IV must label it and expose degraded feed
-quality. A
+formula retroactively: historical American Black-76 rows retain their
+approximation qualification. New confirmed American futures rows can select
+`american_futures_crr`, with call/put-specific early-exercise gamma and matched
+IV inversion. Unknown rows remain unqualified. See [model assumptions](model-assumptions.md).
+`iv_source` additionally supports `american_futures_inverted`, `prior_valid` and
+`unavailable`; historical `configured_default` remains readable. Model inversion
+requires complete timing and solver provenance. Unavailable IV must be
+explicitly `null`; retained IV must identify an eligible earlier observation,
+its age and failed current inversion. Raw quantity is preserved while
+`pricing_coverage` identifies unavailable exposure. A
 timezone-bearing `expiry_timestamp` can drive fractional DTE; a date-only
 `expiry` label supports filtering but cannot silently invent settlement time.
 
@@ -379,10 +382,10 @@ but not sufficient for certification.
 
 Option trades join to point-in-time definitions. If a provider IV is absent,
 the adapter uses the trade price, latest futures midpoint, authoritative expiry
-timestamp, and configured risk-free rate to invert Black-76. A converged value
-uses `iv_source=black_76_inverted` and carries an `iv_provenance` object. Missing,
-out-of-bounds, or non-convergent inputs use the separately labeled configured
-fallback and degrade feed quality.
+timestamp, and configured risk-free rate to invert the selected European or
+American futures model. Converged values carry `iv_provenance`. Missing,
+out-of-bounds or non-convergent inputs retain a qualified eligible earlier IV or
+remain explicitly unavailable; raw quantities survive either outcome.
 An option definition's `underlying_id` must match the current continuous-future
 instrument ID for both trades and OI additions; other futures months are counted
 and dropped rather than priced against the wrong forward. OI additions arriving
@@ -459,7 +462,7 @@ Run NQ independently with `--symbol NQ --multiplier 20` and a different output
 path. The command writes partial evidence but exits `2` unless the complete
 quantitative-input gate passes; exit `0` is not awarded for transport alone.
 
-Black-76 inversion also requires the futures midpoint to precede the option
+Model inversion also requires the futures midpoint to precede the option
 trade by no more than `--max-underlying-age` seconds (default `2`). Quote age is
 preserved in `iv_provenance`. Future-dated, stale, crossed, one-sided, and
 wrong-contract inputs cannot produce inverted IV.

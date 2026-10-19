@@ -35,6 +35,24 @@ also compare analytical gamma with a finite-difference option-price derivative,
 check call/put signs and multipliers, reject invalid/non-finite inputs, and keep
 the base sensitivity scenario equal to the computed contract-aware snapshot.
 
+### American Futures Reference Tests
+
+The analytical `model-evidence` command above covers Black-Scholes and
+Black-76. American futures pricing has separate independent regression tests:
+
+```bash
+python -m unittest tests.test_american_futures tests.test_databento_iv_resolution tests.test_pricing_coverage
+```
+
+The American tests compare price and call/put-specific gamma with fixed
+QuantLib 1.40 finite-difference values and test refinement, immediate exercise,
+IV inversion, raw/unpriced quantities and transport through both components.
+The finite tree has numerical discretization error; reference accuracy applies
+to the tested grid, not every maturity/volatility regime. Extreme long-maturity,
+high-volatility Greeks can have larger errors. Solver convergence is not a
+numerical error bound or evidence of market calibration. QuantLib is not a
+runtime dependency.
+
 ## Versioned Model Contract
 
 Snapshot schema `gex-terminal.snapshot.v2` records the model provenance needed
@@ -49,7 +67,9 @@ to interpret an output:
 - `ACT/365` day count and GEX units;
 - aggregation method and strike-profile flip semantics.
 
-Schema-v2 futures options use Black-76. Equity and index options use
+Schema-v2 futures options preserve their selected model: new confirmed American
+Databento rows use `american_futures_crr`, European rows use Black-76, and older
+captures retain their original formula/qualification. Equity and index options use
 Black-Scholes, including an optional carry rate in the engine API. Each contract
 row is priced with its own time to expiry and multiplier before rows are
 aggregated by strike. A timezone-bearing `expiry_timestamp` is authoritative for

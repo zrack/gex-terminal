@@ -142,6 +142,11 @@ vm.runInThisContext(app, {filename: 'app.js'});
   assert(!elements.get('#pricing-model-context').textContent.includes('American'), 'New source must not retain the old American qualification');
   browser.renderPricingAssumptions({});
   assert.match(elements.get('#pricing-model-context').textContent, /unavailable.*early exercise is not modeled/);
+  browser.renderPricingAssumptions({scenario: {pricing_assumptions: {summary: 'American futures CRR: early exercise is modeled with a finite CRR lattice.', early_exercise_modeled: true,
+    pricing_coverage: {priced_quantity: 12, selected_quantity: 13, unpriced_contract_count: 1}}}});
+  assert.match(elements.get('#pricing-model-context').textContent, /American futures CRR.*early exercise is modeled/);
+  assert(!elements.get('#pricing-model-context').textContent.includes('Early exercise is not modeled'));
+  assert.match(elements.get('#pricing-model-context').textContent, /Priced 12 of 13.*1 contract/);
   let request = browser.requestFromControls();
   assert.equal(request.model, 'terminal_selected'); assert.equal(request.fallback_dte, .75); assert.equal(request.risk_free_rate, .037);
   assert.deepEqual(request.terminal_checkpoint, artifact); assert.equal(request.checkpoint, 0, elements.get('#connection-error').textContent);

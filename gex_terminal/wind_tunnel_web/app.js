@@ -60,8 +60,12 @@
     const baseline = report?.baseline?.pricing_assumptions;
     const scenario = report?.scenario?.pricing_assumptions;
     const descriptions = [...new Set([baseline?.summary, scenario?.summary].filter(Boolean))];
+    const coverage = scenario?.pricing_coverage || baseline?.pricing_coverage;
+    const coverageText = coverage && coverage.unpriced_contract_count
+      ? ` Priced ${formatNumber(coverage.priced_quantity, 0)} of ${formatNumber(coverage.selected_quantity, 0)} selected quantity; ${coverage.unpriced_contract_count} contract(s) have unavailable IV.` : '';
+    const retainedText = coverage?.retained_iv_contract_count ? ` ${coverage.retained_iv_contract_count} contract(s) use an earlier valid IV observation.` : '';
     text('#pricing-model-context', descriptions.length
-      ? `${descriptions.join(' ')} Early exercise is not modeled. See Source & assumptions for rate and timing inputs.`
+      ? `${descriptions.join(' ')}${[baseline, scenario].some(value => value?.early_exercise_modeled) ? '' : ' Early exercise is not modeled.'}${coverageText}${retainedText} See Source & assumptions for rate and timing inputs.`
       : 'Pricing assumptions unavailable. European-exercise formulas; early exercise is not modeled.');
   }
   function netOf(value) {return summaryOf(value).total_net_gex ?? null;}
@@ -287,6 +291,8 @@
           if (!seenAssumptions.has(copy)) {body.append(node('p', copy)); seenAssumptions.add(copy);}
         }
       }
+      const coverage = r.scenario?.pricing_coverage || r.baseline?.pricing_coverage;
+      if (coverage) body.append(node('h3', 'Pricing coverage'), node('p', `Priced ${formatNumber(coverage.priced_quantity, 0)} of ${formatNumber(coverage.selected_quantity, 0)} selected quantity across ${coverage.priced_contract_count} of ${coverage.selected_contract_count} contracts. ${coverage.retained_iv_contract_count || 0} contract(s) use an earlier valid IV. Unpriced quantities remain in the captured state and are excluded from modeled GEX.`));
       body.append(node('h3', 'Calculation provenance'), node('pre', JSON.stringify({source: r.source, terminal_provenance: checkpointMetadata(state.terminalCheckpoint).source || source?.provenance, checkpoint: r.checkpoint, counts: r.scenario?.counts, reasons: r.scenario?.reason, calculation_fingerprint: r.calculation_fingerprint}, null, 2))); if (r.scenario?.contracts) {const details = node('details'); details.append(node('summary', 'Inspect contributing contract records'), node('pre', JSON.stringify(r.scenario.contracts, null, 2))); body.append(details);}} showDialog('#info-dialog');}
   async function listReceipts() {showDialog('#receipts-dialog'); const list = $('#receipts-list'); list.replaceChildren(node('p', 'Loading local receipts…')); try {const result = await api('receipts'); list.replaceChildren(); if (!result.receipts?.length) {list.append(node('p', 'No saved scenarios yet. Recalculate a scenario, then choose Save scenario.')); return;} for (const receipt of result.receipts) {const row = node('div', undefined, 'receipt-item'); const meta = node('div'); meta.append(node('h3', receipt.name), node('p', `${receipt.kind} · ${receipt.created_at}`)); const actions = node('div', undefined, 'receipt-actions'); const reopen = node('button', 'Reopen'); reopen.type = 'button'; reopen.addEventListener('click', () => reopenReceipt(receipt.id, reopen)); const download = node('button', 'Export JSON'); download.type = 'button'; download.addEventListener('click', () => exportReceipt(receipt.id, download)); actions.append(reopen, download); row.append(meta, actions); list.append(row);}} catch (error) {list.replaceChildren(node('p', error.message, 'validation-message'));}}
   async function exportReceipt(id, button) {button.disabled = true; try {const blob = await api(`receipts/${encodeURIComponent(id)}/export`, {blob: true}); const url = URL.createObjectURL(blob); const link = node('a'); link.href = url; link.download = `gex-wind-tunnel-${id.slice(0, 12)}.json`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); toast('Portable receipt exported.');} catch (error) {toast(error.message);} finally {button.disabled = false;}}

@@ -169,21 +169,26 @@ async def _inject_databento(
     if not metadata_path:
         raise ValueError("Databento injection requires --metadata with definition records.")
 
-    adapter = DatabentoAdapter(consumer=consumer, target_underlying=config.symbol)
-    metadata_by_id = _databento_metadata_by_id(Path(metadata_path))
-    consumer.mark_subscribed(len(metadata_by_id))
+    adapter = DatabentoAdapter(
+        consumer=consumer, target_underlying=config.symbol,
+        risk_free_rate=config.risk_free_rate,
+        live_client_factory=lambda **_: None,
+    )
+    # Use the same ordered joins and observed-IV policy as provider replay.
+    # Definitions establish option subscriptions; market frames remain the
+    # underlying/trade records, as in the fixture workbench's existing count.
+    for record in _json_records(Path(metadata_path)):
+        await adapter._handle_live_record({**record, "record_type": "definition"})
+    consumer.mark_subscribed(len(adapter.contract_metadata))
 
     if underlying_path:
         for record in _json_records(Path(underlying_path)):
             consumer.record_provider_frame()
-            message = adapter._normalize_underlying_quote(record)
-            await _emit_normalized(consumer, message)
+            await adapter._handle_live_record({**record, "record_type": "mbp-1"})
 
     for record in _json_records(fixture):
         consumer.record_provider_frame()
-        message = DatabentoAdapter._normalize_option_trade_record(record, metadata_by_id)
-        if not await _emit_normalized(consumer, message):
-            consumer.record_dropped_message()
+        await adapter._handle_live_record({**record, "record_type": "trades"})
 
 
 async def _inject_yfinance(consumer: StatefulGexConsumer, fixture: Path) -> None:
@@ -354,18 +359,6 @@ def _count_tradovate_quote_symbols(frames: Iterable[str]) -> int:
                 if isinstance(quote, dict) and quote.get("symbol"):
                     symbols.add(str(quote["symbol"]))
     return len(symbols)
-
-
-def _databento_metadata_by_id(path: Path) -> dict[int, dict[str, Any]]:
-    metadata_by_id = {}
-    for record in _json_records(path):
-        metadata = DatabentoAdapter._normalize_definition_record(record)
-        if not metadata:
-            continue
-        instrument_id = metadata.get("instrument_id")
-        if instrument_id is not None:
-            metadata_by_id[int(instrument_id)] = metadata
-    return metadata_by_id
 
 
 def _json_records(path: Path) -> list[Mapping[str, Any]]:

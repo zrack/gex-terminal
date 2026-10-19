@@ -143,6 +143,9 @@ class DatabentoAdapter(MarketDataAdapter):
         self.live_client_factory = live_client_factory
         self.live_client = None
         self.contract_metadata: dict[int, dict[str, Any]] = {}
+        # Only accepted, actually observed IVs enter this cache. Retained IVs
+        # never refresh their own age or create a chain of synthetic observations.
+        self._last_observed_ivs: dict[int, dict[str, Any]] = {}
         self.latest_underlying_price: float | None = None
         self.latest_underlying_event_time: str | None = None
         self.latest_underlying_instrument_id: int | None = None
@@ -157,6 +160,9 @@ class DatabentoAdapter(MarketDataAdapter):
         self._open_interest_count = 0
         self._provider_iv_count = 0
         self._inverted_iv_count = 0
+        self._american_inverted_iv_count = 0
+        self._retained_iv_count = 0
+        self._unavailable_iv_count = 0
         self._iv_fallback_count = 0
         self._dropped_before_definition_count = 0
         self._dropped_before_underlying_count = 0
@@ -522,6 +528,9 @@ class DatabentoAdapter(MarketDataAdapter):
                 ),
                 "provider_iv_ticks": self._provider_iv_count,
                 "black_76_inverted_ticks": self._inverted_iv_count,
+                "american_futures_inverted_ticks": self._american_inverted_iv_count,
+                "prior_valid_iv_ticks": self._retained_iv_count,
+                "unavailable_iv_ticks": self._unavailable_iv_count,
                 "fallback_iv_ticks": self._iv_fallback_count,
                 "underlying_age_observations": self._underlying_age_observation_count,
                 "underlying_age_ms_min": self._underlying_age_ms_min,
@@ -649,6 +658,7 @@ class DatabentoAdapter(MarketDataAdapter):
                 risk_free_rate=self.risk_free_rate,
                 default_iv=self.default_iv,
                 max_underlying_age_seconds=self.max_underlying_age_seconds,
+                previous_valid_iv=self._last_observed_ivs.get(instrument_id),
             )
             if message is None:
                 self._record_consumer("record_dropped_message")
@@ -665,9 +675,24 @@ class DatabentoAdapter(MarketDataAdapter):
                 self._provider_iv_count += 1
             elif message["iv_source"] == "black_76_inverted":
                 self._inverted_iv_count += 1
+            elif message["iv_source"] == "american_futures_inverted":
+                self._american_inverted_iv_count += 1
+            elif message["iv_source"] == "prior_valid":
+                self._retained_iv_count += 1
+                self._iv_fallback_count += 1
+            elif message["iv_source"] == "unavailable":
+                self._unavailable_iv_count += 1
+                self._iv_fallback_count += 1
             else:
                 self._iv_fallback_count += 1
-            await self.consumer.update_market_state(dumps_normalized_message(message))
+            accepted = await self.consumer.update_market_state(dumps_normalized_message(message))
+            if accepted and message["iv_source"] in {"provider", "black_76_inverted", "american_futures_inverted"}:
+                self._last_observed_ivs[instrument_id] = {
+                    "iv": message["iv"], "event_time": message["event_time"],
+                    "source": message["iv_source"], "pricing_model": message["pricing_model"],
+                    "expiry_timestamp": message.get("expiry_timestamp"),
+                    "risk_free_rate": self.risk_free_rate,
+                }
             return
         if kind == "statistics":
             message = self._normalize_statistics_record(
@@ -877,6 +902,8 @@ class DatabentoAdapter(MarketDataAdapter):
         risk_free_rate: float = 0.045,
         default_iv: float = DEFAULT_DATABENTO_IV,
         max_underlying_age_seconds: float = DEFAULT_MAX_UNDERLYING_AGE_SECONDS,
+        previous_valid_iv: Mapping[str, Any] | None = None,
+        maximum_prior_iv_age_seconds: float = 300.0,
     ) -> dict[str, Any] | None:
         """Join a Databento trade row to definition metadata and normalize volume."""
         instrument_id = _safe_int(_lookup(record, "instrument_id", "instrumentId"))
@@ -909,7 +936,8 @@ class DatabentoAdapter(MarketDataAdapter):
             "instrument_class": "futures_option",
             "volume_semantics": "incremental",
             "position_source": "trade_volume",
-            "pricing_model": "black_76",
+            "pricing_model": ("american_futures_crr" if metadata.get("exercise_style") == "american"
+                              else "black_76"),
             "event_time": event_time,
         }
         underlying_id = _safe_int(metadata.get("underlying_id"))
@@ -955,59 +983,87 @@ class DatabentoAdapter(MarketDataAdapter):
                 else None
             )
             inversion = None
+            american = message["pricing_model"] == "american_futures_crr"
+            method = "american_futures_crr_bisection" if american else "black_76_bisection"
+            numerical = {}
+            failure_status = "missing_inversion_input"
+            if american:
+                from gex_terminal.american_futures import invert_american_futures_iv, numerical_provenance
+                numerical = numerical_provenance()
+                solver = invert_american_futures_iv
+            else:
+                solver = invert_black_76_iv
             if (
-                option_price is not None
-                and underlying_price is not None
-                and remaining_days is not None
-                and remaining_days > 0
+                option_price is not None and underlying_price is not None
+                and remaining_days is not None and remaining_days > 0
                 and timing["status"] == "aligned"
             ):
-                inversion = invert_black_76_iv(
-                    option_price=option_price,
-                    futures_price=float(underlying_price),
-                    strike=strike,
-                    time_to_expiry_years=remaining_days / 365.0,
-                    risk_free_rate=float(risk_free_rate),
-                    option_type=option_type,
-                )
+                try:
+                    inversion = solver(
+                        option_price=option_price, futures_price=float(underlying_price),
+                        strike=strike, time_to_expiry_years=remaining_days / 365.0,
+                        risk_free_rate=float(risk_free_rate), option_type=option_type,
+                    )
+                except (ValueError, OverflowError):
+                    failure_status = "numerical_domain_unavailable"
+            status = (inversion.status if inversion is not None else
+                      timing["status"] if timing["status"] != "aligned" else failure_status)
+            years = remaining_days / 365.0 if remaining_days is not None and remaining_days > 0 else None
+            lower = upper = None
+            if underlying_price is not None and years is not None:
+                try:
+                    discount = math.exp(-float(risk_free_rate) * years)
+                    intrinsic = max((float(underlying_price) - strike) * (1 if option_type == "C" else -1), 0.0)
+                    lower = intrinsic if american else discount * intrinsic
+                    upper = (max(1.0, discount) if american else discount) * (float(underlying_price) if option_type == "C" else strike)
+                except OverflowError:
+                    pass
+            iv_provenance = {
+                "method": method, "status": status,
+                "option_price": option_price,
+                "option_price_source": "databento_trade" if option_price is not None else "missing",
+                "underlying_price": float(underlying_price) if underlying_price is not None else None,
+                "underlying_price_source": underlying_price_source if underlying_price is not None else "missing",
+                "underlying_event_time": underlying_event_time,
+                "underlying_instrument_id": underlying_instrument_id,
+                "underlying_price_age_ms": timing["age_ms"],
+                "maximum_underlying_age_ms": timing["maximum_age_ms"],
+                "risk_free_rate": float(risk_free_rate), "time_to_expiry_years": years,
+                "lower_bound": lower, "upper_bound": upper,
+                "iterations": inversion.iterations if inversion is not None else 0,
+                "absolute_price_error": inversion.absolute_price_error if inversion is not None else None,
+                **numerical,
+            }
             if inversion is not None and inversion.status == "converged" and inversion.iv:
                 iv = inversion.iv
-                iv_source = "black_76_inverted"
-                iv_provenance = {
-                    "method": "black_76_bisection",
-                    "status": inversion.status,
-                    "option_price": option_price,
-                    "option_price_source": "databento_trade",
-                    "underlying_price": float(underlying_price),
-                    "underlying_price_source": underlying_price_source,
-                    "underlying_event_time": underlying_event_time,
-                    "underlying_instrument_id": underlying_instrument_id,
-                    "underlying_price_age_ms": timing["age_ms"],
-                    "maximum_underlying_age_ms": timing["maximum_age_ms"],
-                    "risk_free_rate": float(risk_free_rate),
-                    "time_to_expiry_years": remaining_days / 365.0,
-                    "iterations": inversion.iterations,
-                    "absolute_price_error": inversion.absolute_price_error,
-                }
+                iv_source = "american_futures_inverted" if american else "black_76_inverted"
             else:
-                iv = float(default_iv)
-                iv_source = "configured_default"
-                iv_provenance = {
-                    "method": "black_76_bisection",
-                    "status": (
-                        inversion.status
-                        if inversion is not None
-                        else timing["status"]
-                        if timing["status"] != "aligned"
-                        else "missing_inversion_input"
-                    ),
-                    "option_price_source": "databento_trade" if option_price is not None else "missing",
-                    "underlying_price_source": (
-                        underlying_price_source if underlying_price is not None else "missing"
-                    ),
-                    "underlying_price_age_ms": timing["age_ms"],
-                    "maximum_underlying_age_ms": timing["maximum_age_ms"],
-                }
+                iv = None
+                iv_source = "unavailable"
+                previous = previous_valid_iv or {}
+                previous_time = market_timestamp_order_key(previous.get("event_time"))
+                current_time = market_timestamp_order_key(event_time)
+                previous_iv = _safe_float(previous.get("iv"))
+                age_ms = (((current_time[0] - previous_time[0]).total_seconds() * 1000
+                           + (current_time[1] - previous_time[1]) / 1e6)
+                          if previous_time is not None and current_time is not None else None)
+                if (previous_iv is not None and previous_iv > 0
+                        and previous.get("source") in {"provider", "black_76_inverted", "american_futures_inverted"}
+                        and previous.get("pricing_model") == message["pricing_model"]
+                        and previous.get("expiry_timestamp") == expiry_timestamp
+                        and age_ms is not None and 0 < age_ms <= maximum_prior_iv_age_seconds * 1000):
+                    iv = previous_iv
+                    iv_source = "prior_valid"
+                    iv_provenance.update({
+                        "failed_inversion_status": status,
+                        "prior_iv_event_time": previous["event_time"],
+                        "prior_iv_source": previous["source"],
+                        "prior_iv_age_ms": age_ms,
+                        "maximum_prior_iv_age_ms": maximum_prior_iv_age_seconds * 1000,
+                        "prior_iv": previous_iv,
+                        "prior_iv_pricing_model": previous["pricing_model"],
+                        "prior_iv_risk_free_rate": previous.get("risk_free_rate"),
+                    })
         else:
             iv_source = "provider"
         message["iv"] = iv
@@ -1098,13 +1154,17 @@ class DatabentoAdapter(MarketDataAdapter):
             "position_source": "open_interest",
             "open_interest_reference_date": reference_date,
             "open_interest_update_action": _statistics_update_action(record),
-            "pricing_model": "black_76",
-            "iv": iv if iv is not None else float(default_iv),
-            "iv_source": "provider" if iv is not None else "configured_default",
+            "pricing_model": ("american_futures_crr" if metadata.get("exercise_style") == "american"
+                              else "black_76"),
+            "iv": iv,
+            "iv_source": "provider" if iv is not None else "unavailable",
             "aggressor_side": "unknown",
             "direction_source": "unknown",
             "event_time": event_time,
         }
+        if iv is None:
+            message["iv_provenance"] = {"method": "provider_statistics",
+                                        "status": "missing_observed_iv"}
         for field in ("expiry", "expiry_timestamp", "contract_multiplier", "exercise_style", "exercise_style_source", "provider_cfi"):
             value = metadata.get(field)
             if value not in (None, ""):
