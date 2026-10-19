@@ -5,6 +5,7 @@ import logging
 import math
 import time
 import numpy as np
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Dict, Any
 
@@ -104,13 +105,55 @@ class StatefulGexConsumer:
         
         # Lock to ensure thread-safe state mutations during high-frequency bursts
         self.state_lock = asyncio.Lock()
+        self._projection_batch_depth = 0
+        self._public_projections_dirty = False
+
+    @asynccontextmanager
+    async def offline_projection_batch(self):
+        """Defer compatibility projection work during explicit offline ingestion.
+
+        Accepted canonical events are still applied individually under the state
+        lock. This is not a transaction and does not roll events back. Snapshots
+        and checkpoints flush a complete accepted prefix; direct chain_state or
+        expiry_state readers must call flush_public_projections first. Exiting
+        the context flushes that prefix even after an exception or cancellation.
+        """
+        async with self.state_lock:
+            if self.data_mode not in {"DEMO", "REPLAY"}:
+                raise ValueError("Projection batching supports offline demo/replay only")
+            self._projection_batch_depth += 1
+        try:
+            yield self
+        finally:
+            async with self.state_lock:
+                self._projection_batch_depth -= 1
+                self._flush_public_projections_locked()
+
+    async def flush_public_projections(self) -> None:
+        """Publish the accepted offline prefix before direct projected reads."""
+        async with self.state_lock:
+            self._flush_public_projections_locked()
+
+    def _invalidate_public_projections_locked(self) -> None:
+        self._public_projections_dirty = True
+        if not self._projection_batch_depth:
+            self._flush_public_projections_locked()
+
+    def _flush_public_projections_locked(self) -> None:
+        if self._public_projections_dirty:
+            self._rebuild_public_projections_locked()
 
     @property
     def runtime_status(self) -> str:
         if self.data_mode == "DEMO":
             return "SIM"
         if self.data_mode == "REPLAY":
-            return "REPLAY" if self.current_spot and self.chain_state else "CONNECTED"
+            has_projection = bool(self.chain_state)
+            if self._public_projections_dirty:
+                has_projection = bool(self._legacy_chain_state) or bool(
+                    self._select_position_states(list(self.contract_state.values()))[0]
+                )
+            return "REPLAY" if self.current_spot and has_projection else "CONNECTED"
         if self.connection_state == "DISCONNECTED":
             return "DISCONNECTED"
         if self.last_message_at is None:
@@ -146,6 +189,8 @@ class StatefulGexConsumer:
             )
         )
         async with self.state_lock:
+            if self._projection_batch_depth and next_mode not in {"DEMO", "REPLAY"}:
+                raise ValueError("An offline projection batch cannot switch to live mode")
             self.data_mode = next_mode
             if target_underlying:
                 self.target_underlying = target_underlying
@@ -153,6 +198,7 @@ class StatefulGexConsumer:
             self.stale_after_seconds = next_stale_after_seconds
             self.chain_state.clear()
             self.expiry_state.clear()
+            self._public_projections_dirty = False
             self._legacy_chain_state.clear()
             self._legacy_expiry_state.clear()
             self.contract_state.clear()
@@ -336,7 +382,7 @@ class StatefulGexConsumer:
                         self._untimed_market_event_count += 1
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
-                    self._rebuild_public_projections_locked()
+                    self._invalidate_public_projections_locked()
                 return True
 
             # 2. Update Options Traded Volume
@@ -463,7 +509,7 @@ class StatefulGexConsumer:
             )
             expiry_row[option_type] += volume
             expiry_row["iv"] = iv
-        self._rebuild_public_projections_locked()
+        self._invalidate_public_projections_locked()
 
     def _update_v2_contract_locked(
         self,
@@ -633,7 +679,7 @@ class StatefulGexConsumer:
         for related_state in related:
             for field in ("exercise_style", "exercise_style_source", "provider_cfi"):
                 related_state[field] = state.get(field)
-        self._rebuild_public_projections_locked()
+        self._invalidate_public_projections_locked()
         return True
 
     def _rebuild_public_projections_locked(self) -> None:
@@ -669,6 +715,7 @@ class StatefulGexConsumer:
                 expiry_row["iv"] = iv
         self.chain_state = chain
         self.expiry_state = expiries
+        self._public_projections_dirty = False
 
     async def process_latest_snapshot(
         self,
@@ -685,6 +732,7 @@ class StatefulGexConsumer:
         providers that do not yet supply exact expiry metadata.
         """
         async with self.state_lock:
+            self._flush_public_projections_locked()
             if not self.chain_state or self.current_spot == 0.0:
                 return {"error": "Insufficient data state to compute matrix."}
             contracts = [dict(state) for state in self.contract_state.values()]
@@ -809,6 +857,7 @@ class StatefulGexConsumer:
         """
         expiry_days = expiry_days or {}
         async with self.state_lock:
+            self._flush_public_projections_locked()
             if not self.chain_state or self.current_spot == 0.0:
                 return {}
             spot = self.current_spot
@@ -885,7 +934,14 @@ class StatefulGexConsumer:
             for state in values
             if state.get("expiry") not in (None, "", "session")
         }
-        return tuple(sorted(contract_values | set(self.expiry_state)))
+        projected = set(self.expiry_state)
+        if self._public_projections_dirty:
+            projected = set(self._legacy_expiry_state) | {
+                str(state.get("expiry"))
+                for state in self._select_position_states(list(self.contract_state.values()))[0]
+                if state.get("expiry") not in (None, "", "session")
+            }
+        return tuple(sorted(contract_values | projected))
 
     def set_expiry_filter(self, expiry_filter: str) -> None:
         self.expiry_filter = expiry_filter.strip() or "all"
@@ -898,6 +954,7 @@ class StatefulGexConsumer:
     ) -> list[Dict[str, Any]]:
         """Return the same active v2 position rows used by snapshot pricing."""
         async with self.state_lock:
+            self._flush_public_projections_locked()
             if self._v1_option_count or not self.contract_state:
                 return []
             contracts = [dict(state) for state in self.contract_state.values()]
@@ -918,6 +975,7 @@ class StatefulGexConsumer:
         snapshot. No second unlocked read may supply calculation parameters.
         """
         async with self.state_lock:
+            self._flush_public_projections_locked()
             if self.data_mode not in {"DEMO", "REPLAY"}:
                 raise ValueError("Terminal checkpoint handoff supports demo/replay only; live capture remains gated")
             if self.market_time is None or self.market_time.tzinfo is None:
@@ -1257,7 +1315,7 @@ class StatefulGexConsumer:
             ]
             for key in keys:
                 self.contract_state.pop(key, None)
-            self._rebuild_public_projections_locked()
+            self._invalidate_public_projections_locked()
         return len(keys)
 
     def _legacy_matrix(

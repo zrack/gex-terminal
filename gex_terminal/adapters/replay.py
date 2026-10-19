@@ -1,6 +1,7 @@
 import asyncio
 import json
 import threading
+from contextlib import AsyncExitStack
 from datetime import datetime
 from pathlib import Path
 from typing import Awaitable, Callable, Iterable
@@ -95,43 +96,52 @@ class ReplayAdapter(MarketDataAdapter):
                 resolved_clock = ("event" if verified_stream is not None and self.replay_clock == "auto"
                                   else self._resolved_clock())
                 previous_event_time: datetime | None = None
-                for index, (message, event_time) in enumerate(self._load_replay_items(verified_stream)):
-                    if resolved_clock == "event":
-                        current_event_time = parse_market_datetime(event_time)
-                        if current_event_time is None:
-                            if self.strict_event_time:
-                                raise ValueError(
-                                    "event-time replay requires timezone-bearing event times"
-                                )
-                            delay = 0.0
-                        elif previous_event_time is None:
-                            delay = 0.0
-                        else:
-                            source_gap = (
-                                current_event_time - previous_event_time
-                            ).total_seconds()
-                            if source_gap < 0:
-                                self.clock_regression_count += 1
+                batch = (resolved_clock == "none"
+                         and getattr(self.consumer, "data_mode", None) in {"DEMO", "REPLAY"}
+                         and callable(getattr(self.consumer, "offline_projection_batch", None)))
+                async with AsyncExitStack() as context:
+                    if batch:
+                        await context.enter_async_context(self.consumer.offline_projection_batch())
+                    for index, (message, event_time) in enumerate(self._load_replay_items(verified_stream)):
+                        if resolved_clock == "event":
+                            current_event_time = parse_market_datetime(event_time)
+                            if current_event_time is None:
                                 if self.strict_event_time:
                                     raise ValueError(
-                                        "captured event time regressed while sequence remained ordered"
+                                        "event-time replay requires timezone-bearing event times"
                                     )
-                                self._record_clock_regression_note()
-                                source_gap = 0.0
-                            if self.max_gap_seconds is not None:
-                                source_gap = min(source_gap, self.max_gap_seconds)
-                            delay = source_gap / self.replay_speed
-                        if delay:
-                            await self.sleep(delay)
-                        if current_event_time is not None:
-                            previous_event_time = current_event_time
+                                delay = 0.0
+                            elif previous_event_time is None:
+                                delay = 0.0
+                            else:
+                                source_gap = (
+                                    current_event_time - previous_event_time
+                                ).total_seconds()
+                                if source_gap < 0:
+                                    self.clock_regression_count += 1
+                                    if self.strict_event_time:
+                                        raise ValueError(
+                                            "captured event time regressed while sequence remained ordered"
+                                        )
+                                    self._record_clock_regression_note()
+                                    source_gap = 0.0
+                                if self.max_gap_seconds is not None:
+                                    source_gap = min(source_gap, self.max_gap_seconds)
+                                delay = source_gap / self.replay_speed
+                            if delay:
+                                await self.sleep(delay)
+                            if current_event_time is not None:
+                                previous_event_time = current_event_time
 
-                    await self.consumer.update_market_state(dumps_normalized_message(message))
-                    if resolved_clock == "fixed":
-                        await self.sleep(self.delay_seconds)
-                    elif index % 500 == 499:
-                        # Fast loading must still permit drawing and quitting.
-                        await asyncio.sleep(0)
+                        await self.consumer.update_market_state(dumps_normalized_message(message))
+                        if resolved_clock == "fixed":
+                            await self.sleep(self.delay_seconds)
+                        elif index % 500 == 499:
+                            # Publish a coherent prefix before permitting a UI
+                            # draw or quit; canonical ingestion order is intact.
+                            if batch:
+                                await self.consumer.flush_public_projections()
+                            await asyncio.sleep(0)
 
                 if not self.loop:
                     break

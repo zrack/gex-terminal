@@ -246,14 +246,17 @@ async def convert_session(*, files: dict[str, Path], symbol: str, output_dir: Pa
     await writer.start()
     consumer.mark_connected()
     try:
-        for payload, in connection.execute("SELECT payload FROM records WHERE selected=1 ORDER BY ns,priority,id"):
-            consumer.record_provider_frame()
-            await adapter._handle_live_record(json.loads(payload))
-            processed += 1
-            if processed % 5000 == 0 or time.monotonic() - last_progress >= 10:
-                print(f"Converted {processed:,} {symbol} records; {adapter._option_trade_count:,} option trades...", file=sys.stderr, flush=True)
-                await asyncio.sleep(0)
-                last_progress = time.monotonic()
+        async with consumer.offline_projection_batch():
+            for payload, in connection.execute("SELECT payload FROM records WHERE selected=1 ORDER BY ns,priority,id"):
+                consumer.record_provider_frame()
+                await adapter._handle_live_record(json.loads(payload))
+                processed += 1
+                if processed % 500 == 0:
+                    await consumer.flush_public_projections()
+                    await asyncio.sleep(0)
+                if processed % 5000 == 0 or time.monotonic() - last_progress >= 10:
+                    print(f"Converted {processed:,} {symbol} records; {adapter._option_trade_count:,} option trades...", file=sys.stderr, flush=True)
+                    last_progress = time.monotonic()
         if consumer.malformed_message_count:
             raise ValueError("Production consumer rejected conflicting full-session state")
         matrix = await consumer.process_latest_snapshot(days_to_expiry=.25)

@@ -416,6 +416,7 @@ def write_json(path, value):
 
 
 async def checkpoint_audit(consumer, ledger, requested_ns, name, output, model_inputs, checkpoint_cache=None):
+    await consumer.flush_public_projections()
     if consumer.market_time is None:
         result = {"name": name, "requested_cutoff": iso(requested_ns), "actual_as_of": None,
                   "coverage": independent_coverage([]), "expired_quantity_retained_in_session_ledger": 0,
@@ -589,52 +590,55 @@ async def validate_market(*, files, symbol, capture, conversion_report, output, 
         ledger, latest_valid, statuses, iv_sources, checkpoints = {}, {}, Counter(), Counter(), []
         checkpoint_cache = {}
         previous, events, duplicates, total_qty = -1, 0, 0, 0
-        for envelope in iter_verified_capture_stream(stream):
-            message = envelope["message"]
-            event = ns(message.get("event_time"))
-            require(event is not None and event >= previous, "Capture market events are not chronological")
-            while cutoffs and event > cutoffs[0][1]:
-                name, cutoff = cutoffs.pop(0)
-                checkpoints.append(await checkpoint_audit(consumer, ledger, cutoff, name, output, model_inputs, checkpoint_cache))
-            previous, events = event, events + 1
-            if message["type"] == "underlying_tick":
-                truth.quote(message)
-                unique = True
-            elif message["type"] == "options_volume_tick":
-                require(start <= event < end, "Captured trade is outside requested session")
-                unique, metadata = truth.trade(message)
-                provenance = message.get("iv_provenance") or {}
-                require(provenance.get("risk_free_rate") == model_inputs["risk_free_rate"], "IV rate differs from capture assumptions")
-                statuses[str(provenance.get("status", "missing"))] += 1
-                iv_sources[message["iv_source"]] += 1
-                iid = message["contract_id"]
-                if message["iv_source"] == "prior_valid":
-                    prior = latest_valid.get(iid)
-                    require(prior is not None and prior["event_time"] == provenance["prior_iv_event_time"]
-                            and prior["iv"] == message["iv"] and prior["pricing_model"] == message["pricing_model"]
-                            and prior["contract_id"] == iid and prior["provider"] == message["provider"]
-                            and prior["symbol"] == message["symbol"] and prior["expiry_timestamp"] == message["expiry_timestamp"]
-                            and prior.get("underlying_contract_id") == message.get("underlying_contract_id")
-                            and prior["iv_source"] == provenance.get("prior_iv_source")
-                            and provenance.get("prior_iv_risk_free_rate") == (prior.get("iv_provenance") or {}).get("risk_free_rate", model_inputs["risk_free_rate"]),
-                            "Retained IV is not the actual prior successful same-contract observation")
-                if unique:
-                    total_qty += message["volume"]
-                    row = dict(message)
-                    row["accumulated_volume"] = ledger.get(iid, {}).get("accumulated_volume", 0) + message["volume"]
-                    ledger[iid] = row
+        async with consumer.offline_projection_batch():
+            for envelope in iter_verified_capture_stream(stream):
+                message = envelope["message"]
+                event = ns(message.get("event_time"))
+                require(event is not None and event >= previous, "Capture market events are not chronological")
+                while cutoffs and event > cutoffs[0][1]:
+                    name, cutoff = cutoffs.pop(0)
+                    checkpoints.append(await checkpoint_audit(consumer, ledger, cutoff, name, output, model_inputs, checkpoint_cache))
+                previous, events = event, events + 1
+                if message["type"] == "underlying_tick":
+                    truth.quote(message)
+                    unique = True
+                elif message["type"] == "options_volume_tick":
+                    require(start <= event < end, "Captured trade is outside requested session")
+                    unique, metadata = truth.trade(message)
+                    provenance = message.get("iv_provenance") or {}
+                    require(provenance.get("risk_free_rate") == model_inputs["risk_free_rate"], "IV rate differs from capture assumptions")
+                    statuses[str(provenance.get("status", "missing"))] += 1
+                    iv_sources[message["iv_source"]] += 1
+                    iid = message["contract_id"]
+                    if message["iv_source"] == "prior_valid":
+                        prior = latest_valid.get(iid)
+                        require(prior is not None and prior["event_time"] == provenance["prior_iv_event_time"]
+                                and prior["iv"] == message["iv"] and prior["pricing_model"] == message["pricing_model"]
+                                and prior["contract_id"] == iid and prior["provider"] == message["provider"]
+                                and prior["symbol"] == message["symbol"] and prior["expiry_timestamp"] == message["expiry_timestamp"]
+                                and prior.get("underlying_contract_id") == message.get("underlying_contract_id")
+                                and prior["iv_source"] == provenance.get("prior_iv_source")
+                                and provenance.get("prior_iv_risk_free_rate") == (prior.get("iv_provenance") or {}).get("risk_free_rate", model_inputs["risk_free_rate"]),
+                                "Retained IV is not the actual prior successful same-contract observation")
+                    if unique:
+                        total_qty += message["volume"]
+                        row = dict(message)
+                        row["accumulated_volume"] = ledger.get(iid, {}).get("accumulated_volume", 0) + message["volume"]
+                        ledger[iid] = row
+                    else:
+                        duplicates += 1
+                    if unique and message["iv_source"] in {"provider", "black_76_inverted", "american_futures_inverted"}:
+                        latest_valid[iid] = message
                 else:
-                    duplicates += 1
-                if unique and message["iv_source"] in {"provider", "black_76_inverted", "american_futures_inverted"}:
-                    latest_valid[iid] = message
-            else:
-                raise ValueError("Capture includes an unexpected non-trade/non-underlying message")
-            accepted = await consumer.update_market_state(json.dumps(message))
-            require(accepted == unique, "Consumer acceptance differs from native unique-event accounting")
-            if events % 10000 == 0:
-                truth.db.commit()
-                print(f"Validated {events:,} {symbol} normalized events...", file=sys.stderr, flush=True)
-                await asyncio.sleep(0)
+                    raise ValueError("Capture includes an unexpected non-trade/non-underlying message")
+                accepted = await consumer.update_market_state(json.dumps(message))
+                require(accepted == unique, "Consumer acceptance differs from native unique-event accounting")
+                if events % 500 == 0:
+                    await consumer.flush_public_projections()
+                    await asyncio.sleep(0)
+                if events % 10000 == 0:
+                    truth.db.commit()
+                    print(f"Validated {events:,} {symbol} normalized events...", file=sys.stderr, flush=True)
         require(events > 0 and consumer.market_time is not None, "Completed capture has no market state")
         while cutoffs:
             name, cutoff = cutoffs.pop(0)

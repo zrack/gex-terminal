@@ -17,6 +17,9 @@ Release is claimed.
 - Load long saved sessions without source-time delays; retain 60× replay for
   short samples. Show the verified time span, event count and selected policy
   in the starter, with a final checkpoint for Wind Tunnel.
+- Batch offline compatibility-summary refreshes while preserving every canonical
+  event update. Publish a complete accepted prefix before yielding, snapshots
+  and checkpoints, and flush on cancellation; ordinary per-event behavior remains.
 - Add a metadata-quoted, $5-capped full-day ES/NQ acquisition helper with
   immutable plans, fresh cost checks, private progress receipts and no retries.
   Convert native data with a disk-backed causal merge and one consumer across
