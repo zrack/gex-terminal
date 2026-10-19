@@ -100,9 +100,24 @@ def expected_gex(root, stage):
     years = year_fraction(EVENT + timedelta(seconds=seconds))
     value = scalar_gex(forward, forward, years, VOLATILITY, 7, multiplier, "C")
     value += scalar_gex(forward, forward + 25, years, VOLATILITY, 4, multiplier, "P")
-    if stage != "deleted":
-        value += scalar_gex(forward, forward + 50, years, 0.15, 1200 if stage == "initial" else 1250, multiplier, "C")
+    # Statistics contain quantities, not observed IVs. Their OI remains in raw
+    # state but cannot contribute modeled exposure without a qualified IV.
     return value
+
+
+def expected_pricing_coverage(stage):
+    if stage == "rollover":
+        return None
+    oi_quantity = {"initial": 1200, "revised": 1250, "deleted": 0}[stage]
+    unpriced_contracts = 1 if stage == "deleted" else 2
+    return {
+        "selected_contract_count": 2 + unpriced_contracts,
+        "selected_quantity": 11 + oi_quantity,
+        "priced_contract_count": 2, "priced_quantity": 11,
+        "unpriced_contract_count": unpriced_contracts,
+        "unpriced_quantity": oi_quantity,
+        "retained_iv_contract_count": 0, "retained_iv_quantity": 0,
+    }
 
 
 def write_dbn(records, path):
@@ -142,6 +157,13 @@ def verify_report(report, root, stage):
         assert math.isclose(actual, expected, rel_tol=2e-6, abs_tol=1e-5), (root, stage, actual, expected)
         assert snapshot["effective_contract_multiplier"] == (50 if root == "ES" else 20)
         assert snapshot["model"]["multiplier_provenance"]["fallback_row_count"] == 0
+        coverage = snapshot["model"]["pricing_coverage"]
+        for field, value in expected_pricing_coverage(stage).items():
+            assert coverage[field] == value, (root, stage, field, coverage[field], value)
+        assert snapshot["model"]["contract_count"] == 2
+        assert sum(row["call_volume"] + row["put_volume"] for row in snapshot["strikes"]) == 11
+        assert snapshot["model"]["iv_source_counts"] == {"black_76_inverted": 2}
+        assert report["coverage"]["fallback_iv_ticks"] == 0
     assert report["input"]["network_used"] is False
     assert not report["errors"], report["errors"]
     return expected
@@ -260,6 +282,7 @@ def worker(directory):
                         assert math.isclose(report["snapshot"]["metrics"]["total_net_gex"], snapshots[key]["snapshot"]["metrics"]["total_net_gex"], rel_tol=1e-10)
                         assert report["snapshot"]["model"]["multiplier_provenance"] == snapshots[key]["snapshot"]["model"]["multiplier_provenance"]
                         assert report["snapshot"]["model"]["position_sources"] == snapshots[key]["snapshot"]["model"]["position_sources"]
+                        assert report["snapshot"]["model"]["pricing_coverage"] == snapshots[key]["snapshot"]["model"]["pricing_coverage"]
                         assert len(report["snapshot"]["strikes"]) == len(snapshots[key]["snapshot"]["strikes"])
                         for left, right in zip(report["snapshot"]["strikes"], snapshots[key]["snapshot"]["strikes"]):
                             assert left.keys() == right.keys()
