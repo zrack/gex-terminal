@@ -58,10 +58,11 @@ Tradovate readiness remains `scaffold`.
 
 ## Purpose And Entry Boundary
 
-Active [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
+Closed [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
 owns the maintainer-authorized offline rework of PR #10, including synthetic
 production-path tests, parameter/lifecycle repairs and probe evidence gates.
-It preserves issue #4's actual-payload requirement and `scaffold` readiness.
+It preserves issue #4's actual-payload requirement and `scaffold` readiness,
+conditional on its final-head hosted checks and authorized PR #10 merge.
 
 Closed [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) owns current
 documentation/diagram reconciliation, reusable blank recruitment sources and

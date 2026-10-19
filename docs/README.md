@@ -39,8 +39,8 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
-owns PR #10's bounded offline rework; actual Tradovate payloads remain required
+change. Closed [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
+records PR #10's bounded offline rework and integration conditions; actual Tradovate payloads remain required
 by issue #4. Closed [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) records
 the documentation, recruitment-source and branch closeout slice through
 [PR #42](https://github.com/zrack/gex-terminal/pull/42), subject to its final

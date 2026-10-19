@@ -5,7 +5,7 @@ method: saed
 method_version: "1.3"
 profile: gex-terminal-team-v1
 change_rigor: L3
-status: active
+status: closed
 baseline: main@8cea6dd63979dc56d2a065b0271473ffa0aea941
 original_contribution: 03d5ed80e93452c03a9ccce244cf1e671597f91b
 branch: codex/tradovate-offline-pr10
@@ -70,4 +70,33 @@ directory's `duplicate-backup/`, with hashes in `duplicate-cleanup.json`.
 
 ## Evidence
 
-Final verification and integration evidence will be recorded before closure.
+All 734 source tests pass, including 48 new regression methods. The 81 focused
+Tradovate methods pass both from source and from the candidate wheel installed
+in a fresh environment outside the checkout using an existing offline
+wheelhouse. Compilation, documentation/heading links, staged patch hygiene,
+numerical evidence, offline provider certification and scripted fault checks
+pass. Both frozen study inventories remain unchanged.
+
+The initial numeric matrix reproduced 48 failing subcases and six overflow
+errors. Independent review also reproduced untimed/mixed-legacy certification
+and inherited-exception cleanup gaps; their isolated regressions and rechecks
+pass after repair. The first full-suite attempt caught the new fixture missing
+from Doctor's required-resource manifest; the manifest is updated and the
+complete suite passes. No failed attempt is counted as acceptance evidence.
+
+The reviewed runtime commit is
+`a3b10cbdd1b3c5404a6443031436b6fc1f3e7229`. Its clean-export wheel SHA-256 is
+`46667906102bf03497aa16535ba44e0e7cc96a8905cceae51c65b6ec90177f61`.
+Twine, installed `pip check`, offline Doctor, fixture-lab, refusal without the
+network acknowledgement and exact tested-module/resource byte comparisons pass.
+This is a candidate verification build, not a new release or study cohort.
+
+The original PR #10 remains the integration vehicle with its contributor
+history retained. Its closing reference to #4 is removed. This packet closes
+the bounded offline implementation with the maintainer-authorized merge,
+conditional on final-head Ubuntu/macOS Python 3.11/3.12 hosted checks and the
+final independent review passing. The merged-tree full-suite, clean checkout,
+local/origin/GitHub equality and issue #4 OPEN checks are retained afterward in
+`dist/tradovate-offline-pr10/2026-10-18/summary.json`.
+Actual sanitized Tradovate ES/NQ payloads and broader provider qualification
+remain separate open outcomes; readiness remains `scaffold`.
