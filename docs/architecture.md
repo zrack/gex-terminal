@@ -35,6 +35,9 @@ Terminal demo/replay artifact, or bytes from a browser-selected complete capture
 Guided intake verifies the capture in memory and freezes a chosen event prefix;
 it never opens a provider connection. Live checkpoint capture remains separately
 gated, and capture integrity does not establish authenticity or data rights.
+The separate read-only raw collector requires a valid policy and explicit
+network acknowledgement. It writes private provider evidence for later review;
+it does not feed Terminal state or Wind Tunnel intake.
 
 ```mermaid
 flowchart LR
@@ -42,15 +45,20 @@ flowchart LR
     subgraph workbench["gex-terminal — local research workbench"]
         terminal["Terminal<br/>Replay dashboard and research workflows"]
         wind["Market Wind Tunnel<br/>Browser scenario workbench"]
+        raw["Read-only Tradovate collector<br/>Explicit CLI observation"]
     end
     providers["External market-data providers<br/>Optional configured connection"]
     capture[("Local complete captured session<br/>Operator-authorized offline input")]
+    evidence[("Private raw provider evidence<br/>Review before sharing or mapping")]
     researcher <-->|Keyboard controls, metrics and exports| terminal
     researcher <-->|Scenario controls, plots and receipts| wind
     terminal -.->|Explicit immutable checkpoint handoff| wind
     researcher -->|Select local file and review verified checkpoint| capture
     capture -->|Selected bytes; no server file path| wind
     providers -.->|Separately configured terminal / CLI intake| terminal
+    researcher -->|Policy and explicit network acknowledgement| raw
+    providers -.->|Allowlisted contract responses and market data| raw
+    raw -->|Bounded private files; no automatic fixture promotion| evidence
 ```
 
 Provider availability, credentials, rights, and readiness are documented in
@@ -88,6 +96,7 @@ flowchart LR
         files[("Terminal / CLI research files<br/>Inputs, packs, journals and exports")]
         capture[("Selected complete capture<br/>Existing local input file")]
         receipts[("Wind Tunnel receipts<br/>Separate wind-tunnel research subfolder")]
+        raw[("Private raw Tradovate evidence<br/>Separate operator-owned directory")]
     end
     researcher -->|Choose Terminal, Wind Tunnel or Both| starter
     researcher -->|Terminal commands and keyboard| terminal
@@ -103,6 +112,7 @@ flowchart LR
     terminal -->|Write artifacts on request| files
     wind <-->|Save, reopen and reproduce receipts| receipts
     providers -.->|Optional configured live or delayed path| terminal
+    terminal -->|Explicit raw-collector invocation only| raw
 ```
 
 The repeated consumer and engine instances use the same installed code; there
@@ -119,6 +129,13 @@ provider secrets remain outside the package and research artifacts. Installation
 uses Python package dependencies, while running the frozen replay study and
 Wind Tunnel needs no data-provider I/O. The package/resource boundary is verified
 from a wheel outside the checkout.
+
+`tradovate-capture` is a separate CLI invocation of the same installed package,
+represented by the Terminal / research CLI process above. Its direct HTTP and
+WebSocket workflow bypasses the normalized consumer and engine and writes only
+its new private evidence directory. It cannot load raw evidence into Wind Tunnel
+or register it as a normalized captured session. Authentication and market-data
+permissions remain external prerequisites.
 
 The optional setup helper, `scripts/install_app.py`, installs an explicitly
 supplied wheel into an owned application folder. It verifies a fresh environment
@@ -250,6 +267,41 @@ standalone/Both service starts through `wind_tunnel_cli.py`; Terminal's `w`
 action starts the same server through `TerminalHandoff` inside its own process.
 The listener's owner, rather than the browser tab, coordinates shutdown.
 
+**Read-only raw collector components**
+
+```mermaid
+flowchart LR
+    operator["Operator<br/>Local credentials and capture policy"]
+    provider["Tradovate<br/>Auth, contract library and market data"]
+    subgraph process["Explicit tradovate-capture CLI process"]
+        preflight["CLI + capture governance<br/>Validate acknowledgement, policy, bounds and new output"]
+        collector["tradovate_capture.py<br/>Allowlisted requests and bounded socket observation"]
+        writer["Private evidence writer<br/>Exclude auth; account for safety omissions"]
+        manifest["Run manifest<br/>Policy identity, outcome, limits and file hashes"]
+        preflight -->|Start only after refusal gates pass| collector
+        collector -->|Eligible responses and ordered market events| writer
+        collector -->|Owned lifecycle and bounded cleanup outcome| manifest
+        writer -->|Retained-file identities and omission accounting| manifest
+    end
+    private[("New owner-only directory<br/>REST JSONL, WebSocket JSONL and manifest")]
+    operator --> preflight
+    collector <-->|Read-only contract and market-data protocol| provider
+    writer --> private
+    manifest --> private
+```
+
+The collector has no consumer, pricing, corpus, browser or automatic fixture
+writer. Its private files preserve eligible provider shape before normalization;
+their hashes establish local consistency, not authenticity or sharing rights.
+HTTP redirects are disabled; WebSocket application messages, including the
+authorization token, require the final secure provider endpoint to pass an exact
+host/port/path and no-user-information check. The SDK may perform unauthenticated
+redirect handshakes before that check. Owned heartbeat/receive failures are
+retrieved together during cleanup rather than becoming raw orphan-task logs.
+The operator must review permitted derivatives and validate actual ES/NQ mappings
+before issue #4 can close. The component boundary and file/limit contract are
+owned by [Tradovate Raw-Payload Capture](tradovate-capture.md).
+
 Guided intake is limited to complete captures no larger than 4 MiB and 5,000
 events, with at most four intakes retained in memory and 200 sampled checkpoint
 choices. Raw bytes are verified before private labels, paths and extension
@@ -292,6 +344,7 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Local support and recovery | `gex_terminal/local_support.py`, `gex_terminal/artifact_lifecycle.py` | Separate redacted support evidence from owner-only private backups; verify whole recognized research groups and require a backup-bound, separately confirmed retention plan. |
 | Provider adapters | `gex_terminal/adapters/`, `gex_terminal/market_data_adapter.py`, `gex_terminal/contracts.py` | Convert live, delayed, provider-shaped, or replay payloads into versioned normalized messages; preserve product versus underlying identity, validated units, publication time and optional OI reference/action provenance. |
 | Provider certification | `gex_terminal/tradovate_certification.py`, `gex_terminal/databento_certification.py`, `gex_terminal/databento_certification_policy.py` | Select a versioned target policy before I/O, run acknowledged and bounded live-network gates, and derive redacted exact-run evidence without converting fixture evidence into a live claim. |
+| Private raw provider evidence | `gex_terminal/tradovate_capture.py` | Require an explicit network acknowledgement and valid capture policy, constrain read-only contract/market-data operations, preserve eligible pre-normalization evidence with omissions and hashes, and own bounded private-file/network cleanup. |
 | Provider fixture and replay intake | `gex_terminal/provider_injector.py`, `gex_terminal/databento_offline.py` | Route provider-shaped local records through production mapping and adversarial checks without opening a live connection. |
 | State consumer | `gex_terminal/consumer.py` | Own spot, provider-scoped contract positions, projections, expiry selection, lifecycle, and feed-quality state behind an async lock; order referenced OI by trading date then publication revision and retain deletion tombstones. |
 | GEX model | `gex_terminal/engine.py`, `gex_terminal/regime.py`, `gex_terminal/model_evidence.py` | Price Black-Scholes/Black-76 contract rows, aggregate dollar GEX, derive structural levels, and export bounded numerical evidence. |
@@ -457,6 +510,15 @@ stores only policy schema, ID, and SHA-256. Corpus registration of a captured
 session additionally requires a matching policy, approved research use,
 matching rights/redistribution metadata, and `redaction_status=verified`.
 
+The raw Tradovate collector uses the same policy-identity gate with a separate
+explicit network acknowledgement, then writes a new private evidence directory
+without entering this normalized consumer/capture path. It invokes allowlisted
+read-only contract requests, including `contract/getoptionschain`, and observes
+market-data frames. Authentication payloads, headers and outgoing frames are not
+retained. Limits and safety omissions remain part of the run's interpretation.
+Raw evidence requires reviewed permitted derivatives and production-path mapping
+tests before it can supply actual-payload evidence for issue #4.
+
 ### Databento Certification Boundary
 
 Databento remains `live-uncertified`. Its provider path is deliberately split
@@ -525,7 +587,9 @@ event prevents success even after an earlier acknowledgement.
 Connection/subscription state gates remain owned by the existing lifecycle.
 Only the explicit, redacted
 `tradovate-certify --ack-live-network` workflow can measure a
-credential/environment/run window. Fixture success cannot promote registry
+credential/environment/run window for the normalized adapter's diagnostic
+gates. The separate `tradovate-capture` workflow records raw shape evidence
+without running those certification gates. Fixture success cannot promote registry
 status or establish native-IV availability.
 
 Its discovery implementation uses `product/find`, maturity and contract
@@ -728,6 +792,7 @@ and provides no shared-memory or replay-synchronization channel.
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
 | Tradovate synthetic discovery, quote mapping and parameter boundaries | `tests/test_tradovate_option_chain.py`, `tests/test_tradovate_parameters.py`, `tests/test_tradovate_adapter.py`, `tests/test_tradovate_protocol.py`; constructed metadata does not establish actual ES/NQ fields |
 | Tradovate frame, lifecycle and negative certification gates | `tests/test_tradovate_ack_frames.py`, `tests/test_tradovate_lifecycle.py`, `tests/test_tradovate_certification.py`; scripted sessions do not establish service-side reconnect behavior |
+| Tradovate raw evidence collection | `tests/test_tradovate_capture.py`, `tests/test_tradovate_capture_cli.py`, `tests/test_tradovate_capture_safety.py`; mocked preservation, private output, omissions, refusal gates, auth/redirect/heartbeat bounds and cleanup do not supply actual ES/NQ payloads |
 | Provider certification, policy, lifecycle, or readiness | `tests/test_tradovate_certification.py`, `tests/test_databento_certification.py`, `tests/test_databento_certification_policy.py`, `tests/test_databento_live.py`, `tests/test_provider_readiness.py` |
 | Prospective live-population preparation | `tests/test_live_population_contract.py` |
 | Offline Databento or outcome evaluation | `tests/test_databento_offline.py`, `tests/test_position_model_comparison.py`, `tests/test_price_action_validation.py` |

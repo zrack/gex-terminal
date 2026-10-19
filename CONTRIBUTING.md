@@ -311,6 +311,24 @@ validated policy before connection, and captured-session corpus registration
 requires its exact matching approved policy plus verified redaction. The full
 gate is in [docs/capture-governance.md](docs/capture-governance.md).
 
+For raw Tradovate shape evidence, follow
+[Tradovate Raw-Payload Capture](docs/tradovate-capture.md). Its separate
+`tradovate-capture` command needs explicit network acknowledgement and a valid
+policy before any demo/live collection, writes only a new private directory
+outside Git checkouts, and does not produce normalized captured sessions or
+automatically shareable fixtures. Regression work uses mocked network boundaries:
+
+```bash
+python -m unittest -v \
+  tests.test_tradovate_capture \
+  tests.test_tradovate_capture_cli \
+  tests.test_tradovate_capture_safety
+```
+
+Do not run a credentialed capture as part of an implementation test suite. Actual
+ES/NQ samples need operator authority, review of permitted sanitized derivatives,
+production-path mapping validation and entitlement notes before issue #4 closes.
+
 ## Pull Request Checklist
 
 Before opening a pull request, please confirm:

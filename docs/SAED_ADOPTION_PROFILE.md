@@ -58,6 +58,12 @@ Tradovate readiness remains `scaffold`.
 
 ## Purpose And Entry Boundary
 
+[GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md) owns the
+maintainer-authorized read-only raw collector, offline regressions and operator
+guidance. Credentialed collection is a separate operator decision; issue #4
+remains open until actual ES/NQ samples and mappings are validated. The slice
+does not change `scaffold` readiness or the existing release/study identities.
+
 Closed [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
 owns the maintainer-authorized offline rework of PR #10, including synthetic
 production-path tests, parameter/lifecycle repairs and probe evidence gates.

@@ -1,9 +1,12 @@
 # Capture Governance
 
-Live session capture is fail-closed. Before `gex-terminal` opens a live provider
-connection for `--record-session` or `--capture-path`, the operator must supply
-a valid, versioned policy that records explicit decisions about data rights,
-retention, redaction, and research use.
+Provider capture is fail-closed. Before `gex-terminal` opens a provider connection
+for `--record-session`, `--capture-path`, or `tradovate-capture`, the operator must
+supply a valid, versioned policy that records explicit decisions about data
+rights, retention, redaction, and research use. The raw Tradovate collector
+requires this policy in both demo and live environments, plus the explicit
+`--ack-live-network` flag. Its setup and private-output procedure belong in
+[Tradovate Raw-Payload Capture](tradovate-capture.md).
 
 The policy records the operator's decision. It does not grant provider rights,
 enforce a provider agreement, automatically delete retained files, or make a
@@ -69,8 +72,9 @@ gex-terminal --mode live --provider databento \
 ```
 
 The captured-session header retains only the policy ID, schema, and SHA-256—not
-the policy's decision text. Replay capture does not require a policy because it
-does not open a live feed, but supplying one records the same identity.
+the policy's decision text. The raw Tradovate manifest retains that same policy
+identity. Replay capture does not require a policy because it does not open a
+live feed, but supplying one records the same identity.
 
 ## Corpus Eligibility Is A Separate Gate
 
@@ -78,6 +82,11 @@ A valid policy permits the configured capture workflow; it does not by itself
 make the result eligible for research. A policy with
 `research_use.status=prohibited` can be attached to a private capture, but that
 capture cannot enter a research corpus.
+
+Raw Tradovate evidence files are not normalized captured-session inputs. They
+cannot be registered directly as captured sessions or opened by Wind Tunnel's
+session intake. A later permitted normalized derivative needs its own provenance,
+integrity and research eligibility review.
 
 Register a captured session only with the exact policy used at capture time:
 
@@ -110,6 +119,8 @@ values fail before runtime startup. Every configured CLI log handler recursively
 redacts credential fields, account/subscription identifiers, provider payload
 fragments, bearer tokens, and configured credential substrings.
 
-Redacted logs do not make captured market data shareable. Captures preserve
-normalized messages and may still contain licensed observations, so perform the
-policy's required review before sharing, corpus registration, or publication.
+Redacted logs do not make captured market data shareable. Normalized session
+captures and raw Tradovate evidence may still contain licensed observations, so
+perform the policy's required review before sharing, corpus registration, or
+publication. The raw collector excludes authentication material and accounts for
+safety omissions; that is not a general PII sanitizer or a redistribution grant.

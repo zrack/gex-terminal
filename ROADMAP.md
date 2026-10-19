@@ -65,12 +65,16 @@ unvalidated feature request needs an explicit owner decision.
 
 Provider queue reconciliation is recorded in [Good First Issues](docs/good-first-issues.md).
 Databento issues #5 and #35 are closed after the merged fixture/provider
-repairs. Tradovate PR #10 remains unaccepted and needs contributor changes and
-observed provenance. **Keep issue #4 open until actual sanitized demo/live
-Tradovate ES/NQ payloads establish its mapping and availability claims.** The
-merged ACK-frame repair is offline behavior evidence and does not close that
-payload gate. Do not duplicate completed work or treat an open contribution as
-accepted/live evidence.
+repairs. Tradovate [PR #10](https://github.com/zrack/gex-terminal/pull/10) is
+merged with synthetic production-path regressions and offline lifecycle repairs.
+The [read-only raw collector](docs/tradovate-capture.md) prepares bounded private
+observations without changing adapter readiness. **Keep issue #4 open until
+actual sanitized demo/live Tradovate ES/NQ payloads establish its mapping and
+availability claims.** The collector and merged regressions do not close that
+payload gate. Next obtain authorized access/retention decisions, collect both
+products, review permitted derivatives, and validate their observed mappings.
+Do not duplicate completed implementation or promote offline evidence into a
+live-provider claim.
 
 ## Product Destination
 
