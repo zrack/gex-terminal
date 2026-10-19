@@ -74,6 +74,7 @@ REQUIRED_BUNDLED_RESOURCES: tuple[str, ...] = (
     "data/provider_fixtures/tradovate_contract_discovery.json",
     "data/provider_fixtures/tradovate_live_sample.jsonl",
     "data/provider_fixtures/tradovate_md_quotes.json",
+    "data/provider_fixtures/tradovate_option_chain_synthetic.json",
     "data/provider_fixtures/yfinance_option_chain_records.json",
 )
 

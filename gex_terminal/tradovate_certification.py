@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -36,8 +38,14 @@ async def build_tradovate_certification_report(
             "Tradovate certification requires --ack-live-network; the probe uses "
             "credentials and opens read-only external market-data connections"
         )
-    if duration_seconds <= 0:
-        raise ValueError("duration_seconds must be positive")
+    if isinstance(duration_seconds, bool) or not isinstance(duration_seconds, (int, float)):
+        raise ValueError("duration_seconds must be finite and positive")
+    try:
+        duration_seconds = float(duration_seconds)
+    except (OverflowError, ValueError):
+        raise ValueError("duration_seconds must be finite and positive") from None
+    if not math.isfinite(duration_seconds) or duration_seconds <= 0:
+        raise ValueError("duration_seconds must be finite and positive")
 
     consumer = StatefulGexConsumer(
         IntradayGexEngine(multiplier=contract_multiplier),
@@ -62,42 +70,63 @@ async def build_tradovate_certification_report(
             try:
                 await asyncio.wait_for(asyncio.shield(task), timeout=duration_seconds)
             except TimeoutError:
-                pass
-    except (OSError, RuntimeError, ValueError) as exc:
-        # Record only type and bounded reason. Adapter code never includes token
-        # or account values in these exceptions.
-        errors.append(f"{type(exc).__name__}: {exc}")
+                # A provider task can raise TimeoutError itself. Only an
+                # unfinished task represents our normal probe-window deadline.
+                if task.done():
+                    raise
+    except Exception as exc:
+        # Provider/library exception messages can contain unlabelled credentials
+        # or payload fragments. Export a type and fixed reason, never their text.
+        errors.append(f"{type(exc).__name__}: probe_failed")
     finally:
+        # Read the run-window connection state before our own cancellation
+        # disconnects a healthy socket. A stream that already failed/disconnected
+        # must not pass merely because earlier subscriptions/messages existed.
+        connection_state_at_probe_end = consumer.connection_state
         if task and not task.done():
             task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
                 pass
-        elif task and task.done():
-            try:
-                task.result()
-            except (OSError, RuntimeError, ValueError) as exc:
-                errors.append(f"{type(exc).__name__}: {exc}")
-
-    quality = consumer.feed_quality_snapshot()
+            except Exception as exc:
+                errors.append(f"{type(exc).__name__}: cleanup_failed")
+        # Failed background tasks can become visible only while cleanup awaits
+        # them. Their final error/subscription counters still gate the result.
+        quality = consumer.feed_quality_snapshot()
     unique_contract_ids = {
         str(metadata.get("contract_id"))
         for metadata in adapter.contract_metadata.values()
         if metadata.get("contract_id") not in (None, "")
         and metadata.get("instrument_class") != "future"
     }
+    normalized_option_contracts = len({key[:2] for key in consumer.contract_state})
     transport_certified = bool(
         authenticated
         and adapter._connected_once
+        and connection_state_at_probe_end == "CONNECTED"
+        and not errors
+        and quality.get("entitlement_error_count", 0) == 0
         and quality.get("subscription_status") == "subscribed"
         and quality.get("frame_count", 0) > 0
         and consumer.message_count > 0
     )
+    # These acceptance counters have no public feed-quality projection. Reuse
+    # the consumer's checkpoint/pricing eligibility evidence without changing
+    # serialized feed-quality receipts solely for this provider probe.
+    legacy_option_tick_count = consumer._v1_option_count
+    untimed_market_event_count = consumer._untimed_market_event_count
     quantitative_gex_certified = bool(
         transport_certified
+        and consumer.current_spot > 0
         and consumer.contract_state
+        and legacy_option_tick_count == 0
+        and untimed_market_event_count == 0
         and adapter._iv_fallback_count == 0
+        and adapter._receipt_time_fallback_count == 0
+        and quality.get("parse_error_count", 0) == 0
+        and quality.get("dropped_count", 0) == 0
+        and quality.get("malformed_count", 0) == 0
     )
 
     return {
@@ -115,18 +144,19 @@ async def build_tradovate_certification_report(
         },
         "authentication": {
             "passed": authenticated,
-            "failure_reason": adapter.auth_failure_reason,
+            "failure_reason": _safe_auth_failure_reason(adapter.auth_failure_reason),
             "has_live": adapter.auth_capabilities.get("has_live"),
             "has_market_data": adapter.auth_capabilities.get("has_market_data"),
             "market_data_token_present": bool(adapter.md_access_token),
         },
         "transport": {
             "websocket_authorized": adapter._connected_once,
+            "connection_state_at_probe_end": connection_state_at_probe_end,
             "subscription_status": quality.get("subscription_status"),
             "subscribed_symbols": quality.get("subscribed_symbol_count", 0),
             "provider_frames": quality.get("frame_count", 0),
             "normalized_messages": consumer.message_count,
-            "normalized_option_contracts": len(consumer.contract_state),
+            "normalized_option_contracts": normalized_option_contracts,
             "discovered_option_contracts": len(unique_contract_ids),
             "entitlement_errors": quality.get("entitlement_error_count", 0),
             "parse_errors": quality.get("parse_error_count", 0),
@@ -138,6 +168,8 @@ async def build_tradovate_certification_report(
             ),
             "fallback_iv_tick_count": adapter._iv_fallback_count,
             "receipt_time_fallback_tick_count": adapter._receipt_time_fallback_count,
+            "legacy_option_tick_count": legacy_option_tick_count,
+            "untimed_market_event_count": untimed_market_event_count,
         },
         "result": {
             "transport_certified": transport_certified,
@@ -147,7 +179,10 @@ async def build_tradovate_certification_report(
         "evidence_ceiling": {
             "transport": "measured only for this credential, environment, and run window",
             "model": (
-                "not certified when implied volatility falls back to a configured value"
+                "requires accepted underlying and schema-v2 option messages with event "
+                "clocks, no legacy option ticks, no configured-IV or receipt-time "
+                "fallbacks, and no recorded parse/drop errors; "
+                "transport alone does not establish option-payload coverage"
             ),
             "predictive_market_validity": "unmeasured",
         },
@@ -194,6 +229,7 @@ def _format_markdown(report: dict[str, Any]) -> str:
         f"- Authentication failure reason: {authentication['failure_reason']}",
         f"- Market-data entitlement reported: {authentication['has_market_data']}",
         f"- WebSocket authorized: {transport['websocket_authorized']}",
+        f"- Connection state at probe end: {transport.get('connection_state_at_probe_end', 'unreported')}",
         f"- Subscription status: {transport['subscription_status']}",
         f"- Subscribed symbols: {transport['subscribed_symbols']}",
         f"- Provider frames: {transport['provider_frames']}",
@@ -201,6 +237,9 @@ def _format_markdown(report: dict[str, Any]) -> str:
         f"- Normalized option contracts: {transport['normalized_option_contracts']}",
         f"- Native implied volatility observed: {model_inputs['native_implied_volatility_observed']}",
         f"- Fallback-IV ticks: {model_inputs['fallback_iv_tick_count']}",
+        f"- Receipt-time fallback ticks: {model_inputs.get('receipt_time_fallback_tick_count', 'unreported')}",
+        f"- Legacy option ticks: {model_inputs.get('legacy_option_tick_count', 'unreported')}",
+        f"- Untimed market events: {model_inputs.get('untimed_market_event_count', 'unreported')}",
         "",
         "## Evidence ceiling",
         "",
@@ -212,3 +251,12 @@ def _format_markdown(report: dict[str, Any]) -> str:
         lines.extend(("", "## Errors", ""))
         lines.extend(f"- {error}" for error in report["errors"])
     return "\n".join(lines) + "\n"
+
+
+def _safe_auth_failure_reason(reason: str | None) -> str | None:
+    """Retain adapter reason enums without exporting arbitrary provider text."""
+    if reason is None or reason in {"challenge_required", "no_access_token"}:
+        return reason
+    if isinstance(reason, str) and re.fullmatch(r"http_[1-5][0-9]{2}", reason):
+        return reason
+    return "authentication_failed"

@@ -12,6 +12,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import math
 import os
 import re
 from datetime import datetime, timedelta, timezone
@@ -48,6 +49,40 @@ _RETRYABLE_HTTP_STATUSES = {429, 500, 502, 503, 504}
 _ENTITLEMENT_STATUSES = {401, 403}
 
 
+def _number(value: Any, field: str, *, allow_zero: bool = False) -> float:
+    """Validate before conversion can disguise bools or nonfinite inputs."""
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError(f"{field} must be a finite number") from None
+    if isinstance(value, bool) or not math.isfinite(result) or result < 0 or (result == 0 and not allow_zero):
+        raise ValueError(f"{field} must be {'nonnegative' if allow_zero else 'positive'} and finite")
+    return result
+
+
+def _integer(value: Any, field: str, *, minimum: int = 0) -> int:
+    try:
+        result = int(value)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError(f"{field} must be an integer") from None
+    if isinstance(value, bool) or (isinstance(value, str) and not re.fullmatch(r"[+-]?\d+", value.strip())):
+        raise ValueError(f"{field} must be an integer")
+    if not isinstance(value, str) and value != result:
+        raise ValueError(f"{field} must be an integer")
+    if result < minimum:
+        raise ValueError(f"{field} must be at least {minimum}")
+    return result
+
+
+def _backoff_delay(base: float, attempt: int) -> float:
+    if base == 0:
+        return 0.0
+    try:
+        return min(30.0, math.ldexp(base, attempt))
+    except OverflowError:
+        return 30.0
+
+
 def missing_tradovate_credentials() -> list[str]:
     return [name for name in REQUIRED_TRADOVATE_ENV_VARS if not os.getenv(name)]
 
@@ -78,13 +113,9 @@ class TradovateAdapter(MarketDataAdapter):
     ):
         self.consumer = consumer
         self.target_underlying = target_underlying.upper()
-        self.max_option_contracts = max(1, int(max_option_contracts))
-        self.contract_multiplier = float(contract_multiplier)
-        self.default_iv = float(default_iv)
-        if self.contract_multiplier <= 0:
-            raise ValueError("contract_multiplier must be positive")
-        if self.default_iv <= 0:
-            raise ValueError("default_iv must be positive")
+        self.max_option_contracts = _integer(max_option_contracts, "max_option_contracts", minimum=1)
+        self.contract_multiplier = _number(contract_multiplier, "contract_multiplier")
+        self.default_iv = _number(default_iv, "default_iv")
 
         resolved_environment = (environment or os.getenv("TRADOVATE_ENV", "demo")).lower()
         if resolved_environment not in {"demo", "live"}:
@@ -95,11 +126,11 @@ class TradovateAdapter(MarketDataAdapter):
         # Tradovate uses the same market-data socket host for demo and live.
         self.ws_url = "wss://md.tradovateapi.com/v1/websocket"
 
-        self.request_timeout_seconds = float(request_timeout_seconds)
-        self.acknowledgement_timeout_seconds = float(acknowledgement_timeout_seconds)
-        self.max_http_attempts = max(1, int(max_http_attempts))
-        self.max_reconnect_attempts = max(0, int(max_reconnect_attempts))
-        self.reconnect_base_delay_seconds = max(0.0, float(reconnect_base_delay_seconds))
+        self.request_timeout_seconds = _number(request_timeout_seconds, "request_timeout_seconds")
+        self.acknowledgement_timeout_seconds = _number(acknowledgement_timeout_seconds, "acknowledgement_timeout_seconds")
+        self.max_http_attempts = _integer(max_http_attempts, "max_http_attempts", minimum=1)
+        self.max_reconnect_attempts = _integer(max_reconnect_attempts, "max_reconnect_attempts")
+        self.reconnect_base_delay_seconds = _number(reconnect_base_delay_seconds, "reconnect_base_delay_seconds", allow_zero=True)
 
         self.auth_payload = {
             "name": os.getenv("TRADOVATE_NAME"),
@@ -315,10 +346,10 @@ class TradovateAdapter(MarketDataAdapter):
         retry_after = headers.get("Retry-After")
         if retry_after not in (None, ""):
             try:
-                return max(0.0, float(retry_after))
+                return min(30.0, _number(retry_after, "retry_after", allow_zero=True))
             except (TypeError, ValueError):
                 pass
-        return min(30.0, float(2**attempt))
+        return _backoff_delay(1.0, attempt)
 
     async def keep_alive(self, websocket) -> None:
         """Send Tradovate's required 2.5-second heartbeat frame."""
@@ -384,12 +415,13 @@ class TradovateAdapter(MarketDataAdapter):
                     )
                     return
                 LOGGER.warning("Tradovate market-data connection interrupted; retrying.")
-                delay = min(30.0, self.reconnect_base_delay_seconds * (2**reconnect_attempt))
+                delay = _backoff_delay(self.reconnect_base_delay_seconds, reconnect_attempt)
                 await asyncio.sleep(delay)
 
     async def _run_websocket_session(self, websocket, subscriptions: list[str | int]) -> None:
         heartbeat_task = None
         renewal_task = None
+        session_failed = False
         self._active_subscriptions = []
         try:
             await self._await_open(websocket)
@@ -420,14 +452,28 @@ class TradovateAdapter(MarketDataAdapter):
                 if message in {"h", "o", "[]"}:
                     continue
                 await self._parse_and_route(message)
+        except BaseException:
+            session_failed = True
+            raise
         finally:
+            background_failed = False
             for task in (heartbeat_task, renewal_task):
                 if task:
                     task.cancel()
-                    with contextlib.suppress(asyncio.CancelledError):
+                    try:
                         await task
-            await self._cleanup_websocket(websocket)
-            self._record_consumer("mark_disconnected")
+                    except asyncio.CancelledError:
+                        pass
+                    except Exception as error:
+                        background_failed = True
+                        self._record_consumer("mark_subscription_error")
+                        LOGGER.warning("Tradovate background task failed (%s)", type(error).__name__)
+            try:
+                await self._cleanup_websocket(websocket)
+            finally:
+                self._record_consumer("mark_disconnected")
+            if background_failed and not session_failed:
+                raise RuntimeError("Tradovate background task failed")
 
     async def _await_open(self, websocket) -> None:
         while True:
@@ -454,8 +500,13 @@ class TradovateAdapter(MarketDataAdapter):
             payloads = self._decode_frame(raw)
             acknowledgement: dict[str, Any] | None = None
             for event in payloads:
-                if event.get("i") == request_id:
-                    status = int(event.get("s", 0))
+                if type(event.get("i")) is int and event["i"] == request_id:
+                    try:
+                        status = _integer(event.get("s", 0), "acknowledgement_status")
+                    except ValueError:
+                        self._record_consumer("mark_subscription_error")
+                        self._record_consumer("record_provider_parse_error")
+                        raise RuntimeError("Tradovate acknowledgement has an invalid status") from None
                     if status == 200:
                         if acknowledgement is None:
                             acknowledgement = event
@@ -564,8 +615,9 @@ class TradovateAdapter(MarketDataAdapter):
                 return
 
             self._record_consumer("record_dropped_message")
-        except (TypeError, ValueError) as error:
-            LOGGER.warning("Rejected malformed Tradovate quote: %s", error)
+        except (TypeError, ValueError, OverflowError) as error:
+            # Conversion exceptions can embed raw private provider values.
+            LOGGER.warning("Rejected malformed Tradovate quote (%s)", type(error).__name__)
             self._record_consumer("record_provider_parse_error")
 
     def _normalize_option_messages(
@@ -640,10 +692,10 @@ class TradovateAdapter(MarketDataAdapter):
             return None
         normalized = {
             "type": "options_volume_tick",
-            "strike": float(strike),
+            "strike": _number(strike, "strike"),
             "option_type": str(option_type).upper()[0],
-            "volume": int(volume),
-            "iv": float(iv),
+            "volume": _integer(volume, "volume"),
+            "iv": _number(iv, "iv"),
         }
         if normalized["option_type"] not in {"C", "P"}:
             raise ValueError(f"unsupported option type for {symbol}: {option_type}")
@@ -724,15 +776,15 @@ class TradovateAdapter(MarketDataAdapter):
                 or contract_id
             ),
             "symbol": self.target_underlying,
-            "strike": float(strike),
+            "strike": _number(strike, "strike"),
             "option_type": option_code,
             "volume_semantics": "cumulative",
-            "iv": float(iv),
+            "iv": _number(iv, "iv"),
             "iv_source": iv_source,
             "expiry": str(expiry),
             "instrument_class": instrument_class,
             "pricing_model": "black_76" if instrument_class == "futures_option" else "black_scholes",
-            "contract_multiplier": float(multiplier),
+            "contract_multiplier": _number(multiplier, "contract_multiplier"),
             "event_time": event_time,
             "received_time": received_time,
         }
@@ -741,7 +793,7 @@ class TradovateAdapter(MarketDataAdapter):
             normalized["expiry_timestamp"] = str(expiry_timestamp)
         sequence = quote.get("sequence", quote.get("seq"))
         if sequence not in (None, ""):
-            normalized["sequence"] = int(sequence)
+            normalized["sequence"] = _integer(sequence, "sequence")
         return [
             {
                 **normalized,
@@ -937,7 +989,7 @@ class TradovateAdapter(MarketDataAdapter):
         entry = cls._entry(entries, name)
         if not entry or entry.get("size") in (None, ""):
             return None
-        return int(entry["size"])
+        return _integer(entry["size"], name)
 
     @classmethod
     def _quote_price(cls, quote: dict[str, Any]) -> float | None:
@@ -945,7 +997,7 @@ class TradovateAdapter(MarketDataAdapter):
         if isinstance(entries, Mapping):
             trade = cls._entry(entries, "Trade")
             if trade and trade.get("price") not in (None, ""):
-                return float(trade["price"])
+                return _number(trade["price"], "price")
             bid_entry = cls._entry(entries, "Bid")
             offer_entry = cls._entry(entries, "Offer")
             if (
@@ -954,16 +1006,17 @@ class TradovateAdapter(MarketDataAdapter):
                 and bid_entry.get("price") not in (None, "")
                 and offer_entry.get("price") not in (None, "")
             ):
-                return (float(bid_entry["price"]) + float(offer_entry["price"])) / 2
+                return (_number(bid_entry["price"], "bid") / 2 +
+                        _number(offer_entry["price"], "offer") / 2)
 
         for field in ("lastPrice", "tradePrice", "price", "closePrice"):
             value = quote.get(field)
             if value not in (None, ""):
-                return float(value)
+                return _number(value, "price")
         bid = quote.get("bidPrice")
         ask = quote.get("offerPrice", quote.get("askPrice"))
         if bid not in (None, "") and ask not in (None, ""):
-            return (float(bid) + float(ask)) / 2
+            return (_number(bid, "bid") / 2 + _number(ask, "offer") / 2)
         return None
 
     @staticmethod
@@ -1066,6 +1119,5 @@ class TradovateAdapter(MarketDataAdapter):
 
     @staticmethod
     def _optional_bool(value: Any) -> bool | None:
-        if value is None:
-            return None
-        return bool(value)
+        # Unknown/malformed capability values must not become granted rights.
+        return value if isinstance(value, bool) else None

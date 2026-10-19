@@ -267,7 +267,7 @@ raw capture. These bounds and privacy rules are recorded in
 | --- | --- |
 | `gex_terminal/` | Installable application package and all runtime, model, and report modules |
 | `gex_terminal/adapters/` | Provider protocol and replay implementations behind the normalized adapter boundary |
-| `gex_terminal/data/` | Packaged synthetic replays and sanitized provider fixtures |
+| `gex_terminal/data/` | Packaged synthetic replays and provider-shaped fixtures |
 | `gex_terminal/wind_tunnel_web/` | Packaged browser UI, Plotly, icons and static assets served by the local Wind Tunnel service |
 | `scripts/install_app.py`, `scripts/build_app_bundle.py` | Reviewed-wheel setup, generated launchers, optional Both supervisor and bundle preparation |
 | `scripts/build_study_kit.py`, `scripts/build_participant_delivery.py`, `scripts/build_study_consent.py` | Maintainer preparation of frozen synthetic study kits, bounded participant-only delivery and optional blank consent rendering; no participant collection |
@@ -309,7 +309,7 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py`, `gex_terminal/batch_comparison.py` | Produce replay, demo, provider-fixture, and multi-session model-comparison reports without live credentials. |
 | Portable research receipt | `gex_terminal/demo_lab_receipt.py` | Bind authorized copied replay, model/runtime identity, exact inventory and semantic content; reject unsupported or changed packs before reproduction. |
 | Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, and historical records from normalized state. |
-| Packaged data | `gex_terminal/data/`, `gex_terminal/package_data.py` | Resolve bundled replay and sanitized provider resources independently of the current working directory. |
+| Packaged data | `gex_terminal/data/`, `gex_terminal/package_data.py` | Resolve bundled replay and provider-shaped resources independently of the current working directory. |
 
 ## Adapter-Consumer Boundary
 
@@ -528,6 +528,26 @@ Only the explicit, redacted
 credential/environment/run window. Fixture success cannot promote registry
 status or establish native-IV availability.
 
+Its discovery implementation uses `product/find`, maturity and contract
+dependencies, and bounded suggestions. Nested quotes join by registered
+contract identity to the metadata supplied by that path; cumulative trade
+volume and OI remain separate consumer sources. The extra strike, option-side,
+IV and expiry aliases accepted by the implementation are not established
+ES/NQ provider fields merely because synthetic tests populate them. The
+documented `contract/getoptionschain` grouped response is not consumed by this
+adapter. [Market-Data Adapters](adapters.md#implemented-mapping-and-evidence-boundaries)
+owns the current mapping and evidence limits.
+
+Bounded synthetic chain and scripted lifecycle tests use these same production
+adapter boundaries without acquiring credentials or adding another ingestion
+owner. They can verify discovery decisions, malformed-input quarantine,
+cumulative-state semantics, retry and cancellation paths, and fail-closed
+report outcomes. [Issue #4](https://github.com/zrack/gex-terminal/issues/4)
+still requires actual sanitized demo or live ES/NQ payloads, field mappings
+including IV availability or absence, and entitlement notes. That mapping
+requirement is separate from broader real-provider coverage and reconnect
+qualification.
+
 Only `databento-certify --ack-live-network` can measure one credential,
 entitlement set, symbol, and bounded run window. The ES and NQ policies are
 separate and enforce their canonical multipliers. Their thresholds are
@@ -706,6 +726,8 @@ and provides no shared-memory or replay-synchronization channel.
 | Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py`, `tests/test_session_store.py` |
 | Capture integrity, policy, or event clocks | `tests/test_session_capture.py`, `tests/test_capture_governance.py`, `tests/test_replay_adapter.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |
+| Tradovate synthetic discovery, quote mapping and parameter boundaries | `tests/test_tradovate_option_chain.py`, `tests/test_tradovate_parameters.py`, `tests/test_tradovate_adapter.py`, `tests/test_tradovate_protocol.py`; constructed metadata does not establish actual ES/NQ fields |
+| Tradovate frame, lifecycle and negative certification gates | `tests/test_tradovate_ack_frames.py`, `tests/test_tradovate_lifecycle.py`, `tests/test_tradovate_certification.py`; scripted sessions do not establish service-side reconnect behavior |
 | Provider certification, policy, lifecycle, or readiness | `tests/test_tradovate_certification.py`, `tests/test_databento_certification.py`, `tests/test_databento_certification_policy.py`, `tests/test_databento_live.py`, `tests/test_provider_readiness.py` |
 | Prospective live-population preparation | `tests/test_live_population_contract.py` |
 | Offline Databento or outcome evaluation | `tests/test_databento_offline.py`, `tests/test_position_model_comparison.py`, `tests/test_price_action_validation.py` |

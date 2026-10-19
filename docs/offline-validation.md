@@ -25,6 +25,89 @@ actual-provider-payload requirement of
 [issue #4](https://github.com/zrack/gex-terminal/issues/4). Tradovate remains
 `scaffold`; no live access or payload capture is part of this test command.
 
+## Tradovate Offline Regression Matrix
+
+Run the production-path mapping, discovery, lifecycle, and certification
+regressions together without credentials:
+
+```bash
+python -m unittest -v tests.test_tradovate_option_chain tests.test_tradovate_parameters tests.test_tradovate_lifecycle tests.test_tradovate_adapter tests.test_tradovate_protocol tests.test_tradovate_ack_frames tests.test_tradovate_certification
+```
+
+The bounded fixture
+`gex_terminal/data/provider_fixtures/tradovate_option_chain_synthetic.json`
+uses the custom envelope `gex-terminal.synthetic-tradovate-chain-scenarios.v1`.
+Its provenance declares `origin=constructed` and
+`observed_provider_payload=false`. Two ES/NQ scenarios supply fixture metadata
+and nested quote frames to the production adapter and consumer instead of
+merely asserting that invented JSON fields exist. The envelope is not a
+Tradovate API schema or authenticated market sample.
+
+| Area | Offline evidence | Evidence ceiling |
+| --- | --- | --- |
+| Discovery | Scripted REST product/maturity/dependency requests, suggestion fallback, deduplication and the configured contract cap | Does not establish the real ES/NQ option universe or provider field availability |
+| Position mapping | Nested quote entries joined to fixture metadata; cumulative trade volume and OI retained separately | Does not establish actual OI entitlement, publication cadence, or dealer inventory |
+| Input boundaries | Missing and malformed contract/quote fields, invalid numeric and time inputs, plus valid neighbors in a frame | Does not establish which fields the service currently sends |
+| Parameters | Finite positive prices, IV and timeouts; integral quantities and limits; typed acknowledgement IDs/status; bounded `Retry-After` | Does not establish provider field units or permission to coerce unsupported values |
+| Frame ordering | Matching/unrelated IDs, market data before and after acknowledgements, trailing errors, timeout and cancellation | Does not measure network latency or a service-side reconnect |
+| Lifecycle | Scripted retry, renewal, reconnect, subscription and shutdown paths | Does not establish actual authentication, entitlements or server-side resubscription |
+| Certification failure | Incomplete or failed scripted runs keep the relevant gate false; fallback IV remains degraded | A synthetic passing report is a test of the report contract, not a real certification |
+
+The scripted lifecycle cases cover rejected/challenged authentication, bounded
+HTTP retry exhaustion, distinct REST and market-data tokens through renewal,
+renewal failure, reauthorization and resubscription on a second mock socket,
+reconnect exhaustion, and cancellation that awaits both owned background tasks
+before completing cleanup. These assertions exercise the implementation's
+calls and state transitions without contacting the service.
+An already-failed heartbeat must not prevent awaiting the renewal task,
+unsubscribing the contracts, or closing the socket. The failure still records
+a subscription error and cannot produce a successful certification report.
+
+Negative certification cases distinguish an authorized transport from useful
+model inputs. A run that already disconnected, reported a probe error or lacked
+the required acknowledgement/message evidence cannot retain an earlier
+transport pass. Underlying-only traffic does not pass the quantitative gate;
+neither do configured IV, receipt-time fallback, recorded input errors, accepted
+legacy option ticks or untimed market events. The last two counters appear in
+`model_inputs` as `legacy_option_tick_count` and `untimed_market_event_count`,
+and in Markdown output. A timestamp on a legacy schema-v1 option does not make
+that option eligible for quantitative certification. Authentication capability
+tests also keep malformed string or numeric values unknown rather than coerce
+them into a claimed boolean permission.
+Error reports retain fixed reason text rather than the original exception
+message. The observation-window connection state is sampled before the probe's
+own normal cancellation so cleanup does not manufacture a run-window failure.
+Final error and subscription counters are read after cleanup to retain failures
+that become visible only while awaiting background tasks. A `TimeoutError`
+raised by the stream itself is a probe failure, not the normal observation
+deadline. Volume and OI for one option count as one normalized contract.
+
+Schema-v2 absolute volume observations replace earlier values; they must not
+accumulate merely because the same quote arrives twice. OI remains a separate
+cumulative source, with positive trade volume preferred for the selected
+snapshot. Missing IV uses the labeled configured fallback. Synthetic IV values
+cannot establish that Tradovate supplies native IV. The original flat quote
+compatibility path remains schema v1, with its legacy incremental behavior.
+
+The fixture guard rejects known secret-bearing keys recursively, including
+injected nested test cases. It is not a general PII detector or permission to
+commit a real provider export; real captures still require the project's
+[capture governance](capture-governance.md).
+
+See [Tradovate mapping and qualification](adapters.md#implemented-mapping-and-evidence-boundaries)
+for the difference between documented nested quote entries, tolerated metadata
+aliases, and the still-unobserved ES/NQ payloads. The adapter's implemented
+product/maturity/dependency discovery path does not call the documented
+`contract/getoptionschain` endpoint or implement a new join for its grouped
+response.
+
+These tests may complete the offline portion of a contribution while
+[issue #4](https://github.com/zrack/gex-terminal/issues/4) stays open. That issue
+needs actual sanitized **demo or live** ES/NQ payloads, reviewed field mappings
+including IV availability or absence, and entitlement/setup notes. Broader
+credentialed coverage and real reconnect qualification are separate later
+gates; no live connection is opened by the regression command above.
+
 ## Databento Record Replay
 
 Replay mixed `definition`, `mbp-1`, `trades`, and `statistics` records from
