@@ -80,6 +80,17 @@ unavailable. Messages omitting both fields retain their existing sequence
 behavior, but cannot replace a dated OI observation once one exists. Positive
 trade volume stays a separate state and retains precedence.
 
+Sequenced, incremental Databento trade-volume messages may carry
+`provider_trade_event_id`, a lowercase SHA-256 fingerprint of the native trade
+record. A venue sequence can contain several distinct trades. Identified fills
+with the same sequence accumulate separately; exact fingerprint retransmissions
+and lower sequences are rejected. Only the current sequence group's identifiers
+are retained, with a 4,096-entry bound that rejects further entries rather than
+evicting duplicate evidence. Captured-session intake preserves this validated
+field; frozen checkpoints export aggregated quantities without the identifier
+cache. Other providers, cumulative quantities, OI and older messages without the
+field retain their existing ordering behavior.
+
 `contract_multiplier` is the dollar value of one price point per option contract.
 A provider field with the same name may instead count deliverable contracts;
 adapters must establish its unit before emitting a normalized multiplier.
@@ -411,7 +422,9 @@ than manufacturing an event.
 
 Sequence diagnostics preserve Databento venue sequence values by publisher and
 channel. Because a trades stream omits non-trade venue messages,
-nonconsecutive values and duplicates are descriptive. The quantitative gate
+nonconsecutive values and repeated sequence values are descriptive. Repeated
+values may describe distinct native trades; trade retransmissions are checked
+using the separate native fingerprint. The quantitative gate
 fails on the provider maybe-bad-book flag or observed out-of-order sequence, not
 on a numeric discontinuity alone.
 

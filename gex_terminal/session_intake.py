@@ -34,7 +34,7 @@ _MESSAGE_FIELDS = {
     "days_to_expiry", "instrument_class", "pricing_model", "volume_semantics", "position_source",
     "open_interest", "open_interest_reference_date", "open_interest_update_action", "aggressor_side",
     "direction_source", "contract_multiplier", "contract_multiplier_source", "event_time", "timestamp",
-    "sequence", "iv_provenance",
+    "sequence", "provider_trade_event_id", "iv_provenance",
     "exercise_style", "exercise_style_source", "provider_cfi",
 }
 _IV_FIELDS = {

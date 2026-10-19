@@ -1,15 +1,19 @@
 import asyncio
+import hashlib
 import inspect
+import json
 import math
 import os
 import re
 from collections import Counter
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
-from gex_terminal.contracts import days_until_expiry, exercise_style_from_cfi, parse_market_datetime
+from gex_terminal.contracts import (days_until_expiry, exercise_style_from_cfi,
+                                    market_timestamp_order_key, parse_market_datetime)
 from gex_terminal.implied_volatility import invert_black_76_iv
 from gex_terminal.market_data_adapter import (
     AdapterConfigurationError,
@@ -919,6 +923,12 @@ class DatabentoAdapter(MarketDataAdapter):
         sequence = _safe_int(_lookup(record, "sequence", "seq"))
         if sequence is not None:
             message["sequence"] = sequence
+            # A CME trade summary can produce multiple fills with one venue
+            # sequence. Preserve their native identity rather than treating the
+            # sequence as an exchange-assigned trade ID.
+            message["provider_trade_event_id"] = (
+                record.get("_provider_trade_event_id") or _trade_event_identity(record)
+            )
         received_time = _timestamp_text(
             _lookup(record, "ts_recv", "received_time", "receivedTime")
         )
@@ -1361,12 +1371,72 @@ def _record_mapping(record: Any, kind: str) -> dict[str, Any]:
         values["ask_px_00"] = _first_record_value(record, "pretty_ask_px_00", "ask_px_00")
     elif kind == "option_trade":
         values["price"] = _first_record_value(record, "pretty_price", "price")
+        # Fingerprint exact native fields before pretty-price conversion or
+        # timestamp formatting can discard information. No SDK dependency is
+        # required for the decoded mapping path.
+        native_fields = {
+            field: getattr(record, field, None)
+            for field in _TRADE_IDENTITY_FIELDS
+        }
+        values["_provider_trade_event_id"] = _trade_event_identity(
+            native_fields, fixed_price=True,
+        )
     elif kind == "statistics":
         values["ts_ref"] = _first_record_value(record, "pretty_ts_ref", "ts_ref")
         values["update_action"] = _first_record_value(record, "update_action")
         values["stat_type"] = _first_record_value(record, "stat_type")
         values["quantity"] = _first_record_value(record, "quantity")
     return values
+
+
+_TRADE_IDENTITY_FIELDS = (
+    "publisher_id", "channel_id", "instrument_id", "ts_event", "ts_recv",
+    "price", "size", "side", "action", "depth", "flags", "ts_in_delta", "sequence",
+)
+
+
+def _trade_event_identity(record: Mapping[str, Any], *, fixed_price: bool = False) -> str:
+    """Fingerprint a native fill; a venue sequence alone is not a trade ID.
+
+    Include all TradeMsg identity-bearing fields, preserving nanoseconds and
+    fixed-point price precision. Equivalent decoded aliases use the same
+    canonical values. This is an application fingerprint, not a venue trade ID.
+    """
+    aliases = {
+        "publisher_id": ("publisher_id", "publisherId"),
+        "channel_id": ("channel_id", "channelId"),
+        "instrument_id": ("instrument_id", "instrumentId"),
+        "ts_event": ("ts_event", "tsEvent", "event_time", "timestamp"),
+        "ts_recv": ("ts_recv", "received_time", "receivedTime"),
+        "price": ("price", "trade_price", "last_price", "lastPrice"),
+        "size": ("size", "quantity", "volume"),
+        "side": ("side", "aggressor_side"),
+        "sequence": ("sequence", "seq"),
+    }
+    payload = {}
+    for field in _TRADE_IDENTITY_FIELDS:
+        value = _lookup(record, *aliases.get(field, (field,)))
+        if value in (None, ""):
+            payload[field] = None
+            continue
+        value = getattr(value, "value", value)
+        if field in {"ts_event", "ts_recv"}:
+            ordered = market_timestamp_order_key(_timestamp_text(value))
+            if ordered is not None:
+                timestamp, remainder = ordered
+                value = (f"{timestamp.strftime('%Y-%m-%dT%H:%M:%S')}."
+                         f"{timestamp.microsecond * 1000 + remainder:09d}Z")
+        elif field == "price":
+            try:
+                price = Decimal(str(value))
+                if fixed_price:
+                    price /= Decimal(1_000_000_000)
+                value = str(price.normalize())
+            except InvalidOperation:
+                pass  # Existing numeric validation rejects malformed values.
+        payload[field] = str(value)
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _first_record_value(record: Any, *fields: str) -> Any:

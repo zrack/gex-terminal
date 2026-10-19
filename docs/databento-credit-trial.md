@@ -150,6 +150,20 @@ for observed inputs, exclusions, fallback IV and timing failures before
 interpreting the chart. A failed or empty mapping is an integration finding;
 do not fill missing fields with invented data or claim full-chain coverage.
 
+A successful replay can still contain `configured_default` IV. For example, a
+trade premium can fall outside Black-76 bounds when paired with a sampled
+futures midpoint. Those events use an explicit fallback rather than a successful
+price inversion. Check `fallback_iv_ticks` separately from `inverted_iv_ticks`;
+later trades can change which contracts retain fallback IV in the final state.
+European exercise metadata does not establish that a last-trade IV surface is
+economically accurate.
+
+New conversions preserve a native trade fingerprint because distinct Databento
+records can share the same venue sequence. If an older capture lacks
+`provider_trade_event_id`, convert its original DBN files into a **new** output
+directory to recover those distinctions. Preserve the earlier capture for
+comparison; replaying it alone cannot add missing native identity fields.
+
 Open the normalized capture in the Terminal:
 
 ```bash

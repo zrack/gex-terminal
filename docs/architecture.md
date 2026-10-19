@@ -568,8 +568,14 @@ does not acknowledge each schema or prove provider-side resubscription. No
 reconnect event is required to pass a window that did not disconnect.
 
 Trade records carry venue sequence values even though `trades` is only a subset
-of the venue event stream. Nonconsecutive values and duplicates are therefore
-reported descriptively. The certification integrity gate uses the provider's
+of the venue event stream. Nonconsecutive and repeated values are therefore
+reported descriptively. Distinct incremental Databento fills may share one
+sequence; native fingerprints distinguish them from retransmissions. The
+consumer retains a bounded fingerprint group for the current contract sequence,
+and guided capture intake preserves the identity before replay. Checkpoints
+retain aggregate quantities without this internal cache. See the
+[normalized contract](adapters.md#normalized-messages).
+The certification integrity gate uses the provider's
 maybe-bad-book flag and observed out-of-order records; it does not reinterpret
 every numeric discontinuity as feed loss.
 

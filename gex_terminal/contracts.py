@@ -87,7 +87,7 @@ def canonical_option_contract(
         instrument_class = "legacy_option"
         pricing_model = "black_scholes"
 
-    return {
+    contract = {
         "schema_version": schema_version,
         "provider": provider,
         "contract_id": contract_id,
@@ -139,6 +139,10 @@ def canonical_option_contract(
         "received_time": message.get("received_time"),
         "sequence": _optional_int(message.get("sequence")),
     }
+    # Keep legacy capture/state shapes unchanged when no native identity exists.
+    if "provider_trade_event_id" in message:
+        contract["provider_trade_event_id"] = message["provider_trade_event_id"]
+    return contract
 
 
 def contract_storage_key(contract: Mapping[str, Any]) -> tuple[str, str, str]:

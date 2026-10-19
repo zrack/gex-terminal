@@ -23,6 +23,7 @@ from gex_terminal.market_data_adapter import validate_normalized_message
 from gex_terminal.pricing_assumptions import build_pricing_assumptions
 
 LOGGER = logging.getLogger(__name__)
+MAX_TRADE_IDENTITIES_PER_SEQUENCE = 4096
 
 
 def _finite_runtime_number(value: object, name: str) -> float:
@@ -457,6 +458,17 @@ class StatefulGexConsumer:
         state_key = contract_storage_key(contract)
         existing = self.contract_state.get(state_key)
         sequence = contract.get("sequence")
+        trade_event_id = contract.get("provider_trade_event_id")
+        trade_event_ids = []
+        if trade_event_id is not None:
+            if existing is not None and sequence == existing.get("last_sequence"):
+                trade_event_ids = existing.get("_trade_event_ids", [])
+            if trade_event_id in trade_event_ids:
+                self.duplicate_message_count += 1
+                return False
+            if len(trade_event_ids) >= MAX_TRADE_IDENTITIES_PER_SEQUENCE:
+                # Never evict an identity and then count a retransmission twice.
+                raise ValueError("Databento trade sequence exceeds the bounded identity limit")
         reference_date = contract.get("open_interest_reference_date")
         if contract["position_source"] == "open_interest" and existing is not None:
             existing_reference_date = existing.get("open_interest_reference_date")
@@ -475,7 +487,9 @@ class StatefulGexConsumer:
             existing is not None
             and sequence is not None
             and existing.get("last_sequence") is not None
-            and sequence <= existing["last_sequence"]
+            and (sequence < existing["last_sequence"]
+                 or (sequence == existing["last_sequence"]
+                     and (trade_event_id is None or not existing.get("_trade_event_ids"))))
         ):
             self.duplicate_message_count += 1
             return False
@@ -589,6 +603,13 @@ class StatefulGexConsumer:
             "directional_volume": directional_volume,
             "direction_sources": sorted(direction_sources),
         })
+        if trade_event_id is not None:
+            # Only the current sequence group survives. Mutate this bounded
+            # cache after identity checks and successful quantity calculation.
+            state["_trade_event_ids"] = [*trade_event_ids, trade_event_id]
+        else:
+            state.pop("_trade_event_ids", None)
+            state.pop("provider_trade_event_id", None)
         if contract["position_source"] == "open_interest":
             state["open_interest_invalidated"] = (
                 contract.get("open_interest_update_action") == "delete"
