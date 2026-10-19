@@ -3,14 +3,16 @@
 from statistics import median
 from typing import Any, Dict
 
+from gex_terminal.metric_values import optional_float
+
 
 def build_regime_map(data: Dict[str, Any], spot: float) -> Dict[str, Any]:
     """Summarize the selected GEX proxy and nearby structural levels."""
     total_net = float(data["total_net_gex"])
     zero = float(data["zero_gamma_strike"])
     wall = float(data["gamma_wall_strike"])
-    call_wall = float(data.get("call_wall_strike", wall))
-    put_wall = float(data.get("put_wall_strike", wall))
+    call_wall = optional_float(data.get("call_wall_strike"))
+    put_wall = optional_float(data.get("put_wall_strike"))
     strikes = sorted(float(strike) for strike in data.get("strikes", []))
     proximity = _proximity_threshold(strikes, float(spot))
 
@@ -74,14 +76,15 @@ def _proximity_threshold(strikes: list[float], spot: float) -> float:
     return max(1.0, abs(spot) * 0.0015)
 
 
-def _next_trigger(*, spot: float, levels: Dict[str, float]) -> Dict[str, Any]:
+def _next_trigger(*, spot: float, levels: Dict[str, float | None]) -> Dict[str, Any]:
     labels = {
         "zero_gamma": "Compatibility Level",
         "gamma_wall": "Gamma Wall",
         "call_wall": "Call Wall",
         "put_wall": "Put Wall",
     }
-    name, price = min(levels.items(), key=lambda item: abs(float(item[1]) - spot))
+    observed_levels = {name: price for name, price in levels.items() if price is not None}
+    name, price = min(observed_levels.items(), key=lambda item: abs(float(item[1]) - spot))
     distance = float(price) - spot
     return {
         "name": name,

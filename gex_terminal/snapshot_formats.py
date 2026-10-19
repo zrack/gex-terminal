@@ -108,8 +108,9 @@ def snapshot_to_markdown(snapshot: Dict[str, Any]) -> str:
         f"- Total net GEX: `{_money(metrics['total_net_gex'])}`",
         f"- Gamma wall: `{metrics['gamma_wall']:,.1f}`",
         f"- Zero gamma: `{metrics['zero_gamma']:,.1f}`",
-        f"- Call wall: `{metrics['call_wall']:,.1f}`",
-        f"- Put wall: `{metrics['put_wall']:,.1f}`",
+        f"- Call wall: `{_optional_strike(metrics['call_wall'])}`",
+        f"- Put wall: `{_optional_strike(metrics['put_wall'])}`",
+        f"- Call/put balance: `{_balance_text(metrics)}`",
         f"- Concentration band: `{metrics['concentration_band'][0]:,.1f}` to `{metrics['concentration_band'][1]:,.1f}`",
         "",
         "## Major Strikes",
@@ -151,6 +152,13 @@ def snapshot_to_markdown(snapshot: Dict[str, Any]) -> str:
             f"- Gamma aggregation: `{model.get('gamma_aggregation', '--')}`",
             f"- Zero-gamma semantics: `{model.get('zero_gamma_semantics', '--')}`",
         ])
+        assumptions = model.get("pricing_assumptions")
+        if isinstance(assumptions, dict):
+            lines.extend(["", "## Pricing Assumptions", "", assumptions["summary"], ""])
+            lines.extend(f"- {note}" for note in assumptions.get("limitations", ()))
+            lines.append(f"- {assumptions['rate_note']}")
+            if assumptions.get("time_note"):
+                lines.append(f"- {assumptions['time_note']}")
     if snapshot.get("directionalized"):
         directional = snapshot["directionalized"]
         lines.extend([
@@ -230,3 +238,20 @@ def _money(value: float) -> str:
     if abs_value >= 1_000:
         return f"{sign}{abs_value / 1_000:.1f}K"
     return f"{sign}{abs_value:.0f}"
+
+
+def _optional_strike(value: float | None) -> str:
+    return f"{float(value):,.1f}" if value is not None else "unavailable"
+
+
+def _balance_text(metrics: Dict[str, Any]) -> str:
+    coverage = metrics.get("side_coverage")
+    labels = {
+        "calls_only": "Calls only",
+        "puts_only": "Puts only",
+        "no_selected_quantities": "No selected quantities",
+    }
+    if coverage in labels:
+        return labels[coverage]
+    ratio = metrics.get("imbalance")
+    return f"{float(ratio):.2f}x" if ratio is not None else "unavailable"

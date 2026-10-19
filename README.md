@@ -26,6 +26,11 @@ Inspect the structure of a session: exposure by strike, modeled levels, source
 quality and the assumptions behind the numbers. Press `p` to select a replay,
 `v` to inspect source and model details, and `e` to export a snapshot.
 
+Futures-option calculations use European Black-76 pricing. American exercise
+and unknown exercise style are explicitly qualified; early exercise is not
+modeled. Missing call/put sides show unavailable levels rather than inferred
+walls. See [model assumptions](docs/model-assumptions.md).
+
 ![Terminal component: GEX research dashboard showing synthetic exposure metrics, strike-level rows and replay controls](assets/gex-terminal-actual.png)
 
 *Actual Terminal capture with seeded synthetic data. The dashboard is operated

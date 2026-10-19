@@ -7,6 +7,31 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Sparse-Side Displays And Pricing Assumptions
+
+- Show calls-only, puts-only and empty selected quantities explicitly. Export an
+  absent-side wall and an undefined call/put ratio as `null`; omit unavailable
+  walls from overlays, and preserve absence in saved-session comparisons.
+- Preserve Databento exercise style and CFI through normalized state and frozen
+  checkpoints. Surface European-exercise pricing assumptions, configured rates
+  and ACT/365 timing in Terminal details, exports and Wind Tunnel results.
+  American early exercise remains unmodeled with unmeasured approximation error;
+  older captures without style metadata remain explicitly unknown.
+- Add sparse-data and model-provenance regressions. Saved ES/NQ validation now
+  checks current displays, exports and raw-data re-normalization in addition to
+  independent arithmetic and scenario reproduction, without provider requests.
+
+## Unreleased — Databento Historical Credit Trial
+
+- Add checkout helpers for private key setup, bounded historical cost previews
+  and explicitly acknowledged ES/NQ downloads within declared credits.
+- Default historical underlying sampling to interval-end BBO-1s midpoints;
+  preserve trade detail and stop safely on cost, record, input or provider errors.
+- Convert saved DBN/JSON files to captured sessions for Terminal and Wind Tunnel,
+  with offline budget, timing, privacy and capture round-trip regressions.
+  See [the operator guide](docs/databento-credit-trial.md) and
+  [GEX-DATABENTO-TRIAL-001](docs/work-packets/GEX-DATABENTO-TRIAL-001.md).
+
 ## Unreleased — Read-Only Tradovate Raw Collector
 
 - Add `tradovate-capture` for bounded private contract REST and market-data

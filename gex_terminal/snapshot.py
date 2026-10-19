@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Mapping
 
+from gex_terminal.engine import side_exposure_balance
+from gex_terminal.pricing_assumptions import build_pricing_assumptions
 from gex_terminal.model_evidence import (
     DAY_COUNT_CONVENTION,
     GEX_UNITS,
@@ -60,7 +62,7 @@ def build_snapshot(
 
     call_total = sum(float(value) for value in data["call_gex"])
     put_total_abs = abs(sum(float(value) for value in data["put_gex"]))
-    imbalance = call_total / put_total_abs if put_total_abs else 0.0
+    imbalance, side_coverage = side_exposure_balance(call_total, put_total_abs)
 
     directionalized = data.get("directionalized")
     multiplier_provenance = data.get("multiplier_provenance", {
@@ -88,8 +90,8 @@ def build_snapshot(
         "metrics": {
             "total_net_gex": float(data["total_net_gex"]),
             "gamma_wall": float(data["gamma_wall_strike"]),
-            "call_wall": float(data.get("call_wall_strike", data["gamma_wall_strike"])),
-            "put_wall": float(data.get("put_wall_strike", data["gamma_wall_strike"])),
+            "call_wall": _side_wall(data, "call_wall_strike", call_total),
+            "put_wall": _side_wall(data, "put_wall_strike", put_total_abs),
             "zero_gamma": float(data["zero_gamma_strike"]),
             "strike_profile_flip": (
                 float(data["strike_profile_flip"])
@@ -102,7 +104,8 @@ def build_snapshot(
                     data.get("nearest_zero_strike", data["zero_gamma_strike"]),
                 )
             ),
-            "imbalance": float(imbalance),
+            "imbalance": imbalance,
+            "side_coverage": side_coverage,
             "concentration_ratio": float(data.get("concentration_ratio", 0.0)),
             "concentration_band": [
                 float(data.get("concentration_band_low", 0.0)),
@@ -123,6 +126,11 @@ def build_snapshot(
             ),
             "calculation_mode": data.get("calculation_mode", "legacy_v1"),
             "pricing_models": list(data.get("pricing_models", ("black_scholes",))),
+            "pricing_assumptions": data.get("pricing_assumptions") or build_pricing_assumptions(
+                [{"pricing_model": model, "exercise_style": "unknown"}
+                 for model in data.get("pricing_models", ("black_scholes",))],
+                risk_free_rate,
+            ),
             "gamma_aggregation": data.get("gamma_aggregation", "quantity_weighted_mean"),
             "zero_gamma_method": data.get("zero_gamma_method", "legacy_strike_profile"),
             "zero_gamma_semantics": data.get("zero_gamma_semantics", "legacy_strike_profile"),
@@ -160,6 +168,14 @@ def build_snapshot(
         "expiry_breakdown": expiry_breakdown or {},
         "strikes": strikes,
     }
+
+
+def _side_wall(data: Mapping[str, Any], key: str, side_exposure: float) -> float | None:
+    # Older matrices may omit wall fields; an absent side must still stay absent.
+    if side_exposure <= 0:
+        return None
+    value = data.get(key)
+    return float(value) if value is not None else None
 
 
 def write_snapshot(snapshot: Dict[str, Any], output_path: str) -> Path:

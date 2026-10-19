@@ -27,6 +27,7 @@ from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.contracts import days_until_expiry, expiry_date, parse_market_datetime
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.market_data_adapter import validate_normalized_message
+from gex_terminal.pricing_assumptions import build_pricing_assumptions
 from gex_terminal.replay_catalog import ReplaySession, bundled_replay_sessions
 from gex_terminal.wind_tunnel_checkpoint import checkpoint_transport, validate_checkpoint
 
@@ -68,6 +69,8 @@ LIMITATIONS = {
     "expiry_policy": "Exact expiry instants take precedence; otherwise remaining model DTE decreases from the checkpoint fallback.",
     "directional_assumption": "Aggressor buy implies passive counterparty short gamma; sell implies long gamma. Unknown direction is excluded from signed exposure, not coverage.",
     "zero_gamma_semantics": "Legacy strike-profile crossing or neutral-strike fallback, not a portfolio underlying-price root.",
+    "pricing_policy": "Black-76 and Black-Scholes assume European exercise; American early exercise is not modeled and approximation error is unmeasured. Missing exercise style remains unqualified.",
+    "risk_free_rate_policy": "Configured continuously compounded flat rate, not an observed market curve; exact expiry uses ACT/365.",
 }
 
 
@@ -81,7 +84,7 @@ def _sha(value: Any) -> str:
 
 def calculation_identity() -> dict:
     """Bind numeric behavior and replay projection to exact local implementation."""
-    names = ("wind_tunnel.py", "wind_tunnel_checkpoint.py", "engine.py", "consumer.py", "contracts.py", "market_data_adapter.py", "replay_catalog.py")
+    names = ("wind_tunnel.py", "wind_tunnel_checkpoint.py", "engine.py", "consumer.py", "contracts.py", "pricing_assumptions.py", "market_data_adapter.py", "replay_catalog.py")
     return {
         "contract_version": VERSION, "application_version": __version__,
         "python": f"{sys.version_info.major}.{sys.version_info.minor}", "numpy": np.__version__,
@@ -375,6 +378,7 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
         "counts": {"source_rows": len(original), "selected_rows": 0, "expired_rows": 0,
                    "excluded_nearest_rows": 0, "fallback_expiry_rows": 0},
         "contracts": [], "excluded_contracts": [],
+        "pricing_assumptions": build_pricing_assumptions(original or checkpoint.rows, request["risk_free_rate"]),
     }
     if checkpoint.spot <= 0 or not original:
         result["reason"] = "No underlying and quantity-source state is available at this checkpoint."
@@ -424,6 +428,8 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
             result["excluded_contracts"].append({"contract_id": row["contract_id"], "position_source": row["position_source"],
                                                   "expiry": row.get("expiry"), "reason": reason})
     result["counts"]["selected_rows"] = len(active)
+    if active:
+        result["pricing_assumptions"] = build_pricing_assumptions(active, request["risk_free_rate"])
     result["counts"]["fallback_expiry_rows"] = sum(row["expiry_authority"] != "exact_timestamp" for row in active)
     if not active or not sum(row.get("accumulated_volume", 0) for row in active):
         result["reason"] = "No positive quantities remain after expiry and exclusion rules."
@@ -459,6 +465,8 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
                                                    accumulated_put_vol=np.where(calls, 0, quantities))
         signed_quantities = np.where(calls, quantities, -quantities)
     total = float(matrix["total_net_gex"])
+    matrix["pricing_assumptions"] = copy.deepcopy(result["pricing_assumptions"])
+    matrix["risk_free_rate"] = request["risk_free_rate"]
     meaningful_wall = any(float(value) != 0 for value in matrix["net_gex"])
     summary = {
         "total_net_gex": total, "gamma_wall": float(matrix["gamma_wall_strike"]) if meaningful_wall else None,
@@ -475,10 +483,14 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
             result["contracts"].append({
                 "contract_id": row["contract_id"], "provider": row.get("provider"), "strike": float(row["strike"]),
                 "option_type": row["option_type"], "quantity": float(row["accumulated_volume"]),
+                "exercise_style": row.get("exercise_style") or "unknown",
+                "exercise_style_source": row.get("exercise_style_source") or "missing",
+                "provider_cfi": row.get("provider_cfi"),
                 "position_source": row["position_source"], "model": model, "pricing_model": row.get("pricing_model"),
                 "expiry": row.get("expiry"), "expiry_timestamp": row.get("expiry_timestamp"),
                 "expiry_authority": row["expiry_authority"], "remaining_dte": row["remaining_dte"],
                 "base_iv": row["base_iv"], "scenario_iv": row["scenario_iv"], "iv_source": row.get("iv_source"),
+                "iv_inversion_risk_free_rate": row.get("iv_inversion_risk_free_rate"),
                 "multiplier": float(multiplier), "multiplier_source": "contract" if row.get("contract_multiplier") else "configured_fallback",
                 "gamma": float(gamma), "signed_quantity": float(signed),
                 "net_gex": float(signed * gamma * spot * spot * 0.01 * multiplier),

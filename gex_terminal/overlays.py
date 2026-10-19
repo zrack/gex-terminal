@@ -13,6 +13,7 @@ OVERLAY_SCHEMA = "gex-terminal.tradingview-overlay.v1"
 def build_tradingview_overlay(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     """Convert a GEX snapshot into portable chart-overlay levels."""
     metrics = snapshot["metrics"]
+    model = snapshot.get("model", {})
     return {
         "schema": OVERLAY_SCHEMA,
         "generated_at": snapshot["timestamp"],
@@ -22,8 +23,10 @@ def build_tradingview_overlay(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "days_to_expiry": float(snapshot["days_to_expiry"]),
             "contract_multiplier": int(snapshot["contract_multiplier"]),
             "risk_free_rate": float(snapshot["risk_free_rate"]),
+            "zero_gamma_method": model.get("zero_gamma_method", "legacy_strike_profile"),
+            "zero_gamma_semantics": model.get("zero_gamma_semantics", "legacy_strike_profile"),
         },
-        "levels": [
+        "levels": [level for level in (
             _level(
                 name="gamma_wall",
                 label="Gamma Wall",
@@ -32,15 +35,8 @@ def build_tradingview_overlay(snapshot: Dict[str, Any]) -> Dict[str, Any]:
                 line_style="solid",
                 notes="largest absolute strike-level net gamma exposure",
             ),
-            _level(
-                name="zero_gamma",
-                label="Zero Gamma",
-                price=metrics["zero_gamma"],
-                color="#38bdf8",
-                line_style="dashed",
-                notes="estimated volatility-regime transition level",
-            ),
-            _level(
+            _compatibility_level(snapshot),
+            _optional_level(
                 name="call_wall",
                 label="Call Wall",
                 price=metrics["call_wall"],
@@ -48,7 +44,7 @@ def build_tradingview_overlay(snapshot: Dict[str, Any]) -> Dict[str, Any]:
                 line_style="solid",
                 notes="largest call-side gamma exposure",
             ),
-            _level(
+            _optional_level(
                 name="put_wall",
                 label="Put Wall",
                 price=metrics["put_wall"],
@@ -57,7 +53,7 @@ def build_tradingview_overlay(snapshot: Dict[str, Any]) -> Dict[str, Any]:
                 notes="largest put-side gamma exposure",
             ),
             *_major_exposure_levels(snapshot),
-        ],
+        ) if level is not None],
         "bands": [
             {
                 "name": "major_exposure_band",
@@ -135,6 +131,40 @@ def _level(
         "line_style": line_style,
         "notes": notes,
     }
+
+
+def _optional_level(*, price: float | None, **kwargs: Any) -> Dict[str, Any] | None:
+    """Unavailable side walls must not become chart lines at a fabricated strike."""
+    return None if price is None else _level(price=price, **kwargs)
+
+
+def _compatibility_level(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    """Keep the legacy level name while describing its measured derivation."""
+    metrics = snapshot["metrics"]
+    method = snapshot.get("model", {}).get("zero_gamma_method")
+    if metrics.get("strike_profile_flip") is not None:
+        label = "Strike Profile Crossing"
+        notes = (
+            "linear interpolation where adjacent strike-bucket net GEX changes sign; "
+            "portfolio gamma root and volatility behavior are unmeasured"
+        )
+    elif method == "nearest_strike_bucket_fallback":
+        label = "Compatibility Level (Nearest Neutral Strike)"
+        notes = (
+            "no strike-profile crossing observed; compatibility marker uses the strike "
+            "bucket with the smallest absolute net GEX; portfolio gamma root and "
+            "volatility behavior are unmeasured"
+        )
+    else:
+        label = "Compatibility Level"
+        notes = (
+            "legacy strike-profile compatibility value with unavailable derivation; "
+            "portfolio gamma root and volatility behavior are unmeasured"
+        )
+    return _level(
+        name="zero_gamma", label=label, price=metrics["zero_gamma"],
+        color="#38bdf8", line_style="dashed", notes=notes,
+    )
 
 
 def _major_exposure_levels(snapshot: Dict[str, Any], limit: int = 3) -> list[Dict[str, Any]]:

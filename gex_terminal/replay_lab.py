@@ -11,7 +11,8 @@ from typing import Any, Iterable
 from gex_terminal.adapters.replay import ReplayAdapter
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
-from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.engine import IntradayGexEngine, side_exposure_balance
+from gex_terminal.metric_values import optional_float
 from gex_terminal.regime import build_regime_map
 from gex_terminal.replay_catalog import (
     ReplaySession,
@@ -217,9 +218,10 @@ async def analyze_replay_session(
         "total_net_gex": float(snapshot["metrics"]["total_net_gex"]),
         "gamma_wall": float(snapshot["metrics"]["gamma_wall"]),
         "zero_gamma": float(snapshot["metrics"]["zero_gamma"]),
-        "call_wall": float(snapshot["metrics"]["call_wall"]),
-        "put_wall": float(snapshot["metrics"]["put_wall"]),
-        "imbalance": float(snapshot["metrics"]["imbalance"]),
+        "call_wall": optional_float(snapshot["metrics"]["call_wall"]),
+        "put_wall": optional_float(snapshot["metrics"]["put_wall"]),
+        "imbalance": optional_float(snapshot["metrics"]["imbalance"]),
+        "side_coverage": snapshot["metrics"]["side_coverage"],
         "concentration_ratio": float(snapshot["metrics"]["concentration_ratio"]),
         "regime": regime["state"],
         "regime_label": regime["label"],
@@ -519,7 +521,7 @@ def _timeline_point(
 ) -> dict[str, Any]:
     call_total = sum(float(value) for value in data["call_gex"])
     put_total_abs = abs(sum(float(value) for value in data["put_gex"]))
-    imbalance = call_total / put_total_abs if put_total_abs else 0.0
+    imbalance, side_coverage = side_exposure_balance(call_total, put_total_abs)
     regime = build_regime_map(data, consumer.current_spot)
     return {
         "session": session_name,
@@ -534,9 +536,10 @@ def _timeline_point(
         "total_net_gex": float(data["total_net_gex"]),
         "gamma_wall": float(data["gamma_wall_strike"]),
         "zero_gamma": float(data["zero_gamma_strike"]),
-        "call_wall": float(data["call_wall_strike"]),
-        "put_wall": float(data["put_wall_strike"]),
-        "imbalance": float(imbalance),
+        "call_wall": optional_float(data["call_wall_strike"]),
+        "put_wall": optional_float(data["put_wall_strike"]),
+        "imbalance": optional_float(imbalance),
+        "side_coverage": side_coverage,
         "regime": regime["state"],
         "regime_label": regime["label"],
     }
@@ -676,7 +679,9 @@ def _regime_flipped(previous: dict[str, Any], current: dict[str, Any]) -> bool:
     return previous["total_net_gex"] * current["total_net_gex"] < 0
 
 
-def _crossed_imbalance_threshold(previous: float, current: float) -> bool:
+def _crossed_imbalance_threshold(previous: float | None, current: float | None) -> bool:
+    if previous is None or current is None:
+        return False
     thresholds = (0.75, 1.0, 1.25, 1.5, 2.0)
     return any(
         (previous < threshold <= current) or (previous > threshold >= current)

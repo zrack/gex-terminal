@@ -27,6 +27,7 @@ from gex_terminal.demo_lab_receipt import (
 )
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.market_data_adapter import dumps_normalized_message
+from gex_terminal.metric_values import optional_float
 from gex_terminal.model_comparison import (
     build_model_comparison_report,
     write_model_comparison_report,
@@ -480,6 +481,8 @@ def demo_lab_preview_svg(
     total_net = float(metrics["total_net_gex"])
     net_color = "#4ade80" if total_net >= 0 else "#fb7185"
     health = str(quality.get("health", "unknown"))
+    imbalance = metrics.get("imbalance")
+    imbalance_text = "unavailable" if imbalance is None else f"{float(imbalance):.2f}x"
 
     row_blocks = []
     start_y = 402
@@ -564,7 +567,7 @@ def demo_lab_preview_svg(
   <text x="902" y="460" class="mono small">Replay alerts: {int(replay_summary['alert_count'])}</text>
   <text x="902" y="484" class="mono small">Regime: {html.escape(replay_summary['regime_label'])}</text>
   <text x="902" y="508" class="mono small">Session change: {_signed(snapshot['session_change'], 2)}</text>
-  <text x="902" y="532" class="mono small">Imbalance: {float(metrics['imbalance']):.2f}x</text>
+  <text x="902" y="532" class="mono small">Imbalance: {imbalance_text}</text>
 
   <rect x="874" y="572" width="434" height="160" rx="10" fill="#0d141c" stroke="#263445"/>
   <text x="902" y="608" class="mono panel-title">Demo Pack Outputs</text>
@@ -762,9 +765,9 @@ def _demo_lab_manifest(
             "total_net_gex": float(metrics["total_net_gex"]),
             "gamma_wall": float(metrics["gamma_wall"]),
             "zero_gamma": float(metrics["zero_gamma"]),
-            "call_wall": float(metrics["call_wall"]),
-            "put_wall": float(metrics["put_wall"]),
-            "imbalance": float(metrics["imbalance"]),
+            "call_wall": optional_float(metrics["call_wall"]),
+            "put_wall": optional_float(metrics["put_wall"]),
+            "imbalance": optional_float(metrics["imbalance"]),
             "feed_health": snapshot.get("feed_quality", {}).get("health", "unknown"),
         },
         "inputs": {

@@ -29,6 +29,7 @@ status checklists into multiple files.
 | Model meaning | [Model Assumptions](model-assumptions.md) | Equations, pricing models, units, position proxies, levels, and limitations |
 | Model evidence | [Model Validation](model-validation.md) | Numerical oracles, deterministic gates, provenance, and proof ceiling |
 | Databento mapping | [Databento Fixture Mapping](databento-fixtures.md) | Provider-specific requests, record mapping, certification policy, and lifecycle evidence semantics |
+| Databento credit setup | [Databento Credit Trial](databento-credit-trial.md) | Private API-key setup, cost-previewed historical ES/NQ downloads, and local dashboard replay |
 | Offline provider evidence | [Offline Validation](offline-validation.md) | Replay, temporal, adversarial, and scripted-lifecycle checks plus their proof ceiling |
 | Capture safety | [Capture Governance](capture-governance.md) | Pre-capture rights, retention, redaction, research-use decisions, and logging safeguards |
 | Tradovate raw evidence | [Tradovate Raw-Payload Capture](tradovate-capture.md) | Read-only bounded ES/NQ collection, private output, omissions, review and actual-payload validation gate |

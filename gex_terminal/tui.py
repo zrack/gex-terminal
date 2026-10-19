@@ -19,7 +19,7 @@ from textual.widgets import DataTable, Footer, Header, Sparkline, Static
 
 from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
-from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.engine import IntradayGexEngine, side_exposure_balance
 from gex_terminal.replay_catalog import (
     ReplaySession,
     bundled_replay_sessions,
@@ -27,6 +27,7 @@ from gex_terminal.replay_catalog import (
 )
 from gex_terminal.regime import build_regime_map
 from gex_terminal.provider_readiness import runtime_provider_readiness
+from gex_terminal.pricing_assumptions import build_pricing_assumptions
 from gex_terminal.snapshot import build_snapshot, write_snapshot
 from gex_terminal.table_rows import arrange_rows, filter_rows, sort_rows
 from gex_terminal.tui_views import ReplayPicker, ResearchInfo
@@ -90,6 +91,7 @@ class GexTerminalApp(App):
         self._last_wall: float | None = None
         self._last_zero: float | None = None
         self._last_imbalance: float | None = None
+        self._last_side_coverage: str | None = None
         self._last_regime: str | None = None
         self._last_runtime_status: str | None = None
         self._last_latency_ms = 0.0
@@ -145,6 +147,7 @@ class GexTerminalApp(App):
                 yield Static("", id="dealer-regime", classes="zone-card")
                 yield Static("", id="balance-pressure", classes="zone-card")
                 yield Static("", id="vol-boundary", classes="zone-card")
+                yield Static("", id="pricing-assumptions", classes="zone-card")
                 yield Static("", id="regime-map", classes="regime-card")
 
             with Vertical(id="flow-panel"):
@@ -470,6 +473,7 @@ class GexTerminalApp(App):
         self._last_wall = None
         self._last_zero = None
         self._last_imbalance = None
+        self._last_side_coverage = None
         self._last_regime = None
         self._last_runtime_status = None
         self._last_latency_ms = 0.0
@@ -731,6 +735,14 @@ class GexTerminalApp(App):
         text.append(f"Provider readiness  {runtime_provider_readiness(self.config)}\nFallback assumptions  {self.config.days_to_expiry:g} DTE · {self.config.risk_free_rate:.2%} rate · ×{self.config.contract_multiplier}\nExpiry selection  {self.config.expiry_filter}\n", style="#c3ced8")
         if self._last_data is not None:
             text.append(f"Quantity sources  {', '.join(self._last_data.get('position_sources', ['legacy_volume_proxy']))}\n", style="#c3ced8")
+            assumptions = self._pricing_assumptions(self._last_data)
+            text.append("\nPricing assumptions\n", style="bold #e9b96e")
+            text.append(assumptions["summary"] + "\n", style="#e9eef3")
+            for note in assumptions.get("limitations", ()):
+                text.append(note + "\n", style="#c3ced8")
+            text.append(assumptions["rate_note"] + "\n", style="#c3ced8")
+            if assumptions.get("time_note"):
+                text.append(assumptions["time_note"] + "\n", style="#c3ced8")
             text.append("\nModel context\n", style="bold #e9b96e")
             for selector in ("#dealer-regime", "#balance-pressure", "#vol-boundary", "#regime-map"):
                 content = self.query_one(selector, Static).content
@@ -879,12 +891,15 @@ class GexTerminalApp(App):
             f"Mode {status} · symbol {self.config.symbol} · multiplier {self.config.contract_multiplier}\n"
             "Use replay, exports, and journal reports before live feeds."
         )
+        self.query_one("#pricing-assumptions", Static).update(
+            "[b]Pricing Assumptions[/]\nLoad a sample to inspect model and exercise style."
+        )
 
     def _render_metrics(self, data: dict) -> None:
         total_net = float(data["total_net_gex"])
         call_total = sum(float(value) for value in data["call_gex"])
         put_total_abs = abs(sum(float(value) for value in data["put_gex"]))
-        imbalance = self._imbalance(call_total, put_total_abs)
+        balance_value, balance_label, _ = self._balance_labels(call_total, put_total_abs)
         regime = "Positive GEX proxy" if total_net >= 0 else "Negative GEX proxy"
 
         self.query_one("#stat-spot", Static).update(f"{self.consumer.current_spot:,.2f}")
@@ -896,10 +911,8 @@ class GexTerminalApp(App):
         self.query_one("#stat-wall", Static).update(f"[#e9b96e]{self._format_strike(data['gamma_wall_strike'])}[/]")
         self.query_one("#stat-zero", Static).update(f"[#67d2e3]{self._format_strike(data['zero_gamma_strike'])}[/]")
 
-        self.query_one("#stat-imbalance", Static).update(f"{imbalance:.2f}x")
-        self.query_one("#stat-imbalance-foot", Static).update(
-            "call-side dominant" if imbalance >= 1 else "put-side dominant"
-        )
+        self.query_one("#stat-imbalance", Static).update(balance_value)
+        self.query_one("#stat-imbalance-foot", Static).update(balance_label)
 
         self.query_one("#stat-latency", Static).update(f"{self._p95_latency():.0f}ms")
         self.query_one("#stat-latency-foot", Static).update(
@@ -979,11 +992,11 @@ class GexTerminalApp(App):
         total_net = float(data["total_net_gex"])
         call_total = sum(float(value) for value in data["call_gex"])
         put_total_abs = abs(sum(float(value) for value in data["put_gex"]))
-        imbalance = self._imbalance(call_total, put_total_abs)
+        balance_value, _, balance_description = self._balance_labels(call_total, put_total_abs)
         zero = self._format_strike(data["zero_gamma_strike"], decimals=1)
         wall = self._format_strike(data["gamma_wall_strike"])
-        call_wall = self._format_strike(data.get("call_wall_strike", data["gamma_wall_strike"]))
-        put_wall = self._format_strike(data.get("put_wall_strike", data["gamma_wall_strike"]))
+        call_wall = self._format_strike(data.get("call_wall_strike"))
+        put_wall = self._format_strike(data.get("put_wall_strike"))
         concentration = float(data.get("concentration_ratio", 0.0))
         band_low = self._format_strike(data.get("concentration_band_low", data["gamma_wall_strike"]))
         band_high = self._format_strike(data.get("concentration_band_high", data["gamma_wall_strike"]))
@@ -996,8 +1009,8 @@ class GexTerminalApp(App):
             f"[#4ade80]call wall {call_wall}[/] · [#fb7185]put wall {put_wall}[/]"
         )
         self.query_one("#balance-pressure", Static).update(
-            f"[b]Proxy Balance[/]   [#67d2e3]{imbalance:.2f}x[/]\n"
-            f"{'Call-side' if imbalance >= 1 else 'Put-side'} leads in selected quantities.\n"
+            f"[b]Proxy Balance[/]   [#67d2e3]{balance_value}[/]\n"
+            f"{balance_description}\n"
             f"Top strike holds [#cbd5e1]{concentration:.0%}[/] of modeled net GEX."
         )
         self.query_one("#vol-boundary", Static).update(
@@ -1005,7 +1018,22 @@ class GexTerminalApp(App):
             f"Historical strike-profile field; predictive effect unmeasured.\n"
             f"70% band {band_low}–{band_high}."
         )
+        assumptions = self._pricing_assumptions(data)
+        model_text = Text("Pricing Assumptions\n", style="bold #e9b96e")
+        model_text.append(assumptions["summary"] + "\n", style="#e9eef3")
+        model_text.append(
+            f"Rate {self.config.risk_free_rate:.2%} configured · ACT/365 · v for details.",
+            style="#94a3b8",
+        )
+        self.query_one("#pricing-assumptions", Static).update(model_text)
         self._render_regime_map(data)
+
+    def _pricing_assumptions(self, data: dict) -> dict:
+        return data.get("pricing_assumptions") or build_pricing_assumptions(
+            [{"pricing_model": model, "exercise_style": "unknown"}
+             for model in data.get("pricing_models", ("black_scholes",))],
+            self.config.risk_free_rate,
+        )
 
     def _render_regime_map(self, data: dict) -> None:
         regime = build_regime_map(data, self.consumer.current_spot)
@@ -1150,7 +1178,7 @@ class GexTerminalApp(App):
         total_net = float(data["total_net_gex"])
         call_total = sum(float(value) for value in data["call_gex"])
         put_total_abs = abs(sum(float(value) for value in data["put_gex"]))
-        imbalance = self._imbalance(call_total, put_total_abs)
+        imbalance, side_coverage = side_exposure_balance(call_total, put_total_abs)
         regime = "+GEX" if total_net >= 0 else "-GEX"
 
         if self._last_wall is None:
@@ -1173,14 +1201,16 @@ class GexTerminalApp(App):
         elif regime != self._last_regime:
             self._event(f"GEX proxy sign changed {self._last_regime} -> {regime}")
 
-        if self._last_imbalance is None:
-            self._event(f"call/put imbalance {imbalance:.2f}x")
-        elif self._crossed_imbalance_threshold(self._last_imbalance, imbalance):
+        if side_coverage != self._last_side_coverage:
+            value, _, _ = self._balance_labels(call_total, put_total_abs)
+            self._event(f"call/put balance {value}")
+        elif imbalance is not None and self._last_imbalance is not None and self._crossed_imbalance_threshold(self._last_imbalance, imbalance):
             self._event(f"imbalance threshold crossed {imbalance:.2f}x")
 
         self._last_wall = wall
         self._last_zero = zero
         self._last_imbalance = imbalance
+        self._last_side_coverage = side_coverage
         self._last_regime = regime
 
     def _strike_label(self, strike: float, wall: float, zero: float) -> str:
@@ -1273,12 +1303,24 @@ class GexTerminalApp(App):
         return f"{sign}{abs_value:.0f}"
 
     @staticmethod
-    def _format_strike(strike: float, decimals: int = 0) -> str:
-        return f"{float(strike):,.{decimals}f}"
+    def _format_strike(strike: float | None, decimals: int = 0) -> str:
+        return f"{float(strike):,.{decimals}f}" if strike is not None else "--"
 
     @staticmethod
-    def _imbalance(call_total: float, put_total_abs: float) -> float:
-        return call_total / put_total_abs if put_total_abs else 0.0
+    def _imbalance(call_total: float, put_total_abs: float) -> float | None:
+        return side_exposure_balance(call_total, put_total_abs)[0]
+
+    @staticmethod
+    def _balance_labels(call_total: float, put_total_abs: float) -> tuple[str, str, str]:
+        ratio, coverage = side_exposure_balance(call_total, put_total_abs)
+        if coverage == "calls_only":
+            return "Calls only", "No put exposure", "Only call-side selected quantities."
+        if coverage == "puts_only":
+            return "Puts only", "No call exposure", "Only put-side selected quantities."
+        if coverage == "no_selected_quantities":
+            return "--", "No selected quantities", "No selected quantities on either side."
+        side = "call-side" if ratio >= 1 else "put-side"
+        return f"{ratio:.2f}x", f"{side} dominant", f"{side.capitalize()} leads in selected quantities."
 
     @staticmethod
     def _timestamp() -> str:

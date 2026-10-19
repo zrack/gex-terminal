@@ -18,6 +18,7 @@ from gex_terminal.replay_catalog import (
 )
 from gex_terminal.replay_lab import analyze_replay_session
 from gex_terminal.session_capture import load_captured_session
+from gex_terminal.metric_values import metric_delta
 
 
 ENTRY_SCHEMA = "gex-terminal.research-journal-entry.v1"
@@ -444,8 +445,8 @@ def _comparison_side(entry: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _delta(from_summary: dict[str, Any], to_summary: dict[str, Any], field: str) -> float:
-    return float(to_summary.get(field, 0.0)) - float(from_summary.get(field, 0.0))
+def _delta(from_summary: dict[str, Any], to_summary: dict[str, Any], field: str) -> float | None:
+    return metric_delta(from_summary, to_summary, field)
 
 
 def _comparison_notes(deltas: dict[str, float | int]) -> list[str]:

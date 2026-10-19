@@ -1,6 +1,19 @@
 import numpy as np
 
 
+def side_exposure_balance(
+    call_total: float, put_total_abs: float,
+) -> tuple[float | None, str]:
+    """Return the call/put exposure ratio and observed side coverage.
+
+    A zero put denominator does not mean puts dominate. Preserve that missing
+    ratio explicitly, including the case where neither side has exposure.
+    """
+    if put_total_abs > 0:
+        return call_total / put_total_abs, "both_sides" if call_total > 0 else "puts_only"
+    return None, "calls_only" if call_total > 0 else "no_selected_quantities"
+
+
 class IntradayGexEngine:
     def __init__(self, multiplier: int = 100):
         """
@@ -200,8 +213,14 @@ class IntradayGexEngine:
 
         # Call wall: strike with the most positive (call-side) dollar gamma.
         # Put wall: strike with the most negative (put-side) dollar gamma.
-        call_wall_strike = strikes[np.argmax(call_gex_dollars)]
-        put_wall_strike = strikes[np.argmax(np.abs(put_gex_dollars))]
+        call_wall_strike = (
+            float(strikes[np.argmax(call_gex_dollars)])
+            if np.any(call_gex_dollars > 0) else None
+        )
+        put_wall_strike = (
+            float(strikes[np.argmax(np.abs(put_gex_dollars))])
+            if np.any(np.abs(put_gex_dollars) > 0) else None
+        )
 
         # Concentration: how tightly net gamma is clustered. concentration_ratio is
         # the single largest strike's share of total |net| gamma; concentration_band

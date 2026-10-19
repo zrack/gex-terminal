@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
-from gex_terminal.contracts import days_until_expiry, parse_market_datetime
+from gex_terminal.contracts import days_until_expiry, exercise_style_from_cfi, parse_market_datetime
 from gex_terminal.implied_volatility import invert_black_76_iv
 from gex_terminal.market_data_adapter import (
     AdapterConfigurationError,
@@ -142,6 +142,7 @@ class DatabentoAdapter(MarketDataAdapter):
         self.latest_underlying_price: float | None = None
         self.latest_underlying_event_time: str | None = None
         self.latest_underlying_instrument_id: int | None = None
+        self.latest_underlying_price_source = "databento_mbp1_midpoint"
         self.subscription_ids: list[int] = []
         self._connected_once = False
         self._definition_count = 0
@@ -595,6 +596,11 @@ class DatabentoAdapter(MarketDataAdapter):
             self.latest_underlying_instrument_id = _safe_int(
                 _lookup(values, "instrument_id", "instrumentId")
             )
+            self.latest_underlying_price_source = (
+                "databento_bbo_1s_midpoint"
+                if values.get("underlying_price_source") == "databento_bbo_1s_midpoint"
+                else "databento_mbp1_midpoint"
+            )
             self._underlying_quote_count += 1
             return
         if kind == "option_trade":
@@ -635,6 +641,7 @@ class DatabentoAdapter(MarketDataAdapter):
                 underlying_price=self.latest_underlying_price,
                 underlying_event_time=self.latest_underlying_event_time,
                 underlying_instrument_id=self.latest_underlying_instrument_id,
+                underlying_price_source=self.latest_underlying_price_source,
                 risk_free_rate=self.risk_free_rate,
                 default_iv=self.default_iv,
                 max_underlying_age_seconds=self.max_underlying_age_seconds,
@@ -776,6 +783,8 @@ class DatabentoAdapter(MarketDataAdapter):
         ):
             return None
         dollar_multiplier = _dollar_contract_multiplier(record)
+        cfi = _text(_lookup(record, "cfi", "cfi_code", "cfiCode")).strip().upper()
+        provider_cfi = cfi if re.fullmatch(r"[A-Z]{6}", cfi) else None
 
         expiry_value = _lookup(
             record,
@@ -800,6 +809,9 @@ class DatabentoAdapter(MarketDataAdapter):
             ),
             "strike": strike,
             "option_type": option_type,
+            "exercise_style": exercise_style_from_cfi(provider_cfi),
+            "exercise_style_source": "provider_cfi" if provider_cfi else "missing",
+            "provider_cfi": provider_cfi,
             "expiry": _date_label(expiry_text or expiry_value),
             "expiry_timestamp": expiry_timestamp,
             "iv": _safe_float(_lookup(record, "iv", "implied_volatility", "impliedVolatility")),
@@ -841,6 +853,12 @@ class DatabentoAdapter(MarketDataAdapter):
         instrument_id = _safe_int(_lookup(record, "instrument_id", "instrumentId"))
         if instrument_id is not None:
             message["contract_id"] = str(instrument_id)
+        if record.get("underlying_price_source") == "databento_bbo_1s_midpoint":
+            message.update({
+                "price_source": "databento_bbo_1s_midpoint",
+                "quote_time_basis": "interval_end",
+                "provider_last_trade_ts_event": record.get("provider_last_trade_ts_event"),
+            })
         return message
 
     @staticmethod
@@ -851,6 +869,7 @@ class DatabentoAdapter(MarketDataAdapter):
         underlying_price: float | None = None,
         underlying_event_time: str | None = None,
         underlying_instrument_id: int | None = None,
+        underlying_price_source: str = "databento_mbp1_midpoint",
         risk_free_rate: float = 0.045,
         default_iv: float = DEFAULT_DATABENTO_IV,
         max_underlying_age_seconds: float = DEFAULT_MAX_UNDERLYING_AGE_SECONDS,
@@ -950,7 +969,7 @@ class DatabentoAdapter(MarketDataAdapter):
                     "option_price": option_price,
                     "option_price_source": "databento_trade",
                     "underlying_price": float(underlying_price),
-                    "underlying_price_source": "databento_mbp1_midpoint",
+                    "underlying_price_source": underlying_price_source,
                     "underlying_event_time": underlying_event_time,
                     "underlying_instrument_id": underlying_instrument_id,
                     "underlying_price_age_ms": timing["age_ms"],
@@ -974,7 +993,7 @@ class DatabentoAdapter(MarketDataAdapter):
                     ),
                     "option_price_source": "databento_trade" if option_price is not None else "missing",
                     "underlying_price_source": (
-                        "databento_mbp1_midpoint" if underlying_price is not None else "missing"
+                        underlying_price_source if underlying_price is not None else "missing"
                     ),
                     "underlying_price_age_ms": timing["age_ms"],
                     "maximum_underlying_age_ms": timing["maximum_age_ms"],
@@ -983,6 +1002,9 @@ class DatabentoAdapter(MarketDataAdapter):
             iv_source = "provider"
         message["iv"] = iv
         message["iv_source"] = iv_source
+        for field in ("exercise_style", "exercise_style_source", "provider_cfi"):
+            if metadata.get(field) is not None:
+                message[field] = metadata[field]
         if iv_provenance is not None:
             message["iv_provenance"] = iv_provenance
         expiry = _text(metadata.get("expiry"))
@@ -1073,7 +1095,7 @@ class DatabentoAdapter(MarketDataAdapter):
             "direction_source": "unknown",
             "event_time": event_time,
         }
-        for field in ("expiry", "expiry_timestamp", "contract_multiplier"):
+        for field in ("expiry", "expiry_timestamp", "contract_multiplier", "exercise_style", "exercise_style_source", "provider_cfi"):
             value = metadata.get(field)
             if value not in (None, ""):
                 message[field] = value
@@ -1299,6 +1321,7 @@ def _record_mapping(record: Any, kind: str) -> dict[str, Any]:
         "underlying",
         "underlying_id",
         "instrument_class",
+        "cfi",
         "contract_multiplier",
         "unit_of_measure",
         "side",
