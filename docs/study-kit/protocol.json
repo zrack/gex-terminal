@@ -1,0 +1,41 @@
+{
+  "schema": "gex-terminal.guided-intake-study.v1",
+  "protocol_id": "guided-intake-v1",
+  "observation_status": "not_collected",
+  "tasks": [
+    {
+      "id": "GI-01",
+      "task": "Install the frozen wheel in a fresh environment and obtain an offline readiness result.",
+      "success": "Installed wheel/version matches build identity; offline doctor result is understood. Preinstalled environments do not count as installation success."
+    },
+    {
+      "id": "GI-02",
+      "task": "Inspect the assigned local synthetic capture through guided session intake and identify its source, instrument, multiplier, time range and assumptions.",
+      "success": "Integrity and source identity match the fixture answer key; synthetic provenance and model assumptions remain visible. Integrity does not grant capture rights."
+    },
+    {
+      "id": "GI-03",
+      "task": "Choose the final event checkpoint, open it in Wind Tunnel, explain one structural level and one quality or model limitation.",
+      "success": "Selected capture prefix and as_of match the answer key; level/model/units match the saved receipt. Missing source evidence or fallback assumptions are named without inventing coverage."
+    },
+    {
+      "id": "GI-04",
+      "task": "Inspect separate position models and change one scenario parameter.",
+      "success": "OI, raw volume and directionalized volume stay separate. Unavailable views remain unavailable; the participant explains the changed input and keeps the source checkpoint fixed."
+    },
+    {
+      "id": "GI-05",
+      "task": "Save and export a scenario receipt, then reproduce it in a fresh Wind Tunnel server with an empty workspace.",
+      "success": "Fresh-server reproduction verifies the receipt without the original uploaded capture or source server. The source cutoff and original scenario inputs are retained."
+    },
+    {
+      "id": "GI-06",
+      "task": "Open the assigned bundled replay in Terminal, freeze it with w into Wind Tunnel and explain what the offline result establishes.",
+      "success": "Terminal checkpoint identity, assumptions and selected model are visible. Participant states that offline success establishes neither live-provider reliability nor predictive value."
+    }
+  ],
+  "outcomes": ["unaided", "assisted", "failed", "not_attempted"],
+  "missing_observation": "blank; never interpret as zero",
+  "participant_sessions": 0,
+  "limits": "A prepared kit and automated rehearsal are not participant observations. Retain all assistance, failures, refusals and not-started attempts."
+}

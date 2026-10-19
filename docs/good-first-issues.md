@@ -5,12 +5,39 @@ needing live market-data credentials. Maintainers can copy one into GitHub,
 apply `good first issue` and `help wanted`, and adjust scope as the codebase
 changes.
 
-## 1. Add Replay Alert Expectations For New Fixtures
+## Existing provider queue — reviewed September 4, 2026
+
+- [Databento issue #5](https://github.com/zrack/gex-terminal/issues/5) asks for
+  dataset/schema selection, synthetic payloads, normalized mappings and known
+  gaps. These are already owned by [Databento Fixture Mapping](databento-fixtures.md),
+  packaged Databento fixtures and the offline certification tests. Do not assign
+  a duplicate implementation. Administrative issue closure is separate from
+  these shipped artifacts; live certification remains open.
+- [Tradovate PR #10](https://github.com/zrack/gex-terminal/pull/10), inspected at
+  `03d5ed80e93452c03a9ccce244cf1e671597f91b`, is an existing contribution for
+  issue #4, not accepted live evidence. Its three-file diff adds a fixture and
+  shape-only tests, not an adapter-to-consumer mapping test. The fixture's
+  descriptive string includes `credentials`, so its own blanket substring
+  assertion against `credential` fails. The entitlement/demo-access assertions
+  need provider-source evidence, and the requested observed payload provenance
+  is not established by labeling a fixture sanitized. No hosted checks were
+  attached at inspection. Request changes within that contribution instead of
+  implementing the same scope in parallel; do not merge or close issue #4 on
+  this evidence. No provider access was attempted during this review.
+
+The separate [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md)
+repairs a reproduced acknowledgement-frame handling defect using synthetic
+tests. It does not supply the observed raw ES/NQ payloads required by issue #4
+or accept PR #10; the issue remains open until that evidence is available.
+
+## 1. Extend Replay Expectations For A Distinct Scenario
 
 Labels: `good first issue`, `help wanted`, `testing`, `replay`
 
 Summary:
-Add expected alert checks for one bundled replay fixture in the Replay Lab tests.
+The baseline semantic expectations are maintained by
+[GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md). Extend them only for a distinct
+scenario or independently established coverage gap in the Replay Lab tests.
 
 Why it helps:
 Replay fixtures are most useful when contributors can tell whether a model or
@@ -18,8 +45,10 @@ parser change altered expected behavior.
 
 Suggested scope:
 - Add or extend a focused test in `tests/test_replay_lab.py`.
-- Pick one session from `gex-terminal list-replays`.
-- Assert one expected alert, gamma wall, zero-gamma, or regime property.
+- Inspect existing expectations, then pick an uncovered behavior from
+  `gex-terminal list-replays` or propose a distinct synthetic fixture.
+- Assert one expected alert, gamma wall, strike-profile flip/nearest-neutral, or
+  regime property.
 
 Verification:
 
@@ -27,56 +56,14 @@ Verification:
 python -m unittest -v tests.test_replay_lab
 ```
 
-## 2. Add A Terminal Onboarding Screenshot Refresh Script
+## 2. Preview Automation — Maintained
 
-Labels: `good first issue`, `help wanted`, `documentation`, `terminal-ui`
+The refresh script and its provenance/safety checks are owned by
+[GEX-OFFLINE-002](work-packets/GEX-OFFLINE-002.md); this is no longer an unassigned
+starter implementation. Use [Demo Lab](demo-lab.md#contributor-preview) to stage
+and inspect current previews, then report a concrete defect or missing scenario.
 
-Summary:
-Add a small maintainer script or documented Make-style command that refreshes
-the README onboarding screenshot.
-
-Why it helps:
-The project looks better when the README visual stays aligned with the actual
-Textual terminal.
-
-Suggested scope:
-- Add a script under a maintainer-friendly location such as `scripts/`.
-- Use `--screenshot-view replay-browser`.
-- Avoid committing generated local demo packs.
-
-Verification:
-
-```bash
-gex-terminal --demo --screenshot /tmp/gex-terminal-onboarding.svg --screenshot-view replay-browser
-```
-
-## 3. Add Session Store Example Output Fixture
-
-Labels: `good first issue`, `help wanted`, `documentation`, `exports`
-
-Summary:
-Add a tiny sanitized example output fixture or regression assertion for
-`session-store save`, `list`, and `report` against a bundled replay session.
-
-Why it helps:
-New contributors can practice the historical research workflow without a live
-provider.
-
-Suggested scope:
-- Extend `tests/test_session_store.py` or add a small fixture under
-  `tests/fixtures/`.
-- Use `/tmp` or another ignored folder for generated output.
-- Explain that `historical_sessions/` is ignored by Git.
-
-Verification:
-
-```bash
-gex-terminal session-store save --replay-session zero-gamma-flip --session-store-dir /tmp/gex-store
-gex-terminal session-store list --session-store-dir /tmp/gex-store
-gex-terminal session-store report /tmp/gex-store/session_store.md --session-store-dir /tmp/gex-store
-```
-
-## 4. Document One Provider Payload Shape
+## 3. Document One Provider Payload Shape
 
 Labels: `good first issue`, `help wanted`, `adapter`, `documentation`
 
@@ -89,7 +76,7 @@ Provider adapters get easier when contributors can compare raw fields against
 the normalized JSONL contract.
 
 Suggested scope:
-- Pick one fixture in `tests/fixtures/`.
+- Pick one fixture in `gex_terminal/data/provider_fixtures/`.
 - Update the matching provider doc in `docs/`.
 - Do not include credentials, account IDs, or private market-data payloads.
 
@@ -99,24 +86,8 @@ Verification:
 python -m unittest -v tests.test_provider_fixture_lab
 ```
 
-## 5. Add A Small Snapshot Export Assertion
-
-Labels: `good first issue`, `help wanted`, `testing`, `exports`
-
-Summary:
-Add one focused assertion for Markdown or CSV snapshot exports.
-
-Why it helps:
-Exports are how users share research, so small format regressions matter.
-
-Suggested scope:
-- Extend `tests/test_snapshot_formats.py`.
-- Check one field that appears in both snapshot metrics and the human-readable
-  output.
-- Keep the test deterministic and fixture-based.
-
-Verification:
-
-```bash
-python -m unittest -v tests.test_snapshot_formats
-```
+The previously proposed dedicated NQ replay is now shipped as
+`nq-research-loop`; see [Demo Lab](demo-lab.md). Choose a distinct regression or
+scenario instead of duplicating its fixture.
+Local heading-link validation is maintained by
+`DocumentationLinkContractTests`; it is no longer an unassigned starter task.

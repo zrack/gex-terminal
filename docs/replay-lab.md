@@ -29,29 +29,20 @@ gex-terminal replay-lab gap_fade_lab.md --replay-session gap-fade
 ## What The Report Includes
 
 - A session dashboard with final spot, session change, net GEX, gamma wall,
-  zero-gamma, regime, and alert count.
+  strike-profile/zero-gamma compatibility level, regime, and alert count.
 - A leaderboard for largest absolute net GEX, most alerts, tightest gamma
   concentration, and largest spot move.
 - Session-to-session comparisons using saved final replay snapshots.
-- Replay alerts for gamma wall shifts, zero-gamma crosses, net-GEX sign flips,
+- Replay alerts for gamma wall shifts, compatibility-level crosses, net-GEX sign flips,
   major exposure changes, imbalance threshold crossings, and data-quality cases.
 - Full snapshot payloads in the JSON report so future changes can be compared
   against a saved baseline.
 
 ## Bundled Lab Sessions
 
-The current lab catalog covers:
-
-- `demo`: compact screenshot/smoke-test flow.
-- `full-session`: open, mid-session, and late-session ES 0DTE flow.
-- `trend-day`: rising spot with call-side accumulation.
-- `chop-day`: range-bound balanced call/put flow.
-- `volatility-spike`: downside move with higher IV and put-heavy flow.
-- `gap-fade`: gap-up open that rejects higher call walls and rotates lower.
-- `call-wall-breakout`: upside breakout that walks the call wall higher.
-- `zero-gamma-flip`: flow rotation across the zero-gamma boundary.
-- `expiration-compression`: late 0DTE pinning around the gamma wall.
-- `quality-stress`: off-symbol, partial-chain, and latency fixture cases.
+The lab runs the packaged catalog documented in
+[Replay Research Mode](replay-research.md#bundled-sessions). That page owns the
+session list and synthetic-scenario descriptions.
 
 ## Screenshot Workflow
 
@@ -95,9 +86,25 @@ net-GEX, imbalance, session change, and replay-alert count. See
 
 ## Contributor Workflow
 
-1. Add or edit a normalized JSONL fixture in `sample_data/`.
+1. Add or edit a normalized JSONL fixture in `gex_terminal/data/replays/` so it
+   is included in source and wheel workflows.
 2. Register it in `gex_terminal/replay_catalog.py`.
 3. Validate it with `gex-terminal validate-fixture PATH`.
 4. Run `gex-terminal replay-lab replay_lab.md`.
-5. Review changed alerts, walls, zero-gamma levels, and comparison deltas.
+5. Review changed alerts, walls, strike-profile levels, model provenance, and
+   comparison deltas.
 6. Add or update tests for any intended fixture, alert, or export behavior.
+
+`tests/test_replay_lab.py` checks semantic checkpoints from the bundled inputs:
+initialization after the first accepted option, timed wall changes, put-driven
+sign flips, balanced and concentrated positions, quality-annotation deduplication,
+off-symbol rejection, and schema-v2 event time. The checks use explicit fixture
+events and bounded level/sign expectations rather than treating a generated
+report or a nonzero alert count as its own oracle. Legacy ES expectations fix
+fallback DTE at `0.01` days; NQ uses its contract-specific expiry and multiplier.
+
+Keep net-GEX sign, proximity state, and compatibility-level crosses distinct.
+For example, at these inputs `zero-gamma-flip` changes net-GEX sign while spot
+stays above the historical strike-profile compatibility level, so it must not
+emit a `zero_gamma_cross` alert. A scenario label is not evidence of a particular
+alert, market regime, or predictive outcome.

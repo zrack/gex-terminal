@@ -8,6 +8,7 @@ from gex_terminal.adapters.databento import (
     DEFAULT_DATABENTO_DATASET,
     DatabentoAdapter,
     databento_option_parent_symbol,
+    databento_option_parent_symbols,
 )
 from gex_terminal.market_data_adapter import (
     AdapterConfigurationError,
@@ -17,8 +18,9 @@ from gex_terminal.fixture_validator import (
     format_fixture_validation_report,
     validate_fixture,
 )
+from gex_terminal.package_data import provider_fixture_dir
 
-FIXTURE_DIR = Path(__file__).parent / "fixtures"
+FIXTURE_DIR = provider_fixture_dir()
 
 
 def _load_fixture(name: str):
@@ -37,6 +39,17 @@ class DatabentoMappingTests(unittest.TestCase):
         self.assertEqual(databento_option_parent_symbol("ES"), "ES.OPT")
         self.assertEqual(databento_option_parent_symbol("nq"), "NQ.OPT")
         self.assertEqual(databento_option_parent_symbol("ES.OPT"), "ES.OPT")
+
+    def test_option_parent_environment_override_is_scoped_to_target(self):
+        with patch.dict("os.environ", {"DATABENTO_OPTION_PARENTS": " EW.OPT,EW.OPT,E1A.OPT "}):
+            adapter = DatabentoAdapter(None, target_underlying="ES")
+        self.assertEqual(adapter.option_parents, ("EW.OPT", "E1A.OPT"))
+        self.assertEqual(len(databento_option_parent_symbols("NQ")), 26)
+        for override in ("", "NQ.OPT", "SPX.OPT", "ES.FUT"):
+            with self.subTest(override=override), patch.dict(
+                "os.environ", {"DATABENTO_OPTION_PARENTS": override},
+            ), self.assertRaises(AdapterConfigurationError):
+                DatabentoAdapter(None, target_underlying="ES")
 
     def test_definition_records_build_option_metadata(self):
         payload = _load_fixture("databento_definition_records.json")
@@ -75,31 +88,28 @@ class DatabentoMappingTests(unittest.TestCase):
         for message in messages:
             validate_normalized_message(message)
 
+        self.assertEqual([message["contract_id"] for message in messages], [
+            "9001001",
+            "9001002",
+            "9001004",
+        ])
+        self.assertEqual([message["volume"] for message in messages], [42, 31, 24])
+        self.assertTrue(all(message["schema_version"] == 2 for message in messages))
+        self.assertTrue(all(message["provider"] == "databento" for message in messages))
+        self.assertTrue(all(message["symbol"] == "ES" for message in messages))
+        self.assertTrue(all(message["instrument_class"] == "futures_option" for message in messages))
+        self.assertTrue(all(message["volume_semantics"] == "incremental" for message in messages))
+        self.assertTrue(all(message["iv"] == 0.15 for message in messages))
+        self.assertTrue(all(message["iv_source"] == "configured_default" for message in messages))
+        self.assertEqual(messages[0]["contract_symbol"], "ESM6 C5950")
+        self.assertEqual(messages[0]["event_time"], "2026-06-18T14:30:00.000000000Z")
         self.assertEqual(
-            messages,
-            [
-                {
-                    "type": "options_volume_tick",
-                    "strike": 5950.0,
-                    "option_type": "C",
-                    "volume": 42,
-                    "expiry": "2026-06-19",
-                },
-                {
-                    "type": "options_volume_tick",
-                    "strike": 5900.0,
-                    "option_type": "P",
-                    "volume": 31,
-                    "expiry": "2026-06-19",
-                },
-                {
-                    "type": "options_volume_tick",
-                    "strike": 6000.0,
-                    "option_type": "C",
-                    "volume": 24,
-                    "expiry": "2026-06-19",
-                },
-            ],
+            [message["aggressor_side"] for message in messages],
+            ["buy", "sell", "unknown"],
+        )
+        self.assertEqual(
+            [message["direction_source"] for message in messages],
+            ["provider", "provider", "unknown"],
         )
 
     def test_expected_normalized_jsonl_fixture_is_valid(self):
@@ -122,9 +132,13 @@ class DatabentoMappingTests(unittest.TestCase):
         self.assertEqual(
             message,
             {
+                "schema_version": 2,
                 "type": "underlying_tick",
+                "provider": "databento",
+                "contract_id": "9001003",
                 "symbol": "ES",
                 "price": 5943.25,
+                "event_time": "2026-06-18T14:30:00.000000000Z",
             },
         )
 
@@ -137,14 +151,40 @@ class DatabentoMappingTests(unittest.TestCase):
 
         self.assertEqual(open_interest, (9001001, 1200))
 
-    def test_live_validation_still_requires_sdk_ingestion(self):
-        with patch.dict("os.environ", {"DATABENTO_API_KEY": "db-test-key"}, clear=True):
+    def test_statistics_normalize_to_point_in_time_open_interest(self):
+        definitions = _load_fixture("databento_definition_records.json")
+        statistics = _load_fixture("databento_statistics_records.json")
+        metadata = {
+            item["instrument_id"]: item
+            for item in (
+                DatabentoAdapter._normalize_definition_record(record)
+                for record in definitions["records"]
+            )
+            if item
+        }
+        message = DatabentoAdapter._normalize_statistics_record(
+            {**statistics["records"][0], "ts_event": "2026-06-18T20:00:00Z"}, metadata
+        )
+        validate_normalized_message(message)
+        self.assertEqual(message["position_source"], "open_interest")
+        self.assertEqual(message["volume_semantics"], "cumulative")
+        self.assertEqual(message["volume"], 1200)
+        self.assertEqual(message["aggressor_side"], "unknown")
+
+    def test_live_validation_requires_optional_sdk(self):
+        with (
+            patch.dict("os.environ", {"DATABENTO_API_KEY": "db-test-key"}, clear=True),
+            patch(
+                "gex_terminal.adapters.databento._load_databento_sdk",
+                side_effect=ModuleNotFoundError,
+            ),
+        ):
             adapter = DatabentoAdapter(consumer=None)
 
             with self.assertRaises(AdapterConfigurationError) as exc:
                 adapter.validate()
 
-        self.assertIn("databento-python ingestion", str(exc.exception))
+        self.assertIn("optional SDK", str(exc.exception))
 
 
 if __name__ == "__main__":

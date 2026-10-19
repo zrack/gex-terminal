@@ -12,6 +12,7 @@ from typing import Any, Iterable
 
 from gex_terminal.config import GexConfig
 from gex_terminal.provider_injector import inject_provider_fixture
+from gex_terminal.package_data import provider_fixture_path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -38,7 +39,7 @@ PROVIDER_FIXTURE_CASES: tuple[ProviderFixtureCase, ...] = (
         label="Tradovate Live Frames",
         provider="tradovate",
         symbol="ES",
-        fixture_path=Path("tests/fixtures/tradovate_live_sample.jsonl"),
+        fixture_path=provider_fixture_path("tradovate_live_sample.jsonl"),
         description=(
             "Sanitized WebSocket-style quote frames with one intentionally "
             "malformed quote for feed-health testing."
@@ -49,8 +50,8 @@ PROVIDER_FIXTURE_CASES: tuple[ProviderFixtureCase, ...] = (
         label="Tradovate Metadata Join",
         provider="tradovate",
         symbol="ES",
-        fixture_path=Path("tests/fixtures/tradovate_md_quotes.json"),
-        metadata_path=Path("tests/fixtures/tradovate_contract_discovery.json"),
+        fixture_path=provider_fixture_path("tradovate_md_quotes.json"),
+        metadata_path=provider_fixture_path("tradovate_contract_discovery.json"),
         description="Quote payload joined to sanitized contract-discovery metadata.",
     ),
     ProviderFixtureCase(
@@ -58,9 +59,9 @@ PROVIDER_FIXTURE_CASES: tuple[ProviderFixtureCase, ...] = (
         label="Databento GLBX Fixture",
         provider="databento",
         symbol="ES",
-        fixture_path=Path("tests/fixtures/databento_trade_records.json"),
-        metadata_path=Path("tests/fixtures/databento_definition_records.json"),
-        underlying_path=Path("tests/fixtures/databento_underlying_mbp1_record.json"),
+        fixture_path=provider_fixture_path("databento_trade_records.json"),
+        metadata_path=provider_fixture_path("databento_definition_records.json"),
+        underlying_path=provider_fixture_path("databento_underlying_mbp1_record.json"),
         description=(
             "Synthetic GLBX.MDP3 definitions, option trades, and underlying "
             "mbp-1 quote sample."
@@ -71,7 +72,7 @@ PROVIDER_FIXTURE_CASES: tuple[ProviderFixtureCase, ...] = (
         label="yfinance ETF Options",
         provider="yfinance",
         symbol="SPY",
-        fixture_path=Path("tests/fixtures/yfinance_option_chain_records.json"),
+        fixture_path=provider_fixture_path("yfinance_option_chain_records.json"),
         description="Delayed equity/ETF option-chain sample for SPY-style research.",
     ),
     ProviderFixtureCase(
@@ -79,7 +80,7 @@ PROVIDER_FIXTURE_CASES: tuple[ProviderFixtureCase, ...] = (
         label="Cboe Option Quotes CSV",
         provider="cboe",
         symbol="SPY",
-        fixture_path=Path("tests/fixtures/cboe_option_quotes_sample.csv"),
+        fixture_path=provider_fixture_path("cboe_option_quotes_sample.csv"),
         fixture_format="cboe-option-quotes",
         description="Cboe-style option quote CSV sample using common column names.",
     ),
@@ -89,6 +90,16 @@ PROVIDER_FIXTURE_CASES: tuple[ProviderFixtureCase, ...] = (
 def bundled_provider_fixture_cases() -> tuple[ProviderFixtureCase, ...]:
     """Return the built-in provider fixture cases in report order."""
     return PROVIDER_FIXTURE_CASES
+
+
+def provider_fixture_case_for_name(name: str) -> ProviderFixtureCase:
+    """Resolve a stable bundled fixture name for installed-package workflows."""
+    normalized = name.strip().lower()
+    for case in PROVIDER_FIXTURE_CASES:
+        if case.name.lower() == normalized:
+            return case
+    choices = ", ".join(case.name for case in PROVIDER_FIXTURE_CASES)
+    raise ValueError(f"Unknown bundled provider fixture '{name}'. Choose one of: {choices}")
 
 
 async def build_provider_fixture_lab_report(
@@ -127,7 +138,7 @@ async def analyze_provider_fixture_case(
         config,
         symbol=case.symbol,
         symbols=_symbols_with_target(config.symbols, case.symbol),
-        data_mode="live",
+        data_mode="replay",
         data_provider=case.provider,
         replay_delay_seconds=0.0,
     )
@@ -186,9 +197,14 @@ def summarize_provider_fixture_snapshot(
         "symbol": snapshot.get("symbol", case.symbol),
         "fixture": injection.get("fixture") or _portable_path(case.fixture_path),
         "fixture_format": injection.get("fixture_format") or case.fixture_format,
+        "source_kind": injection.get("source_kind", "offline_provider_fixture"),
+        "network_used": bool(injection.get("network_used", False)),
+        "mapping_status": injection.get("mapping_status", "unknown"),
         "metadata": injection.get("metadata"),
         "underlying_fixture": injection.get("underlying_fixture"),
         "status": quality.get("status", "unknown"),
+        "data_mode": quality.get("data_mode", "unknown"),
+        "connection_state": quality.get("connection_state", "unknown"),
         "health": quality.get("health", "unknown"),
         "notes": list(quality.get("notes") or ()),
         "spot": float(snapshot.get("spot", 0.0)),
@@ -216,6 +232,8 @@ def build_provider_fixture_scorecard(
     rows = [result["summary"] for result in results]
     passed = sum(1 for row in rows if row["ok"])
     failed = len(rows) - passed
+    healthy = sum(1 for row in rows if row["ok"] and row["health"] == "healthy")
+    simulated = sum(1 for row in rows if row["ok"] and row["health"] == "simulated")
     degraded = sum(
         1
         for row in rows
@@ -225,7 +243,8 @@ def build_provider_fixture_scorecard(
         "total": len(rows),
         "passed": passed,
         "failed": failed,
-        "healthy": passed - degraded,
+        "healthy": healthy,
+        "simulated": simulated,
         "degraded": degraded,
         "normalized_messages": sum(int(row.get("normalized_messages", 0)) for row in rows),
         "provider_frames": sum(int(row.get("frame_count", 0)) for row in rows),
@@ -268,24 +287,34 @@ def provider_fixture_lab_to_markdown(report: dict[str, Any]) -> str:
         f"- Generated: `{report['generated_at']}`",
         f"- Cases run: `{scorecard['total']}`",
         f"- Passed: `{scorecard['passed']}`",
+        f"- Healthy live: `{scorecard['healthy']}`",
+        f"- Simulated: `{scorecard['simulated']}`",
         f"- Degraded: `{scorecard['degraded']}`",
         f"- Failed: `{scorecard['failed']}`",
         f"- Days to expiry: `{inputs['days_to_expiry']:g}`",
         f"- Contract multiplier: `{inputs['contract_multiplier']}`",
         "",
+        "`Zero Gamma` below is the historical compatibility field: adjacent",
+        "strike-profile interpolation when present, otherwise the nearest-neutral strike.",
+        "It is not a portfolio root obtained by repricing across hypothetical spot.",
+        "",
         "## Provider Scorecard",
         "",
         (
-            "| Case | Provider | Format | Symbol | Health | Messages | Frames | "
+            "| Case | Provider | Format | Symbol | Mode | Network | Health | Messages | Frames | "
             "Parse Err | Dropped | Gamma Wall | Zero Gamma |"
         ),
-        "| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        (
+            "| --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | "
+            "---: | ---: | ---: |"
+        ),
     ]
     for result in report["cases"]:
         summary = result["summary"]
         lines.append(
             f"| {summary['label']} | {summary['provider']} | "
             f"{summary['fixture_format']} | {summary['symbol']} | "
+            f"{summary['data_mode']} | {'yes' if summary['network_used'] else 'no'} | "
             f"{summary['health']} | {summary['normalized_messages']} | "
             f"{summary['frame_count']} | {summary['parse_error_count']} | "
             f"{summary['dropped_count']} | {_number(summary['gamma_wall'])} | "
@@ -301,11 +330,17 @@ def provider_fixture_lab_to_markdown(report: dict[str, Any]) -> str:
             f"- Fixture: `{summary['fixture']}`",
             f"- Description: {result['description']}",
             f"- Command: `{result['command']}`",
+            (
+                f"- Source: `{summary['source_kind']}`; network used "
+                f"`{'yes' if summary['network_used'] else 'no'}`; runtime "
+                f"`{summary['status']}` / `{summary['connection_state']}`."
+            ),
         ])
         if summary["ok"]:
             lines.extend([
                 (
-                    f"- Result: `{summary['health']}` health, "
+                    f"- Result: `{summary['mapping_status']}` mapping, "
+                    f"`{summary['health']}` health, "
                     f"`{summary['normalized_messages']}` normalized messages, "
                     f"`{summary['frame_count']}` provider frames."
                 ),
@@ -346,8 +381,13 @@ def provider_fixture_lab_to_csv(report: dict[str, Any]) -> str:
         "fixture_format",
         "fixture",
         "ok",
+        "source_kind",
+        "network_used",
+        "mapping_status",
         "health",
         "status",
+        "data_mode",
+        "connection_state",
         "spot",
         "total_net_gex",
         "gamma_wall",
@@ -374,8 +414,13 @@ def provider_fixture_lab_to_csv(report: dict[str, Any]) -> str:
             "fixture_format": summary["fixture_format"],
             "fixture": summary["fixture"],
             "ok": summary["ok"],
+            "source_kind": summary["source_kind"],
+            "network_used": summary["network_used"],
+            "mapping_status": summary["mapping_status"],
             "health": summary["health"],
             "status": summary["status"],
+            "data_mode": summary["data_mode"],
+            "connection_state": summary["connection_state"],
             "spot": summary["spot"],
             "total_net_gex": summary["total_net_gex"],
             "gamma_wall": summary["gamma_wall"],
@@ -411,21 +456,7 @@ def write_provider_fixture_lab_report(report: dict[str, Any], output_path: str) 
 
 
 def provider_fixture_case_command(case: ProviderFixtureCase) -> str:
-    parts = [
-        "gex-terminal",
-        "inject-provider",
-        _portable_path(case.fixture_path),
-    ]
-    if case.provider != "cboe":
-        parts.extend(["--provider", case.provider])
-    if case.fixture_format != "auto":
-        parts.extend(["--fixture-format", case.fixture_format])
-    parts.extend(["--symbol", case.symbol])
-    if case.metadata_path:
-        parts.extend(["--metadata", _portable_path(case.metadata_path)])
-    if case.underlying_path:
-        parts.extend(["--underlying-fixture", _portable_path(case.underlying_path)])
-    return " ".join(parts)
+    return f"gex-terminal inject-provider bundled:{case.name}"
 
 
 def _failed_summary(case: ProviderFixtureCase, exc: Exception) -> dict[str, Any]:
@@ -437,11 +468,16 @@ def _failed_summary(case: ProviderFixtureCase, exc: Exception) -> dict[str, Any]
         "symbol": case.symbol,
         "fixture": _portable_path(case.fixture_path),
         "fixture_format": case.fixture_format,
+        "source_kind": "offline_provider_fixture",
+        "network_used": False,
+        "mapping_status": "failed",
         "metadata": _portable_path(case.metadata_path) if case.metadata_path else None,
         "underlying_fixture": (
             _portable_path(case.underlying_path) if case.underlying_path else None
         ),
         "status": "failed",
+        "data_mode": "REPLAY",
+        "connection_state": "DISCONNECTED",
         "health": "failed",
         "notes": [],
         "spot": 0.0,

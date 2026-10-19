@@ -4,12 +4,14 @@ import csv
 import io
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 import numpy as np
 
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.contracts import days_until_expiry
 
 
 @dataclass(frozen=True)
@@ -41,44 +43,74 @@ DEFAULT_SCENARIOS: tuple[SensitivityScenario, ...] = (
 def build_sensitivity_report(
     *,
     spot: float,
-    chain_state: Mapping[float, Mapping[str, Any]],
+    chain_state: Mapping[float, Mapping[str, Any]] | None,
     days_to_expiry: float,
     risk_free_rate: float,
     contract_multiplier: int,
     scenarios: tuple[SensitivityScenario, ...] = DEFAULT_SCENARIOS,
+    contract_rows: Iterable[Mapping[str, Any]] | None = None,
+    base_matrix: Mapping[str, Any] | None = None,
+    as_of: datetime | None = None,
 ) -> dict[str, Any]:
-    """Compute model-output deltas across common assumption shifts."""
-    if not chain_state:
+    """Compute shifts from either legacy strike buckets or v2 contract rows.
+
+    Contract-aware rows preserve row-specific DTE, pricing model, carry, and
+    multiplier. This prevents a Black-76 snapshot from silently receiving a
+    scalar Black-Scholes sensitivity baseline.
+    """
+    loaded_contract_rows = [dict(row) for row in (contract_rows or ())]
+    if not chain_state and not loaded_contract_rows:
         raise ValueError("Sensitivity report requires at least one option strike")
 
-    strikes = np.array(sorted(chain_state.keys()), dtype=float)
-    ivs = np.array([float(chain_state[k].get("iv", 0.15)) for k in strikes], dtype=float)
-    calls = np.array([float(chain_state[k].get("C", 0)) for k in strikes], dtype=float)
-    puts = np.array([float(chain_state[k].get("P", 0)) for k in strikes], dtype=float)
+    if loaded_contract_rows:
+        reference_time = as_of or datetime.now(timezone.utc)
+        if reference_time.tzinfo is None:
+            raise ValueError("as_of must include a timezone")
+        vectors = _contract_vectors(
+            loaded_contract_rows,
+            fallback_days=days_to_expiry,
+            fallback_multiplier=contract_multiplier,
+            as_of=reference_time,
+        )
+        calculation_mode = "contract_v2"
+    else:
+        vectors = _legacy_vectors(chain_state or {}, days_to_expiry, contract_multiplier)
+        calculation_mode = "legacy_v1"
 
     rows = []
     base_metrics = None
     for scenario in scenarios:
-        engine = IntradayGexEngine(
-            multiplier=max(1, round(contract_multiplier * scenario.multiplier_scale))
-        )
+        engine = IntradayGexEngine(multiplier=contract_multiplier)
         matrix = engine.compute_intraday_gex_matrix(
             spot_price=float(spot),
-            strikes=strikes,
-            days_to_expiry=max(0.0001, days_to_expiry * scenario.days_to_expiry_scale),
+            strikes=vectors["strikes"],
+            days_to_expiry=np.maximum(
+                0.0001,
+                vectors["days_to_expiry"] * scenario.days_to_expiry_scale,
+            ),
             risk_free_rate=risk_free_rate + scenario.risk_free_rate_shift,
-            implied_vols=np.maximum(0.0001, ivs * scenario.iv_scale),
-            accumulated_call_vol=calls * scenario.volume_scale,
-            accumulated_put_vol=puts * scenario.volume_scale,
+            implied_vols=np.maximum(0.0001, vectors["ivs"] * scenario.iv_scale),
+            accumulated_call_vol=vectors["calls"] * scenario.volume_scale,
+            accumulated_put_vol=vectors["puts"] * scenario.volume_scale,
+            pricing_model=vectors["pricing_models"],
+            carry_rate=vectors["carry_rates"],
+            contract_multipliers=(
+                vectors["multipliers"] * scenario.multiplier_scale
+            ),
         )
+        if scenario.name == "base" and base_matrix is not None:
+            _assert_base_matrix_parity(matrix, base_matrix)
+            metric_source = base_matrix
+        else:
+            metric_source = matrix
         metrics = {
             "scenario": scenario.name,
             "label": scenario.label,
-            "total_net_gex": float(matrix["total_net_gex"]),
-            "gamma_wall": float(matrix["gamma_wall_strike"]),
-            "zero_gamma": float(matrix["zero_gamma_strike"]),
-            "call_wall": float(matrix["call_wall_strike"]),
-            "put_wall": float(matrix["put_wall_strike"]),
+            "total_net_gex": float(metric_source["total_net_gex"]),
+            "gamma_wall": float(metric_source["gamma_wall_strike"]),
+            "zero_gamma": float(metric_source["zero_gamma_strike"]),
+            "call_wall": float(metric_source["call_wall_strike"]),
+            "put_wall": float(metric_source["put_wall_strike"]),
         }
         if base_metrics is None:
             base_metrics = metrics
@@ -93,10 +125,109 @@ def build_sensitivity_report(
             "days_to_expiry": float(days_to_expiry),
             "risk_free_rate": float(risk_free_rate),
             "contract_multiplier": int(contract_multiplier),
-            "strike_count": len(strikes),
+            "strike_count": len(set(vectors["strikes"].tolist())),
+            "contract_count": len(vectors["strikes"]),
+            "calculation_mode": calculation_mode,
+            "pricing_models": sorted(set(vectors["pricing_models"].tolist())),
         },
         "scenarios": rows,
     }
+
+
+def _legacy_vectors(
+    chain_state: Mapping[float, Mapping[str, Any]],
+    days_to_expiry: float,
+    contract_multiplier: float,
+) -> dict[str, np.ndarray]:
+    strikes = np.array(sorted(chain_state.keys()), dtype=float)
+    return {
+        "strikes": strikes,
+        "ivs": np.array(
+            [float(chain_state[k].get("iv", 0.15)) for k in strikes], dtype=float
+        ),
+        "calls": np.array(
+            [float(chain_state[k].get("C", 0)) for k in strikes], dtype=float
+        ),
+        "puts": np.array(
+            [float(chain_state[k].get("P", 0)) for k in strikes], dtype=float
+        ),
+        "days_to_expiry": np.full(len(strikes), float(days_to_expiry), dtype=float),
+        "pricing_models": np.full(len(strikes), "black_scholes", dtype=object),
+        "carry_rates": np.zeros(len(strikes), dtype=float),
+        "multipliers": np.full(len(strikes), float(contract_multiplier), dtype=float),
+    }
+
+
+def _contract_vectors(
+    rows: list[dict[str, Any]],
+    *,
+    fallback_days: float,
+    fallback_multiplier: float,
+    as_of: datetime,
+) -> dict[str, np.ndarray]:
+    dtes = []
+    calls = []
+    puts = []
+    for row in rows:
+        explicit_dte = row.get("days_to_expiry")
+        derived_dte = days_until_expiry(row.get("expiry_timestamp"), as_of)
+        dte = (
+            float(derived_dte)
+            if derived_dte is not None
+            else float(explicit_dte if explicit_dte not in (None, "") else fallback_days)
+        )
+        dtes.append(dte)
+        volume = float(row.get("accumulated_volume", row.get("volume", 0)))
+        option_type = str(row.get("option_type", "")).upper()[:1]
+        if option_type not in {"C", "P"}:
+            raise ValueError("contract_rows require option_type C or P")
+        calls.append(volume if option_type == "C" else 0.0)
+        puts.append(volume if option_type == "P" else 0.0)
+    return {
+        "strikes": np.array([row["strike"] for row in rows], dtype=float),
+        "ivs": np.array([row.get("iv", 0.15) for row in rows], dtype=float),
+        "calls": np.array(calls, dtype=float),
+        "puts": np.array(puts, dtype=float),
+        "days_to_expiry": np.array(dtes, dtype=float),
+        "pricing_models": np.array(
+            [row.get("pricing_model", "black_scholes") for row in rows],
+            dtype=object,
+        ),
+        "carry_rates": np.array(
+            [row.get("carry_rate", 0.0) for row in rows], dtype=float
+        ),
+        "multipliers": np.array(
+            [row.get("contract_multiplier") or fallback_multiplier for row in rows],
+            dtype=float,
+        ),
+    }
+
+
+def _assert_base_matrix_parity(
+    calculated: Mapping[str, Any], expected: Mapping[str, Any]
+) -> None:
+    numeric_fields = (
+        "total_net_gex",
+        "gamma_wall_strike",
+        "zero_gamma_strike",
+        "call_wall_strike",
+        "put_wall_strike",
+    )
+    mismatches = [
+        field
+        for field in numeric_fields
+        if not np.isclose(
+            float(calculated[field]),
+            float(expected[field]),
+            rtol=1e-12,
+            atol=1e-8,
+        )
+    ]
+    if mismatches:
+        raise ValueError(
+            "Sensitivity base scenario does not match the selected snapshot: "
+            + ", ".join(mismatches)
+        )
 
 
 def sensitivity_to_csv(report: dict[str, Any]) -> str:

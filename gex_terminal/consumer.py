@@ -1,13 +1,45 @@
 import asyncio
+import copy
 import json
 import logging
+import math
 import time
 import numpy as np
+from datetime import datetime, timezone
 from typing import Dict, Any
+
+from gex_terminal.contracts import (
+    canonical_option_contract,
+    contract_storage_key,
+    days_until_expiry,
+    expiry_date,
+    is_zero_dte,
+    market_timestamp_order_key,
+    parse_market_datetime,
+)
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.feed_quality import build_feed_quality_snapshot
+from gex_terminal.market_data_adapter import validate_normalized_message
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+LOGGER = logging.getLogger(__name__)
+
+
+def _finite_runtime_number(value: object, name: str) -> float:
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError(f"{name} must be numeric") from None
+    if not math.isfinite(number):
+        raise ValueError(f"{name} must be finite")
+    return number
+
+
+def _positive_runtime_number(value: object, name: str) -> float:
+    number = _finite_runtime_number(value, name)
+    if number <= 0:
+        raise ValueError(f"{name} must be greater than 0")
+    return number
+
 
 class StatefulGexConsumer:
     def __init__(
@@ -17,20 +49,38 @@ class StatefulGexConsumer:
         risk_free_rate: float = 0.045,
         data_mode: str = "live",
         stale_after_seconds: float = 10.0,
+        expiry_filter: str = "all",
     ):
         self.engine = engine
         self.target_underlying = target_underlying
-        self.risk_free_rate = risk_free_rate
+        self.risk_free_rate = _finite_runtime_number(
+            risk_free_rate,
+            "risk_free_rate",
+        )
         self.data_mode = data_mode.upper()
-        self.stale_after_seconds = stale_after_seconds
+        self.stale_after_seconds = _positive_runtime_number(
+            stale_after_seconds,
+            "stale_after_seconds",
+        )
+        self.expiry_filter = expiry_filter
         
-        # State: { strike_price: { 'C': accumulated_volume, 'P': accumulated_volume, 'iv': implied_vol } }
+        # Compatibility summaries consumed by the existing TUI/export surface.
         self.chain_state: Dict[float, Dict[str, Any]] = {}
-        # Per-expiry volume state, only populated when ticks carry an "expiry" tag.
-        # { expiry_label: { strike: { 'C', 'P', 'iv' } } }
         self.expiry_state: Dict[str, Dict[float, Dict[str, Any]]] = {}
+        self._legacy_chain_state: Dict[float, Dict[str, Any]] = {}
+        self._legacy_expiry_state: Dict[str, Dict[float, Dict[str, Any]]] = {}
+        # {(provider, contract_id, position_source): mutable v2 contract state}
+        self.contract_state: Dict[tuple[str, str, str], Dict[str, Any]] = {}
+        self._underlying_contract_state: Dict[str, Dict[str, Any]] = {}
+        self._retired_underlying_contract_ids: Dict[str, set[str]] = {}
+        self._rejected_underlying_quote_count = 0
+        self._v1_option_count = 0
+        self._v2_option_count = 0
+        self._option_update_serial = 0
+        self._untimed_market_event_count = 0
         self.current_spot: float = 0.0
         self.session_open: float = 0.0
+        self.market_time: datetime | None = None
         self.last_message_at: float | None = None
         self.last_snapshot_at: float | None = None
         self.connection_state: str = "SIM" if self.data_mode == "DEMO" else "DISCONNECTED"
@@ -43,6 +93,9 @@ class StatefulGexConsumer:
         self.reconnect_count: int = 0
         self.subscribed_symbol_count: int = 0
         self.subscription_status: str = "not_subscribed"
+        self.duplicate_message_count: int = 0
+        self.cumulative_reset_count: int = 0
+        self.fallback_iv_tick_count: int = 0
         self.quality_notes: tuple[str, ...] = ()
         self.simulated_latency_ms: float | None = None
         
@@ -76,18 +129,40 @@ class StatefulGexConsumer:
     ) -> None:
         """Clear market state before loading a fresh offline or provider session."""
         next_mode = (data_mode or self.data_mode).upper()
+        next_risk_free_rate = (
+            self.risk_free_rate
+            if risk_free_rate is None
+            else _finite_runtime_number(risk_free_rate, "risk_free_rate")
+        )
+        next_stale_after_seconds = (
+            self.stale_after_seconds
+            if stale_after_seconds is None
+            else _positive_runtime_number(
+                stale_after_seconds,
+                "stale_after_seconds",
+            )
+        )
         async with self.state_lock:
             self.data_mode = next_mode
             if target_underlying:
                 self.target_underlying = target_underlying
-            if risk_free_rate is not None:
-                self.risk_free_rate = float(risk_free_rate)
-            if stale_after_seconds is not None:
-                self.stale_after_seconds = float(stale_after_seconds)
+            self.risk_free_rate = next_risk_free_rate
+            self.stale_after_seconds = next_stale_after_seconds
             self.chain_state.clear()
             self.expiry_state.clear()
+            self._legacy_chain_state.clear()
+            self._legacy_expiry_state.clear()
+            self.contract_state.clear()
+            self._underlying_contract_state.clear()
+            self._retired_underlying_contract_ids.clear()
+            self._rejected_underlying_quote_count = 0
+            self._v1_option_count = 0
+            self._v2_option_count = 0
+            self._option_update_serial = 0
+            self._untimed_market_event_count = 0
             self.current_spot = 0.0
             self.session_open = 0.0
+            self.market_time = None
             self.last_message_at = None
             self.last_snapshot_at = None
             self.connection_state = "SIM" if next_mode == "DEMO" else "DISCONNECTED"
@@ -100,6 +175,9 @@ class StatefulGexConsumer:
             self.reconnect_count = 0
             self.subscribed_symbol_count = 0
             self.subscription_status = "not_subscribed"
+            self.duplicate_message_count = 0
+            self.cumulative_reset_count = 0
+            self.fallback_iv_tick_count = 0
             self.quality_notes = ()
             self.simulated_latency_ms = None
 
@@ -129,6 +207,12 @@ class StatefulGexConsumer:
 
     def record_dropped_message(self) -> None:
         self.dropped_message_count += 1
+
+    def record_quality_note(self, note: str) -> None:
+        """Attach a provider/model caveat without mutating health counters."""
+        cleaned = str(note).strip()
+        if cleaned:
+            self.quality_notes = tuple(dict.fromkeys((*self.quality_notes, cleaned)))
 
     def feed_quality_snapshot(
         self,
@@ -172,93 +256,485 @@ class StatefulGexConsumer:
         ).to_dict()
         if self.quality_notes:
             snapshot["notes"] = list(dict.fromkeys((*snapshot["notes"], *self.quality_notes)))
+        if self.duplicate_message_count:
+            snapshot["notes"] = list(dict.fromkeys((
+                *snapshot["notes"],
+                f"{self.duplicate_message_count} duplicate option update(s) ignored",
+            )))
+        if self.cumulative_reset_count:
+            snapshot["notes"] = list(dict.fromkeys((
+                *snapshot["notes"],
+                f"{self.cumulative_reset_count} cumulative volume counter reset(s)",
+            )))
+        snapshot["duplicate_message_count"] = self.duplicate_message_count
+        snapshot["cumulative_reset_count"] = self.cumulative_reset_count
+        identity = self.underlying_identity_snapshot()
+        # Identity-free replay retains the historical serialized decision
+        # content used by portable research receipts. Identity evidence is
+        # still included whenever a contract, quarantine or rejection exists.
+        if any(identity.values()):
+            snapshot["underlying_identity"] = identity
+        if self.fallback_iv_tick_count:
+            existing_notes = tuple(
+                note for note in snapshot["notes"] if note != "feed checks clean"
+            )
+            snapshot["notes"] = list(dict.fromkeys((
+                *existing_notes,
+                f"{self.fallback_iv_tick_count} option tick(s) used labeled fallback IV",
+            )))
+            if snapshot["health"] not in {"down", "entitlement", "stale"}:
+                snapshot["health"] = "degraded"
+        snapshot["fallback_iv_tick_count"] = self.fallback_iv_tick_count
         return snapshot
 
-    async def update_market_state(self, raw_message: str):
+    async def update_market_state(self, raw_message: str) -> bool:
         """
-        Parses incoming WebSocket frames and safely increments volume data structures.
-        Expects a normalized JSON structure from your data provider's broker API.
+        Parse one normalized message and update contract-aware market state.
+
+        Schema-v1 option messages are treated as incremental legacy events.
+        Schema-v2 messages carry stable identity and declare whether ``volume``
+        is an incremental trade size or a cumulative counter.
+        Return True only when this message changes accepted market state.
         """
         try:
             data = json.loads(raw_message)
+            validate_normalized_message(data)
+            event_time = parse_market_datetime(data.get("event_time") or data.get("timestamp"))
             
             # 1. Update Underlying Spot Price
             if data.get("type") == "underlying_tick":
                 if data.get("symbol") != self.target_underlying:
                     self.dropped_message_count += 1
-                    return
+                    return False
                 async with self.state_lock:
+                    if not self._accept_underlying_identity_locked(data):
+                        return False
                     self.current_spot = float(data["price"])
                     if self.session_open == 0.0:
                         self.session_open = self.current_spot
+                    if event_time is not None:
+                        if self.market_time is None or event_time >= self.market_time:
+                            self.market_time = event_time
+                    else:
+                        self._untimed_market_event_count += 1
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
-                return
+                    self._rebuild_public_projections_locked()
+                return True
 
             # 2. Update Options Traded Volume
             if data.get("type") == "options_volume_tick":
-                strike = float(data["strike"])
-                option_type = data["option_type"] # 'C' or 'P'
-                volume = int(data["volume"])
-                iv = float(data.get("iv", 0.15)) # Default or fallback IV
-
-                expiry = data.get("expiry")
+                contract = canonical_option_contract(
+                    data,
+                    target_underlying=self.target_underlying,
+                )
+                if contract["symbol"] != self.target_underlying:
+                    self.dropped_message_count += 1
+                    return False
 
                 async with self.state_lock:
-                    if strike not in self.chain_state:
-                        self.chain_state[strike] = {"C": 0, "P": 0, "iv": iv}
-
-                    self.chain_state[strike][option_type] += volume
-                    self.chain_state[strike]["iv"] = iv # Update local IV skew dynamically
+                    if contract["schema_version"] >= 2:
+                        if not self._update_v2_contract_locked(contract, data):
+                            return False
+                        if contract.get("iv_source") == "configured_default":
+                            self.fallback_iv_tick_count += 1
+                        self._v2_option_count += 1
+                    else:
+                        self._update_v1_projection_locked(contract, data)
+                        self._v1_option_count += 1
+                    if event_time is not None:
+                        if self.market_time is None or event_time >= self.market_time:
+                            self.market_time = event_time
+                    else:
+                        self._untimed_market_event_count += 1
                     self.last_message_at = time.monotonic()
                     self.message_count += 1
-
-                    # Optionally track the same flow grouped by expiry for breakdowns.
-                    if expiry is not None:
-                        label = str(expiry)
-                        bucket = self.expiry_state.setdefault(label, {})
-                        if strike not in bucket:
-                            bucket[strike] = {"C": 0, "P": 0, "iv": iv}
-                        bucket[strike][option_type] += volume
-                        bucket[strike]["iv"] = iv
-                return
+                return True
 
             self.dropped_message_count += 1
 
-        except (json.JSONDecodeError, KeyError, ValueError) as e:
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
             self.malformed_message_count += 1
-            logging.error(f"Failed parsing market data frame: {e}")
+            LOGGER.error("Failed parsing normalized market-data message: %s", e)
+        return False
 
-    async def process_latest_snapshot(self, days_to_expiry: float) -> dict:
+    def _accept_underlying_identity_locked(
+        self, message: Dict[str, Any],
+    ) -> bool:
+        provider = str(message.get("provider") or "legacy").lower()
+        contract_id = (
+            message.get("contract_id")
+            if int(message.get("schema_version", 1)) >= 2 else None
+        )
+        previous = self._underlying_contract_state.get(provider)
+        if contract_id is None:
+            if previous is None:
+                return True  # Legacy sessions have no authoritative future identity.
+        else:
+            contract_id = str(contract_id).strip()
+            previous_time = market_timestamp_order_key(previous["event_time"]) if previous else None
+            next_time = market_timestamp_order_key(message["event_time"])
+            retired = self._retired_underlying_contract_ids.get(provider, set())
+            stale = previous_time is not None and next_time < previous_time
+            ambiguous_switch = previous is not None and (
+                contract_id != previous["contract_id"] and next_time <= previous_time
+            )
+            if contract_id not in retired and not stale and not ambiguous_switch:
+                if previous is not None and contract_id != previous["contract_id"]:
+                    self._retired_underlying_contract_ids.setdefault(provider, set()).add(
+                        previous["contract_id"]
+                    )
+                self._underlying_contract_state[provider] = {
+                    "contract_id": contract_id, "event_time": message["event_time"],
+                }
+                return True
+        self._rejected_underlying_quote_count += 1
+        self.dropped_message_count += 1
+        return False
+
+    def is_contract_underlying_current(self, state: Dict[str, Any]) -> bool:
+        """Check an optional option-to-future link within its provider namespace."""
+        linked_id = state.get("underlying_contract_id")
+        if linked_id is None:
+            return True
+        current = self._underlying_contract_state.get(
+            str(state.get("provider") or "legacy").lower()
+        )
+        return current is not None and str(linked_id) == current["contract_id"]
+
+    def underlying_identity_snapshot(self) -> dict[str, Any]:
+        """Return retained identity provenance without exposing mutable state."""
+        return {
+            "current_contract_ids": {
+                provider: state["contract_id"]
+                for provider, state in sorted(self._underlying_contract_state.items())
+            },
+            "retired_contract_ids": {
+                provider: sorted(ids)
+                for provider, ids in sorted(self._retired_underlying_contract_ids.items())
+            },
+            "quarantined_option_states": sum(
+                not self.is_contract_underlying_current(state)
+                for state in self.contract_state.values()
+            ),
+            "rejected_quotes": self._rejected_underlying_quote_count,
+        }
+
+    def _update_v1_projection_locked(
+        self,
+        contract: Dict[str, Any],
+        message: Dict[str, Any],
+    ) -> None:
+        """Apply the original v1 last-IV/incremental-volume behavior exactly."""
+        strike = float(contract["strike"])
+        option_type = str(contract["option_type"])
+        volume = int(message["volume"])
+        iv = float(message.get("iv", 0.15))
+        row = self._legacy_chain_state.setdefault(
+            strike,
+            {"C": 0, "P": 0, "iv": iv},
+        )
+        row[option_type] += volume
+        row["iv"] = iv
+
+        expiry = message.get("expiry")
+        if expiry is not None:
+            bucket = self._legacy_expiry_state.setdefault(str(expiry), {})
+            expiry_row = bucket.setdefault(
+                strike,
+                {"C": 0, "P": 0, "iv": iv},
+            )
+            expiry_row[option_type] += volume
+            expiry_row["iv"] = iv
+        self._rebuild_public_projections_locked()
+
+    def _update_v2_contract_locked(
+        self,
+        contract: Dict[str, Any],
+        message: Dict[str, Any],
+    ) -> bool:
+        state_key = contract_storage_key(contract)
+        existing = self.contract_state.get(state_key)
+        sequence = contract.get("sequence")
+        reference_date = contract.get("open_interest_reference_date")
+        if contract["position_source"] == "open_interest" and existing is not None:
+            existing_reference_date = existing.get("open_interest_reference_date")
+            if existing_reference_date:
+                # An unreferenced legacy observation cannot replace dated OI.
+                if not reference_date or reference_date < existing_reference_date:
+                    self.duplicate_message_count += 1
+                    return False
+                if reference_date == existing_reference_date and (
+                    market_timestamp_order_key(contract["event_time"])
+                    <= market_timestamp_order_key(existing["event_time"])
+                ):
+                    self.duplicate_message_count += 1
+                    return False
+        if not reference_date and (
+            existing is not None
+            and sequence is not None
+            and existing.get("last_sequence") is not None
+            and sequence <= existing["last_sequence"]
+        ):
+            self.duplicate_message_count += 1
+            return False
+
+        if existing is not None:
+            immutable_fields = ("symbol", "strike", "option_type", "expiry")
+            changed = [
+                field
+                for field in immutable_fields
+                if existing.get(field) != contract.get(field)
+            ]
+            if changed:
+                raise ValueError(
+                    "contract identity changed for "
+                    f"{contract['provider']}:{contract['contract_id']}: "
+                    f"{', '.join(changed)}"
+                )
+
+        # Multiplier is contract metadata, not a mutable position quantity.
+        # Missing metadata may be enriched; later omissions cannot erase it.
+        known_multipliers = {
+            row["contract_multiplier"]
+            for source in ("open_interest", "trade_volume")
+            if (row := self.contract_state.get((*state_key[:2], source)))
+            and row.get("contract_multiplier") is not None
+        }
+        supplied_multiplier = contract.get("contract_multiplier")
+        if known_multipliers and supplied_multiplier is not None and (
+            known_multipliers != {supplied_multiplier}
+        ):
+            raise ValueError("contract identity changed: contract_multiplier")
+        if supplied_multiplier is None and known_multipliers:
+            contract = {**contract, "contract_multiplier": next(iter(known_multipliers))}
+        known_underlying_ids = {
+            row["underlying_contract_id"]
+            for source in ("open_interest", "trade_volume")
+            if (row := self.contract_state.get((*state_key[:2], source)))
+            and row.get("underlying_contract_id") is not None
+        }
+        supplied_underlying_id = contract.get("underlying_contract_id")
+        if known_underlying_ids and supplied_underlying_id is not None and (
+            known_underlying_ids != {supplied_underlying_id}
+        ):
+            raise ValueError("contract identity changed: underlying_contract_id")
+        if supplied_underlying_id is None and known_underlying_ids:
+            contract = {**contract, "underlying_contract_id": next(iter(known_underlying_ids))}
+        if contract.get("contract_multiplier_source") is None:
+            known_source = next((
+                row["contract_multiplier_source"]
+                for source in ("open_interest", "trade_volume")
+                if (row := self.contract_state.get((*state_key[:2], source)))
+                and row.get("contract_multiplier_source") is not None
+            ), None)
+            if known_source is not None:
+                contract = {**contract, "contract_multiplier_source": known_source}
+
+        volume = int(message["volume"])
+        previous = int(existing.get("accumulated_volume", 0) if existing else 0)
+        previous_directional = dict(
+            existing.get("directional_volume", {}) if existing else {}
+        )
+        directional_volume = {
+            "buy": int(previous_directional.get("buy", 0)),
+            "sell": int(previous_directional.get("sell", 0)),
+            "unknown": int(previous_directional.get("unknown", 0)),
+        }
+        direction_sources = set(existing.get("direction_sources", ()) if existing else ())
+        if contract["volume_semantics"] == "cumulative":
+            accumulated = volume
+            directional_volume = {"buy": 0, "sell": 0, "unknown": volume}
+            direction_sources.clear()
+            if existing is not None and volume < previous:
+                self.cumulative_reset_count += 1
+        else:
+            accumulated = previous + volume
+            side = str(contract.get("aggressor_side") or "unknown")
+            directional_volume[side] += volume
+            source = str(contract.get("direction_source") or "unknown")
+            if side != "unknown" and source != "unknown":
+                direction_sources.add(source)
+
+        self._option_update_serial += 1
+        state = dict(existing or {})
+        state.update(contract)
+        state.update({
+            "iv": float(message.get("iv", 0.15)),
+            "accumulated_volume": accumulated,
+            "last_reported_volume": volume,
+            "last_sequence": sequence,
+            "last_update_serial": self._option_update_serial,
+            "directional_volume": directional_volume,
+            "direction_sources": sorted(direction_sources),
+        })
+        if contract["position_source"] == "open_interest":
+            state["open_interest_invalidated"] = (
+                contract.get("open_interest_update_action") == "delete"
+            )
+        self.contract_state[state_key] = state
+        self._rebuild_public_projections_locked()
+        return True
+
+    def _rebuild_public_projections_locked(self) -> None:
+        chain = {
+            strike: dict(values)
+            for strike, values in self._legacy_chain_state.items()
+        }
+        expiries = {
+            label: {strike: dict(values) for strike, values in bucket.items()}
+            for label, bucket in self._legacy_expiry_state.items()
+        }
+        ordered = sorted(
+            self._select_position_states(list(self.contract_state.values()))[0],
+            key=lambda state: int(state.get("last_update_serial", 0)),
+        )
+        for state in ordered:
+            strike = float(state["strike"])
+            option_type = str(state["option_type"])
+            volume = int(state.get("accumulated_volume", 0))
+            iv = float(state.get("iv", 0.15))
+            row = chain.setdefault(strike, {"C": 0, "P": 0, "iv": iv})
+            row[option_type] += volume
+            row["iv"] = iv
+
+            expiry = str(state.get("expiry") or "session")
+            if expiry != "session":
+                bucket = expiries.setdefault(expiry, {})
+                expiry_row = bucket.setdefault(
+                    strike,
+                    {"C": 0, "P": 0, "iv": iv},
+                )
+                expiry_row[option_type] += volume
+                expiry_row["iv"] = iv
+        self.chain_state = chain
+        self.expiry_state = expiries
+
+    async def process_latest_snapshot(
+        self,
+        days_to_expiry: float,
+        *,
+        expiry_filter: str | None = None,
+        as_of: datetime | None = None,
+        expiry_days: dict[str, float] | None = None,
+    ) -> dict:
         """
-        Converts the live in-memory state map into aligned arrays 
-        and computes the full mathematical GEX profile.
+        Compute the current GEX profile from contract-level state.
+
+        ``days_to_expiry`` remains the documented fallback for legacy events or
+        providers that do not yet supply exact expiry metadata.
         """
         async with self.state_lock:
             if not self.chain_state or self.current_spot == 0.0:
                 return {"error": "Insufficient data state to compute matrix."}
-            
-            # Sort strikes to maintain mathematical spatial alignment
-            sorted_strikes = sorted(self.chain_state.keys())
-            
-            strikes_arr = np.array(sorted_strikes, dtype=float)
-            iv_arr = np.array([self.chain_state[k]["iv"] for k in sorted_strikes], dtype=float)
-            call_vol_arr = np.array([self.chain_state[k]["C"] for k in sorted_strikes], dtype=float)
-            put_vol_arr = np.array([self.chain_state[k]["P"] for k in sorted_strikes], dtype=float)
-            
+            contracts = [dict(state) for state in self.contract_state.values()]
+            aggregate = {
+                strike: dict(values) for strike, values in self.chain_state.items()
+            }
+            projected_buckets = {
+                label: {strike: dict(values) for strike, values in bucket.items()}
+                for label, bucket in self.expiry_state.items()
+            }
             spot = self.current_spot
+            market_time = self.market_time
+            v1_count = self._v1_option_count
+            v2_count = self._v2_option_count
             self.last_snapshot_at = time.monotonic()
 
-        # Pass the extracted, aligned state straight to the vectorized math module
-        return self.engine.compute_intraday_gex_matrix(
-            spot_price=spot,
-            strikes=strikes_arr,
-            days_to_expiry=days_to_expiry,
-            risk_free_rate=self.risk_free_rate,
-            implied_vols=iv_arr,
-            accumulated_call_vol=call_vol_arr,
-            accumulated_put_vol=put_vol_arr
+        selected_filter = (expiry_filter or self.expiry_filter or "all").strip()
+        reference_time = as_of or market_time or datetime.now(timezone.utc)
+        if reference_time.tzinfo is None:
+            raise ValueError("as_of must include a timezone")
+
+        # Contract-aware pricing is only authoritative for a pure v2 option set.
+        # Mixed sessions retain the original strike-level path and say so.
+        contracts, position_conflicts = self._select_position_states(contracts)
+        pure_v2 = bool(contracts) and v1_count == 0
+        expired_count = 0
+        selected_count = 0
+        if pure_v2:
+            selected_contracts = self._filter_contract_states(
+                contracts,
+                selected_filter,
+                reference_time,
+            )
+            selected_contracts, expired_count = self._active_contract_states(
+                selected_contracts,
+                reference_time,
+            )
+            if not selected_contracts:
+                return {
+                    "error": f"No active option contracts match expiry filter '{selected_filter}'."
+                }
+            selected_count = len(selected_contracts)
+            data = self._contract_matrix(
+                selected_contracts,
+                spot,
+                days_to_expiry,
+                reference_time,
+                expiry_days=expiry_days,
+            )
+        else:
+            selected_map = self._legacy_filter_map(
+                aggregate,
+                projected_buckets,
+                selected_filter,
+                reference_time,
+            )
+            if not selected_map:
+                return {
+                    "error": f"No option contracts match expiry filter '{selected_filter}'."
+                }
+            data = self._legacy_matrix(selected_map, spot, days_to_expiry)
+            data["multiplier_provenance"] = {
+                "status": "configured_fallback",
+                "configured_fallback_multiplier": float(self.engine.multiplier),
+                "effective_multipliers": [float(self.engine.multiplier)],
+                "fallback_row_count": len(selected_map),
+                "rows": [],
+            }
+            data["directionalized"] = {
+                "model": "aggressor_directionalized_volume",
+                "status": "unsupported_legacy_schema",
+                "directional_coverage": 0.0,
+                "known_direction_volume": 0.0,
+                "unknown_direction_volume": float(
+                    sum(
+                        int(row.get("C", 0)) + int(row.get("P", 0))
+                        for row in selected_map.values()
+                    )
+                ),
+                "participant_classification": "unobserved",
+                "opening_closing_classification": "unobserved",
+                "predictive_validity": "unmeasured",
+            }
+            selected_count = len(selected_map)
+
+        data["expiry_filter"] = selected_filter
+        data["available_expiries"] = list(self.available_expiries(contracts))
+        data["calculation_mode"] = (
+            "contract_v2"
+            if pure_v2
+            else ("mixed_legacy_fallback" if v1_count and v2_count else "legacy_v1")
         )
+        data["normalized_schema_versions"] = (
+            [1, 2]
+            if v1_count and v2_count
+            else ([2] if pure_v2 else [1])
+        )
+        data["legacy_contract_fallback_count"] = len(contracts) if v1_count else 0
+        data["selected_contract_count"] = selected_count
+        data["expired_contract_count"] = expired_count
+        data["position_sources"] = sorted({
+            str(state.get("position_source") or "trade_volume")
+            for state in (selected_contracts if pure_v2 else ())
+        }) if pure_v2 else ["legacy_volume_proxy"]
+        data["position_source_conflict_count"] = position_conflicts
+        data["underlying_identity"] = self.underlying_identity_snapshot()
+        data["as_of"] = reference_time.astimezone(timezone.utc).isoformat().replace(
+            "+00:00", "Z"
+        )
+        return data
 
     async def process_expiry_breakdown(self, days_to_expiry: float, expiry_days: dict | None = None) -> dict:
         """Return total net GEX grouped by expiry.
@@ -273,11 +749,51 @@ class StatefulGexConsumer:
             if not self.chain_state or self.current_spot == 0.0:
                 return {}
             spot = self.current_spot
+            contracts = [dict(state) for state in self.contract_state.values()]
+            market_time = self.market_time
             buckets = {
                 label: {strike: dict(values) for strike, values in strikes.items()}
                 for label, strikes in self.expiry_state.items()
             }
             aggregate = {strike: dict(values) for strike, values in self.chain_state.items()}
+
+        contracts, _ = self._select_position_states(contracts)
+        pure_v2 = bool(contracts) and self._v1_option_count == 0
+        if pure_v2:
+            reference_time = market_time or datetime.now(timezone.utc)
+            grouped: Dict[str, list[Dict[str, Any]]] = {}
+            active_contracts, _ = self._active_contract_states(
+                contracts,
+                reference_time,
+            )
+            for state in active_contracts:
+                label = str(state.get("expiry") or "session")
+                grouped.setdefault(label, []).append(state)
+            if not grouped:
+                return {}
+            if set(grouped) == {"session"}:
+                data = self._contract_matrix(
+                    grouped["session"],
+                    spot,
+                    days_to_expiry,
+                    reference_time,
+                    expiry_days=expiry_days,
+                )
+                return {f"{days_to_expiry:g}DTE": float(data["total_net_gex"])}
+
+            breakdown = {}
+            for label, states in sorted(grouped.items()):
+                override = expiry_days.get(label)
+                data = self._contract_matrix(
+                    states,
+                    spot,
+                    days_to_expiry,
+                    reference_time,
+                    expiry_override=override,
+                    expiry_days=expiry_days,
+                )
+                breakdown[label] = float(data["total_net_gex"])
+            return breakdown
 
         if not buckets:
             label = f"{days_to_expiry:g}DTE"
@@ -288,6 +804,402 @@ class StatefulGexConsumer:
             dte = expiry_days.get(label, days_to_expiry)
             breakdown[label] = self._bucket_net_gex(strikes, spot, dte)
         return breakdown
+
+    def available_expiries(
+        self,
+        contracts: list[Dict[str, Any]] | None = None,
+    ) -> tuple[str, ...]:
+        """Return stable non-session expiry labels present in contract state."""
+        values, _ = self._select_position_states(
+            contracts if contracts is not None else list(self.contract_state.values())
+        )
+        contract_values = {
+            str(state.get("expiry"))
+            for state in values
+            if state.get("expiry") not in (None, "", "session")
+        }
+        return tuple(sorted(contract_values | set(self.expiry_state)))
+
+    def set_expiry_filter(self, expiry_filter: str) -> None:
+        self.expiry_filter = expiry_filter.strip() or "all"
+
+    async def selected_contract_rows(
+        self,
+        *,
+        expiry_filter: str | None = None,
+        as_of: datetime | None = None,
+    ) -> list[Dict[str, Any]]:
+        """Return the same active v2 position rows used by snapshot pricing."""
+        async with self.state_lock:
+            if self._v1_option_count or not self.contract_state:
+                return []
+            contracts = [dict(state) for state in self.contract_state.values()]
+            reference_time = as_of or self.market_time or datetime.now(timezone.utc)
+        selected, _ = self._select_position_states(contracts)
+        selected = self._filter_contract_states(
+            selected,
+            expiry_filter or self.expiry_filter or "all",
+            reference_time,
+        )
+        active, _ = self._active_contract_states(selected, reference_time)
+        return active
+
+    async def capture_wind_tunnel_state(self) -> dict:
+        """Freeze the offline calculation inputs under the canonical state lock.
+
+        The transport layer applies its versioned allowlist after this detached
+        snapshot. No second unlocked read may supply calculation parameters.
+        """
+        async with self.state_lock:
+            if self.data_mode not in {"DEMO", "REPLAY"}:
+                raise ValueError("Terminal checkpoint handoff supports demo/replay only; live capture remains gated")
+            if self.market_time is None or self.market_time.tzinfo is None:
+                raise ValueError("Terminal checkpoint requires authoritative timezone-bearing market time")
+            if self._untimed_market_event_count:
+                raise ValueError("Terminal checkpoint cannot include events with missing market time")
+            if self._v1_option_count and self._v2_option_count:
+                raise ValueError("Mixed legacy/v2 state cannot form a Terminal checkpoint")
+            if len(self.contract_state) > 5000 or len(self.chain_state) > 2500:
+                raise ValueError("Terminal checkpoint exceeds the 5000-row limit")
+            selected_filter = (self.expiry_filter or "all").strip()
+            if self._v1_option_count:
+                projection = self._legacy_filter_map(
+                    self.chain_state, self.expiry_state, selected_filter, self.market_time,
+                )
+                rows = []
+                for strike, state in sorted(projection.items()):
+                    for option in ("C", "P"):
+                        rows.append({
+                            "contract_id": f"legacy:{float(strike)!r}:{option}", "provider": "legacy",
+                            "symbol": self.target_underlying, "strike": strike, "option_type": option,
+                            "accumulated_volume": state[option], "position_source": "trade_volume",
+                            "iv": state["iv"], "pricing_model": "black_scholes", "expiry": "legacy aggregate",
+                            "terminal_selected": True,
+                        })
+                mode = "legacy_v1"
+            else:
+                states = [state for state in self.contract_state.values()
+                          if not state.get("open_interest_invalidated") and self.is_contract_underlying_current(state)]
+                identities = {}
+                identity_fields = ("strike", "option_type", "expiry", "expiry_timestamp", "days_to_expiry", "pricing_model", "contract_multiplier")
+                for state in states:
+                    key = (state["provider"], state["contract_id"])
+                    metadata = tuple(state.get(field) for field in identity_fields)
+                    if key in identities and identities[key] != metadata:
+                        raise ValueError("Terminal checkpoint quantity states have conflicting contract identity metadata")
+                    identities[key] = metadata
+                selected, _ = self._select_position_states(states)
+                states = self._filter_contract_states(states, selected_filter, self.market_time)
+                states, _ = self._active_contract_states(states, self.market_time)
+                selected_keys = {contract_storage_key(state) for state in selected}
+                rows = [{**state, "terminal_selected": contract_storage_key(state) in selected_keys} for state in states]
+                mode = "contract_v2"
+            return copy.deepcopy({
+                "rows": rows, "as_of": self.market_time, "spot": self.current_spot,
+                "risk_free_rate": self.risk_free_rate, "contract_multiplier": self.engine.multiplier,
+                "expiry_filter": selected_filter, "symbol": self.target_underlying,
+                "data_mode": self.data_mode, "calculation_mode": mode,
+                "quality": self.feed_quality_snapshot(),
+            })
+
+    def _filter_contract_states(
+        self,
+        contracts: list[Dict[str, Any]],
+        expiry_filter: str,
+        as_of: datetime,
+    ) -> list[Dict[str, Any]]:
+        normalized = expiry_filter.lower()
+        if normalized in {"", "all"}:
+            return contracts
+        if normalized == "0dte":
+            return [
+                state
+                for state in contracts
+                if is_zero_dte(
+                    state.get("expiry_timestamp") or state.get("expiry"),
+                    as_of,
+                )
+            ]
+        return [
+            state
+            for state in contracts
+            if str(state.get("expiry", "")).lower() == normalized
+        ]
+
+    def _select_position_states(
+        self,
+        contracts: list[Dict[str, Any]],
+    ) -> tuple[list[Dict[str, Any]], int]:
+        """Choose one exposure basis per provider contract.
+
+        Intraday trade volume is preferred when it is positive; open interest is
+        the fallback. Both states remain in ``contract_state`` for provenance,
+        but they are never silently summed in a calculation.
+        """
+        grouped: Dict[tuple[str, str], list[Dict[str, Any]]] = {}
+        for state in contracts:
+            if state.get("open_interest_invalidated") or not self.is_contract_underlying_current(state):
+                continue
+            key = (str(state.get("provider")), str(state.get("contract_id")))
+            grouped.setdefault(key, []).append(state)
+
+        selected = []
+        conflicts = 0
+        for states in grouped.values():
+            if len(states) > 1:
+                conflicts += len(states) - 1
+            trade = [
+                state
+                for state in states
+                if state.get("position_source") == "trade_volume"
+                and int(state.get("accumulated_volume", 0)) > 0
+            ]
+            open_interest = [
+                state
+                for state in states
+                if state.get("position_source") == "open_interest"
+            ]
+            candidates = trade or open_interest or states
+            selected.append(max(
+                candidates,
+                key=lambda state: int(state.get("last_update_serial", 0)),
+            ))
+        return selected, conflicts
+
+    @staticmethod
+    def _active_contract_states(
+        contracts: list[Dict[str, Any]],
+        as_of: datetime,
+    ) -> tuple[list[Dict[str, Any]], int]:
+        active = []
+        expired = 0
+        reference_date = as_of.astimezone(timezone.utc).date()
+        for state in contracts:
+            remaining = days_until_expiry(state.get("expiry_timestamp"), as_of)
+            if remaining is not None and remaining <= 0:
+                expired += 1
+                continue
+            dated_expiry = expiry_date(state.get("expiry"))
+            if remaining is None and dated_expiry is not None and dated_expiry < reference_date:
+                # A date-only expiry cannot establish an intraday settlement
+                # instant, but a prior UTC calendar date is definitively past.
+                expired += 1
+                continue
+            active.append(state)
+        return active, expired
+
+    def _legacy_filter_map(
+        self,
+        aggregate: Dict[float, Dict[str, Any]],
+        buckets: Dict[str, Dict[float, Dict[str, Any]]],
+        expiry_filter: str,
+        as_of: datetime,
+    ) -> Dict[float, Dict[str, Any]]:
+        normalized = expiry_filter.lower()
+        if normalized in {"", "all"}:
+            return aggregate
+        if normalized == "0dte":
+            selected_labels = [
+                label for label in buckets if is_zero_dte(label, as_of)
+            ]
+        else:
+            selected_labels = [
+                label for label in buckets if label.lower() == normalized
+            ]
+        merged: Dict[float, Dict[str, Any]] = {}
+        for label in selected_labels:
+            for strike, state in buckets[label].items():
+                row = merged.setdefault(
+                    float(strike),
+                    {"C": 0, "P": 0, "iv": float(state["iv"])},
+                )
+                row["C"] += int(state["C"])
+                row["P"] += int(state["P"])
+                row["iv"] = float(state["iv"])
+        return merged
+
+    def _contract_matrix(
+        self,
+        contracts: list[Dict[str, Any]],
+        spot: float,
+        fallback_days: float,
+        as_of: datetime,
+        *,
+        expiry_override: float | None = None,
+        expiry_days: dict[str, float] | None = None,
+    ) -> dict:
+        strikes = np.array([state["strike"] for state in contracts], dtype=float)
+        ivs = np.array([state.get("iv", 0.15) for state in contracts], dtype=float)
+        calls = np.array([
+            state.get("accumulated_volume", 0)
+            if state["option_type"] == "C"
+            else 0
+            for state in contracts
+        ], dtype=float)
+        puts = np.array([
+            state.get("accumulated_volume", 0)
+            if state["option_type"] == "P"
+            else 0
+            for state in contracts
+        ], dtype=float)
+        dtes = np.array([
+            self._contract_days_to_expiry(
+                state,
+                fallback_days,
+                as_of,
+                expiry_override=expiry_override,
+                expiry_days=expiry_days,
+            )
+            for state in contracts
+        ], dtype=float)
+        pricing_models = np.array([
+            state.get("pricing_model", "black_scholes") for state in contracts
+        ], dtype=object)
+        multipliers = np.array([
+            state.get("contract_multiplier") or self.engine.multiplier
+            for state in contracts
+        ], dtype=float)
+
+        matrix = self.engine.compute_intraday_gex_matrix(
+            spot_price=spot,
+            strikes=strikes,
+            days_to_expiry=dtes,
+            risk_free_rate=self.risk_free_rate,
+            implied_vols=ivs,
+            accumulated_call_vol=calls,
+            accumulated_put_vol=puts,
+            pricing_model=pricing_models,
+            contract_multipliers=multipliers,
+        )
+        directional = self.engine.compute_directionalized_gex_matrix(
+            spot_price=spot,
+            strikes=strikes,
+            days_to_expiry=dtes,
+            risk_free_rate=self.risk_free_rate,
+            implied_vols=ivs,
+            buy_aggressor_vol=np.array([
+                state.get("directional_volume", {}).get("buy", 0)
+                for state in contracts
+            ], dtype=float),
+            sell_aggressor_vol=np.array([
+                state.get("directional_volume", {}).get("sell", 0)
+                for state in contracts
+            ], dtype=float),
+            unknown_aggressor_vol=np.array([
+                state.get("directional_volume", {}).get(
+                    "unknown", state.get("accumulated_volume", 0)
+                )
+                for state in contracts
+            ], dtype=float),
+            pricing_model=pricing_models,
+            contract_multipliers=multipliers,
+        )
+        directional["direction_sources"] = sorted({
+            source
+            for state in contracts
+            for source in state.get("direction_sources", ())
+        })
+        matrix["directionalized"] = directional
+        matrix["multiplier_provenance"] = {
+            "status": "contract_rows",
+            "configured_fallback_multiplier": float(self.engine.multiplier),
+            "effective_multipliers": sorted(set(float(value) for value in multipliers)),
+            "fallback_row_count": sum(
+                state.get("contract_multiplier") is None for state in contracts
+            ),
+            "rows": [
+                {
+                    "provider": state.get("provider"),
+                    "contract_id": state.get("contract_id"),
+                    "position_source": state.get("position_source"),
+                    "multiplier": float(multiplier),
+                    "source": (
+                        "contract" if state.get("contract_multiplier") is not None
+                        else "configured_fallback"
+                    ),
+                }
+                for state, multiplier in zip(contracts, multipliers)
+            ],
+        }
+        iv_sources = [str(state.get("iv_source") or "unknown") for state in contracts]
+        matrix["iv_sources"] = sorted(set(iv_sources))
+        matrix["iv_source_counts"] = {
+            source: iv_sources.count(source) for source in sorted(set(iv_sources))
+        }
+        matrix["iv_inversion_methods"] = sorted({
+            str(state.get("iv_provenance", {}).get("method"))
+            for state in contracts
+            if isinstance(state.get("iv_provenance"), dict)
+            and state.get("iv_provenance", {}).get("method")
+        })
+        return matrix
+
+    @staticmethod
+    def _contract_days_to_expiry(
+        state: Dict[str, Any],
+        fallback_days: float,
+        as_of: datetime,
+        *,
+        expiry_override: float | None = None,
+        expiry_days: dict[str, float] | None = None,
+    ) -> float:
+        derived = days_until_expiry(
+            state.get("expiry_timestamp"),
+            as_of,
+        )
+        if derived is not None:
+            return float(derived)
+        if expiry_override is not None:
+            return float(expiry_override)
+        if expiry_days:
+            override = expiry_days.get(str(state.get("expiry") or "session"))
+            if override is not None:
+                return float(override)
+        explicit = state.get("days_to_expiry")
+        if explicit is not None:
+            return float(explicit)
+        return float(fallback_days)
+
+    async def drop_strikes(self, strikes: list[float] | tuple[float, ...]) -> int:
+        """Remove strikes from canonical and projected state for quality tests."""
+        targets = {float(strike) for strike in strikes}
+        async with self.state_lock:
+            for strike in targets:
+                self._legacy_chain_state.pop(strike, None)
+                for bucket in self._legacy_expiry_state.values():
+                    bucket.pop(strike, None)
+            keys = [
+                key
+                for key, state in self.contract_state.items()
+                if float(state["strike"]) in targets
+            ]
+            for key in keys:
+                self.contract_state.pop(key, None)
+            self._rebuild_public_projections_locked()
+        return len(keys)
+
+    def _legacy_matrix(
+        self,
+        strikes_map: Dict[float, Dict[str, Any]],
+        spot: float,
+        days_to_expiry: float,
+    ) -> dict:
+        sorted_strikes = sorted(strikes_map)
+        return self.engine.compute_intraday_gex_matrix(
+            spot_price=spot,
+            strikes=np.array(sorted_strikes, dtype=float),
+            days_to_expiry=days_to_expiry,
+            risk_free_rate=self.risk_free_rate,
+            implied_vols=np.array(
+                [strikes_map[k]["iv"] for k in sorted_strikes], dtype=float
+            ),
+            accumulated_call_vol=np.array(
+                [strikes_map[k]["C"] for k in sorted_strikes], dtype=float
+            ),
+            accumulated_put_vol=np.array(
+                [strikes_map[k]["P"] for k in sorted_strikes], dtype=float
+            ),
+        )
 
     def _bucket_net_gex(self, strikes_map: Dict[float, Dict[str, Any]], spot: float, days_to_expiry: float) -> float:
         """Compute total net dollar GEX for one strike->volume bucket."""
@@ -315,13 +1227,13 @@ class StatefulGexConsumer:
         days_to_expiry: float = 0.01,
     ):
         """Asynchronous worker loop that periodically calculates GEX from memory state."""
-        logging.info("Starting calculation dispatcher...")
+        LOGGER.info("Starting calculation dispatcher...")
         while True:
             await asyncio.sleep(interval_seconds)
             results = await self.process_latest_snapshot(days_to_expiry=days_to_expiry)
             
             if "error" not in results:
-                logging.info(
+                LOGGER.info(
                     f"Spot: {self.current_spot:.2f} | "
                     f"Gamma Wall: {results['gamma_wall_strike']} | "
                     f"Zero GEX Node: {results['zero_gamma_strike']}"

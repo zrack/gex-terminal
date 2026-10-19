@@ -1,0 +1,10 @@
+{
+  "as_of": "2026-08-06T16:00:00Z",
+  "messages": [
+    {"schema_version":2,"type":"underlying_tick","provider":"example","symbol":"ES","price":6000.0,"event_time":"2026-08-06T15:58:00Z"},
+    {"schema_version":2,"type":"options_volume_tick","provider":"example","contract_id":"oi-c","symbol":"ES","strike":6000.0,"option_type":"C","volume":1200,"volume_semantics":"cumulative","position_source":"open_interest","iv":0.20,"iv_source":"provider","instrument_class":"futures_option","pricing_model":"black_76","expiry":"2026-08-20","expiry_timestamp":"2026-08-20T20:00:00Z","event_time":"2026-08-06T15:00:00Z","aggressor_side":"unknown","direction_source":"unknown"},
+    {"schema_version":2,"type":"options_volume_tick","provider":"example","contract_id":"oi-p","symbol":"ES","strike":6000.0,"option_type":"P","volume":1100,"volume_semantics":"cumulative","position_source":"open_interest","iv":0.21,"iv_source":"provider","instrument_class":"futures_option","pricing_model":"black_76","expiry":"2026-08-20","expiry_timestamp":"2026-08-20T20:00:00Z","event_time":"2026-08-06T15:00:00Z","aggressor_side":"unknown","direction_source":"unknown"},
+    {"schema_version":2,"type":"options_volume_tick","provider":"example","contract_id":"vol-c","symbol":"ES","strike":6000.0,"option_type":"C","volume":7,"volume_semantics":"incremental","position_source":"trade_volume","iv":0.20,"iv_source":"provider","instrument_class":"futures_option","pricing_model":"black_76","expiry":"2026-08-20","expiry_timestamp":"2026-08-20T20:00:00Z","event_time":"2026-08-06T15:59:00Z","aggressor_side":"buy","direction_source":"provider"},
+    {"schema_version":2,"type":"options_volume_tick","provider":"example","contract_id":"vol-p","symbol":"ES","strike":6000.0,"option_type":"P","volume":5,"volume_semantics":"incremental","position_source":"trade_volume","iv":0.21,"iv_source":"provider","instrument_class":"futures_option","pricing_model":"black_76","expiry":"2026-08-20","expiry_timestamp":"2026-08-20T20:00:00Z","event_time":"2026-08-06T15:59:01Z","aggressor_side":"sell","direction_source":"provider"}
+  ]
+}

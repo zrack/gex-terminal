@@ -1,0 +1,23 @@
+{
+  "schema": "gex-terminal.model-profile.v1",
+  "profile_id": "es-offline-research-v1",
+  "model_version": "gex-terminal.gex-model.v2",
+  "symbol": "ES",
+  "contract_multiplier": 50,
+  "risk_free_rate": 0.045,
+  "days_to_expiry": 0.25,
+  "expiry_filter": "all",
+  "pricing": {
+    "futures_options": "black_76",
+    "equity_index_options": "black_scholes",
+    "day_count": "ACT/365"
+  },
+  "position_models": [
+    "open_interest",
+    "raw_trade_volume",
+    "directionalized_trade_volume"
+  ],
+  "minimum_directional_coverage": 0.5,
+  "maximum_underlying_age_seconds": 2.0,
+  "predictive_validity": "unmeasured"
+}

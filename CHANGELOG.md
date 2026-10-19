@@ -3,12 +3,385 @@
 All notable project changes should be recorded here so the README and roadmap
 can stay focused on current usage and future direction.
 
-This project does not have tagged releases yet. Until then, entries are grouped
-by date and public-prep milestone.
+The source/package version is `0.6.0`. Release tags identify verified merged
+trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
+Release is claimed.
 
-## Unreleased
+## Unreleased — Documentation And Recruitment Source Closeout
+
+- Reconcile architecture and component diagrams with guided capture intake and
+  immutable Terminal handoff, including the Terminal-owned listener lifetime.
+  Refresh current assessment, roadmap, study routing and dated design evidence.
+- Track blank recruitment/consent sources and delivery-generation tools with
+  packaging regressions. Record the participant-only delivery amendment while
+  preserving frozen application, tasks, study kits and original delivery bytes.
+  Actual participant sessions and issue #4's payload gate remain open.
+- [GEX-DOC-CLOSEOUT-001](docs/work-packets/GEX-DOC-CLOSEOUT-001.md) owns acceptance.
+
+## Unreleased — Guided Session Intake And Current-Build Study
+
+- Open a local complete capture in Wind Tunnel, verify integrity, inspect source,
+  time and model assumptions, and freeze a selected capture prefix. Use the
+  production consumer and existing opaque portable checkpoint/receipt format.
+- Bound uploads and in-memory retention; omit arbitrary private metadata and
+  extensions from responses and artifacts. Preserve the previous valid source
+  when an inspection fails or is canceled.
+- Prepare a separately identified current-build study kit with synthetic ES/NQ
+  captures, frozen task/scoring materials, exact wheel/source/dependency hashes
+  and blank participant scorecards. Preserve the September study unchanged;
+  automated rehearsal does not count as observed participant evidence.
+- [GEX-INTAKE-STUDY-001](docs/work-packets/GEX-INTAKE-STUDY-001.md) owns acceptance.
+  Issue #4 stays open for actual Tradovate payloads.
+
+## Unreleased — Terminal Checkpoint Handoff
+
+- Press `w` in Terminal to freeze demo/replay state and open Wind Tunnel on
+  that exact checkpoint. Capture effective assumptions, the expiry filter,
+  source quality and separated quantities without following later events.
+- Preserve Terminal's trade-first/OI-fallback selection as an explicit model;
+  keep volume, OI and directionalized comparison models independent. Export
+  a checkpoint with `--wind-tunnel-checkpoint PATH` and open it with
+  `wind-tunnel --checkpoint PATH`; scenario receipts embed the frozen input.
+- Keep live capture and issue #4's actual Tradovate payload requirement open.
+  [GEX-WIND-HANDOFF-001](docs/work-packets/GEX-WIND-HANDOFF-001.md) owns acceptance.
+- Reconcile the roadmap's historical research and live delivery paths, refresh
+  the current project/market assessments and retain observed-user gates.
+
+## Unreleased — Tradovate Acknowledgement Frames
+
+- Preserve market-data events after a successful acknowledgement in the same
+  WebSocket frame; process the frame before reporting authorization or
+  subscription success, and reject trailing explicit errors.
+- Add synthetic frame/session regressions and document their reproduction and
+  evidence limits. [GEX-TRADOVATE-ACK-001](docs/work-packets/GEX-TRADOVATE-ACK-001.md)
+  owns the repair. Issue #4 remains open pending actual Tradovate ES/NQ payloads.
+
+## Unreleased — Databento Correctness
+
+- Replace Databento's deliverable multiplier with validated dollar contract
+  units, retaining a visible configured fallback when metadata is unavailable.
+- Subscribe to declared ES/NQ quarterly, daily, weekly and month-end option
+  products and preserve their actual futures underlying identity.
+- Reject undefined OI quantities, preserve reference dates and update actions,
+  and invalidate deleted OI without replacing newer-reference observations or
+  disturbing trade volume. Add offline regressions including real SDK records.
+- [GEX-DATABENTO-035](docs/work-packets/GEX-DATABENTO-035.md) owns this change's
+  verification and integration status. Databento remains `live-uncertified`.
+- Preserve provider-scoped futures identity through rollover and reconnect,
+  quarantining retained old-contract exposure. Reject undefined timestamps and
+  preserve nanosecond ordering. Add independent parameter/state tests, fresh
+  installed CLI/DBN/terminal verification and a measured provider-path load gate;
+  [Offline Validation](docs/offline-validation.md) owns reproduction commands.
+- Clear stale terminal metrics, expiry totals, selected quantities and flow
+  when a rollover leaves no active contracts; stale snapshot export is blocked.
+- Preserve saved identity-free research decision hashes by emitting feed-quality
+  identity provenance only when contract, quarantine or rejection evidence exists.
+
+## 2026-09-27 — Unified Starter
+
+- Fresh setup folders offer **Terminal**, **Wind Tunnel** or **Both** through
+  one starter, with direct shortcuts retained. Both owns the local Wind Tunnel
+  process it starts and stops it when the terminal exits; the two interfaces
+  retain independent research state.
+- Existing installed launcher bytes, separate research, the original 0.6.0
+  setup and the immutable `v0.6.0` tag are preserved. This is a setup-helper
+  enhancement using the existing application wheel, without a version bump or
+  new tag. [GEX-START-001](docs/work-packets/GEX-START-001.md) owns its acceptance
+  and integration status; [First Run](docs/first-run.md) owns usage.
+
+## 0.6.0 — 2026-09-27 — Market Wind Tunnel
 
 ### Added
+
+- Packaged offline browser Wind Tunnel with calculated 3D/2D exposure, matched
+  scenario comparison, sampled fragility maps, checkpoint selection and bounded
+  search across spot, IV, time, expiry and separated position assumptions.
+- Immutable experiment receipts with source and calculation identity, local
+  save/reopen/export/reproduce workflows and three reproducible synthetic examples.
+- A loopback-only service with capability-protected APIs, bounded research
+  storage and bundled chart assets; fresh setup folders include a Wind Tunnel
+  launcher. See [Wind Tunnel](docs/wind-tunnel.md) and
+  [GEX-WIND-001](docs/work-packets/GEX-WIND-001.md) for acceptance status.
+
+- A reviewed-wheel setup helper and local handoff bundle with reusable macOS/POSIX
+  launchers, isolated offline configuration, separate research storage, exact
+  payload verification and safe reuse/update selection. Python remains required;
+  dependency wheels can be included for installation without downloads.
+- A focused replay chooser, contextual keyboard help and source/assumption
+  details, plus readable essential table columns from 100×32 cells.
+- Fixture-specific replay expectations for alert meaning, event timing and
+  structural levels, extending identity and report-format checks.
+- Linux/macOS verification across Python 3.11/3.12 with retained, bounded
+  synthetic reports and previews, build/runtime identity, file hashes and
+  explicit failed or missing check outputs. See [Offline CI](docs/offline-ci.md).
+- A repeatable maintainer preview-refresh command using explicit synthetic
+  inputs and a local provenance manifest. See [Demo Lab](docs/demo-lab.md#contributor-preview).
+  [GEX-OFFLINE-002](docs/work-packets/GEX-OFFLINE-002.md) owns verification;
+  frozen study materials and external evidence gates are unchanged.
+
+### Fixed
+
+- Table selection now follows the chosen strike through ordinary refreshes.
+  Replay choices stay visible while browsing. Saved snapshots have collision-
+  resistant filenames and visible destination feedback.
+- Generated demo-preview table headings and regime-label layout; the onboarding
+  preview uses enough rows to expose its replay choices.
+- Replay-picker keyboard routing repair and real-keyboard regression coverage
+  for selection/loading from a focused strike table, with normal table and
+  overlay controls preserved. [GEX-UX-001](docs/work-packets/GEX-UX-001.md) owns
+  acceptance evidence. Live/capture restrictions and replay-writer settlement
+  remain unchanged; this is not part of the original `v0.5.0` tag or wheel.
+
+### Changed
+
+- Terminal hierarchy emphasizes four research metrics, instrument/source and
+  primary actions with a restrained amber/cyan palette. Compatibility-level and
+  quantity labels preserve their proxy meaning; unchanged samples are labeled
+  rather than rendered as a misleading full-height trend strip.
+  [GEX-UX-002](docs/work-packets/GEX-UX-002.md) owns review and verification.
+- Prepared an exact offline study-build handoff with frozen source, wheel,
+  runtime, synthetic fixtures and scoring materials; automated rehearsal remains
+  separate from observed participant acceptance. [GEX-STUDY-001](docs/work-packets/GEX-STUDY-001.md)
+  owns verification and [Study Build](docs/study-build.md) owns the procedure.
+- Extended local documentation checks to heading fragments and clarified
+  architecture/diagram maintenance and canonical documentation ownership in the
+  contributor workflow. Detailed study/build records stay outside the README.
+- First-run controls and architecture document conditional picker key ownership;
+  the roadmap prioritizes observed offline use on an exact repaired build.
+  Automated keyboard checks do not establish unaided customer acceptance.
+
+## 0.5.0 - 2026-09-04 — Offline Research Foundation
+
+### Added
+
+- Offline privacy-safe doctor with text/JSON diagnostics, meaningful exit codes,
+  installed-resource checks and a lightweight missing-dependency fallback.
+- Dedicated synthetic NQ ×20 schema-v2 replay and a portable 20-artifact Demo
+  Lab loop with copied input, separated position models, explicit runtime
+  compatibility and verifiable/reproducible review receipts.
+- Guided wheel installation and a repeatable disposable install/upgrade/
+  failed-upgrade/rollback/uninstall check that preserves research byte identity.
+- Redacted local support bundles and private whole-artifact backup, verification
+  and restore. Retention requires a matching verified backup, exact plan
+  confirmation, staged revalidation and bounded recovery; no real user data was
+  deleted during verification.
+- Offline prospective live-population plan/result validation with canonical
+  policy identity and complete failed/missed-attempt accounting. The supplied
+  template intentionally fails until approved declarations are supplied; no
+  live execution or readiness promotion is added.
+- Prepared customer interview/task kit, comparable paper concepts, rights
+  questions and assumption-based first-year economics; no collected customer
+  or pricing evidence is implied.
+
+### Fixed
+
+- Terminal refresh callbacks now belong to the dashboard screen and revalidate
+  ownership after asynchronous work, preventing render/cache publication after
+  shutdown, quit or screen replacement. Resize remains dashboard-bound behind
+  overlays. Six deterministic regressions raise the full suite to 425 tests;
+  genuine mounted rendering errors remain visible.
+- Compact terminal rendering at 140×42 and above, clear guidance below the
+  supported minimum, and state-preserving resize coverage.
+- Experiment v2 manifests now bind complete specification, profile, input,
+  implementation and result identities. Reproduction rejects inconsistent or
+  unsupported metadata and nonempty output targets; legacy v1 verification is
+  explicitly partial rather than silently promoted.
+
+- Numeric configuration now fails closed across environment, direct construction
+  and CLI/UI replacement, with secret-safe errors and stale-threshold guards.
+  Offline injection/fixture reports now label replay origin and no-network
+  evidence instead of live connection health.
+
+- Replay reports now create analytical transitions only for accepted consumer
+  updates, align snapshot time with model as-of, and separate raw input audit
+  timestamps from accepted-state chronology. Untimed input is explicitly
+  processing-time evidence, not observed market time.
+
+- Replay selection now settles the previous CLI writer before resetting state;
+  active fixed-delay/event-clock streams cannot contaminate a replacement
+  session. Failed writers block replacement and remain visible at shutdown.
+
+- Bound bundled replay workflows to catalog instrument identity and rejected
+  unsupported symbol labels on the seeded ES demo. Snapshot exports now
+  distinguish the configured fallback multiplier from actual selected-contract
+  multipliers, including heterogeneous inputs.
+
+### Changed
+
+- Accepted offline engineering through PR #25 after independent review, four
+  hosted checks and 419 tests on clean merged main. Closed contributor packets
+  while keeping customer activation, rights and live observations open.
+- Reprioritized the roadmap around application correctness, offline preflight,
+  reuse of existing research packs, and one usable installation path; corrected
+  phase dependencies and separated commercial and empirical research tracks.
+- Refreshed the application health review with repair evidence and remaining
+  customer/live boundaries. Shipped work is removed from the roadmap's active
+  implementation checklist; README links to canonical guides and architecture.
+- Corpus verification explicitly labels point-in-time evaluation eligibility
+  not assessed; registration integrity is not empirical-research approval.
+- Source distributions include canonical docs, maintainer lifecycle checks and
+  referenced assets, without local credentials or generated research packs.
+- Refreshed the September 2026 competitive landscape with Nightglass,
+  GammaTape, FlashAlpha, current industry evidence, a narrower native-futures
+  positioning, and a gated path from research kernel to commercial product.
+- Expanded the product vision and roadmap around a bring-your-own-data desktop
+  hypothesis, a comparable hosted-cockpit alternative, customer validation,
+  distributable offline workflows, bounded live certification, design-partner
+  evidence, governed outcome research, and commercial exit criteria.
+- Updated GitHub CI to the Node 24-based `actions/checkout@v7` and
+  `actions/setup-python@v7` releases after the hosted runner reported the older
+  Node 20 action runtimes as deprecated.
+
+## 0.4.0 - 2026-08-31 — Pre-Live Certification Hardening
+
+### Added
+
+- Versioned, fail-closed ES and NQ Databento certification policies with
+  canonical multipliers, explicit chain/freshness/sequence/IV thresholds, and
+  observed-versus-required report checks.
+- Databento certification report schema v2 with distinct transport,
+  target-identity, chain-ingestion, quantitative-input, and open-interest
+  results plus an explicit evidence ceiling.
+- Optional live `statistics` request and open-interest normalization with
+  observed, unavailable, unsupported, entitlement-denied, and not-requested
+  states that remain separate from trade volume.
+- Scripted Databento lifecycle coverage for request failures, provider errors,
+  malformed records, reconnect callbacks, post-reconnect frames, cancellation,
+  disconnect completion, and bounded shutdown.
+- Warning-level default process logging, configurable validated log levels, and
+  central recursive redaction for secrets, sensitive identifiers, and labeled
+  private payload fields.
+- Versioned live-capture policy validation for rights, retention, redaction, and
+  research use. Captures retain only policy identity; captured-session corpus
+  registration requires an exact matching approved policy, matching rights and
+  redistribution metadata, and verified redaction.
+
+### Changed
+
+- Reorganized documentation ownership: the README is now a concise user front
+  door, architecture owns system structure, the roadmap contains only planned
+  work, and `docs/README.md` routes each technical and research topic.
+- Closed the repository-owned implementation work packet after contributor and
+  closeout pull requests, branch and merged-tree gates, and release tagging.
+  The immediate roadmap is now limited to credentialed exact-run evidence and
+  predeclared recurrence; no credentialed run or readiness promotion is
+  claimed.
+- Databento subscription diagnostics now call SDK return values local request
+  IDs rather than provider acknowledgements and use actual records/errors for
+  observation evidence.
+- Trade-schema venue sequence discontinuities and duplicates are descriptive;
+  the certification integrity gate uses provider maybe-bad-book flags and
+  observed out-of-order values.
+- Databento shutdown now bounds awaitable stop implementations and
+  `wait_for_close`, records failures, and uses a termination fallback without
+  claiming a clean stop.
+
+### Security
+
+- Live capture now fails before provider connection when no valid capture
+  policy is supplied.
+- Log and certification paths sanitize configured credentials, bearer tokens,
+  account/subscription identifiers, and recursively labeled sensitive values.
+
+## 0.3.0 - 2026-08-19 — Offline Research Certification Workbench
+
+### Added
+
+- Offline Databento JSON/JSONL/DBN record replay through the live record handler,
+  plus a twelve-case adversarial software certification matrix.
+- Descriptive saved-price-action evaluation with chronological data splits and a
+  point-in-time OI/raw-volume/directionalized model comparison.
+- Versioned model-profile and experiment-spec contracts, reproducible manifests
+  with input/profile/semantic-result digests, and fail-closed reproduction.
+- Append-only hash-chained research-corpus registration with source integrity,
+  immutable dataset/split identity, rights, redaction, outcome, and cost fields.
+- Batch day/expiry/DTE-layer comparisons that preserve position-source
+  separation and leave low-coverage directional results unscored.
+- Model-property, provider-fault, and generated-chain performance certification
+  reports with explicit budgets and offline evidence ceilings.
+- Canonical provider-readiness states separate from runtime connection state.
+- SAED 1.3 repository adoption profile, routed work packet, research governance
+  guide, decision record, and current architecture diagram.
+
+- Optional schema-v2 aggressor-side and direction-source provenance for
+  incremental trade volume, including Databento trade-side fixture mapping.
+- A parallel aggressor-directionalized volume GEX model with explicit coverage,
+  unknown-volume, participant/open-close limitations, and unchanged default
+  model behavior.
+- JSON, CSV, and Markdown model-comparison reports with regime/strike sign
+  agreement, wall distances, strike rank correlation, normalized profile
+  distance, and an explicit `unmeasured` predictive-validity ceiling.
+- A bounded Black-76 implied-volatility inversion with no-arbitrage checks,
+  deterministic bisection, and per-tick price, futures-midpoint, time, rate,
+  convergence, and error provenance.
+- Mixed-schema Databento live ingestion for ES/NQ definitions, option trades,
+  and continuous-futures `mbp-1` quotes, plus a redacted, fail-closed
+  `databento-certify` transport/chain/model-input report.
+
+### Changed
+
+- Black-76 IV inversion now requires an aligned futures midpoint and records its
+  age and maximum permitted age. Stale, future-dated, crossed, incomplete, and
+  wrong-contract inputs fail closed; Databento trade sequences are preserved.
+
+- Schema-v2 `iv_source` now distinguishes provider IV, Black-76-inverted IV,
+  and configured fallback IV. Only configured fallback values degrade IV
+  quality accounting.
+- Live Databento documentation now distinguishes the optional SDK from the base
+  install, states ES/NQ multiplier requirements, and documents the fail-closed
+  certification exit status.
+- Terminal and documentation semantics now say `GEX Proxy Regime` and
+  `live-uncertified`; neither a runtime `LIVE` state nor a proxy calculation is
+  presented as provider certification or observed dealer inventory.
+
+## 0.2.0 - 2026-08-04
+
+### Added
+
+- Normalized message schema v2 with provider-scoped contract identity, strict
+  timezone-bearing event time, expiry and instrument class, incremental versus
+  cumulative volume semantics, position source, and optional per-contract
+  multiplier; schema v1 remains supported.
+- First-class `all`, `0dte`, and exact-expiry filtering in configuration, CLI,
+  consumer state, exports, and the terminal `x` control.
+- Black-76 gamma for futures options, Black-Scholes with carry support for
+  equity/index options, and per-contract DTE/multiplier pricing before
+  same-strike aggregation.
+- Separate strike-profile flip and nearest-neutral outputs, with the historical
+  `zero_gamma` field retained as a documented compatibility alias/fallback.
+- Append-only captured-session schema with header/event/footer records,
+  per-message and aggregate unkeyed SHA-256 consistency checks, crash-visible
+  `.partial` files, atomic finalization, event-time replay, speed/gap controls,
+  session-store inventory, and journal ingestion.
+- Bounded `model-evidence` JSON/Markdown reports with independent
+  Black-Scholes/Black-76 oracles, ES dollar-GEX scaling, deterministic checks,
+  and predictive market validity explicitly reported as `unmeasured`.
+- Explicit `tradovate-certify` read-only network probe with mandatory user
+  acknowledgement, redacted evidence, failed-closed exit status, and separate
+  transport versus quantitative-GEX results.
+- Package-resource helpers and installed-wheel tests for bundled replay sessions
+  and provider fixtures from an arbitrary working directory, with stable public
+  resource identities instead of installation-specific absolute paths.
+- Python 3.11/3.12 CI coverage with build, metadata validation, wheel install,
+  CWD `.env` loading, `--version`, named replay, demo-lab, provider injection,
+  and fixture-lab smoke tests.
+
+### Changed
+
+- Tradovate transport now uses raw-token WebSocket authorization, waits for
+  authorization/subscription acknowledgements, maps nested official quote
+  entries, handles cumulative total-volume/open-interest values, renews tokens,
+  backs off on retryable failures, and unsubscribes during shutdown. Registry
+  status remains `scaffold` pending a successful credentialed certification.
+- Model sensitivity keeps its base scenario aligned with the contract-aware
+  snapshot instead of silently falling back to scalar legacy assumptions.
+- Snapshot schema v2 records model version, normalized schema versions, pricing
+  models, position sources/conflicts, contract counts, expiry filter, units,
+  day count, aggregation, as-of time, and strike-profile semantics.
+- Bundled data moved from the former repository-root replay/fixture directories
+  into `gex_terminal/data/` so offline workflows survive wheel installation.
+
+### Earlier baseline additions
 
 - Provider Health panel with simulated/demo-ready feed-quality summaries,
   stale checks, latency, malformed/dropped payload counters, and entitlement
@@ -60,8 +433,8 @@ by date and public-prep milestone.
   gamma wall, next trigger, and positive/negative/transition/pinned states.
 - Code of Conduct for community participation expectations.
 - GitHub social-preview source asset for sharing the project.
-- Model assumptions documentation covering volume-as-open-interest proxy, sign
-  convention, zero-gamma behavior, and known limitations.
+- Model assumptions documentation covering position proxies, sign convention,
+  strike-profile compatibility behavior, and known limitations.
 - Product vision notes for signature capabilities and contributor-facing ideas.
 - Synthetic ES 0DTE full-session replay dataset for no-credential testing.
 - Zero-gamma interpolation edge-case tests.

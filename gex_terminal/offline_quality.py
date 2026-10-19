@@ -18,7 +18,7 @@ async def apply_quality_scenario(consumer, scenario: str) -> None:
     if scenario in {"dropped", "all"}:
         await _simulate_dropped_messages(consumer)
     if scenario in {"partial-chain", "all"}:
-        _simulate_partial_chain(consumer)
+        await _simulate_partial_chain(consumer)
     if scenario in {"latency", "all"}:
         _simulate_latency(consumer)
     if scenario in {"stale", "all"}:
@@ -42,16 +42,13 @@ async def _simulate_dropped_messages(consumer) -> None:
     _append_note(consumer, "dropped/off-symbol messages simulated")
 
 
-def _simulate_partial_chain(consumer) -> None:
+async def _simulate_partial_chain(consumer) -> None:
     strikes = sorted(consumer.chain_state)
     if len(strikes) <= 3:
         _append_note(consumer, "partial-chain simulation requested on already-small chain")
         return
     removed = strikes[1::3]
-    for strike in removed:
-        consumer.chain_state.pop(strike, None)
-        for expiry_bucket in consumer.expiry_state.values():
-            expiry_bucket.pop(strike, None)
+    await consumer.drop_strikes(removed)
     consumer.dropped_message_count += max(1, len(removed))
     _append_note(consumer, "missing option strikes simulated")
 

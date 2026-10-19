@@ -1,0 +1,3 @@
+# Retain upstream vendored bytes; integrity is checked against the pinned manifest.
+gex_terminal/wind_tunnel_web/vendor/plotly.min.js -text whitespace=-blank-at-eol
+gex_terminal/wind_tunnel_web/vendor/phosphor-LICENSE.txt -text whitespace=cr-at-eol

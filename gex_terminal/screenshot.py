@@ -79,7 +79,8 @@ def colorize_terminal_svg(svg: str) -> str:
     """Map Textual's grayscale SVG export colors onto the README preview palette."""
     for source, replacement in TERMINAL_SVG_COLOR_REPLACEMENTS.items():
         svg = svg.replace(source, replacement)
-    return svg
+    trailing_newline = "\n" if svg.endswith("\n") else ""
+    return "\n".join(line.rstrip() for line in svg.splitlines()) + trailing_newline
 
 
 def export_app_screenshot_svg(

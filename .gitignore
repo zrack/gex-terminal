@@ -31,6 +31,11 @@ logs/
 /demo_pack/
 /research_journal/
 /historical_sessions/
+/wind_tunnel_research/
+/wind_tunnel_handoffs/
+*.gex-session.jsonl
+*.gex-session.jsonl.partial
+graphify-out/
 
 # OS and editor metadata
 .DS_Store

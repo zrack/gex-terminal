@@ -1,11 +1,12 @@
 import asyncio
 import argparse
-import contextlib
 import json
-import logging
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Iterable
+
+from gex_terminal import __version__
 
 from gex_terminal.adapters.registry import (
     adapter_info,
@@ -13,31 +14,101 @@ from gex_terminal.adapters.registry import (
     build_market_data_adapter,
     effective_provider,
 )
-from gex_terminal.config import GexConfig
+from gex_terminal.artifact_lifecycle import (
+    apply_retention_plan,
+    create_private_backup,
+    create_retention_plan,
+    restore_private_backup,
+    verify_private_backup,
+)
+from gex_terminal.batch_comparison import (
+    build_batch_comparison,
+    write_batch_comparison,
+)
+from gex_terminal.capture_governance import (
+    CapturePolicyError,
+    capture_policy_identity,
+    load_capture_policy,
+)
+from gex_terminal.config import ConfigValidationError, GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
+from gex_terminal.databento_certification import (
+    build_databento_certification_report,
+    write_databento_certification_report,
+)
+from gex_terminal.databento_offline import (
+    build_offline_databento_certification,
+    replay_databento_file,
+    write_offline_report,
+)
 from gex_terminal.demo_lab import (
     DEFAULT_DEMO_SESSION,
     build_demo_lab,
+    reproduce_demo_lab,
+    verify_demo_lab,
+)
+from gex_terminal.doctor import (
+    build_doctor_report,
+    doctor_report_to_json,
+    doctor_report_to_text,
 )
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.experiment_manifest import reproduce_experiment, run_experiment
 from gex_terminal.fixture_validator import (
     format_fixture_validation_report,
     validate_fixture,
 )
 from gex_terminal.market_data_adapter import AdapterConfigurationError
+from gex_terminal.live_population_contract import (
+    LIVE_POPULATION_RESULT_SCHEMA,
+    LivePopulationContractError,
+    live_population_plan_identity,
+    live_population_result_identity,
+    load_live_population_plan,
+    load_live_population_result_manifest,
+)
+from gex_terminal.local_support import build_support_bundle, write_support_bundle
+from gex_terminal.logging_config import LOG_LEVELS, configure_logging
+from gex_terminal.model_evidence import (
+    build_model_evidence_report,
+    write_model_evidence_report,
+)
+from gex_terminal.model_properties import (
+    build_model_property_report,
+    write_model_property_report,
+)
+from gex_terminal.model_comparison import (
+    build_model_comparison_report,
+    write_model_comparison_report,
+)
 from gex_terminal.offline_quality import apply_quality_scenario, quality_scenario_names
 from gex_terminal.overlays import write_tradingview_overlay
+from gex_terminal.position_model_comparison import (
+    load_position_model_comparison,
+    write_position_model_comparison,
+)
+from gex_terminal.performance_lab import build_performance_report, write_performance_report
+from gex_terminal.price_action_validation import (
+    load_price_action_report,
+    write_price_action_report,
+)
 from gex_terminal.provider_injector import (
     INJECTION_FORMATS,
     inject_provider_fixture,
     provider_injection_summary,
 )
+from gex_terminal.provider_fault_lab import (
+    build_provider_fault_report,
+    write_provider_fault_report,
+)
 from gex_terminal.provider_fixture_lab import (
     build_provider_fixture_lab_report,
+    provider_fixture_case_for_name,
     write_provider_fixture_lab_report,
 )
 from gex_terminal.replay_catalog import (
     bundled_replay_sessions,
+    config_for_replay_session,
     replay_session_for_name,
     replay_session_names,
 )
@@ -53,25 +124,101 @@ from gex_terminal.research_journal import (
     load_journal_entries,
     write_journal_report,
 )
+from gex_terminal.research_corpus import (
+    initialize_corpus,
+    register_corpus_item,
+    verify_corpus,
+    write_corpus_report,
+)
 from gex_terminal.screenshot import export_app_screenshot_svg
 from gex_terminal.session_store import (
     DEFAULT_SESSION_STORE_DIR,
     build_session_store_report,
+    format_captured_session_list,
     format_session_record_list,
     format_session_save_summary,
+    load_captured_sessions,
     load_session_records,
     save_session_snapshot,
     write_session_store_report,
 )
 from gex_terminal.sensitivity import build_sensitivity_report, write_sensitivity_report
+from gex_terminal.session_capture import (
+    CapturedSessionWriter,
+    RecordingConsumerProxy,
+    default_capture_path,
+)
 from gex_terminal.snapshot import build_snapshot
 from gex_terminal.snapshot_formats import write_snapshot_export
 from gex_terminal.tui import GexTerminalApp
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+from gex_terminal.tradovate_certification import (
+    build_tradovate_certification_report,
+    write_tradovate_certification_report,
+)
 
 async def main():
     args = parse_args()
+    if args.command == "doctor":
+        if args.command_path or args.command_args:
+            print("Usage: gex-terminal doctor [--json]", file=sys.stderr)
+            raise SystemExit(2)
+        try:
+            config = apply_cli_overrides(GexConfig.from_env(), args)
+        except ConfigValidationError as exc:
+            report = build_doctor_report(config_error=exc)
+        else:
+            report = build_doctor_report(config)
+        print(
+            doctor_report_to_json(report)
+            if args.json
+            else doctor_report_to_text(report)
+        )
+        raise SystemExit(int(report["summary"]["exit_code"]))
+
+    try:
+        configure_logging(args.log_level)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    if args.command == "capture-policy-validate":
+        capture_policy_validate_command(args.command_path)
+        return
+
+    if args.command == "support-bundle":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        support_bundle_command(config, args)
+        return
+
+    if args.command == "research-backup":
+        research_backup_command(args)
+        return
+
+    if args.command == "research-backup-verify":
+        research_backup_verify_command(args)
+        return
+
+    if args.command == "research-restore":
+        research_restore_command(args)
+        return
+
+    if args.command == "research-retention-plan":
+        research_retention_plan_command(args)
+        return
+
+    if args.command == "research-retention-apply":
+        research_retention_apply_command(args)
+        return
+
+    if args.command == "live-population-plan-validate":
+        live_population_plan_validate_command(args.command_path)
+        return
+
+    if args.command == "live-population-results-validate":
+        live_population_results_validate_command(
+            args.command_path,
+            args.command_args,
+        )
+        return
 
     if args.command == "validate-fixture":
         validate_fixture_command(args.command_path)
@@ -118,6 +265,77 @@ async def main():
         await inject_provider_command(config, args)
         return
 
+    if args.command == "tradovate-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await tradovate_certification_command(config, args)
+        return
+
+    if args.command == "databento-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await databento_certification_command(config, args)
+        return
+
+    if args.command == "databento-replay":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await databento_replay_command(config, args)
+        return
+
+    if args.command == "databento-offline-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await databento_offline_certification_command(config, args)
+        return
+
+    if args.command == "price-action-evaluate":
+        price_action_evaluate_command(args)
+        return
+
+    if args.command == "position-model-compare":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await position_model_compare_command(config, args)
+        return
+
+    if args.command == "model-evidence":
+        model_evidence_command(args.command_path or "model_evidence.json")
+        return
+
+    if args.command == "experiment-run":
+        await experiment_run_command(args)
+        return
+
+    if args.command == "experiment-reproduce":
+        await experiment_reproduce_command(args)
+        return
+
+    if args.command == "batch-position-compare":
+        await batch_position_compare_command(args)
+        return
+
+    if args.command == "corpus-init":
+        corpus_init_command(args)
+        return
+
+    if args.command == "corpus-register":
+        corpus_register_command(args)
+        return
+
+    if args.command == "corpus-verify":
+        corpus_verify_command(args)
+        return
+
+    if args.command == "model-property-certify":
+        await model_property_command(args.command_path or "model_property_evidence.json")
+        return
+
+    if args.command == "provider-fault-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await provider_fault_command(config, args.command_path or "provider_fault_evidence.json")
+        return
+
+    if args.command == "performance-certify":
+        config = apply_cli_overrides(GexConfig.from_env(), args)
+        await performance_command(config, args)
+        return
+
     config = apply_cli_overrides(GexConfig.from_env(), args)
     validate_data_mode(config.data_mode)
 
@@ -125,6 +343,7 @@ async def main():
         print_provider_summary()
         return
 
+    policy_identity = _resolve_capture_policy_for_runtime(args, config)
     validate_provider(config)
 
     if args.screenshot:
@@ -146,6 +365,11 @@ async def main():
         )
         return
 
+    if args.wind_tunnel_checkpoint:
+        await export_wind_tunnel_checkpoint(config, args.wind_tunnel_checkpoint,
+                                            quality_scenario=args.quality_scenario)
+        return
+
     if args.tradingview_overlay:
         await export_tradingview_overlay(
             config=config,
@@ -162,6 +386,14 @@ async def main():
         )
         return
 
+    if args.model_comparison:
+        await export_model_comparison(
+            config=config,
+            output_path=args.model_comparison,
+            quality_scenario=args.quality_scenario,
+        )
+        return
+
     math_engine = IntradayGexEngine(multiplier=config.contract_multiplier)
     
     state_consumer = StatefulGexConsumer(
@@ -170,10 +402,35 @@ async def main():
         risk_free_rate=config.risk_free_rate,
         data_mode=config.data_mode,
         stale_after_seconds=config.stale_after_seconds,
+        expiry_filter=config.expiry_filter,
     )
     
     stream_task = None
     calc_task = None
+    capture_writer = None
+    adapter_consumer = state_consumer
+
+    if (args.record_session or args.capture_path) and config.data_mode != "demo":
+        capture_target = Path(args.capture_path) if args.capture_path else default_capture_path(
+            DEFAULT_SESSION_STORE_DIR,
+            symbol=config.symbol,
+            provider=effective_provider(config),
+        )
+        capture_writer = CapturedSessionWriter(
+            capture_target,
+            source=_capture_source_metadata(config, policy_identity),
+            model_inputs={
+                "days_to_expiry": config.days_to_expiry,
+                "risk_free_rate": config.risk_free_rate,
+                "contract_multiplier": config.contract_multiplier,
+                "expiry_filter": config.expiry_filter,
+            },
+            label=args.capture_label,
+        )
+        await capture_writer.start()
+        adapter_consumer = RecordingConsumerProxy(state_consumer, capture_writer)
+    elif args.record_session or args.capture_path:
+        raise SystemExit("Session capture requires replay or live mode, not seeded demo mode.")
     
     if config.data_mode == "demo":
         await seed_demo_session(state_consumer)
@@ -181,8 +438,10 @@ async def main():
             await apply_quality_scenario(state_consumer, args.quality_scenario)
     else:
         try:
-            data_adapter = build_market_data_adapter(state_consumer, config)
+            data_adapter = build_market_data_adapter(adapter_consumer, config)
         except (AdapterConfigurationError, ModuleNotFoundError, ValueError) as exc:
+            if capture_writer:
+                await capture_writer.abort(f"adapter configuration failed: {type(exc).__name__}")
             raise SystemExit(
                 "\n".join((
                     f"{effective_provider(config)} provider is not ready: {exc}",
@@ -200,19 +459,74 @@ async def main():
                 )
             )
     
-    app = GexTerminalApp(consumer=state_consumer, config=config)
+    app = GexTerminalApp(
+        consumer=state_consumer,
+        config=config,
+        allow_replay_switching=capture_writer is None,
+        source_task=stream_task,
+    )
+    app_failed = False
     try:
         await app.run_async()
+    except BaseException:
+        app_failed = True
+        raise
     finally:
-        for task in (stream_task, calc_task):
-            if task:
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
+        task_errors = await _shutdown_runtime_tasks(
+            stream_task,
+            calc_task,
+            capture_writer,
+            state_consumer,
+            run_failed=app_failed,
+        )
+        if task_errors and not app_failed:
+            raise task_errors[0]
+
+
+async def _shutdown_runtime_tasks(
+    stream_task: asyncio.Task | None,
+    calc_task: asyncio.Task | None,
+    capture_writer: CapturedSessionWriter | None,
+    state_consumer: StatefulGexConsumer,
+    *,
+    run_failed: bool,
+) -> list[Exception]:
+    """Settle background tasks before completing or aborting a capture."""
+    task_errors: list[Exception] = []
+    for task in (stream_task, calc_task):
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:
+                task_errors.append(exc)
+
+    if capture_writer:
+        if run_failed or task_errors:
+            partial = await capture_writer.abort("runtime ended with an exception")
+            print(f"Retained incomplete session capture at {partial}")
+        else:
+            target = await capture_writer.finalize(
+                feed_quality=state_consumer.feed_quality_snapshot()
+            )
+            print(f"Saved captured session to {target}")
+    return task_errors
 
 
 async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
-    consumer.current_spot = 5943.25
+    if str(consumer.target_underlying).strip().upper() != "ES":
+        raise SystemExit(
+            "Seeded demo data is available only for ES; "
+            "use --symbol ES or select a catalog replay built for the requested symbol."
+        )
+    # The seed is a fixed synthetic checkpoint, not today's market state.
+    demo_time = "2026-07-16T19:30:00Z"
+    await consumer.update_market_state(json.dumps({
+        "type": "underlying_tick", "symbol": "ES", "price": 5943.25,
+        "event_time": demo_time,
+    }))
     consumer.session_open = 5904.50
     seed_rows: Iterable[tuple[int, int, int, float]] = (
         (5875, 2104, 8992, 0.18),
@@ -233,6 +547,7 @@ async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
             "option_type": "C",
             "volume": call_volume,
             "iv": iv,
+            "event_time": demo_time,
         }))
         await consumer.update_market_state(json.dumps({
             "type": "options_volume_tick",
@@ -240,7 +555,28 @@ async def seed_demo_session(consumer: StatefulGexConsumer) -> None:
             "option_type": "P",
             "volume": put_volume,
             "iv": iv,
+            "event_time": demo_time,
         }))
+
+
+async def export_wind_tunnel_checkpoint(
+    config: GexConfig, output_path: str, *, quality_scenario: str | None = None,
+) -> None:
+    """Freeze a complete demo/replay state for an explicit local CLI handoff."""
+    from gex_terminal.wind_tunnel_checkpoint import build_terminal_checkpoint, write_checkpoint
+
+    if config.data_mode.lower() not in {"demo", "replay"}:
+        raise SystemExit("Wind Tunnel checkpoint capture supports demo/replay only; live capture requires separate authority.")
+    _, consumer, _ = await compute_snapshot(config, quality_scenario=quality_scenario)
+    try:
+        artifact = await build_terminal_checkpoint(
+            consumer, fallback_dte=config.days_to_expiry,
+            source_label="Synthetic demo checkpoint" if config.data_mode.lower() == "demo" else "Terminal replay checkpoint",
+        )
+        write_checkpoint(Path(output_path), artifact)
+    except (ValueError, OSError) as exc:
+        raise SystemExit("Cannot write checkpoint; use valid demo/replay state and a new local output file.") from exc
+    print("Saved immutable Wind Tunnel checkpoint.")
 
 
 async def export_demo_screenshot(
@@ -265,6 +601,8 @@ async def export_demo_screenshot(
         replay_path=config.replay_path,
         replay_delay_seconds=0.0,
         tradovate_environment=config.tradovate_environment,
+        expiry_filter=config.expiry_filter,
+        replay_clock="none",
     )
     math_engine = IntradayGexEngine(multiplier=render_config.contract_multiplier)
     consumer = StatefulGexConsumer(
@@ -273,6 +611,7 @@ async def export_demo_screenshot(
         risk_free_rate=render_config.risk_free_rate,
         data_mode=render_config.data_mode,
         stale_after_seconds=render_config.stale_after_seconds,
+        expiry_filter=render_config.expiry_filter,
     )
     if render_config.data_mode == "replay":
         adapter = build_market_data_adapter(consumer, render_config)
@@ -329,11 +668,49 @@ async def export_provider_fixture_lab(config: GexConfig, output_path: str) -> No
         f"{target} ({scorecard['passed']}/{scorecard['total']} passed, "
         f"{scorecard['degraded']} degraded)"
     )
+    if scorecard["failed"]:
+        raise SystemExit(1)
 
 
 async def export_demo_lab(config: GexConfig, args: argparse.Namespace) -> None:
     """Generate the offline demo pack for GitHub and contributor onboarding."""
+    action = args.command_path
+    if action == "verify":
+        if len(args.command_args) != 1:
+            raise SystemExit("Usage: gex-terminal demo-lab verify PACK")
+        try:
+            report = verify_demo_lab(args.command_args[0])
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        print(
+            f"Verified Demo Lab pack {report['pack']} "
+            f"({report['artifact_count']} artifacts, content={report['content_sha256']})"
+        )
+        return
+    if action == "reproduce":
+        if len(args.command_args) != 2:
+            raise SystemExit("Usage: gex-terminal demo-lab reproduce PACK OUTPUT")
+        try:
+            result = await reproduce_demo_lab(
+                args.command_args[0],
+                args.command_args[1],
+                screenshot_width=args.screenshot_width,
+                screenshot_height=args.screenshot_height,
+            )
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        verification = result["verification"]
+        print(
+            f"Reproduced and verified Demo Lab pack at {args.command_args[1]} "
+            f"({verification['artifact_count']} artifacts)"
+        )
+        return
     output_dir = args.command_path or "demo_lab"
+    if args.command_args:
+        raise SystemExit(
+            "Usage: gex-terminal demo-lab [OUTPUT] [--replay-session NAME], "
+            "or demo-lab {verify,reproduce}"
+        )
     session_name = args.replay_session or DEFAULT_DEMO_SESSION
     try:
         manifest = await build_demo_lab(
@@ -356,11 +733,19 @@ async def journal_command(config: GexConfig, args: argparse.Namespace) -> None:
     action = args.command_path or "list"
     journal_dir = args.journal_dir
     if action == "add":
-        entry = await add_journal_entry(
-            config,
-            journal_dir,
-            replay_session_name=args.replay_session or DEFAULT_DEMO_SESSION,
-        )
+        try:
+            entry = await add_journal_entry(
+                config,
+                journal_dir,
+                replay_session_name=(
+                    None
+                    if args.captured_session
+                    else args.replay_session or DEFAULT_DEMO_SESSION
+                ),
+                captured_session_path=args.captured_session,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
         print(format_journal_add_summary(entry))
         return
 
@@ -412,6 +797,10 @@ async def session_store_command(config: GexConfig, args: argparse.Namespace) -> 
         print(format_session_save_summary(record))
         return
 
+    if action == "captures":
+        print(format_captured_session_list(load_captured_sessions(store_dir)))
+        return
+
     records = load_session_records(store_dir)
     if action == "list":
         print(format_session_record_list(records))
@@ -428,7 +817,7 @@ async def session_store_command(config: GexConfig, args: argparse.Namespace) -> 
         return
 
     raise SystemExit(
-        "Usage: gex-terminal session-store {save,list,report} "
+        "Usage: gex-terminal session-store {save,list,report,captures} "
         "[OUTPUT] [--session-store-dir PATH] [--session-label TEXT]"
     )
 
@@ -467,13 +856,22 @@ async def export_sensitivity(
     quality_scenario: str | None = None,
 ) -> None:
     """Compute model-sensitivity scenarios and write JSON, CSV, or Markdown."""
-    _, consumer, _ = await compute_snapshot(config, quality_scenario=quality_scenario)
+    _, consumer, base_matrix = await compute_snapshot(
+        config, quality_scenario=quality_scenario
+    )
+    contract_rows = await consumer.selected_contract_rows(
+        expiry_filter=config.expiry_filter,
+        as_of=consumer.market_time,
+    )
     report = build_sensitivity_report(
         spot=consumer.current_spot,
         chain_state=consumer.chain_state,
         days_to_expiry=config.days_to_expiry,
         risk_free_rate=config.risk_free_rate,
         contract_multiplier=config.contract_multiplier,
+        contract_rows=contract_rows,
+        base_matrix=base_matrix,
+        as_of=consumer.market_time,
     )
     try:
         target = write_sensitivity_report(report, output_path)
@@ -482,24 +880,76 @@ async def export_sensitivity(
     print(f"Saved sensitivity report to {target}")
 
 
+async def export_model_comparison(
+    config: GexConfig,
+    output_path: str,
+    quality_scenario: str | None = None,
+) -> None:
+    """Write a side-by-side default versus directionalized model report."""
+    snapshot, _, _ = await compute_snapshot(config, quality_scenario=quality_scenario)
+    report = build_model_comparison_report(snapshot)
+    try:
+        target = write_model_comparison_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved model comparison to {target} "
+        f"(directional_status={report['result']['status']}, "
+        "predictive_validity=unmeasured)"
+    )
+
+
 async def inject_provider_command(config: GexConfig, args: argparse.Namespace) -> None:
     """Inject raw provider sample data without opening a live market-data connection."""
     if not args.command_path:
-        raise SystemExit("Usage: gex-terminal inject-provider PATH [--provider NAME]")
+        raise SystemExit(
+            "Usage: gex-terminal inject-provider PATH|bundled:NAME [--provider NAME]"
+        )
+
+    fixture_path = args.command_path
+    metadata_path = args.metadata
+    underlying_path = args.underlying_fixture
+    fixture_format = args.fixture_format
     provider = args.provider or config.data_provider
-    if not args.provider and (
-        args.fixture_format == "cboe-option-quotes"
-        or Path(args.command_path).suffix.lower() == ".csv"
+    if args.command_path.startswith("bundled:"):
+        try:
+            case = provider_fixture_case_for_name(
+                args.command_path.removeprefix("bundled:")
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        fixture_path = str(case.fixture_path)
+        metadata_path = args.metadata or (
+            str(case.metadata_path) if case.metadata_path else None
+        )
+        underlying_path = args.underlying_fixture or (
+            str(case.underlying_path) if case.underlying_path else None
+        )
+        fixture_format = (
+            args.fixture_format
+            if args.fixture_format != "auto"
+            else case.fixture_format
+        )
+        provider = args.provider or case.provider
+        if not args.symbol:
+            config = replace(
+                config,
+                symbol=case.symbol,
+                symbols=_symbols_with_target(config.symbols, case.symbol),
+            )
+    elif not args.provider and (
+        fixture_format == "cboe-option-quotes"
+        or Path(fixture_path).suffix.lower() == ".csv"
     ):
         provider = "cboe"
     try:
         snapshot = await inject_provider_fixture(
             provider=provider,
-            fixture_path=args.command_path,
+            fixture_path=fixture_path,
             config=config,
-            fixture_format=args.fixture_format,
-            metadata_path=args.metadata,
-            underlying_path=args.underlying_fixture,
+            fixture_format=fixture_format,
+            metadata_path=metadata_path,
+            underlying_path=underlying_path,
         )
     except (FileNotFoundError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
@@ -511,6 +961,404 @@ async def inject_provider_command(config: GexConfig, args: argparse.Namespace) -
         except ValueError as exc:
             raise SystemExit(str(exc)) from exc
         print(f"Saved injected provider snapshot to {target}")
+    model_comparison_path = getattr(args, "model_comparison", None)
+    if model_comparison_path:
+        report = build_model_comparison_report(snapshot)
+        try:
+            target = write_model_comparison_report(report, model_comparison_path)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(
+            f"Saved injected provider model comparison to {target} "
+            f"(directional_status={report['result']['status']}, "
+            "predictive_validity=unmeasured)"
+        )
+
+
+async def tradovate_certification_command(
+    config: GexConfig, args: argparse.Namespace
+) -> None:
+    """Run the explicit, read-only Tradovate live-network certification gate."""
+    output_path = args.command_path or "tradovate_certification.json"
+    try:
+        report = await build_tradovate_certification_report(
+            symbol=config.symbol,
+            environment=config.tradovate_environment,
+            contract_multiplier=config.contract_multiplier,
+            duration_seconds=args.certification_duration,
+            max_option_contracts=args.max_option_contracts,
+            ack_live_network=args.ack_live_network,
+        )
+        target = write_tradovate_certification_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    result = report["result"]
+    print(
+        f"Saved redacted Tradovate certification to {target} "
+        f"(transport={result['transport_certified']}, "
+        f"quantitative_gex={result['quantitative_gex_certified']})"
+    )
+    if not result["transport_certified"]:
+        raise SystemExit(2)
+
+
+async def databento_certification_command(
+    config: GexConfig, args: argparse.Namespace
+) -> None:
+    """Run the explicit, read-only Databento live-network certification gate."""
+    output_path = args.command_path or "databento_certification.json"
+    try:
+        report = await build_databento_certification_report(
+            symbol=config.symbol,
+            contract_multiplier=config.contract_multiplier,
+            risk_free_rate=config.risk_free_rate,
+            duration_seconds=args.certification_duration,
+            maximum_underlying_age_seconds=args.max_underlying_age,
+            ack_live_network=args.ack_live_network,
+        )
+        target = write_databento_certification_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    result = report["result"]
+    print(
+        f"Saved redacted Databento certification to {target} "
+        f"(transport={result['transport_certified']}, "
+        f"chain={result['chain_ingestion_certified']}, "
+        f"quantitative_gex_input={result['quantitative_gex_input_certified']})"
+    )
+    if not result["quantitative_gex_input_certified"]:
+        raise SystemExit(2)
+
+
+async def databento_replay_command(config: GexConfig, args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal databento-replay INPUT OUTPUT.json")
+    try:
+        report = await replay_databento_file(
+            args.command_path,
+            config=config,
+            maximum_underlying_age_seconds=args.max_underlying_age,
+        )
+        target = write_offline_report(report, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved offline Databento replay to {target} "
+        f"(software_path={report['result']['software_path_certified']}, "
+        "live_transport=False, predictive_validity=unmeasured)"
+    )
+
+
+async def databento_offline_certification_command(
+    config: GexConfig, args: argparse.Namespace
+) -> None:
+    output_path = args.command_path or "databento_offline_certification.json"
+    report = await build_offline_databento_certification(config)
+    target = write_offline_report(report, output_path)
+    print(
+        f"Saved offline Databento certification to {target} "
+        f"(passed={report['result']['passed']}, live_transport=False)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+def price_action_evaluate_command(args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal price-action-evaluate INPUT.json OUTPUT.json")
+    try:
+        report = load_price_action_report(args.command_path)
+        target = write_price_action_report(report, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved price-action evaluation to {target} "
+        f"(status={report['result']['status']}, predictive_validity=unmeasured)"
+    )
+
+
+async def position_model_compare_command(
+    config: GexConfig, args: argparse.Namespace
+) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal position-model-compare INPUT.json OUTPUT.json")
+    try:
+        report = await load_position_model_comparison(args.command_path, config=config)
+        target = write_position_model_comparison(report, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved position-model comparison to {target} "
+        f"(status={report['result']['status']}, predictive_validity=unmeasured)"
+    )
+
+
+def model_evidence_command(output_path: str) -> None:
+    """Write bounded numerical evidence and fail closed on a regression."""
+    report = build_model_evidence_report()
+    try:
+        target = write_model_evidence_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved model evidence to {target} "
+        f"(numerical_gate={'passed' if report['result']['passed'] else 'failed'}, "
+        "predictive_validity=unmeasured)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+def support_bundle_command(config: GexConfig, args: argparse.Namespace) -> None:
+    if not args.command_path:
+        raise SystemExit(
+            "Usage: gex-terminal support-bundle OUTPUT.json [ARTIFACT_DIR ...]"
+        )
+    try:
+        bundle = build_support_bundle(config, artifact_dirs=args.command_args)
+        target = write_support_bundle(bundle, args.command_path)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved redacted support bundle to {target} "
+        f"(artifacts={len(bundle['artifacts'])}, raw_paths=False, logs=False)"
+    )
+
+
+def research_backup_command(args: argparse.Namespace) -> None:
+    if not args.command_path or len(args.command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal research-backup SOURCE_DIR BACKUP_DIR"
+        )
+    try:
+        report = create_private_backup(args.command_path, args.command_args[0])
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']}, "
+        f"manifest_sha256={report['manifest_sha256']})"
+    )
+
+
+def research_backup_verify_command(args: argparse.Namespace) -> None:
+    if not args.command_path or getattr(args, "command_args", ()):
+        raise SystemExit(
+            "Usage: gex-terminal research-backup-verify BACKUP_DIR"
+        )
+    try:
+        report = verify_private_backup(args.command_path)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']}, "
+        f"manifest_sha256={report['manifest_sha256']})"
+    )
+
+
+def research_restore_command(args: argparse.Namespace) -> None:
+    if not args.command_path or len(args.command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal research-restore BACKUP_DIR DESTINATION_DIR"
+        )
+    try:
+        report = restore_private_backup(args.command_path, args.command_args[0])
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Private backup restored and verified "
+        f"(kind={report['artifact']['kind']}, files={report['file_count']})"
+    )
+
+
+def research_retention_plan_command(args: argparse.Namespace) -> None:
+    if (
+        not args.command_path
+        or len(args.command_args) < 2
+        or not args.retention_backups
+        or len(args.retention_backups) != len(args.command_args) - 1
+    ):
+        raise SystemExit(
+            "Usage: gex-terminal research-retention-plan OUTPUT.json "
+            "CUTOFF_UTC ARTIFACT_DIR [ARTIFACT_DIR ...] "
+            "--retention-backup BACKUP_DIR [--retention-backup BACKUP_DIR ...]"
+        )
+    try:
+        plan = create_retention_plan(
+            args.command_args[1:],
+            args.command_args[0],
+            args.command_path,
+            backup_dirs=args.retention_backups,
+        )
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    deletions = sum(
+        target["action"] == "delete_whole_group" for target in plan["targets"]
+    )
+    print(
+        "Saved dry-run retention plan "
+        f"(targets={len(plan['targets'])}, deletions={deletions}, "
+        f"plan_sha256={plan['plan_sha256']})"
+    )
+
+
+def research_retention_apply_command(args: argparse.Namespace) -> None:
+    if (
+        not args.command_path
+        or not args.confirm_plan_sha256
+        or getattr(args, "command_args", ())
+    ):
+        raise SystemExit(
+            "Usage: gex-terminal research-retention-apply PLAN.json "
+            "--confirm-plan-sha256 SHA256"
+        )
+    try:
+        receipt = apply_retention_plan(
+            args.command_path,
+            confirmation=args.confirm_plan_sha256,
+        )
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Applied unchanged retention plan "
+        f"(deleted={receipt['deleted_count']}, retained={receipt['retained_count']}, "
+        f"plan_sha256={receipt['plan_sha256']})"
+    )
+
+
+async def experiment_run_command(args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal experiment-run SPEC.json OUTPUT_DIR")
+    try:
+        manifest = await run_experiment(args.command_path, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved experiment {manifest['experiment_id']} to {args.command_args[0]} "
+        f"(workflow={manifest['workflow']}, predictive_validity=unmeasured)"
+    )
+
+
+async def experiment_reproduce_command(args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal experiment-reproduce MANIFEST.json OUTPUT_DIR")
+    try:
+        manifest = await reproduce_experiment(args.command_path, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Reproduced experiment {manifest['experiment_id']} "
+        f"(matched={manifest['reproduction']['matched']}, "
+        f"identity_validation={manifest['reproduction']['identity_validation']}, "
+        "predictive_validity=unmeasured)"
+    )
+
+
+async def batch_position_compare_command(args: argparse.Namespace) -> None:
+    if not args.command_path or not args.command_args:
+        raise SystemExit("Usage: gex-terminal batch-position-compare SPEC.json OUTPUT.json")
+    try:
+        report = await build_batch_comparison(args.command_path)
+        target = write_batch_comparison(report, args.command_args[0])
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved batch position comparison to {target} "
+        f"(sessions={report['result']['session_count']}, predictive_validity=unmeasured)"
+    )
+
+
+def corpus_init_command(args: argparse.Namespace) -> None:
+    if not args.command_path:
+        raise SystemExit("Usage: gex-terminal corpus-init CORPUS_DIR [--corpus-id ID]")
+    try:
+        target = initialize_corpus(args.command_path, corpus_id=args.corpus_id)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(f"Initialized append-only research corpus at {target}")
+
+
+def corpus_register_command(args: argparse.Namespace) -> None:
+    if not args.command_path or len(args.command_args) < 2:
+        raise SystemExit(
+            "Usage: gex-terminal corpus-register CORPUS_DIR INPUT METADATA.json "
+            "[--capture-policy POLICY.json]"
+        )
+    try:
+        event = register_corpus_item(
+            args.command_path,
+            args.command_args[0],
+            args.command_args[1],
+            capture_policy_path=args.capture_policy,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Registered {event['payload']['dataset_id']} at sequence {event['sequence']} "
+        f"(split={event['payload']['split']})"
+    )
+
+
+def corpus_verify_command(args: argparse.Namespace) -> None:
+    if not args.command_path:
+        raise SystemExit("Usage: gex-terminal corpus-verify CORPUS_DIR [OUTPUT.json]")
+    try:
+        report = verify_corpus(args.command_path)
+        if args.command_args:
+            target = write_corpus_report(report, args.command_args[0])
+            print(f"Saved corpus verification to {target} (passed={report['result']['passed']})")
+        else:
+            print(json.dumps(report, indent=2, sort_keys=True))
+    except (FileNotFoundError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+async def model_property_command(output_path: str) -> None:
+    report = await build_model_property_report()
+    target = write_model_property_report(report, output_path)
+    print(
+        f"Saved model property evidence to {target} "
+        f"({report['result']['passed_checks']}/{report['result']['total_checks']} passed)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+async def provider_fault_command(config: GexConfig, output_path: str) -> None:
+    report = await build_provider_fault_report(config)
+    target = write_provider_fault_report(report, output_path)
+    print(
+        f"Saved provider fault evidence to {target} "
+        f"({report['result']['passed_cases']}/{report['result']['total_cases']} passed, "
+        "live_transport=False)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
+
+
+async def performance_command(config: GexConfig, args: argparse.Namespace) -> None:
+    output_path = args.command_path or "performance_evidence.json"
+    try:
+        report = await build_performance_report(
+            config,
+            contracts=args.performance_contracts,
+            minimum_ingest_records_per_second=args.minimum_ingest_rps,
+            maximum_snapshot_milliseconds=args.maximum_snapshot_ms,
+            maximum_peak_megabytes=args.maximum_peak_mb,
+        )
+        target = write_performance_report(report, output_path)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"Saved generated-chain performance evidence to {target} "
+        f"(contracts={report['workload']['option_contracts']}, "
+        f"passed={report['result']['passed']}, live_capacity=False)"
+    )
+    if not report["result"]["passed"]:
+        raise SystemExit(1)
 
 
 async def compute_demo_snapshot(config: GexConfig) -> dict:
@@ -529,10 +1377,17 @@ async def compute_snapshot(
         risk_free_rate=config.risk_free_rate,
         data_mode=config.data_mode,
         stale_after_seconds=config.stale_after_seconds,
+        expiry_filter=config.expiry_filter,
     )
 
     if config.data_mode == "replay":
-        replay_config = replace(config, replay_delay_seconds=0.0)
+        # Noninteractive exports and saved snapshots should never wait through
+        # a capture's wall-clock gaps. Interactive replay retains timing.
+        replay_config = replace(
+            config,
+            replay_delay_seconds=0.0,
+            replay_clock="none",
+        )
         adapter = build_market_data_adapter(consumer, replay_config)
         await adapter.stream_market_data()
     elif config.data_mode == "demo":
@@ -543,7 +1398,10 @@ async def compute_snapshot(
     if quality_scenario:
         await apply_quality_scenario(consumer, quality_scenario)
 
-    data = await consumer.process_latest_snapshot(days_to_expiry=config.days_to_expiry)
+    data = await consumer.process_latest_snapshot(
+        days_to_expiry=config.days_to_expiry,
+        expiry_filter=config.expiry_filter,
+    )
     if "error" in data:
         raise SystemExit(f"Cannot export snapshot: {data['error']}")
     breakdown = await consumer.process_expiry_breakdown(days_to_expiry=config.days_to_expiry)
@@ -557,18 +1415,57 @@ async def compute_snapshot(
         data=data,
         chain_state=consumer.chain_state,
         expiry_breakdown=breakdown,
+        timestamp=(
+            consumer.market_time.isoformat().replace("+00:00", "Z")
+            if consumer.market_time is not None
+            else None
+        ),
     )
     return snapshot, consumer, data
 
 
+def _safe_float_argument(value: str) -> float:
+    """Parse a CLI number without echoing a rejected raw value."""
+    try:
+        return float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise argparse.ArgumentTypeError("must be numeric") from None
+
+
+def _safe_integer_argument(value: str) -> int:
+    """Parse a CLI integer without echoing a rejected raw value."""
+    try:
+        return int(value)
+    except (OverflowError, TypeError, ValueError):
+        raise argparse.ArgumentTypeError("must be an integer") from None
+
+
+class _RedactingArgumentParser(argparse.ArgumentParser):
+    """Keep rejected command-line values out of public parser errors."""
+
+    def error(self, message: str) -> None:
+        if "invalid choice:" in message:
+            prefix = message.split("invalid choice:", 1)[0].rstrip()
+            message = f"{prefix} invalid choice; use --help to see supported values"
+        elif message.startswith("unrecognized arguments:"):
+            message = "unrecognized arguments; use --help to see supported values"
+        super().error(message)
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+    parser = _RedactingArgumentParser(
         description="Intraday GEX imbalance terminal",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"gex-terminal {__version__}",
     )
     parser.add_argument(
         "command",
         nargs="?",
         choices=(
+            "wind-tunnel",
             "validate-fixture",
             "list-replays",
             "replay-lab",
@@ -577,6 +1474,32 @@ def parse_args() -> argparse.Namespace:
             "session-store",
             "fixture-lab",
             "inject-provider",
+            "tradovate-certify",
+            "databento-certify",
+            "databento-replay",
+            "databento-offline-certify",
+            "price-action-evaluate",
+            "position-model-compare",
+            "model-evidence",
+            "experiment-run",
+            "experiment-reproduce",
+            "batch-position-compare",
+            "corpus-init",
+            "corpus-register",
+            "corpus-verify",
+            "model-property-certify",
+            "provider-fault-certify",
+            "performance-certify",
+            "capture-policy-validate",
+            "support-bundle",
+            "research-backup",
+            "research-backup-verify",
+            "research-restore",
+            "research-retention-plan",
+            "research-retention-apply",
+            "live-population-plan-validate",
+            "live-population-results-validate",
+            "doctor",
         ),
         help="Optional utility command.",
     )
@@ -619,19 +1542,33 @@ def parse_args() -> argparse.Namespace:
         help="List available market-data providers and exit.",
     )
     parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the doctor report as versioned JSON.",
+    )
+    parser.add_argument(
         "--multiplier",
-        type=int,
+        type=_safe_integer_argument,
         help="Contract multiplier. Overrides GEX_CONTRACT_MULTIPLIER.",
     )
     parser.add_argument(
+        "--expiry-filter",
+        help="Option expiry selection: all, 0dte, or an exact expiry label.",
+    )
+    parser.add_argument(
         "--refresh",
-        type=float,
+        type=_safe_float_argument,
         help="UI refresh interval in seconds. Overrides GEX_REFRESH_INTERVAL_SECONDS.",
     )
     parser.add_argument(
         "--replay",
         metavar="PATH",
         help="Replay normalized JSONL market data from PATH. Sets mode to replay.",
+    )
+    parser.add_argument(
+        "--captured-session",
+        metavar="PATH",
+        help="Replay an integrity-checked captured-session JSONL file.",
     )
     parser.add_argument(
         "--replay-session",
@@ -661,8 +1598,59 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--replay-delay",
-        type=float,
+        type=_safe_float_argument,
         help="Delay between replay messages in seconds. Overrides GEX_REPLAY_DELAY_SECONDS.",
+    )
+    parser.add_argument(
+        "--replay-clock",
+        choices=("auto", "fixed", "event", "none"),
+        help="Replay timing clock. Captures default to event time; legacy JSONL to fixed delay.",
+    )
+    parser.add_argument(
+        "--replay-speed",
+        type=_safe_float_argument,
+        help="Event-time replay speed multiplier. Overrides GEX_REPLAY_SPEED.",
+    )
+    parser.add_argument(
+        "--replay-max-gap",
+        type=_safe_float_argument,
+        help="Optional maximum source-time gap before replay-speed scaling.",
+    )
+    parser.add_argument(
+        "--strict-event-time",
+        action="store_true",
+        help="Fail replay on missing or regressing event timestamps.",
+    )
+    parser.add_argument(
+        "--record-session",
+        action="store_true",
+        help="Capture normalized replay/live messages to an integrity-checked session file.",
+    )
+    parser.add_argument(
+        "--capture-policy",
+        metavar="PATH",
+        help=(
+            "Validated capture-governance JSON. Required before live session capture; "
+            "optional for replay capture and required to register a captured session "
+            "into a research corpus."
+        ),
+    )
+    parser.add_argument(
+        "--capture-path",
+        metavar="PATH",
+        help="Output path for --record-session; specifying it also enables capture.",
+    )
+    parser.add_argument(
+        "--capture-label",
+        help="Optional human label stored in the captured-session header.",
+    )
+    parser.add_argument(
+        "--log-level",
+        type=str.upper,
+        choices=LOG_LEVELS,
+        help=(
+            "Process log level. Overrides GEX_LOG_LEVEL; safe default is WARNING."
+        ),
     )
     parser.add_argument(
         "--screenshot",
@@ -681,6 +1669,11 @@ def parse_args() -> argparse.Namespace:
         help="Compute one GEX snapshot and write .json, .csv, or .md, then exit.",
     )
     parser.add_argument(
+        "--wind-tunnel-checkpoint",
+        metavar="PATH",
+        help="Freeze demo/replay state and effective assumptions into a new Wind Tunnel checkpoint JSON, then exit.",
+    )
+    parser.add_argument(
         "--tradingview-overlay",
         metavar="PATH",
         help="Compute one GEX snapshot and write TradingView overlay levels to .json or .csv.",
@@ -689,6 +1682,14 @@ def parse_args() -> argparse.Namespace:
         "--sensitivity",
         metavar="PATH",
         help="Compute a model-sensitivity report and write .json, .csv, or .md, then exit.",
+    )
+    parser.add_argument(
+        "--model-comparison",
+        metavar="PATH",
+        help=(
+            "Compare the unchanged default GEX proxy with the parallel "
+            "aggressor-directionalized model; write .json, .csv, or .md, then exit."
+        ),
     )
     parser.add_argument(
         "--journal-dir",
@@ -705,14 +1706,88 @@ def parse_args() -> argparse.Namespace:
         help="Human label for session-store save records.",
     )
     parser.add_argument(
+        "--ack-live-network",
+        action="store_true",
+        help="Acknowledge credentialed, read-only network access for provider certification.",
+    )
+    parser.add_argument(
+        "--certification-duration",
+        type=_safe_float_argument,
+        default=10.0,
+        help="Seconds to observe a provider certification stream. Default: 10.",
+    )
+    parser.add_argument(
+        "--max-underlying-age",
+        type=_safe_float_argument,
+        default=2.0,
+        help="Maximum seconds between futures midpoint and option trade for IV inversion. Default: 2.",
+    )
+    parser.add_argument(
+        "--max-option-contracts",
+        type=_safe_integer_argument,
+        default=12,
+        help="Maximum option subscriptions during Tradovate certification. Default: 12.",
+    )
+    parser.add_argument(
+        "--corpus-id",
+        help="Stable corpus identifier for corpus-init.",
+    )
+    parser.add_argument(
+        "--confirm-plan-sha256",
+        help=(
+            "Exact SHA-256 printed by research-retention-plan. Required for the "
+            "separate destructive apply command."
+        ),
+    )
+    parser.add_argument(
+        "--retention-backup",
+        dest="retention_backups",
+        action="append",
+        default=[],
+        metavar="BACKUP_DIR",
+        help=(
+            "Verified private backup paired by order with each artifact passed to "
+            "research-retention-plan. Repeat once per target."
+        ),
+    )
+    parser.add_argument(
+        "--performance-contracts",
+        type=_safe_integer_argument,
+        default=500,
+        help="Generated option contracts for performance-certify. Default: 500.",
+    )
+    parser.add_argument(
+        "--minimum-ingest-rps",
+        type=_safe_float_argument,
+        default=50.0,
+        help="Minimum generated ingest records/second. Default: 50.",
+    )
+    parser.add_argument(
+        "--maximum-snapshot-ms",
+        type=_safe_float_argument,
+        default=1000.0,
+        help="Maximum generated snapshot milliseconds. Default: 1000.",
+    )
+    parser.add_argument(
+        "--maximum-peak-mb",
+        type=_safe_float_argument,
+        default=256.0,
+        help="Maximum generated-chain peak memory in MiB. Default: 256.",
+    )
+    parser.add_argument(
+        "--tradovate-environment",
+        choices=("demo", "live"),
+        help="Tradovate environment for live mode or certification. Overrides TRADOVATE_ENV.",
+    )
+    parser.add_argument(
         "--screenshot-width",
-        type=int,
+        type=_safe_integer_argument,
         default=180,
         help="Terminal columns for --screenshot export. Default: 180.",
     )
     parser.add_argument(
         "--screenshot-height",
-        type=int,
+        type=_safe_integer_argument,
         default=54,
         help="Terminal rows for --screenshot export. Default: 54.",
     )
@@ -738,12 +1813,22 @@ def apply_cli_overrides(config: GexConfig, args: argparse.Namespace) -> GexConfi
     if args.multiplier is not None:
         updates["contract_multiplier"] = args.multiplier
 
+    if args.expiry_filter:
+        updates["expiry_filter"] = args.expiry_filter
+
+    if args.tradovate_environment:
+        updates["tradovate_environment"] = args.tradovate_environment
+
     if args.refresh is not None:
         updates["refresh_interval_seconds"] = args.refresh
 
     if args.replay:
         updates["data_mode"] = "replay"
         updates["replay_path"] = args.replay
+
+    if args.captured_session:
+        updates["data_mode"] = "replay"
+        updates["replay_path"] = args.captured_session
 
     if args.replay_session:
         session = replay_session_for_name(args.replay_session)
@@ -753,7 +1838,30 @@ def apply_cli_overrides(config: GexConfig, args: argparse.Namespace) -> GexConfi
     if args.replay_delay is not None:
         updates["replay_delay_seconds"] = args.replay_delay
 
-    return replace(config, **updates) if updates else config
+    if args.replay_clock:
+        updates["replay_clock"] = args.replay_clock
+
+    if args.replay_speed is not None:
+        updates["replay_speed"] = args.replay_speed
+
+    if args.replay_max_gap is not None:
+        updates["replay_max_gap_seconds"] = args.replay_max_gap
+
+    if args.strict_event_time:
+        updates["strict_event_time"] = True
+
+    updated = replace(config, **updates) if updates else config
+    if args.replay_session:
+        try:
+            return config_for_replay_session(
+                updated,
+                session,
+                explicit_symbol=args.symbol,
+                explicit_multiplier=args.multiplier,
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+    return updated
 
 
 def _symbols_with_target(symbols: tuple[str, ...], target_symbol: str) -> tuple[str, ...]:
@@ -765,22 +1873,22 @@ def validate_data_mode(data_mode: str) -> None:
     supported_modes = {"demo", "replay", "live"}
     if data_mode not in supported_modes:
         raise SystemExit(
-            f"Unsupported GEX_DATA_MODE '{data_mode}'. Expected one of: demo, replay, live"
+            "Unsupported GEX_DATA_MODE. Expected one of: demo, replay, live"
         )
 
 
 def validate_provider(config: GexConfig) -> None:
     if effective_provider(config) not in available_provider_names():
         raise SystemExit(
-            f"Unsupported GEX_DATA_PROVIDER '{config.data_provider}'. "
-            f"Expected one of: {', '.join(available_provider_names())}"
+            "Unsupported GEX_DATA_PROVIDER. Expected one of: "
+            f"{', '.join(available_provider_names())}"
         )
 
 
 def print_provider_summary() -> None:
     for provider in available_provider_names():
         info = adapter_info(provider)
-        print(f"{info.name:10} {info.status:9} {info.label} - {info.notes}")
+        print(f"{info.name:10} {info.status:20} {info.label} - {info.notes}")
 
 
 def print_replay_sessions() -> None:
@@ -797,6 +1905,98 @@ def validate_fixture_command(path: str | None) -> None:
         raise SystemExit(1)
 
 
+def capture_policy_validate_command(path: str | None) -> None:
+    if not path:
+        raise SystemExit("Usage: gex-terminal capture-policy-validate POLICY.json")
+    try:
+        identity = capture_policy_identity(load_capture_policy(path))
+    except CapturePolicyError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Capture policy valid: "
+        f"{identity['policy_id']} ({identity['schema']}, sha256={identity['sha256']})"
+    )
+
+
+def live_population_plan_validate_command(path: str | None) -> None:
+    if not path:
+        raise SystemExit(
+            "Usage: gex-terminal live-population-plan-validate PLAN.json"
+        )
+    try:
+        identity = live_population_plan_identity(load_live_population_plan(path))
+    except LivePopulationContractError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Live population plan valid: "
+        f"{identity['population_id']} "
+        f"({identity['plan_schema']}, sha256={identity['sha256']})"
+    )
+
+
+def live_population_results_validate_command(
+    plan_path: str | None,
+    command_args: list[str],
+) -> None:
+    if not plan_path or len(command_args) != 1:
+        raise SystemExit(
+            "Usage: gex-terminal live-population-results-validate "
+            "PLAN.json RESULTS.json"
+        )
+    try:
+        plan = load_live_population_plan(plan_path)
+        result = load_live_population_result_manifest(plan_path, command_args[0])
+        identity = live_population_result_identity(plan, result)
+    except LivePopulationContractError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        "Live population results valid: "
+        f"{identity['population_id']} "
+        f"({LIVE_POPULATION_RESULT_SCHEMA}, sha256={identity['sha256']})"
+    )
+
+
+def _resolve_capture_policy_for_runtime(
+    args: argparse.Namespace,
+    config: GexConfig,
+) -> dict[str, str] | None:
+    capture_requested = bool(args.record_session or args.capture_path)
+    if args.capture_policy and not capture_requested:
+        raise SystemExit(
+            "--capture-policy requires --record-session or --capture-path"
+        )
+    if not capture_requested:
+        return None
+    if config.data_mode == "live" and not args.capture_policy:
+        raise SystemExit(
+            "Live session capture requires --capture-policy PATH before any provider connection."
+        )
+    if not args.capture_policy:
+        return None
+    try:
+        return capture_policy_identity(load_capture_policy(args.capture_policy))
+    except CapturePolicyError as exc:
+        raise SystemExit(f"Capture policy rejected: {exc}") from exc
+
+
+def _capture_source_metadata(
+    config: GexConfig,
+    policy_identity: dict[str, str] | None,
+) -> dict[str, object]:
+    provider = effective_provider(config)
+    source: dict[str, object] = {
+        "mode": config.data_mode,
+        "provider": provider,
+        "environment": (
+            config.tradovate_environment if provider == "tradovate" else None
+        ),
+        "symbol": config.symbol,
+    }
+    if policy_identity is not None:
+        source["capture_policy"] = dict(policy_identity)
+    return source
+
+
 def _session_store_source_name(config: GexConfig, args: argparse.Namespace) -> str:
     if args.replay_session:
         return args.replay_session
@@ -806,7 +2006,17 @@ def _session_store_source_name(config: GexConfig, args: argparse.Namespace) -> s
 
 
 def main_sync() -> None:
-    asyncio.run(main())
+    if sys.argv[1:2] == ["wind-tunnel"]:
+        from gex_terminal.wind_tunnel_cli import main as wind_tunnel_main
+
+        result = wind_tunnel_main(sys.argv[2:])
+        if result:
+            raise SystemExit(result)
+        return
+    try:
+        asyncio.run(main())
+    except ConfigValidationError as exc:
+        raise SystemExit(f"Configuration error: {exc}") from None
 
 
 if __name__ == "__main__":

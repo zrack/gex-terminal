@@ -13,11 +13,16 @@ is not financial advice.
 - Pick a scoped starter from `docs/good-first-issues.md`.
 - Add deterministic tests for the GEX engine and consumer state handling.
 - Improve the Textual terminal interface and empty/error states.
-- Add mock data and replay mode so the app can run without live credentials.
-- Harden the Tradovate adapter and document required market-data permissions.
-- Help design a provider adapter interface for future data sources.
+- Add replay or captured-session evidence that runs without live credentials.
+- Validate the Tradovate scaffold with redacted, explicit certification evidence.
+- Extend provider adapters without weakening the normalized schema-v2 contract.
 - Improve documentation around assumptions, formulas, and limitations.
 - Report bugs with reproducible inputs and expected behavior.
+
+Use the [documentation map](docs/README.md) to find the owning guide before
+editing. The [current architecture](docs/architecture.md#c4-views) shows system,
+container, and component boundaries; all runtime modules belong to one local
+application.
 
 ## Local Setup
 
@@ -31,16 +36,49 @@ source .venv/bin/activate
 Install dependencies:
 
 ```bash
-pip install -e .
+pip install -e . build twine packaging
 ```
 
-Create a local environment file:
+For an end-user installation use the reviewed wheel in [First Run](docs/first-run.md).
+`gex-terminal doctor` checks local configuration/resources without a provider
+connection. If an editable launcher cannot import the package, try the source
+module invocation and inspect doctor output; on macOS, hidden editable `.pth`
+flags can recur. A regular wheel in a dedicated environment avoids that editable
+path dependency. Do not clear flags on broad filesystem trees.
+
+For an easier local handoff, first build a wheel from the exact reviewed commit,
+then prepare a new setup folder:
+
+```bash
+python scripts/build_app_bundle.py --wheel /path/to/gex_terminal-0.6.0-py3-none-any.whl --source-commit FULL_REVIEWED_COMMIT --output /path/to/new-gex-setup
+```
+
+Replace the example paths and commit with the actual build identity. Supply
+`--installer-source-commit FULL_INSTALLER_COMMIT` when packaging a newer setup
+helper with an unchanged reviewed wheel; `--source-commit` still identifies the
+wheel's source. The bundle records both identities and exact file checksums.
+Supply
+`--wheelhouse /path/to/dependency-wheels` to include dependencies for the intended
+Python version, operating system and architecture. A wheelhouse from one platform
+does not automatically support another. The builder copies only wheel files and
+never replaces an existing handoff. The user opens `Install.command` on macOS or
+runs `sh Install.command` on Linux; it performs setup, verification and creates
+a reusable launcher. It needs Python 3.11 or 3.12. Keep the installed folder in
+place because virtual-environment executables contain absolute paths.
+
+Setup smoke checks are part of the existing Linux/macOS CI lifecycle step.
+The helper's exact wheel and verification records stay in its application
+folder. The bundle inventory records the supplied source identity and file
+hashes; it is not a signature or proof of publisher trust.
+
+Demo and replay work needs no provider credentials. Create a local environment
+file only when testing provider configuration:
 
 ```bash
 cp .env.example .env
 ```
 
-Then fill in your local Tradovate credentials in `.env`.
+Fill only the provider fields required for the path you are testing.
 
 Never commit `.env`, broker credentials, API tokens, account IDs, or market-data
 entitlements. The `.gitignore` is set up to keep local secrets out of Git, but
@@ -48,7 +86,7 @@ please check your changes before opening a pull request.
 
 ## Running the App
 
-Launch the live terminal:
+Launch the configured terminal (the example environment defaults to demo):
 
 ```bash
 gex-terminal
@@ -57,8 +95,9 @@ gex-terminal
 You can also run the terminal with normalized replay data:
 
 ```bash
-gex-terminal --replay sample_data/demo_replay.jsonl
-gex-terminal --replay sample_data/es_synthetic_full_session.jsonl
+gex-terminal list-replays
+gex-terminal --replay-session demo
+gex-terminal --replay-session full-session
 ```
 
 Demo and replay modes are useful for UI and engine work that should not require
@@ -78,57 +117,199 @@ gex-terminal session-store report /tmp/gex-store/session_store.md --session-stor
 Run a source compile smoke check before opening a pull request:
 
 ```bash
-python -m compileall main.py gex_terminal tests
+python -m compileall main.py gex_terminal scripts tests
+python -m unittest discover -s tests -v
 ```
 
-Once a test suite is established, contributors will be expected to run `pytest`.
-Until then, please include the manual verification you performed in your pull
-request description.
+For model changes, also run the bounded evidence gate:
+
+```bash
+gex-terminal model-evidence /tmp/model_evidence.json
+```
+
+Checkpoint handoff changes additionally require the focused consumer/browser/
+HTTP/keyboard paths. Node.js runs the shipped browser-controller regression
+harness when available; it adds no application runtime dependency. Preserve
+opaque checkpoint JSON across JavaScript transport rather than reserializing
+signed numeric fields.
+
+```bash
+python -m unittest -v tests.test_wind_tunnel_checkpoint tests.test_wind_tunnel_handoff tests.test_wind_tunnel_assets tests.test_wind_tunnel_cli
+```
+
+For research-contract, provider-normalization, or performance changes, run the
+applicable offline certification gates:
+
+```bash
+gex-terminal model-property-certify /tmp/model-properties.json
+gex-terminal provider-fault-certify /tmp/provider-faults.json
+gex-terminal performance-certify /tmp/performance.json
+```
+
+For Databento certification, lifecycle, or capture-safety changes, also run the
+focused policy and redaction suite:
+
+```bash
+python -m unittest -v \
+  tests.test_databento_live \
+  tests.test_databento_certification \
+  tests.test_databento_certification_policy \
+  tests.test_safety_controls \
+  tests.test_capture_governance \
+  tests.test_research_corpus
+```
+
+Changes to model profiles, experiment manifests, corpus registration, or batch
+comparison must include their focused tests and an example run/reproduction.
+See [docs/research-governance.md](docs/research-governance.md).
+
+For package/resource changes, reproduce the CI release contract:
+
+```bash
+python -m pip install build twine packaging
+python -m build --outdir /tmp/gex-terminal-dist
+python -m twine check /tmp/gex-terminal-dist/*
+```
+
+Release verification also compares the retained 0.4.0 wheel with the candidate
+using `scripts/verify_distribution_lifecycle.py --previous-wheel OLD.whl
+--candidate-wheel NEW.whl --output NEW_REPORT.json`. The script uses the
+`packaging` library installed with these maintainer build tools, and creates its
+own temporary environment and synthetic research; it must never target a
+developer or customer installation. The first dependency install may use the
+network, but application commands are offline. CI exercises this lifecycle on
+Linux and macOS with Python 3.11/3.12 and runs the portable pack, doctor and
+research checks from a fresh wheel outside the checkout. Preserve the exact
+wheel hashes and report. [Offline CI](docs/offline-ci.md) owns the matrix,
+retained synthetic evidence and failure-accounting contract. A passing matrix
+establishes those tested environments, not a customer support commitment.
+
+For generated documentation visuals, use the maintained refresh command in
+[Demo Lab](docs/demo-lab.md#contributor-preview), inspect the staged SVGs, and
+retain its local provenance manifest. Keep full generated packs outside Git
+and preserve existing frozen study bundles.
+
+Install the wheel into a temporary virtual environment, change to a directory
+outside the checkout, and exercise `gex-terminal --version`, a named replay,
+and `fixture-lab`. Bundled data must resolve from package resources rather than
+the repository working directory.
+
+For documentation changes, check local files and Markdown heading destinations:
+
+```bash
+python -m unittest -v tests.test_release_contract.DocumentationLinkContractTests
+git diff --check
+```
+
+When renaming a heading, update incoming `#heading` links as part of the change.
+The tests verify local destinations; inspect rendered diagrams separately and
+check architectural claims against the source modules.
+The bounded parser covers inline links/images and ordinary ATX/Setext headings,
+including duplicate heading IDs. Reference-style links, raw HTML anchors and
+headings nested in lists or quotes require manual review.
+
+For a participant handoff, follow [Study Build](docs/study-build.md) to freeze
+the source commit, wheel checksum, dependency environment, and synthetic inputs,
+then rehearse the installed wheel outside the checkout. The
+[study protocol](docs/product-validation.md) owns participant tasks and the
+scorecard. A maintainer rehearsal is implementation evidence, not a completed
+participant session or a new release.
+
+## Documentation And Diagram Ownership
+
+Update the canonical owner and the affected links in the same pull request:
+
+| Change | Owning document or artifact |
+| --- | --- |
+| Install, quick start, or front-door routing | [README](README.md), linking to [First Run](docs/first-run.md) and the [documentation map](docs/README.md) for detail |
+| Current components, state ownership, runtime flows, or C4 views | [Architecture](docs/architecture.md) |
+| Durable architectural decision and rationale | `docs/decisions/`, linked from the affected architecture section |
+| Derived diagrams, screenshots, or visual concepts | `assets/`, with owner and reproduction/source notes in [Visual Assets](assets/README.md) |
+| Study preparation and frozen-build handoff | [Study Build](docs/study-build.md) |
+| Participant protocol, observations, or study interpretation | [Product Validation](docs/product-validation.md) and the study's retained scorecards |
+| Future outcomes, sequence, dependencies, or exit criteria | [Roadmap](ROADMAP.md) |
+| Merged work, release history, or delivery evidence | [Changelog](CHANGELOG.md) or the relevant closed `docs/work-packets/` record |
+| Commands, schemas, model assumptions, or provider mapping | The relevant topic guide listed in [Documentation Map](docs/README.md) |
+
+Keep architecture diagrams and prose consistent with shipped code. Update all
+affected C4 levels and derived SVGs when a boundary changes; label optional
+provider connections, local storage, and evidence limits. A Python module is
+not an independently deployed service. Put proposed architecture in an explicit
+decision/proposal linked from the roadmap until it is implemented.
+
+Do not turn the README into a command manual or copy release logs into the
+roadmap. Move detail to its owner and leave a short link where readers need it.
+Keep generated study logs, wheel artifacts, and participant records outside the
+committed documentation; retain their identities and locations in the study
+handoff record as described by the build guide.
 
 ## Development Guidelines
+
+This repository follows the local SAED 1.3 adoption profile in
+[docs/SAED_ADOPTION_PROFILE.md](docs/SAED_ADOPTION_PROFILE.md). Route material
+changes before implementation, name a work packet for L2/L3 work, preserve its
+baseline and evidence ceiling, and close technical shipment separately from
+external outcome validation. Use a `codex/` feature branch, focused named-file
+commits, a pull request, hosted checks, merge, and a clean post-merge test for a
+release slice. The closed [GEX-OFFLINE-001 packet](docs/work-packets/GEX-OFFLINE-001.md)
+records the `0.5.0` offline product integration and release evidence. The closed
+[GEX-LIVE-001 packet](docs/work-packets/GEX-LIVE-001.md) records that complete
+workflow for the `0.4.0` pre-live hardening slice. The earlier
+[GEX-ORC-001 packet](docs/work-packets/GEX-ORC-001.md) remains a structural
+example. A new routed packet is required for any unrelated L2/L3 change. A
+credentialed certification run is external observation, not permission to
+change readiness or retain data without its own authority.
 
 - Keep market-data adapters separate from calculation logic.
 - Keep GEX math deterministic and covered by focused tests where possible.
 - Prefer vectorized NumPy operations in `gex_terminal/engine.py`.
+- Price schema-v2 rows with their contract-specific model, DTE, and multiplier
+  before aggregating equal strikes.
+- Preserve the historical schema-v1 behavior unless a documented migration
+  explicitly replaces it.
 - Avoid committing generated files, local virtual environments, logs, or caches.
 - Keep credentials and user-specific settings in environment variables.
 - Use small, focused pull requests when changing calculation behavior.
 - Document any financial-market assumptions that affect displayed metrics.
+- Keep provider readiness (`offline-certified`, `delayed`, `scaffold`,
+  `live-uncertified`, `live-certified`) separate from runtime connection state.
 
 ## Market-Data Adapter Guidelines
 
 Provider adapters should normalize incoming data before it reaches
-`StatefulGexConsumer`. The consumer expects JSON messages shaped like:
+`StatefulGexConsumer`. [docs/adapters.md](docs/adapters.md) is the canonical
+normalized-message contract and contains the current schema-v2 examples,
+allowed IV sources, timing rules, and provider implementation notes. Do not copy
+that schema into contribution guides or provider-specific docs; link to it and
+document only the provider's mapping differences.
 
-See [docs/adapters.md](docs/adapters.md) for the current adapter contract and
-provider implementation notes.
+Preserve provider-scoped contract identity, event time, quantity semantics,
+position-source separation, multiplier, instrument class, IV provenance, and
+expiry authority. Never add open interest and trade volume together or hide a
+configured fallback IV.
 
-```json
-{
-  "type": "options_volume_tick",
-  "strike": 5000,
-  "option_type": "C",
-  "volume": 100,
-  "iv": 0.15
-}
-```
-
-Underlying ticks should be shaped like:
-
-```json
-{
-  "type": "underlying_tick",
-  "symbol": "ES",
-  "price": 5000.25
-}
-```
+For Databento work, treat SDK subscription return values as local request IDs,
+not provider acknowledgements. Preserve provider maybe-bad-book flags and
+observed ordering; do not classify every discontinuity in a trade-only venue
+sequence as feed loss. Keep reconnect callback, post-reconnect frame, and
+per-schema record/error evidence distinct; do not infer acknowledgements the
+SDK does not expose.
 
 If you add a provider, please document:
 
 - Required credentials and permissions.
 - Whether data is live, delayed, demo, or replayed.
 - How option symbols map to strike, expiration, and call/put fields.
+- Contract ID stability, event-time timezone, quantity semantics, position
+  source, multiplier, and instrument class.
 - Known limitations or provider-specific assumptions.
+
+If adding captured-session fixtures, never include raw authentication frames,
+tokens, account identifiers, or data that cannot be redistributed. See
+[docs/captured-sessions.md](docs/captured-sessions.md). Live capture requires a
+validated policy before connection, and captured-session corpus registration
+requires its exact matching approved policy plus verified redaction. The full
+gate is in [docs/capture-governance.md](docs/capture-governance.md).
 
 ## Pull Request Checklist
 
@@ -136,11 +317,24 @@ Before opening a pull request, please confirm:
 
 - The app still imports and compiles.
 - No secrets or local-only files are included.
-- New behavior is documented in the README or comments where appropriate.
+- New behavior is documented in its canonical topic guide. Update the README
+  only when the front-door install, quick-start, status, or workflow routing
+  changes.
+- Local file and heading links pass validation; renamed headings have updated
+  incoming links.
+- Architectural changes reconcile the C4 views, component/ownership prose, and
+  any affected derived SVG; screenshots and mockups retain their evidence labels.
+- Study-build handoffs identify the tested commit, wheel, environment and input
+  hashes without claiming participant results from an automated rehearsal.
 - Calculation changes include tests or clearly described manual verification.
+- Model evidence still reports predictive market validity as `unmeasured`
+  unless a separate, reviewable validation design proves a narrower claim.
 - Generated local output such as `demo_lab/`, `research_journal/`, and
   `historical_sessions/` is not included.
 - UI changes can be exercised with mock data or documented sample input.
+- Experiment manifests reproduce semantically and corpus verification passes
+  without committing private or licensed source data.
+- Generated performance reports retain the exact budgets and environment used.
 
 ## Reporting Issues
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -15,6 +16,7 @@ from gex_terminal.config import GexConfig
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.market_data_adapter import dumps_normalized_message
+from gex_terminal.package_data import portable_package_data_reference
 from gex_terminal.snapshot import build_snapshot
 
 
@@ -36,7 +38,7 @@ async def inject_provider_fixture(
     metadata_path: str | Path | None = None,
     underlying_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Inject a raw provider fixture through the same consumer/engine path as live data."""
+    """Replay a raw provider fixture through the provider mapping and model path."""
     fixture = Path(fixture_path)
     if not fixture.exists():
         raise FileNotFoundError(f"Provider fixture not found: {fixture}")
@@ -46,10 +48,10 @@ async def inject_provider_fixture(
         IntradayGexEngine(multiplier=config.contract_multiplier),
         target_underlying=config.symbol,
         risk_free_rate=config.risk_free_rate,
-        data_mode="live",
+        data_mode="replay",
         stale_after_seconds=config.stale_after_seconds,
+        expiry_filter=config.expiry_filter,
     )
-    consumer.mark_connected()
 
     if resolved_format == "tradovate":
         await _inject_tradovate(consumer, config, fixture, metadata_path)
@@ -62,7 +64,10 @@ async def inject_provider_fixture(
     else:
         raise ValueError(f"Unsupported provider fixture format: {resolved_format}")
 
-    data = await consumer.process_latest_snapshot(days_to_expiry=config.days_to_expiry)
+    data = await consumer.process_latest_snapshot(
+        days_to_expiry=config.days_to_expiry,
+        expiry_filter=config.expiry_filter,
+    )
     if "error" in data:
         raise ValueError(f"Injected fixture did not produce a computable snapshot: {data['error']}")
 
@@ -81,9 +86,18 @@ async def inject_provider_fixture(
     snapshot["provider_injection"] = {
         "provider": provider,
         "fixture_format": resolved_format,
-        "fixture": str(fixture),
-        "metadata": str(metadata_path) if metadata_path else None,
-        "underlying_fixture": str(underlying_path) if underlying_path else None,
+        "source_kind": "offline_provider_fixture",
+        "network_used": False,
+        "mapping_status": "computed",
+        "fixture": portable_package_data_reference(fixture),
+        "metadata": (
+            portable_package_data_reference(metadata_path) if metadata_path else None
+        ),
+        "underlying_fixture": (
+            portable_package_data_reference(underlying_path)
+            if underlying_path
+            else None
+        ),
         "normalized_messages": consumer.message_count,
     }
     snapshot["feed_quality"] = consumer.feed_quality_snapshot()
@@ -97,6 +111,7 @@ def provider_injection_summary(snapshot: Mapping[str, Any]) -> str:
     metrics = snapshot.get("metrics", {})
     return "\n".join((
         f"Injected {injection.get('fixture_format', 'provider')} fixture: {injection.get('fixture')}",
+        "Source: offline provider fixture  Network used: no",
         f"Symbol: {snapshot.get('symbol')}  Spot: {float(snapshot.get('spot', 0.0)):,.2f}",
         (
             f"Gamma wall: {float(metrics.get('gamma_wall', 0.0)):,.2f}  "
@@ -110,7 +125,13 @@ def provider_injection_summary(snapshot: Mapping[str, Any]) -> str:
         ),
         (
             f"Subscription: {quality.get('subscription_status', 'unknown')}  "
-            f"Subscribed symbols: {quality.get('subscribed_symbol_count', 0)}  "
+            f"Subscribed symbols: {quality.get('subscribed_symbol_count', 0)}"
+        ),
+        (
+            f"Mapping: {injection.get('mapping_status', 'unknown')}  "
+            f"Runtime: {quality.get('status', 'unknown')}  "
+            f"Mode: {quality.get('data_mode', 'unknown')}  "
+            f"Connection: {quality.get('connection_state', 'unknown')}  "
             f"Health: {quality.get('health', 'unknown')}"
         ),
     ))
@@ -179,16 +200,32 @@ async def _inject_yfinance(consumer: StatefulGexConsumer, fixture: Path) -> None
     )
     if price is None:
         price = _first_float(payload, "underlying_price", "underlyingPrice", "price")
+    observed_at = str(payload.get("observed_at") or "").strip() or (
+        datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    )
     await _emit_normalized(consumer, {
+        "schema_version": 2,
         "type": "underlying_tick",
+        "provider": "yfinance",
         "symbol": str(payload.get("symbol") or consumer.target_underlying).upper(),
         "price": price,
+        "event_time": observed_at,
     })
 
     adapter = YfinanceAdapter(consumer=consumer, target_underlying=consumer.target_underlying)
     rows = [
-        *adapter._normalized_option_rows(payload.get("calls", ()), "C", expiry),
-        *adapter._normalized_option_rows(payload.get("puts", ()), "P", expiry),
+        *adapter._normalized_option_rows(
+            payload.get("calls", ()),
+            "C",
+            expiry,
+            observed_at=observed_at,
+        ),
+        *adapter._normalized_option_rows(
+            payload.get("puts", ()),
+            "P",
+            expiry,
+            observed_at=observed_at,
+        ),
     ]
     consumer.mark_subscribed(len(rows))
     consumer.record_provider_frame()

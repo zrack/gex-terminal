@@ -1,0 +1,36 @@
+{
+  "schema": "gex-terminal.experiment-spec.v1",
+  "experiment_id": "example-price-action-v1",
+  "workflow": "price_action_evaluate",
+  "input": "price_action_validation_example.json",
+  "model_profile": {
+    "schema": "gex-terminal.model-profile.v1",
+    "profile_id": "es-offline-research-v1",
+    "model_version": "gex-terminal.gex-model.v2",
+    "symbol": "ES",
+    "contract_multiplier": 50,
+    "risk_free_rate": 0.045,
+    "days_to_expiry": 0.25,
+    "expiry_filter": "all",
+    "pricing": {
+      "futures_options": "black_76",
+      "equity_index_options": "black_scholes",
+      "day_count": "ACT/365"
+    },
+    "position_models": [
+      "open_interest",
+      "raw_trade_volume",
+      "directionalized_trade_volume"
+    ],
+    "minimum_directional_coverage": 0.5,
+    "maximum_underlying_age_seconds": 2.0,
+    "predictive_validity": "unmeasured"
+  },
+  "as_of": "2026-08-06T16:00:00Z",
+  "split": "test",
+  "outcome_definition": "Descriptive level touch and crossing only",
+  "cost_assumptions": {
+    "fees": "not_applicable_no_strategy",
+    "slippage": "not_applicable_no_strategy"
+  }
+}

@@ -1,8 +1,7 @@
 # Historical Research Journal
 
-The Historical Research Journal saves replay-session studies as local JSON
-entries, then lets you list, compare, and export them later. It is designed for
-offline research before live market-data access is available.
+The Historical Research Journal saves replay or captured-session studies as
+local JSON entries, then lets you list, compare, and export them later.
 
 ## Why Use It
 
@@ -14,8 +13,8 @@ offline research before live market-data access is available.
 - Keep generated research output local by default.
 
 The default journal directory is `research_journal/`, and it is ignored by Git.
-Do not store live provider payloads, credentials, account identifiers, or
-proprietary data in journal entries.
+Do not store raw provider frames, credentials, account identifiers, or
+unlicensed proprietary data in journal entries.
 
 ## Add Entries
 
@@ -25,6 +24,18 @@ Save a replay session into the local journal:
 gex-terminal journal add --replay-session trend-day
 gex-terminal journal add --replay-session zero-gamma-flip
 ```
+
+Replay an internally verified captured session into a journal entry:
+
+```bash
+gex-terminal journal add \
+  --captured-session /tmp/trend-day.gex-session.jsonl \
+  --journal-dir /tmp/gex_journal
+```
+
+The journal stores the capture's source and integrity metadata with the computed
+study. It does not embed raw provider frames. See
+[captured-sessions.md](captured-sessions.md).
 
 Entries are written under:
 
@@ -36,6 +47,7 @@ Each entry contains:
 
 - Replay source metadata.
 - Runtime model inputs such as symbol, expiry, risk-free rate, and multiplier.
+- Capture source/integrity metadata when a captured session was used.
 - Session summary metrics.
 - Replay alerts.
 - Timeline events.
@@ -108,8 +120,9 @@ gex-terminal journal report /tmp/gex_journal.md --journal-dir /tmp/gex_journal
 
 ## Contributor Workflow
 
-1. Run or update a replay fixture.
-2. Save a journal entry with `gex-terminal journal add --replay-session NAME`.
+1. Run or update a packaged replay fixture, or select a verified capture.
+2. Save a journal entry with `--replay-session NAME` or
+   `--captured-session PATH`.
 3. Compare against the previous entry with `gex-terminal journal compare`.
 4. Export Markdown for an issue or pull request.
 5. Include the fixture, model, or export change that explains the journal delta.

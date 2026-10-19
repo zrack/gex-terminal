@@ -65,6 +65,13 @@ def snapshot_to_csv(snapshot: Dict[str, Any]) -> str:
             "value": feed_quality.get("health"),
             "notes": "; ".join(feed_quality.get("notes", ())),
         })
+    for name, value in snapshot.get("model", {}).items():
+        writer.writerow({
+            "record_type": "model",
+            "name": name,
+            "label": name.replace("_", " ").title(),
+            "value": json.dumps(value) if isinstance(value, (list, dict)) else value,
+        })
     for alert in snapshot.get("alerts", ()):
         writer.writerow({
             "record_type": "alert",
@@ -124,6 +131,45 @@ def snapshot_to_markdown(snapshot: Dict[str, Any]) -> str:
         lines.extend(["", "## Expiry Breakdown", ""])
         for expiry, value in snapshot["expiry_breakdown"].items():
             lines.append(f"- `{expiry}`: `{_money(value)}`")
+    if snapshot.get("model"):
+        model = snapshot["model"]
+        lines.extend([
+            "",
+            "## Model Provenance",
+            "",
+            f"- Model version: `{model.get('model_version', '--')}`",
+            f"- Normalized schemas: `{', '.join(str(value) for value in model.get('normalized_schema_versions', ())) or '--'}`",
+            f"- Pricing models: `{', '.join(model.get('pricing_models', ())) or '--'}`",
+            f"- Configured fallback multiplier: `{model.get('configured_contract_multiplier', '--')}`",
+            f"- Effective calculation multipliers: `{', '.join(str(value) for value in model.get('multiplier_provenance', {}).get('effective_multipliers', ())) or 'unreported'}`",
+            f"- Multiplier provenance: `{model.get('multiplier_provenance', {}).get('status', 'unreported')}`",
+            f"- Rows using fallback multiplier: `{model.get('multiplier_provenance', {}).get('fallback_row_count', 'unreported')}`",
+            f"- Position sources: `{', '.join(model.get('position_sources', ())) or '--'}`",
+            f"- Expiry filter: `{model.get('expiry_filter', 'all')}`",
+            f"- Units: `{model.get('units', '--')}`",
+            f"- Day count: `{model.get('day_count_convention', '--')}`",
+            f"- Gamma aggregation: `{model.get('gamma_aggregation', '--')}`",
+            f"- Zero-gamma semantics: `{model.get('zero_gamma_semantics', '--')}`",
+        ])
+    if snapshot.get("directionalized"):
+        directional = snapshot["directionalized"]
+        lines.extend([
+            "",
+            "## Directionalized Volume Model",
+            "",
+            f"- Status: `{directional.get('status', '--')}`",
+            f"- Direction coverage: `{float(directional.get('directional_coverage', 0.0)):.1%}`",
+            f"- Known direction volume: `{float(directional.get('known_direction_volume', 0.0)):,.0f}`",
+            f"- Unknown direction volume: `{float(directional.get('unknown_direction_volume', 0.0)):,.0f}`",
+            f"- Participant classification: `{directional.get('participant_classification', 'unobserved')}`",
+            f"- Predictive validity: `{directional.get('predictive_validity', 'unmeasured')}`",
+        ])
+        if directional.get("status") == "available":
+            lines.extend([
+                f"- Directionalized net GEX: `{_money(directional['total_net_gex'])}`",
+                f"- Directionalized gamma wall: `{float(directional['gamma_wall_strike']):,.1f}`",
+                f"- Directionalized zero gamma: `{float(directional['zero_gamma_strike']):,.1f}`",
+            ])
     if snapshot.get("feed_quality"):
         quality = snapshot["feed_quality"]
         lines.extend([

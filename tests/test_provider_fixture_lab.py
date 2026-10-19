@@ -9,6 +9,8 @@ from gex_terminal.config import GexConfig
 from gex_terminal.provider_fixture_lab import (
     build_provider_fixture_lab_report,
     bundled_provider_fixture_cases,
+    provider_fixture_case_command,
+    provider_fixture_case_for_name,
     provider_fixture_lab_to_csv,
     provider_fixture_lab_to_markdown,
     write_provider_fixture_lab_report,
@@ -33,6 +35,14 @@ def _config():
 
 
 class ProviderFixtureLabTests(unittest.IsolatedAsyncioTestCase):
+    def test_bundled_case_commands_use_installed_package_selector(self):
+        for case in bundled_provider_fixture_cases():
+            self.assertEqual(
+                provider_fixture_case_command(case),
+                f"gex-terminal inject-provider bundled:{case.name}",
+            )
+            self.assertEqual(provider_fixture_case_for_name(case.name), case)
+
     async def test_builds_provider_fixture_lab_report_across_bundled_cases(self):
         report = await build_provider_fixture_lab_report(_config())
 
@@ -40,7 +50,9 @@ class ProviderFixtureLabTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(report["scorecard"]["total"], len(bundled_provider_fixture_cases()))
         self.assertEqual(report["scorecard"]["passed"], len(bundled_provider_fixture_cases()))
         self.assertEqual(report["scorecard"]["failed"], 0)
-        self.assertGreaterEqual(report["scorecard"]["degraded"], 1)
+        self.assertEqual(report["scorecard"]["healthy"], 0)
+        self.assertEqual(report["scorecard"]["simulated"], 3)
+        self.assertEqual(report["scorecard"]["degraded"], 2)
 
         summaries = {
             result["name"]: result["summary"]
@@ -49,6 +61,14 @@ class ProviderFixtureLabTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(summaries["tradovate-live-sample"]["health"], "degraded")
         self.assertEqual(summaries["databento-glbx"]["symbol"], "ES")
         self.assertEqual(summaries["yfinance-etf-options"]["symbol"], "SPY")
+        for summary in summaries.values():
+            self.assertEqual(summary["source_kind"], "offline_provider_fixture")
+            self.assertFalse(summary["network_used"])
+            self.assertEqual(summary["mapping_status"], "computed")
+            self.assertEqual(summary["status"], "REPLAY")
+            self.assertEqual(summary["data_mode"], "REPLAY")
+            self.assertEqual(summary["connection_state"], "DISCONNECTED")
+            self.assertNotEqual(summary["health"], "healthy")
         self.assertIn("snapshot", report["cases"][0])
 
     async def test_formats_provider_fixture_lab_markdown_csv_and_json(self):
@@ -59,7 +79,15 @@ class ProviderFixtureLabTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("# Offline Provider Fixture Workbench", markdown)
         self.assertIn("Tradovate Live Frames", markdown)
+        self.assertIn("- Healthy live: `0`", markdown)
+        self.assertIn("- Simulated: `3`", markdown)
+        self.assertIn("| Mode | Network | Health |", markdown)
+        self.assertIn("network used `no`; runtime `REPLAY` / `DISCONNECTED`", markdown)
+        self.assertIn("historical compatibility field", markdown)
+        self.assertIn("not a portfolio root", markdown)
         self.assertIn("databento-glbx", {row["case"] for row in csv_rows})
+        self.assertEqual({row["network_used"] for row in csv_rows}, {"False"})
+        self.assertEqual({row["data_mode"] for row in csv_rows}, {"REPLAY"})
 
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)

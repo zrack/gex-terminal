@@ -1,158 +1,181 @@
-# Market Analysis
+# Competitive Landscape and Product Strategy
 
-Snapshot reviewed June 12, 2026. Pricing, data entitlements, and platform
-features change frequently; verify provider pages before publishing hard claims.
+Reviewed October 18, 2026 against the current `0.6.0` source and first-party
+vendor materials. This replaces the September 3 / `0.4.0` capability snapshot;
+earlier assessments remain in Git. [Application Review](application-review.md)
+owns current capabilities and historical verification limits;
+[Roadmap](../ROADMAP.md) owns sequencing, authorization and exit gates.
+Pricing, coverage, rights and product features change: recheck linked sources
+before a purchase or commercial decision.
 
-`gex-terminal` sits in a small but active market: options-market-structure tools
-that turn option-chain data into gamma exposure levels, dealer-positioning
-context, and intraday support/resistance zones.
+## Assessment
 
-## Current Positioning
+The project has a substantial offline research foundation. Its best product
+hypothesis is a bring-your-own-data futures workbench that lets a researcher
+inspect what produced a structural read, test the assumptions that change it,
+and reproduce the explanation later. That combination still needs observed
+repeat use and willingness-to-pay evidence.
 
-`gex-terminal` is currently best positioned as an open-source, local-first
-research terminal for traders and developers who want to understand and extend
-GEX calculations rather than subscribe to a closed web dashboard.
+Native futures coverage, Black-76, GEX charts, scenarios, higher Greeks, replay,
+APIs, MCP and reproducible packs individually already have substitutes. The
+commercial test is whether contract semantics, visible data limitations,
+controlled model disagreement, local inputs and preserved calculation identity
+make a recurring investigation materially easier. This is a product hypothesis,
+not a uniqueness, adoption or trading-performance claim.
 
-Current strengths:
+## Method and Evidence Boundary
 
-- Open-source and inspectable math.
-- Fast terminal UI instead of a browser dashboard.
-- Local demo/replay mode for no-credential testing.
-- Provider adapter architecture for Tradovate, Databento, IBKR, yfinance, and
-  replay data.
-- Strike-level GEX matrix, gamma wall, zero-gamma node, call/put imbalance, and
-  market-structure metrics.
+The October review combined current source and canonical project documents,
+recent merged repair packets, and official vendor product, pricing, method and
+source pages. It did not include paid trials, independently measured vendor
+latency or uptime, customer interviews, retention, subscriber verification,
+contract advice or trading-performance measurement. Vendor claims remain
+vendor claims. An undocumented public detail is unknown, not assumed absent.
 
-Current constraints:
+The supporting full assessment is a derived local report; it does not replace
+source authorities or promote readiness. Historical engineering results are
+retained in [Application Review](application-review.md). Current strategy must
+not interpret those results as user acceptance, live-provider certification or
+predictive validity.
 
-- Live provider integrations are still early.
-- Uses cumulative intraday volume as a practical open-interest proxy until
-  stronger live/open-interest data is wired in.
-- Does not yet model dealer/customer trade direction.
-- Does not include options flow, dark-pool prints, mobile apps, alerts,
-  TradingView overlays, execution, or broad equity scanning.
+## Current Product Truth
 
-## Similar Products
+| Foundation available | Material boundary |
+| --- | --- |
+| Contract-aware Black-76/Black-Scholes, effective multipliers and explicit pricing/IV/time provenance | Exercise style, exact expiry/session calendars and declared approximations need a supported-domain policy |
+| Separate OI, raw-trade-volume and aggressor-directionalized models, with contribution and disagreement reports | They are distinct proxies; dealer/customer and opening/closing states remain unobserved |
+| Captures, deterministic replay, journals, experiments, corpus registration, model profiles and portable receipts | Authorized input, point-in-time eligibility and the retained executable environment are separate obligations |
+| Browser Wind Tunnel, scenarios, expiry removal, comparison, sampled fragility and saved receipts; explicit immutable Terminal checkpoint handoff | Default launch uses bundled replays; explicit checkpoint launch accepts frozen demo/replay state, not a general importer, live capture or continuous synchronization |
+| Reviewed wheel setup, reusable offline starter, managed combined launch, diagnostics and backup/recovery | Python remains required; signed native distribution and generalized licensed-capture migration are not established |
+| Exports, static TradingView overlay and a capability-protected Wind loopback HTTP service | The internal service is not a supported public SDK/REST/MCP contract; continuous chart synchronization is not shipped |
+| Databento provider normalization and offline multiplier/product/OI repairs; Tradovate ACK-frame repair | Databento remains `live-uncertified`; Tradovate/IBKR remain `scaffold`; fixtures cannot certify actual access or payload coverage |
 
-| Product | Typical Cost | Closest Functionality | Notes |
-| --- | ---: | --- | --- |
-| [SpotGamma](https://spotgamma.com/) | Essential $99/mo, Alpha $299/mo; annual discounts available | GEX levels, call/put walls, zero gamma, volatility trigger, real-time TRACE, 0DTE tools | One of the category leaders. Strongest benchmark for proprietary dealer-positioning models and market commentary. |
-| [MenthorQ](https://menthorq.com/) | Premium $129/mo after first-month promo; Pro $349/mo after first-month promo | Futures gamma levels, net GEX, intraday gamma models, dashboards, platform integrations | Strong overlap with ES/NQ workflow and futures traders. |
-| [GammaEdge](https://www.gammaedge.com/) | $150/mo monthly or $125/mo billed annually | Options market-structure levels, Discord bots, trend model | More community/Discord-oriented than terminal-oriented. |
-| [Quant Data](https://quantdata.us/) | Starts around $62.50/mo for dashboard; API annual plan shown at $124.99/mo | Options flow, dealer exposure, GEX/DEX/VEX/CHEX, dark-pool prints, alerts, apps | More of a full options-flow and market-data platform than a focused GEX terminal. |
-| [Unusual Whales](https://unusualwhales.com/pricing) | Around $48-$50/mo monthly; annual around $528-$530 | Live options flow, dark pools, market maker / Greek exposure pages, API | Cheaper broad flow platform; less specialized around futures GEX than SpotGamma/MenthorQ. |
-| [Barchart](https://www.barchart.com/stocks/quotes/%24SPX/gamma-exposure) | Free tier; Plus $9.99/mo; Premier $29.95/mo | Gamma exposure charts based on OPRA data, options pages, screeners | Good free/low-cost comparison point. More website/data-table oriented. |
-| [OptionCharts](https://optioncharts.io/) | Free basic features; paid Premium/Ultimate plans | GEX, DEX, historical options metrics, contract history | Free basic GEX is useful for research, but advanced indicators and real-time data are paid. |
-| [TradingView](https://www.tradingview.com/) | Free; paid plans from $12.95/mo to $199.95/mo when billed annually, plus exchange data fees | Charting, options chains, Greeks, IV, Pine scripts, alerts, broker integrations | Excellent charting layer. Not a dedicated native dealer-GEX engine, though community scripts and integrations can approximate levels. |
-| [Schwab thinkorswim](https://www.schwab.com/trading/thinkorswim) | No platform fee for Schwab clients; trading costs still apply | Options chains, Greeks, risk profile, probability analysis, paperMoney, scans, execution | Very strong broker platform, but not a purpose-built aggregate GEX/dealer-positioning terminal. |
+The checkpoint implementation connects existing capabilities: `w` freezes
+demo/replay Terminal state, while `--wind-tunnel-checkpoint PATH` and
+`wind-tunnel --checkpoint PATH` provide explicit local CLI transfer. The
+`terminal_selected` model preserves Terminal's per-contract trade-first/OI
+fallback selection. Self-contained receipts preserve the detached input and
+assumption identity for reproduction without the original file/server.
+[Wind Tunnel](wind-tunnel.md) owns the user/receipt contract and
+[GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns integration
+evidence. This connection does not establish observed user value or authorize
+live capture; general historical intake and recurring investigation remain
+separate product questions.
 
-## Free Alternatives
+A substantive remaining gap is option-chain quality. The current Databento path
+uses option trades to derive IV without subscribing to option bid/ask quotes.
+Continuing underlying updates can keep stream health fresh while particular
+option IVs remain older or use fallbacks. A usable chain-health surface must
+separate per-option model-input quality from connection/stream freshness.
+Provider quote initialization and its IV policy need separately routed work.
 
-Free or mostly free alternatives exist, but they generally come with tradeoffs:
+No recorded participant activation, tested price, commercial data agreement or
+supported recurring live operating envelope is established by this review.
+`predictive_validity` remains `unmeasured`.
 
-- [SpotGamma free tools](https://spotgamma.com/free-tools/) provide free
-  market snapshots such as an SPX gamma exposure chart.
-- [Barchart GEX pages](https://www.barchart.com/stocks/quotes/%24SPX/gamma-exposure)
-  expose gamma exposure charts, with paid tiers for deeper site features.
-- [OptionCharts](https://optioncharts.io/docs/) has free basic access, with
-  advanced charts, downloads, and real-time data behind paid plans.
-- TradingView has a free tier and community scripts, but reliable GEX scripts
-  often depend on manually maintained levels, paid indicators, or external data.
-- Broker platforms such as thinkorswim can be free to clients, but they usually
-  provide contract-level options analytics rather than aggregate dealer-flow
-  models.
+## Current Market Benchmarks
 
-The open-source gap is real: there are free pages and free scripts, but fewer
-transparent, local-first tools that expose the calculation path and let
-contributors add data adapters.
+These are different bundles and jobs. Prices below are the regular public
+monthly offers observed on the review date, not comparable total costs;
+professional status, exchange fees, rights and usage limits can change them.
 
-## Do Schwab And TradingView Have This?
+| Product or substitute | Officially documented overlap | Consequence for this project |
+| --- | --- | --- |
+| [MenthorQ](https://menthorq.com/pricing/) | Premium $129/month after introductory pricing; Pro $349. Its [gamma guide](https://menthorq.com/academy/gamma-levels/lessons/understanding-gamma-levels/) describes native options-on-futures analytics. Integrations and education are prominent. | Native ES/NQ availability alone is insufficient differentiation. Test inspectability and the research workflow rather than assuming a coverage gap. |
+| [FlashAlpha](https://flashalpha.com/pricing) | Growth $299/month, Alpha $1,499; [native ES/NQ/API coverage](https://flashalpha.com/for-ai-agents). Its [official futures integration notes](https://github.com/FlashAlpha-lab/flashalpha-mcp#futures-cme) describe futures historical replay as forthcoming. | Direct developer competition; an API, MCP surface or Black-76 calculation alone is a weak commercial boundary. |
+| [GammaTape](https://gammatape.com/methodology) | Starter $24, Pro $49, Max $99/month; 30/90-day replay. Inputs are SPX/SPY and NDX/QQQ same-day chains, translated to futures context using basis or ratios. | Strong low-price competition for delivered levels. Preserve the distinction between mapped cash/ETF context and native CME option contracts. |
+| [GEXBot](https://docs.gexbot.com/) | Positioning/flow models, higher Greeks, history, APIs, research tools and chart integrations. Its [URL guide](https://docs.gexbot.com/tools/urls/) includes synthetic index-to-future combinations. | OI/flow separation, history and higher Greeks already have commercial substitutes. Native CME chain support was not established by the reviewed documentation. |
+| [SpotGamma](https://spotgamma.com/subscribe-to-spotgamma/) | Research, proprietary positioning/flow views, IV and calculator workflows. The reviewed public pricing page contains inconsistent tier/price text, so no single clean price is asserted here. | Polished interpretation and daily habit are substantial competition. A technically richer model needs a coherent recurring user job. |
+| [OptionsDepth](https://www.optionsdepth.com/faq) | Intraday positioning/history and API access; the FAQ describes minute snapshots and a 30-day intraday lookback, with separate API fees/limits. | A scenario surface or history alone is insufficient; input semantics, reproducibility and the workflow matter. |
+| [CME QuikStrike](https://www.cmegroup.com/tools-information/quikstrike.html) | Options pricing, Greeks, volatility, OI/volume and strategy tools, with free introductory analytics. | Standard calculations and basic scenario work already have an established exchange-backed substitute. |
+| [IBKR Risk Navigator](https://www.interactivebrokers.com/en/trading/risk-navigator.php) | Actual/hypothetical portfolio risk and price/volatility/time scenarios. IBKR separately offers [CME equity-index options](https://www.interactivebrokers.com/en/trading/cme-equity-index-options-on-futures.php). | Broad portfolio risk is a different competitive choice. Specific ES/NQ workflow behavior was not independently tested. |
+| [Databento](https://databento.com/pricing/) | CME Standard $199/month for personal use; raw market data and historical usage-based access. Its [official Greeks tutorial](https://databento.com/blog/option-greeks) already demonstrates historical/live Black-76 analytics and a dashboard. | A shared historical/live calculation pipeline alone is not distinctive. Personal data access does not authorize redistribution. |
+| [QuantLib](https://github.com/lballabio/QuantLib/blob/master/ql/pricingengines/blackcalculator.hpp), [OpenBB](https://docs.openbb.co/odp/python/reference/cboe/options/chains), [Strata](https://strata.opengamma.io/product_coverage/) | Independent Black-model math, options-data tooling and scenario infrastructure respectively. Reviewed OpenBB/Strata pages do not establish a turnkey native ES/NQ chain workflow. | Reuse independent checks and interoperable inputs where useful; an open math kernel alone is a weak moat. |
+| [ThetaData](https://www.thetadata.net/faq) | The FAQ says CME futures are not currently supplied; the [roadmap](https://www.thetadata.net/roadmap) places futures/options on the horizon. | Announced coverage is not an available ES/NQ dependency. |
 
-Schwab's thinkorswim has a strong options workflow: option chains, Greeks,
-simulated trades, risk profile, probability analysis, scanning, paper trading,
-and execution. It does not appear to offer a native aggregate dealer GEX terminal
-with gamma wall, zero-gamma, intraday dealer-flow modeling, and provider-adapter
-extensibility.
+### Replay and receipt distinctions
 
-TradingView has excellent charting, alerts, Pine Script, broker integrations,
-options chains, live option prices, Greeks, and implied volatility. It also has
-community or marketplace scripts for GEX-style levels. TradingView is useful as
-a visualization and alert layer, but it is not primarily a transparent GEX
-calculation engine.
+GammaTape states that archived sessions were recomputed after a September 27
+rule change. Its replay is documented as prior-only within a minute, but the
+method can be restated across history. That creates a useful product question:
+does a user need the calculation as originally produced, an intentional
+restatement under the current model, or both? Keep those identities separate;
+do not equate restatement with future-data leakage.
 
-## Typical Cost Ranges
+FlashAlpha's [October 17 changelog](https://flashalpha.com/docs/changelog)
+announces versioned, hash-verified research packs, initially a SPY/QQQ income
+pilot. It also documents expiry-impact/strike-dependency analytics. A blanket
+claim that only this project supplies reproducible packs or expiry
+concentration is therefore unsupported. Futures scope, exact model identity,
+authorized input portability and a usable local workflow are more precise
+comparison questions.
 
-Practical monthly ranges for this category:
+## Strategic Opening
 
-- Free to $30/mo: delayed/basic GEX pages, Barchart, free TradingView, basic
-  charting, limited tools.
-- $50 to $80/mo: broad retail options-flow platforms such as Unusual Whales or
-  entry Quant Data dashboard access.
-- $99 to $150/mo: specialized GEX/market-structure products such as SpotGamma
-  Essential, MenthorQ Premium, GammaEdge, or focused option calculators.
-- $200 to $350/mo: advanced/intraday/pro tiers such as SpotGamma Alpha,
-  MenthorQ Pro, or richer data/API workflows.
-- $199+/mo for direct futures data feeds: Databento CME Globex plans are data
-  infrastructure, not a trader-facing GEX app. They make sense when the project
-  needs direct normalized market data and can absorb data engineering work.
+The strongest opening remains a completed futures research loop:
 
-Data fees are separate from app fees. For example, Tradovate advertises no
-license fees on its platform tiers, but exchange data and trading fees still
-apply; its support pages list a CME Group bundle at $12/month for
-non-professional users. TradingView lists OPRA real-time options data at $2/month
-for non-professional users, in addition to any TradingView subscription.
+1. Bring one authorized source into a declared cutoff and contract scope.
+2. See missing, stale, fallback and excluded inputs before interpreting a level.
+3. Compare separate quantity models on identical inputs and inspect dissent.
+4. Carry the exact checkpoint into a controlled scenario.
+5. Explain the model-output change and preserve input/build identity.
+6. Reproduce and revisit the result, retaining null and failed-data cases.
 
-## Feature Gaps To Prioritize
+Scenario effects explain a model output under assumptions. They do not identify
+what caused a market move or establish a profitable trade. A governed real
+session corpus may strengthen this workflow over time, but that prospective
+asset is not an existing moat or a substitute for customer evidence.
 
-Features competitors commonly have that `gex-terminal` does not yet have:
+Historical research and a live tactical cockpit have different prerequisites.
+A rights-authorized historical workbench can test repeat use and payment before
+recurring live certification. A live offer additionally needs entitlement,
+chain-quality, timing, recurrence, recovery and support evidence. Neither path
+is selected solely by this competitive review.
 
-- Production-grade live option-chain discovery for ES/NQ and robust reconnects.
-- Official open-interest ingestion instead of relying on intraday volume proxy.
-- Multi-expiry views with explicit 0DTE filtering and expiration selection.
-- Dealer/customer direction inference to avoid naive call-positive/put-negative
-  assumptions.
-- Vanna, charm, delta exposure, vega exposure, and theta exposure.
-- Options-flow feed: sweeps, blocks, splits, premium, side, size, and filters.
-- Historical session storage, backtesting, and day-over-day level comparison.
-- Chart overlays and integrations for TradingView, NinjaTrader, Sierra Chart, or
-  Discord.
-- Alerts, webhooks, and level-crossing notifications.
-- Multi-symbol scanner for ES, NQ, SPX, SPY, QQQ, IWM, and single names.
-- Options P/L calculator with Greeks and volatility/time scenario controls.
-- Mobile/web dashboard for users who do not live in a terminal.
-- Data-quality panel showing provider latency, dropped messages, stale fields,
-  and entitlement failures.
+## Recommendations Routed To The Roadmap
 
-## Product Opportunity
+The checkpoint handoff is implemented in its bounded demo/replay scope, with
+integration status recorded in its packet. The remaining recommendations are
+hypotheses with explicit dependencies, not a feature bundle or delivery
+commitment:
 
-The attractive niche is not "cheaper SpotGamma." Competing head-on with
-proprietary positioning models and licensed real-time data would be expensive.
+- Follow the handoff with one supported user-owned capture/historical input
+  only when its recurring investigation and rights path are clear.
+- Prioritize chain-health/IV initialization, matched-result explanation,
+  preserved-build reproduction and explicit contract/session conventions.
+- Assemble the existing research tools into a daily review workflow before
+  creating a new backtester or storage system.
+- Consider skew/term-structure stresses only after IV inputs and surface policy
+  support them. Current uniform shifts are useful sensitivity tests.
+- Choose quality-aware alerts and one chart integration from observed demand;
+  the static TradingView export already exists.
+- Stabilize a small SDK/read-only domain interface for a named developer job;
+  MCP can be a later client of that contract.
+- Gate native-versus-proxy comparisons, selected higher Greeks and portfolio
+  P&L on licensed inputs, conventions and an observed task.
+- Defer broad provider/symbol coverage, generalized platform APIs, hosted/mobile
+  breadth, automated trade calls and free-form AI advice. Artifact-grounded
+  explanations need citations, abstention and testable evidence ceilings first.
 
-The better opening is:
+Keep the MIT kernel useful. Any paid offer must earn its value through the
+completed job, supported workflow and viable costs. Databento's personal data
+cost and cheap mapped-level competitors make raw-price competition unattractive;
+software pricing still requires actual offer tests, rights answers and observed
+support effort.
 
-- Open-source GEX research terminal.
-- Local-first and credential-safe.
-- Explainable model with transparent assumptions.
-- Provider-agnostic adapter system.
-- Replayable datasets for learning and reproducible research.
-- Fast ES/NQ intraday workflow for traders who already have data access.
+## Historical Context
 
-That makes `gex-terminal` interesting for contributors because they can improve
-the model, add providers, submit normalized payload fixtures, and build export or
-visualization tools without needing to join a closed commercial platform.
+The September assessment also reviewed Nightglass, Unusual Whales, Quant Data,
+Optionomics, TradingFlow and open dashboards. Those remain possible workflow
+benchmarks, but their earlier prices and feature inventories were not refreshed
+as part of this focused October comparison and are not current claims here.
+Nightglass's [terms](https://nightglass.trade/terms) restrict competitive reuse;
+public category lessons do not authorize copying interfaces, outputs or
+proprietary scoring. Earlier market-volume observations likewise retain their
+original observation periods in Git rather than being presented as October
+measurements.
 
-## Recommended Roadmap Additions
-
-- Add a `GEX_MODEL_NOTES.md` or docs section explaining the current assumptions,
-  especially volume-as-open-interest proxy, call/put sign convention, and
-  limitations versus proprietary dealer-positioning models.
-- Make one provider truly production-ready before widening the provider list.
-- Add a historical session store so users can replay, compare, and validate
-  levels against price action.
-- Add 0DTE and expiry selection as a first-class UI workflow.
-- Add vanna/charm/DEX metrics after the live option-chain model stabilizes.
-- Add alerting for gamma wall shifts, zero-gamma crosses, stale data, and major
-  exposure changes.
-- Add export formats designed for TradingView overlays or Discord posts.
-- Publish sample replay datasets so new users can evaluate the app without paid
-  data.
+[Roadmap](../ROADMAP.md) owns work order and gates;
+[Product Vision](product-vision.md) owns durable direction. This review does not
+authorize provider connections, purchases, data redistribution, commercial
+launch, readiness promotion or predictive claims.

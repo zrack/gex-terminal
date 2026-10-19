@@ -1,0 +1,33 @@
+{
+  "label": "synthetic-software-path-example",
+  "source_kind": "synthetic",
+  "minimum_directional_coverage": 0.5,
+  "observations": [
+    {
+      "timestamp": "2026-08-01T14:30:00Z",
+      "spot": 6000.0,
+      "directional_coverage": 0.8,
+      "models": {
+        "raw": {"gamma_wall": 6020.0, "zero_gamma": 5975.0},
+        "directionalized": {"gamma_wall": 6010.0, "zero_gamma": 5990.0}
+      },
+      "future_path": [
+        {"minutes": 5, "price": 6008.0},
+        {"minutes": 30, "price": 6021.0}
+      ]
+    },
+    {
+      "timestamp": "2026-08-02T14:30:00Z",
+      "spot": 5980.0,
+      "directional_coverage": 0.7,
+      "models": {
+        "raw": {"gamma_wall": 6000.0, "zero_gamma": 5960.0},
+        "directionalized": {"gamma_wall": 5990.0, "zero_gamma": 5970.0}
+      },
+      "future_path": [
+        {"minutes": 5, "price": 5972.0},
+        {"minutes": 30, "price": 5958.0}
+      ]
+    }
+  ]
+}

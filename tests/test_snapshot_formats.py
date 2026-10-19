@@ -32,6 +32,26 @@ def _snapshot():
             "concentration_ratio": 0.65,
             "concentration_band": [5950.0, 6000.0],
         },
+        "model": {
+            "schema_version": 2,
+            "model_version": "gex-terminal.gex-model.v2",
+            "normalized_schema_versions": [2],
+            "calculation_mode": "contract_v2",
+            "pricing_models": ["black_76"],
+            "position_sources": ["open_interest"],
+            "contract_count": 1,
+            "selected_contract_count": 1,
+            "expired_contract_count": 0,
+            "legacy_contract_fallback_count": 0,
+            "position_source_conflict_count": 0,
+            "expiry_filter": "0dte",
+            "units": "USD gamma exposure per 1% underlying move",
+            "day_count_convention": "ACT/365",
+            "gamma_aggregation": "quantity_weighted_mean",
+            "zero_gamma_method": "strike_profile_linear_interpolation",
+            "zero_gamma_semantics": "strike_profile_exposure_crossing",
+            "as_of": "2026-07-16T12:00:00Z",
+        },
         "expiry_breakdown": {"0DTE": 2_850_000_000.0},
         "feed_quality": {
             "health": "simulated",
@@ -64,6 +84,25 @@ def _snapshot():
 
 
 class SnapshotFormatsTests(unittest.TestCase):
+    def test_multiplier_source_remains_visible_when_numbers_are_equal(self):
+        snapshot = _snapshot()
+        snapshot["model"]["configured_contract_multiplier"] = 50
+        outputs = []
+        for status, count in (("contract_rows", 0), ("configured_fallback", 1)):
+            provenance = {
+                "status": status, "effective_multipliers": [50.0],
+                "fallback_row_count": count, "rows": [],
+            }
+            snapshot["model"]["multiplier_provenance"] = provenance
+            markdown = snapshot_to_markdown(snapshot)
+            self.assertIn(f"Multiplier provenance: `{status}`", markdown)
+            self.assertIn(f"Rows using fallback multiplier: `{count}`", markdown)
+            outputs.append(markdown)
+            rows = list(csv.DictReader(io.StringIO(snapshot_to_csv(snapshot))))
+            row = next(row for row in rows if row["name"] == "multiplier_provenance")
+            self.assertEqual(json.loads(row["value"]), provenance)
+        self.assertNotEqual(*outputs)
+
     def test_snapshot_csv_contains_metric_and_strike_rows(self):
         rows = list(csv.DictReader(io.StringIO(snapshot_to_csv(_snapshot()))))
 
@@ -71,6 +110,12 @@ class SnapshotFormatsTests(unittest.TestCase):
         self.assertIn("strike", {row["record_type"] for row in rows})
         self.assertIn("alert", {row["record_type"] for row in rows})
         self.assertIn("feed_quality", {row["record_type"] for row in rows})
+        self.assertIn("model", {row["record_type"] for row in rows})
+        model_names = {
+            row["name"] for row in rows if row["record_type"] == "model"
+        }
+        self.assertIn("model_version", model_names)
+        self.assertIn("units", model_names)
 
     def test_snapshot_markdown_contains_core_levels(self):
         markdown = snapshot_to_markdown(_snapshot())
@@ -80,6 +125,9 @@ class SnapshotFormatsTests(unittest.TestCase):
         self.assertIn("Zero gamma", markdown)
         self.assertIn("Replay Alerts", markdown)
         self.assertIn("Feed Quality", markdown)
+        self.assertIn("Model Provenance", markdown)
+        self.assertIn("black_76", markdown)
+        self.assertIn("ACT/365", markdown)
 
     def test_write_snapshot_export_by_extension(self):
         with tempfile.TemporaryDirectory() as tmp:
