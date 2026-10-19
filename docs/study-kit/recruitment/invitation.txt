@@ -1,0 +1,24 @@
+Subject: Try an offline ES/NQ research tool with me?
+
+Hi [FIRST NAME],
+
+I'm looking for six people who trade ES/NQ or use trading research tools to try GEX and tell me where it helps, where it's confusing, and where it gets in the way. You don't need experience with GEX.
+
+Would you be open to a 60-75 minute remote session? You'd share the relevant application window, try a few tasks, and talk through what you're thinking. We'll use supplied synthetic data. No provider account, live feed, personal trading records or trades are needed. Dependency installation may need internet access.
+
+This is a test of the software. Difficulties and honest criticism are useful. You can skip a question, pause or stop. Recording is optional; declining it doesn't prevent participation. The consent form also gives a separate choice about AI-assisted analysis of de-identified written notes.
+
+Incentive: [AMOUNT AND TERMS, OR NONE; INCLUDE EARLY-STOP TERMS]
+Consent information: [CONSENT FORM LINK OR ATTACHMENT]
+
+If interested, please reply with:
+- A sentence about your role and ES/NQ or research-tool experience.
+- Your computer's OS/chip and whether Python is available. "Not sure" is fine.
+- Your time zone and two or three possible times during [DATES].
+- Any access or setup needs you'd like us to plan for (optional).
+
+The kit was rehearsed on Apple Silicon with Python 3.12.13. We'll discuss other setups before scheduling. Please wait to install GEX or try its tasks until we meet; we can check prerequisites beforehand.
+
+Thanks,
+Scott
+[CONTACT EMAIL]

@@ -1,0 +1,20 @@
+Subject: Reminder: GEX session on [DAY] at [TIME, TIME ZONE]
+
+Hi [FIRST NAME],
+
+A quick reminder about our 60–75 minute GEX software session:
+
+When: [DAY, DATE, START–END TIME, TIME ZONE AND UTC OFFSET]
+Where: [PRIVATE MEETING LINK]
+Your participant ID: [P01–P06]
+Participant package: [PARTICIPANT-ONLY ZIP LINK]
+Consent form: [CONSENT FORM LINK OR ATTACHMENT]
+
+Please read the consent form, but leave GEX installation and the tasks for the session. Have your terminal and browser ready, and close private windows and notifications before screen sharing. We'll use supplied synthetic data, with no provider login or live trading.
+
+Recording is optional and needs separate consent. You can still participate without it, and you can pause or stop at any time.
+
+If you need to reschedule or have a setup or access question, reply to [CONTACT EMAIL].
+
+Thanks,
+Scott

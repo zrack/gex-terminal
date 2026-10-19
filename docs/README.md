@@ -18,7 +18,9 @@ status checklists into multiple files.
 | Market evidence | [Competitive Analysis](market-analysis.md) | Dated competitor/persona evidence and implications; not active delivery status |
 | Customer validation | [Product Validation](product-validation.md) | Interview/tasks, matched-fidelity concepts, scorecard, rights questions and assumption-based economics |
 | Study build handoff | [Study Build](study-build.md) | Exact source/wheel/runtime and frozen materials, automated rehearsal and build-record routing |
-| Dated study build evidence | [Study build records](studies/offline-first-use-2026-09-20.md) | Immutable artifact identities and technical rehearsal results; no private participant records |
+| Dated study build evidence | [Current guided-intake build](studies/guided-intake-2026-10-18.md) and [September build](studies/offline-first-use-2026-09-20.md) | Separate immutable cohort identities and technical rehearsal results; no private participant records |
+| Recruitment and scheduling | [Study Recruitment](study-recruitment.md) | Blank sources, participant-only delivery, consent choices and private organizer workflow |
+| Dated participant delivery | [October 18 delivery amendment](studies/participant-delivery-2026-10-18.md) | Exact participant/organizer archive identities and packaging evidence; no observed outcomes |
 | Install and first use | [First Run](first-run.md) | Reviewed wheel setup, Terminal/Wind Tunnel/Both starter, guided journey and package lifecycle |
 | Market Wind Tunnel | [Wind Tunnel](wind-tunnel.md) | Browser workflow, frozen Terminal checkpoint handoff, scenarios, sampled search, portable experiments and worked examples |
 | Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
@@ -37,8 +39,14 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns the
-roadmap reconciliation and offline Terminal checkpoint handoff acceptance.
+change. [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) owns the
+documentation, recruitment-source and branch closeout slice.
+Closed [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) records guided
+capture intake and the separately frozen current-build study integrated through
+[PR #41](https://github.com/zrack/gex-terminal/pull/41).
+Closed [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) records the
+roadmap reconciliation and offline Terminal checkpoint handoff integrated through
+[PR #40](https://github.com/zrack/gex-terminal/pull/40).
 Closed [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md) records the
 Databento issue #35 correctness fixes and offline verification integrated through
 [PR #36](https://github.com/zrack/gex-terminal/pull/36). Credentialed provider
@@ -85,6 +93,8 @@ offline live-population contract that supports that later external gate.
 - [First Run](first-run.md) — wheel installation and the guided research loop.
 - [Study Build](study-build.md) — freeze a reviewed wheel and materials before
   observed first use; the protocol remains in Product Validation.
+- [Study Recruitment](study-recruitment.md) — participant-only delivery, blank
+  invitation/consent and private scheduling for six observed sessions.
 - [Doctor](doctor.md) — safe text/JSON installation checks without provider I/O.
 - [Local Support](local-support.md) — safe diagnostics and private lifecycle.
 - [Replay Research](replay-research.md) — choose the right replay or local

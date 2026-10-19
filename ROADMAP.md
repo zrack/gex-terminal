@@ -8,10 +8,9 @@ belongs in [Competitive Landscape](docs/market-analysis.md).
 
 Priorities reviewed October 18, 2026 against the current `0.6.0` source and
 the refreshed [Competitive Landscape](docs/market-analysis.md) and
-[Application Review](docs/application-review.md). The maintainer authorized
-the checkpoint handoff into Wind Tunnel, followed by guided local-session
-intake and a separately frozen current-build study kit, with regression coverage,
-documentation and commit/merge. The implemented demo/replay handoff and its
+[Application Review](docs/application-review.md). The checkpoint handoff,
+guided native captured-session intake and separately frozen current-build
+study kit are merged. The implemented demo/replay handoff and its
 integration gates belong to [GEX-WIND-HANDOFF-001](docs/work-packets/GEX-WIND-HANDOFF-001.md);
 it is not repeated as future feature work here. [Wind Tunnel](docs/wind-tunnel.md)
 owns its user contract. [GEX-INTAKE-STUDY-001](docs/work-packets/GEX-INTAKE-STUDY-001.md)
@@ -23,15 +22,19 @@ owns intake and study preparation. Broader features below remain demand-gated;
 Defer broad feature expansion until the chosen research job has been observed
 with real users. Correctness regressions still interrupt product work. Permit
 bounded engineering that removes a concrete obstacle to testing that job. The
-authorized guided intake and current-build study preparation remove that testing
+shipped guided intake and current-build study preparation remove that testing
 obstacle; broader feature candidates still need their own owner decision.
 
 Prepared protocols are ready to use, but preparation is not a passed gate.
 Preserve the exact repaired build and frozen September 20 materials identified
-through [Study Build](docs/study-build.md). A study of the current starter,
-terminal, Wind Tunnel and checkpoint workflow needs a new exact build,
-materials and cohort identity. Neither the old tag nor an unchanged package
-version identifies the current implementation; never rewrite historical
+through [Study Build](docs/study-build.md). The
+[October guided-intake cohort](docs/studies/guided-intake-2026-10-18.md) now
+identifies the exact source, wheel, runtime and materials for the current
+workflow. Use its separately identified
+[participant delivery](docs/studies/participant-delivery-2026-10-18.md) and
+[recruitment procedure](docs/study-recruitment.md) for the six observations.
+Zero participant sessions have been observed. Neither the old tag nor an
+unchanged package version identifies this build; never rewrite historical
 results to imply that the newer experience was observed.
 
 | Order | Work | Why now | Completion evidence |
@@ -42,8 +45,9 @@ results to imply that the newer experience was observed.
 
 Two tracks can progress alongside that order:
 
-- **Customer evidence — Phase 0:** adapt the prepared [Product Validation](docs/product-validation.md)
-  protocol to the named current-build study while retaining the old materials;
+- **Customer evidence — Phase 0:** use the frozen guided supplement in
+  [Product Validation](docs/product-validation.md) for the named current-build
+  study while retaining the old materials;
   use comparable paper concepts, scorecard, rights questions and cost worksheet. Recruitment,
   interviews, commitments, and provider answers require real participants or
   owners; a written protocol does not complete those gates.
@@ -132,8 +136,9 @@ collection with a recorded reason.
 
 ## Prioritized Feature Candidates
 
-The checkpoint handoff is implemented in its bounded demo/replay scope; its
-usage and evidence belong to the guide and work packet. The remaining items
+The checkpoint handoff and guided native capture intake are implemented in
+their bounded offline scopes; their usage and evidence belong to the guides
+and work packets. The remaining items
 below are hypotheses ordered by dependency and the inspected workflow gaps,
 not measured demand, promised delivery dates, estimated returns or current
 implementation authority. Reuse existing research, export and lifecycle
@@ -141,7 +146,7 @@ capabilities before adding parallel systems.
 
 | Priority | Candidate | Acceptance or demand gate |
 | --- | --- | --- |
-| P1 | Bring your own session | One supported normalized capture/historical format, authorized local intake, source lineage, visible missing/fallback fields and a user completing the named investigation |
+| P1 | Qualify real-user session input | Bounded native captured-session intake is shipped; remaining gates are authorized real-user inputs, source/rights and quality qualification, and a user completing and repeating the named investigation; any additional format needs its own demand and contract decision |
 | P1 | Chain health and IV initialization | Distinguish stream health from per-option IV/quote age; expose coverage, spreads, fallback share and exclusions; route provider quote bootstrap and IV policy separately |
 | P1 | Explain this change | Reconcile matched results to contract, expiry, quantity, IV/time/price and assumption changes; expose interactions and describe model-output effects without market-causation claims |
 | P1 | Preserve and compare builds | Retain the executable environment for an old receipt; separately identify original-model reproduction and intentional current-model restatement; fail clearly if unavailable |
@@ -186,8 +191,9 @@ rebuild its templates or concepts.
 
 1. Recruit 12–15 interview candidates split between quantitative/developer
    users and advanced ES/NQ traders. Treat existing personas as hypotheses.
-2. Freeze a separately identified current-build study and run at least six
-   observed task sessions using authorized demo, replay or historical data.
+2. Run at least six observed task sessions with the separately frozen
+   [October cohort](docs/studies/guided-intake-2026-10-18.md) and participant
+   delivery, using its synthetic ES/NQ inputs.
    Ask users to reach a trusted view, explain one level, compare models, save a
    receipt, and replay the session without developer help.
 3. Test the prepared comparable-fidelity product concepts:
@@ -243,10 +249,10 @@ Current command and compatibility contracts live in [First Run](docs/first-run.m
 
 ### Remaining acceptance
 
-- Preserve the frozen [study build](docs/study-build.md) and create a new exact
-  build/materials/cohort record for the current starter, terminal and Wind
-  workflow using the [Product Validation](docs/product-validation.md) scoring
-  approach. Record the actual participant environment, assistance, refusals
+- Preserve both frozen [study builds](docs/study-build.md) and observe the
+  current starter, terminal and Wind workflow using the October cohort's
+  exact build and frozen [Product Validation](docs/product-validation.md)
+  scoring supplement. Record the actual participant environment, assistance, refusals
   and non-starts. Treat subsequent build changes as separately identified
   observations; regression tests are not unaided user acceptance.
 - Observe a new user installing without a checkout, reaching a correct replay
@@ -599,13 +605,14 @@ phase uses them as a gate.
 
 ## Immediate Continuation Point
 
-Follow the [Current Work Order](#current-work-order): after the checkpoint
-packet's integration gates, freeze a new current-build study that includes the
-demo/replay handoff, preserving the September 20 study unchanged. Use the
-[Product Validation](docs/product-validation.md)
-approach with real participants and record assistance, non-starts, failed
-attempts and trust defects. Route one supported user-input path from that
-evidence; neither the rest of the candidate list nor a commercial launch is
+Follow the [Current Work Order](#current-work-order): recruit and run six
+consented observations using the prepared October guided-intake cohort and its
+participant-only delivery. Follow [Study Recruitment](docs/study-recruitment.md)
+and the frozen [Product Validation](docs/product-validation.md) supplement;
+preserve the September 20 study and October full kit unchanged. Record
+assistance, non-starts, failed attempts and trust defects. Use those observations
+to qualify the shipped native captured-session path and choose the next bounded
+engineering slice; neither the rest of the candidate list nor a commercial launch is
 implicitly authorized. Product selection remains in the applicable Phase 3
 branch.
 

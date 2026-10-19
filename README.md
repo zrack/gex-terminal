@@ -48,16 +48,18 @@ scenario. [Wind Tunnel guide](docs/wind-tunnel.md).*
 ![One GEX starter offers Terminal, Market Wind Tunnel or Both. The two interfaces reuse the same calculation code, run with independent state and save research locally.](assets/workbench-components.svg)
 
 The **Terminal** runs in a terminal window. The **Wind Tunnel** runs in your
-browser, served by a separate Python process on your own computer. Its charts
-and scripts are included in the installation; no hosted service is needed.
+browser through a loopback Python service on your computer. Standalone Wind
+Tunnel and **Both** use a separate Python process. Its charts and scripts are
+included in the installation; no hosted service is needed.
 
 Choosing **Both** starts the two components together. Quitting Terminal stops
 that session's Wind Tunnel server; closing only the browser tab does not.
 A separately launched instance keeps running. Replay choices, checkpoints and
 scenario changes are **not automatically synchronized** between the views.
 Press **`w`** in Terminal to freeze its current demo/replay checkpoint and open
-Wind Tunnel with the same effective assumptions and quantities. Later Terminal
-changes cannot alter that checkpoint. See the [handoff guide](docs/wind-tunnel.md#stress-a-terminal-checkpoint).
+Wind Tunnel with the same effective assumptions and quantities. This explicit
+handoff owns its listener inside the Terminal process and stops it on exit.
+Later Terminal changes cannot alter that checkpoint. See the [handoff guide](docs/wind-tunnel.md#stress-a-terminal-checkpoint).
 
 The shared engine is reusable calculation code, not a central market-state service
 or shared live session. The [architecture diagrams](docs/architecture.md#c4-views)

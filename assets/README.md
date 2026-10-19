@@ -9,9 +9,9 @@ own source and verification record identify it as runtime evidence.
 | Asset | Canonical owner and source | Evidence boundary |
 | --- | --- | --- |
 | `market-wind-tunnel.png` | [Wind Tunnel](../docs/wind-tunnel.md) and [design QA](../design-qa.md); browser capture of ES Wind Tunnel Lab at final checkpoint, IV +2 points | Calculated synthetic scenario, 1487×1058 desktop capture; not a forecast or live observation |
-| `workbench-components.svg` | [Architecture](../docs/architecture.md#c4-views); derived overview of the Terminal and Market Wind Tunnel interfaces, shared package code and separate runtime state | Current component explanation; not a screenshot, shared-state service or new deployment |
+| `workbench-components.svg` | [Architecture](../docs/architecture.md#c4-views); derived overview of the Terminal and Market Wind Tunnel interfaces, shared package code and separate runtime state | Current component explanation, including the explicit immutable Terminal handoff; not a screenshot or shared live-state service |
 | `offline-research-architecture.svg` | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md); maintained SVG summary of those contracts | Derived architectural explanation; not a run result or deployment diagram |
-| C4 context, container and component views | Mermaid source lives in [Architecture](../docs/architecture.md#c4-views), not a separate asset copy | Two interfaces shipped in one Python package; the combined starter runs separate Terminal and Wind Tunnel processes with independent state |
+| C4 context, container and component views | Mermaid source lives in [Architecture](../docs/architecture.md#c4-views), not a separate asset copy | Two interfaces shipped in one Python package; standalone/Both use separate processes, while explicit Terminal handoff owns its listener inside the Terminal process |
 | `gex-terminal-demo-lab.svg`, `gex-terminal-onboarding.svg` | [Demo Lab](../docs/demo-lab.md#contributor-preview) owns `scripts/refresh_previews.py` and its local provenance manifest | Calculated synthetic demo graphic and actual replay-picker capture for the generating source build |
 | `gex-terminal-actual.svg`, `gex-terminal-actual.png` | [Deployment And Terminal Experience Review](../docs/deployment-ux-review.md), using the CLI screenshot command below; PNG is a raster rendition of that SVG | Actual 140×42 terminal with synthetic demo data; not live-market evidence |
 | `gex-terminal-mockup.png`, `gex-terminal-mockup 2.png`, `live-gamma-regime-map-mockup.svg` | Retained product/visual concepts; interpretation belongs with [Product Validation](../docs/product-validation.md) | Illustrative concepts; no implementation or usability claim |
@@ -24,12 +24,20 @@ and semantic-result identity belongs to orchestration, not the pricing engine.
 Its accessible title/description identifies the owning guides. Inspect the
 rendered SVG for clipped labels and incorrect arrows after editing.
 
-The workbench overview describes code reuse, not a central calculation service.
-Both interfaces use the installed package's consumer and engine code in their
-own process. Choosing **Both** manages their launch and shutdown together;
-source selections, checkpoints, scenarios and mutable state remain independent.
-The browser communicates with its local Wind Tunnel server, not with the
-Terminal process. The owning C4 views carry the detailed process boundaries.
+The workbench overview describes shared installed code and two explicit launch
+paths. Standalone Wind Tunnel and **Both** use a separate Wind Tunnel Python
+process with independent mutable state. **Both** manages that process's lifetime
+with Terminal; separately launched instances remain independent. Wind Tunnel
+accepts bundled sources and locally selected captured-session bytes after
+integrity verification.
+
+Pressing **`w`** in Terminal freezes its current demo/replay state into a detached
+immutable checkpoint. This path owns a loopback Wind Tunnel service **inside the
+Terminal Python process** and stops it when Terminal exits. Its browser talks to
+that owned listener. Later replay events, source choices and model changes do
+not update the frozen checkpoint. The owning C4 views carry the detailed process
+and intake boundaries. The SVG keeps this explicit path separate from the
+standalone/Both process view.
 
 Rebuild screenshots through their owning guide, recording the source commit,
 command, terminal dimensions, and input fixture in the change evidence. Existing
@@ -79,11 +87,12 @@ too small to read.
   and expiry removal off. Capture **Exposure landscape** at that viewport.
   Preserve the synthetic source label and omit the capability-bearing URL.
 
-The corresponding Terminal presentation files and Wind Tunnel implementation
-are unchanged at documentation baseline `5d3727652f8927d8dd7bab2f8ca171ddecd86c94`.
-This establishes why the retained captures remain representative; it is not a
-new runtime capture or an exact later installed-build claim. Original files
-and the PNG rendition have these SHA-256 identities:
+These front-door captures document their reviewed source settings and earlier
+builds. They do not show the later Terminal handoff or guided captured-session
+intake. The dated [design QA supplement](../design-qa.md#2026-10-18-handoff-and-guided-intake-supplement)
+records those additional workflows separately. Retaining a capture does not
+claim that it was rerun on a later installed or frozen study build. Original
+files and the PNG rendition have these SHA-256 identities:
 
 | File | SHA-256 |
 | --- | --- |
@@ -91,9 +100,11 @@ and the PNG rendition have these SHA-256 identities:
 | `gex-terminal-actual.png` | `6d7fb8c7d83e40780fb91916a925742348f60c8692d2cd4257f0f941a11e7157` |
 | `market-wind-tunnel.png` | `f53012caaf1262de14330fad4e001a863a6868e4a58dcc13bcd6c39adcaf92b7` |
 
-Documentation review renditions and their local manifest are staged under
-ignored `dist/component-docs/`. Rendering the existing captures does not run a
-provider, change an installed research folder or alter the frozen study build.
+Historical documentation review renditions remain under ignored
+`dist/component-docs/`. The 2026-10-18 component SVG reconciliation has a rendered
+PNG and source-hash manifest under ignored `dist/docs-closeout/2026-10-18/`.
+Rendering the diagram does not run a provider, change an installed research
+folder or alter either frozen study build.
 
 ## Retained Concepts
 

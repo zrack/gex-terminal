@@ -1,7 +1,8 @@
 # Application State And Health Review
 
 Updated October 18, 2026 against the current `0.6.0` source, including Market
-Wind Tunnel, the unified starter and the later provider repairs. This document
+Wind Tunnel, the unified starter, provider repairs, checkpoint handoff and
+guided captured-session intake. This document
 owns the dated state assessment and verification limits; earlier release
 evidence is retained below rather than presented as verification of later changes.
 [Architecture](architecture.md) owns implementation structure;
@@ -26,9 +27,19 @@ are detached from later events, and saved receipts carry the frozen inputs for
 fresh-process reproduction without the original checkpoint/server.
 [Wind Tunnel](wind-tunnel.md) owns the supported user/receipt contract;
 [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns final integration
-and verification status. This is demo/replay capture only, with no general
-importer, live-state capture, continuous synchronization, provider-readiness
-promotion or observed participant acceptance.
+and verification status. This handoff accepts demo/replay state only.
+
+Guided intake now verifies a complete native `*.gex-session.jsonl` capture,
+shows bounded source/time/assumption and quality information, then reconstructs
+only the explicitly selected prefix through the production consumer. It reuses
+the immutable checkpoint and portable-receipt path. The loopback service accepts
+uploaded bytes, not server paths; it retains allowlisted state in bounded
+memory and removes unknown labels/extensions after integrity verification.
+[Captured Sessions](captured-sessions.md) and [Wind Tunnel](wind-tunnel.md)
+own the supported format and workflow;
+[GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) owns acceptance.
+This does not supply a general CSV/provider importer, source rights, live-state
+capture, continuous synchronization or observed participant acceptance.
 
 Three remaining technical priorities affect trustworthy functionality:
 
@@ -52,8 +63,12 @@ The [October market review](market-analysis.md) supports testing a complete
 historical-research workflow separately from a live tactical cockpit. The
 former needs authorized inputs and observed repeat use; the latter additionally
 needs recurring live scope. [Roadmap](../ROADMAP.md) owns both branch gates.
-Preserve the frozen September study and identify new current-build materials
-and observations separately.
+The separate [October guided-intake cohort](studies/guided-intake-2026-10-18.md)
+now freezes the current workflow, exact build and synthetic inputs; the
+September study remains unchanged. A separately identified
+[participant delivery](studies/participant-delivery-2026-10-18.md) and
+[recruitment procedure](study-recruitment.md) are prepared. Zero participant
+sessions have been observed; six consented observations remain the next gate.
 
 ## Historical Acceptance Through September 26
 
@@ -112,14 +127,14 @@ frozen study; participant acceptance remains unmeasured.
 | Model and state | Contract-aware Black-76/Black-Scholes with separate OI, raw-volume and directionalized-volume paths | Numerical correctness does not establish dealer inventory or forecasting value |
 | Replay and identity | Eleven bundled scenarios including NQ ×20 schema-v2; catalog identity, actual/fallback multipliers and accepted-event chronology are explicit | Synthetic fixtures do not establish provider support for ES or NQ |
 | Research loop | Demo Lab, captured sessions, journals, experiments, model profiles, corpus registration, batch comparison and portable receipts | Strict identity/runtime compatibility and source-specific point-in-time gates; unkeyed hashes are not signatures |
-| Wind Tunnel | Packaged browser surfaces, scenarios, expiry removal, comparison and fragility; explicit immutable demo/replay Terminal checkpoint; self-contained save/open/export/reproduce receipts | Default launch uses bundled examples; checkpoint launch uses one frozen source, not general import/live capture or synchronization; shocks freeze quantities and do not forecast future positions |
+| Wind Tunnel | Packaged browser surfaces, scenarios, expiry removal, comparison and fragility; explicit immutable demo/replay Terminal checkpoint; guided native captured-session inspection and prefix selection; self-contained save/open/export/reproduce receipts | Intake supports complete native captures within declared bounds; source rights and real-user input qualification remain external; no general CSV/provider import, live capture or synchronization; shocks freeze quantities and do not forecast future positions |
 | Terminal | Essential columns at 100×32+, full-table view at 140×42; focused picker/help/details and strike selection retained across refresh | Not a mobile interface, screen-reader certification or unaided usability study |
 | Preflight | Offline doctor checks package, resources, config, provider structure and temporary storage with text/JSON exit status | No live authentication, entitlements, SDK behavior or market-quality check |
 | Distribution | Reviewed wheel, local setup handoff, optional platform-specific wheelhouse and disposable lifecycle checks | Python remains required; no signed native installer or customer-selected channel |
 | Local launcher | Unified Terminal/Wind/Both starter, managed child-process lifetime, exact payload checks and separate research directory; `w` performs explicit checkpoint transfer | Combined launch alone coordinates processes, not market state; checkpoint services belong to their Terminal owner and stop with it; observed activation is still open |
 | Local interfaces | Snapshot exports, static TradingView overlay and capability-protected Wind loopback HTTP service | No supported public SDK/REST/MCP contract, continuous chart synchronization or hosted platform |
 | Support and lifecycle | Redacted diagnostics; verified owner-only backup/restore; whole-group retention bound to a verified backup and exact confirmation | POSIX safety support only; no general database, automatic migration or licensed-capture lifecycle claim |
-| Product preparation | Historical study kit and exact repaired wheel/runtime/materials frozen; later engineering and current-build review evidence retained separately | No participant activation, demand, price, margin, license or conversion measurement; current experience needs a new cohort/build identity |
+| Product preparation | September study preserved; October guided-intake cohort freezes exact source/wheel/runtime/materials, with a separate participant-only delivery and blank recruitment templates | Zero observed participants; no activation, demand, price, margin, license or conversion measurement; personal records stay outside Git and shared kits |
 | Live preparation | Strict local plan/result contracts bind a declared 12-slot ES population, policy/runtime identity and failed/missed attempts | No execution, report-byte authentication, complete-history proof or external authority |
 | Live readiness | Databento uncertified; Tradovate/IBKR scaffolded; yfinance delayed | No supported recurring live operating envelope |
 
@@ -196,9 +211,12 @@ Package dependency downloads are not market-data connections.
 | Databento issue #35 | PR #36 merged; clean merged main passed 603 source tests after installed-wheel functional, parameter/state-machine and load verification; final hosted jobs passed | Exact environment, populations and software-only ceiling in [GEX-DATABENTO-035](work-packets/GEX-DATABENTO-035.md); no live readiness promotion |
 | Tradovate ACK-frame repair | PR #38 merged as `a959272`; 614 source tests passed on clean merged main, with focused ACK/Tradovate regressions, model/offline-provider/fault and candidate-wheel checks; all eight final hosted jobs passed | [GEX-TRADOVATE-ACK-001](work-packets/GEX-TRADOVATE-ACK-001.md) owns exact evidence; #4 remains open and actual payload access is unverified |
 | October 18 assessment | Main `6b5af41502e26351a70180d3144aeeec2b6023d6`, package `0.6.0`; 35 focused tests and seven public CLI smoke checks passed | Dated review of the pre-handoff tree, not a fresh full-suite run or verification of subsequent changes |
+| Terminal checkpoint handoff | PR #40 merged as `cd81cc7`; 637 tests passed on clean merged main, including 23 new regressions, with installed-wheel/browser reproduction and all eight final hosted jobs | Exact immutable demo/replay capture only; [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns acceptance; no live readiness or participant evidence |
+| Guided intake and study preparation | PR #41 merged as `0dab6bb`; 673 tests passed on clean merged main, including 36 new regressions; all eight final hosted jobs passed; the separately frozen October kit has 86 verified files, reproducible wheel bytes, 23 preparation checks and 16 independent installed-wheel checks | [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) and the [dated cohort record](studies/guided-intake-2026-10-18.md) bind exact identities; zero observed participants; #4 remains open |
 
-The release closeout and annotated tag identify the final verified merged tree;
-[GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) records acceptance without
+The historical release closeout and annotated tag identify their released tree;
+later PR and study records identify subsequent builds.
+[GEX-OFFLINE-001](work-packets/GEX-OFFLINE-001.md) records its acceptance without
 promoting the external gates. Follow [Contributing](../CONTRIBUTING.md) for repeatable commands,
 [First Run](first-run.md) for installation, and the individual guides for
 artifact contracts. Run review commands in new scratch directories so existing

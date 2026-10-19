@@ -7,6 +7,17 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Documentation And Recruitment Source Closeout
+
+- Reconcile architecture and component diagrams with guided capture intake and
+  immutable Terminal handoff, including the Terminal-owned listener lifetime.
+  Refresh current assessment, roadmap, study routing and dated design evidence.
+- Track blank recruitment/consent sources and delivery-generation tools with
+  packaging regressions. Record the participant-only delivery amendment while
+  preserving frozen application, tasks, study kits and original delivery bytes.
+  Actual participant sessions and issue #4's payload gate remain open.
+- [GEX-DOC-CLOSEOUT-001](docs/work-packets/GEX-DOC-CLOSEOUT-001.md) owns acceptance.
+
 ## Unreleased — Guided Session Intake And Current-Build Study
 
 - Open a local complete capture in Wind Tunnel, verify integrity, inspect source,

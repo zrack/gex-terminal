@@ -16,6 +16,19 @@ The prepared [October 18 guided-intake build](studies/guided-intake-2026-10-18.m
 binds the current wheel, separate cohort, synthetic fixtures and execution
 evidence. Use that exact kit for its cohort; preserve both historical records.
 
+For recruitment, use the separate
+[participant-only delivery](studies/participant-delivery-2026-10-18.md) and
+[Study Recruitment](study-recruitment.md) procedure. The 20-file participant
+ZIP is delivery revision `guided-intake-2026-10-18-r1-participant-v1`; it
+excludes moderator, scoring, answer-key and rehearsal materials. Its application,
+dependency lock, synthetic captures and task guide retain the October cohort's
+identities. Five links to omitted maintainer documents are plain text in its
+help copies; GI-01 through GI-06 and scoring are unchanged. This is a recorded
+delivery amendment, not a replacement of the frozen 86-file full kit. Reusable
+blank recruitment sources and generation tooling are versioned through
+[Study Recruitment](study-recruitment.md); generated archives and completed
+personal records stay outside Git.
+
 ## Prepare the guided intake cohort
 
 Commit the reviewed implementation and materials first. Use the same Python and
@@ -138,7 +151,9 @@ moderator answer materials are not participant assistance evidence.
 
 ## Handoff and study start
 
-Supply the wheel, checksum, dependency lock and frozen First Run guide. Install
+Send the verified participant-only ZIP, reviewed checksum and personalized
+consent separately. Retain the full frozen kit for moderation. The participant
+delivery includes the wheel, dependency lock, task guide and user help. Install
 with `python -m pip install -c requirements-lock.txt PATH_TO_REVIEWED_WHEEL` in
 the participant's fresh environment. Record actual OS/architecture and Python
 version; do not pool a different runtime with the frozen cohort without a
