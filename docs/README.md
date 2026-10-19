@@ -40,9 +40,10 @@ status checklists into multiple files.
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md)
-owns the read-only raw collector and its offline regression evidence; actual
-ES/NQ collection and validation remain open under issue #4.
+change. Closed [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md)
+records the read-only raw collector and its offline regression evidence,
+integrated through [PR #43](https://github.com/zrack/gex-terminal/pull/43).
+Actual ES/NQ collection and validation remain open under issue #4.
 Closed [GEX-TRADOVATE-OFFLINE-010](work-packets/GEX-TRADOVATE-OFFLINE-010.md)
 records PR #10's bounded offline rework and integration conditions; actual Tradovate payloads remain required
 by issue #4. Closed [GEX-DOC-CLOSEOUT-001](work-packets/GEX-DOC-CLOSEOUT-001.md) records

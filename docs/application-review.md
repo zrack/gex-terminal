@@ -8,6 +8,11 @@ evidence is retained below rather than presented as verification of later change
 [Architecture](architecture.md) owns implementation structure;
 [Roadmap](../ROADMAP.md) owns remaining work. Earlier assessments remain in Git.
 
+October 19 provider-status amendment: [PR #10](https://github.com/zrack/gex-terminal/pull/10)
+and the raw collector in [PR #43](https://github.com/zrack/gex-terminal/pull/43)
+are merged. Their acceptance and remaining actual-payload gate are reconciled
+below; the dated assessment and earlier verification scopes remain explicit.
+
 ## Assessment
 
 The application is a substantial offline research workbench: contract-aware
@@ -40,6 +45,13 @@ own the supported format and workflow;
 [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) owns acceptance.
 This does not supply a general CSV/provider importer, source rights, live-state
 capture, continuous synchronization or observed participant acceptance.
+
+The separate [Tradovate raw collector](tradovate-capture.md) now prepares bounded
+private REST and WebSocket evidence before normalization. It requires explicit
+network acknowledgement and a valid capture policy, excludes authentication
+material, and records limits and omissions. Its output needs manual review and
+actual ES/NQ mapping validation; it does not feed guided intake or change
+provider readiness. No actual provider payloads were captured during this work.
 
 Three remaining technical priorities affect trustworthy functionality:
 
@@ -175,10 +187,11 @@ remain explicit.
   requires the source-specific cutoff/availability gates in
   [Research Governance](research-governance.md).
 - **Provider queue:** Databento #5 and #35 are closed after the merged offline
-  repairs. Tradovate PR #10 remains unaccepted; its fixture assertion and
-  unsupported access claims require contributor changes. Issue #4 remains
-  open until actual sanitized demo/live Tradovate ES/NQ payloads establish
-  mapping and availability; the ACK-frame repair does not satisfy that gate.
+  repairs. Tradovate PR #10 is merged after synthetic production-path,
+  parameter/lifecycle and negative certification repairs. PR #43 adds the
+  read-only raw collector. Issue #4 remains open until actual sanitized demo/live
+  Tradovate ES/NQ payloads establish mapping and availability; neither offline
+  regressions nor the collector's implementation satisfies that gate.
 - **Customer/live gates:** prepared protocols are not observations. The
   [Product Validation](product-validation.md) kit and prepared
   [GEX-LIVE-002](work-packets/GEX-LIVE-002.md) packet do not authorize external
@@ -213,6 +226,7 @@ Package dependency downloads are not market-data connections.
 | October 18 assessment | Main `6b5af41502e26351a70180d3144aeeec2b6023d6`, package `0.6.0`; 35 focused tests and seven public CLI smoke checks passed | Dated review of the pre-handoff tree, not a fresh full-suite run or verification of subsequent changes |
 | Terminal checkpoint handoff | PR #40 merged as `cd81cc7`; 637 tests passed on clean merged main, including 23 new regressions, with installed-wheel/browser reproduction and all eight final hosted jobs | Exact immutable demo/replay capture only; [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns acceptance; no live readiness or participant evidence |
 | Guided intake and study preparation | PR #41 merged as `0dab6bb`; 673 tests passed on clean merged main, including 36 new regressions; all eight final hosted jobs passed; the separately frozen October kit has 86 verified files, reproducible wheel bytes, 23 preparation checks and 16 independent installed-wheel checks | [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) and the [dated cohort record](studies/guided-intake-2026-10-18.md) bind exact identities; zero observed participants; #4 remains open |
+| Tradovate raw collector | PR #43 merged as `486abd6`; 776 tests passed on clean merged main, including 42 new regressions; all four required PR matrix jobs passed; all 42 new tests also passed from a separately installed candidate wheel | [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md) owns exact evidence; mocked collection only, no actual ES/NQ payloads, #4 OPEN and readiness `scaffold` |
 
 The historical release closeout and annotated tag identify their released tree;
 later PR and study records identify subsequent builds.
