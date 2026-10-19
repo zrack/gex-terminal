@@ -318,6 +318,9 @@ All supported parents does **not** establish complete-chain coverage, and this
 workflow supplies **trade volume**, with no open interest or observed dealer
 inventory. BBO-1s samples do not reconstruct every book update or original
 network arrival. Rate and model assumptions remain configured research inputs.
+Closing calculations use each contract's latest captured IV, which can predate
+the close by hours. Coverage describes usable model inputs, not a synchronized
+closing chain; see [full-session assumptions](model-assumptions.md).
 
 Validate the native files against the normalized captures and checkpoint output:
 

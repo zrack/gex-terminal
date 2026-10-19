@@ -133,6 +133,16 @@ Earlier valid IVs count as priced and are separately labeled. An empty selection
 shows no selected contracts, while legacy aggregates without contract records
 show coverage as not reported. A partial selection never rounds to 100% coverage.
 
+In a full saved session, a contract without another trade keeps its last captured
+IV while its accumulated session quantity remains selected. That observation can
+be hours older than the closing checkpoint. The 300-second rule above governs
+retention after a new failed inversion; it is not a universal expiry for every
+unchanged IV. Closing calculations hold those IVs constant and reprice at the
+checkpoint futures price and remaining maturity. Pricing coverage measures which
+selected quantities have usable model inputs; it does not establish a fresh,
+synchronized closing option chain. Expired contracts remain in the capture but
+leave active coverage and GEX.
+
 Terminal's `v` details and Wind Tunnel's Source & assumptions explain each
 unpriced contract. When captured evidence is available, they show the original
 premium, violated model bound, underlying input and quote age. Terminal details
