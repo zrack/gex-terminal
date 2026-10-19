@@ -1,5 +1,6 @@
 import json
 import math
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
@@ -57,6 +58,16 @@ class AdapterInfo:
 def validate_normalized_message(message: NormalizedMessage) -> None:
     schema_version = _schema_version(message)
     message_type = message.get("type")
+    if "provider_trade_event_id" in message:
+        if (schema_version < 2 or message_type != "options_volume_tick"
+                or str(message.get("provider") or "").lower() != "databento"
+                or str(message.get("position_source") or "").lower() != "trade_volume"
+                or str(message.get("volume_semantics") or "").lower() != "incremental"
+                or message.get("sequence") in (None, "")):
+            raise ValueError("provider_trade_event_id requires a sequenced schema-v2 Databento incremental trade")
+        identity = message["provider_trade_event_id"]
+        if not isinstance(identity, str) or not re.fullmatch(r"[0-9a-f]{64}", identity):
+            raise ValueError("provider_trade_event_id must be a SHA-256 native trade fingerprint")
     if any(field in message for field in (
         "open_interest_reference_date", "open_interest_update_action"
     )) and (message_type != "options_volume_tick" or schema_version < 2):

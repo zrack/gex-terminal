@@ -92,6 +92,7 @@ status, not an assumption.
 | `exercise_style_source` / `provider_cfi` | Preserve the definition classification behind the style. Black-76 still assumes European exercise, so American rows carry an unmeasured-approximation qualification |
 | `iv` | Positive provider IV when present; otherwise a converged Black-76 inversion from option trade price and the latest futures midpoint; otherwise the explicit configured fallback. |
 | `contract_id` | Stable Databento `instrument_id` scoped to provider `databento` |
+| `provider_trade_event_id` | Deterministic fingerprint of native Databento trade fields, including price, size and nanosecond timestamps. Distinguishes multiple trade records sharing a venue sequence; not an exchange-assigned trade ID |
 | `event_time` | Timezone-bearing `ts_event` or equivalent provider event time |
 | `contract_multiplier` | Valid decoded `unit_of_measure_qty` with `USD`/`IPNT` units and the canonical ES/NQ point value; omitted otherwise. Databento definition `contract_multiplier` counts deliverables and is not a dollar multiplier |
 | `contract_multiplier_source` | `provider_unit_of_measure` for supported point metadata; omitted when no trustworthy dollar multiplier is emitted |
@@ -258,7 +259,17 @@ increments the stop-error count, and prevents `clean_stop=true`.
 
 Databento `sequence` is a venue sequence. Since `trades` is a subset of venue
 messages, jumps between trade records can be expected and are reported only as
-descriptive discontinuities/skipped values. Duplicates are also reported. The
+descriptive discontinuities/skipped values. Repeated sequence values are also
+reported; they do not by themselves establish duplicate trades. A CME trade
+summary message can normalize into multiple Trade records, as described in
+[Databento's GLBX.MDP3 normalization](https://databento.com/docs/venues-and-datasets/glbx-mdp3).
+For identified incremental Databento trades, the consumer counts distinct native
+fingerprints within the current sequence group and suppresses repeated copies
+of the same fingerprint, including an A/B/A retransmission. Lower sequences
+remain rejected. The current group is bounded; exhaustion stops processing
+instead of evicting duplicate evidence. Messages without the fingerprint retain
+the earlier strict sequence behavior. Open-interest and cumulative updates keep
+their existing ordering rules. The
 certification integrity failure signal is a maybe-bad-book flag or an observed
 out-of-order value; a gap in the numbers alone is not called feed loss.
 
@@ -278,6 +289,9 @@ out-of-order value; a gap in the numbers alone is not called feed loss.
   added zero, unavailable quantity, late older-date revision and delete followed
   by a stale add without combining OI with trade volume.
 - Add tests for every new field shape before changing live adapter behavior.
+- Cover distinct prices, sizes, sides and nanosecond timestamps sharing a trade
+  sequence, exact retransmissions, and lower-sequence rejection. Use synthetic
+  records rather than copying licensed trade samples into fixtures.
 - Do not reinterpret aggressor side as observed customer/dealer identity or
   opening/closing classification.
 

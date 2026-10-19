@@ -7,6 +7,19 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Databento Trade Reconciliation
+
+- Preserve a deterministic native trade fingerprint so distinct Databento fills
+  sharing a venue sequence accumulate correctly. Continue suppressing exact
+  retransmissions and older sequences with a bounded current-sequence cache.
+- Preserve the validated identity through guided Wind Tunnel capture import;
+  keep internal duplicate evidence out of frozen checkpoints and public
+  snapshots. Legacy, cumulative and OI ordering remains unchanged.
+- Add synthetic native-SDK and conversion/replay/import regressions. Broader
+  private ES/NQ samples validate both sides across weekly, month-end and
+  quarterly expirations; IV fallbacks and American pricing approximation remain
+  explicitly qualified.
+
 ## Unreleased — Sparse-Side Displays And Pricing Assumptions
 
 - Show calls-only, puts-only and empty selected quantities explicitly. Export an
