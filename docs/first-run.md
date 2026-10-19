@@ -1,7 +1,8 @@
 # First Run — Offline Research
 
-Start with synthetic data. No provider account, credential or live-market
-subscription is needed. This guide owns local setup, wheel installation and the guided
+Start with bundled synthetic data or a completed ES/NQ capture. No provider
+account, credential or live-market subscription is needed for these offline
+paths. This guide owns local setup, wheel installation and the guided
 Today → Explain → Compare → Replay → Review journey. Detailed pack contracts
 belong in [Demo Lab](demo-lab.md).
 
@@ -14,9 +15,10 @@ In a fresh setup folder whose reviewed wheel includes Wind Tunnel, open
 "./GEX App/run-gex" --choose
 ```
 
-Choose `1` for **Terminal**, `2` for **Wind Tunnel**, `3` for **Both**, or `q`
-to cancel. Pressing Return without a choice also cancels. The terminal opens a
-bundled synthetic replay; Wind Tunnel opens the local browser workbench.
+Choose `1` for **Terminal**, `2` for **Wind Tunnel**, `3` for **Both**, or `4` for
+**Saved data — Both**. Choose `q` to cancel; pressing Return without a choice
+also cancels. The first three choices use bundled synthetic sources. Saved data
+asks for **ES** or **NQ** and opens your completed capture as described below.
 
 **Both** starts one managed session. Quitting the terminal with `q`, pressing
 Control-C or closing its launcher window also stops the Wind Tunnel server
@@ -24,10 +26,10 @@ started by that session. A startup failure cancels the combined launch. Closing
 only the browser tab closes the view; it does not stop the server. A separately
 started Wind Tunnel server is independent and is not stopped by this session.
 
-The two interfaces do not share their selected source, checkpoint, scenario or
-in-memory state. Both makes them available together; choose and inspect each
-interface's source explicitly. Terminal exports and Wind Tunnel receipts remain
-separate artifacts in the research folder.
+Ordinary **Both** starts the two interfaces with independent synthetic sources.
+**Saved data — Both** initializes them from the same frozen capture. Subsequent
+source selections, checkpoints and scenarios remain independent. Terminal
+exports and Wind Tunnel receipts remain separate artifacts in the research folder.
 
 To stress the Terminal's current demo/replay state, press **`w`**. It opens a
 frozen Wind Tunnel checkpoint with the effective assumptions and selected
@@ -42,6 +44,7 @@ commands, source limits and reproduction.
 | Terminal | `GEX App/Start Terminal.command` | `"./GEX App/run-gex"` |
 | Wind Tunnel | `GEX App/Start Wind Tunnel.command` | `"./GEX App/run-wind-tunnel"` |
 | Both | Choose `3` in `GEX App/Start GEX.command` | `"./GEX App/run-gex" --both` |
+| Saved data — Both | Choose `4`, then ES or NQ | `"./GEX App/run-gex" --saved-data ES` |
 
 A terminal-only installed wheel keeps its direct terminal path. Wind Tunnel
 requires a reviewed wheel that includes that module. The independent browser
@@ -52,8 +55,66 @@ the research folder's `wind-tunnel` subfolder. The three worked examples in
 The chooser is a setup-helper enhancement after the `v0.6.0` release. It does
 not change that application wheel or tag. Older installed shortcuts retain
 their verified bytes during an in-place update, so use a **new reviewed setup
-folder** to obtain the unified starter and explicit Terminal shortcut. Keep the
-original 0.6.0 setup and your research. No data is moved or migrated.
+folder** to obtain the current chooser, saved-data flow and explicit Terminal
+shortcut. Keep the original 0.6.0 setup and your research. No data is moved or migrated.
+
+## Open Saved ES Or NQ Data
+
+In a **fresh reviewed setup** that includes this feature, choose **Saved data —
+Both (4)**, then **ES** or **NQ**. On first use, paste the full path to that
+symbol's completed normalized `*.gex-session.jsonl` capture, limited to 4 MiB
+and 5,000 events. Raw provider DBN, CSV, quotes or trade files must first be
+converted through their supported capture workflow; they cannot be selected
+directly here.
+
+The starter checks capture integrity, completion, symbol and assumptions before
+starting either view. It retains a private frozen copy in the research folder
+and remembers the source by symbol in `saved-data.json`. Your original capture
+is unchanged. Future selections of that symbol reuse the remembered copy.
+Supply `--captured-session` again to choose a different capture for that symbol.
+
+For an explicit first launch, run this in an interactive terminal from the setup
+folder, substituting your capture path:
+
+```bash
+"./GEX App/run-gex" --saved-data ES --captured-session "/path/to/es.gex-session.jsonl"
+```
+
+Return to the remembered ES source with:
+
+```bash
+"./GEX App/run-gex" --saved-data ES
+```
+
+Use `NQ` and its capture path to set up the NQ source. To register a source
+without opening either view or requiring an interactive terminal:
+
+```bash
+"./GEX App/run-gex" --register-saved-data NQ --captured-session "/path/to/nq.gex-session.jsonl"
+```
+
+Then run `"./GEX App/run-gex" --saved-data NQ` in an interactive terminal.
+Add `--no-browser` to a launch command to print the local Wind Tunnel URL;
+the paired launch still needs an interactive terminal.
+
+Each launch reconstructs a fresh final checkpoint through the installed
+application. Both views apply the capture header's multiplier, risk-free rate
+and fallback DTE. A missing value uses an explicit default: multiplier **ES 50**
+or **NQ 20**, rate **4.5%**, and fallback DTE **0.25 days**. A supplied invalid
+value stops startup. Contract-specific metadata continues to take precedence.
+Startup includes all captured active expirations; the original captured expiry
+filter is recorded separately in the assumptions.
+
+Wind Tunnel opens the final saved checkpoint immediately. Terminal replays
+the capture at **60×** speed until it reaches the same endpoint, so allow replay
+to finish before comparing the two views. Later source changes and scenarios
+are independent; this launch does not create live synchronization.
+
+Unavailable IV stays unavailable, raw quantities remain captured, and the
+pricing-coverage panels explain excluded exposure. Startup uses no provider
+requests or credits. Inherited provider credentials and `.env` settings are
+ignored, and Python remote connections are blocked; the local browser service
+uses loopback only.
 
 ## Market Wind Tunnel
 
