@@ -89,8 +89,9 @@ status, not an assumption.
 | `volume` | Trade `size`, `quantity`, or `volume` |
 | `expiry` | Definition `expiration`, `expiration_date`, or `expiry` |
 | `exercise_style` | Third option-CFI character in the definition (`A` American / `E` European); unavailable classifications stay `unknown`. The symbol alone is not evidence of exercise style |
-| `exercise_style_source` / `provider_cfi` | Preserve the definition classification behind the style. Black-76 still assumes European exercise, so American rows carry an unmeasured-approximation qualification |
-| `iv` | Positive provider IV when present; otherwise a converged Black-76 inversion from option trade price and the latest futures midpoint; otherwise the explicit configured fallback. |
+| `exercise_style_source` / `provider_cfi` | Preserve the definition classification behind the style. New confirmed American futures rows select the early-exercise model; historical American Black-76 rows retain their approximation qualification |
+| `pricing_model` | `american_futures_crr` for new confirmed American futures observations; `black_76` otherwise. Unknown style remains qualified |
+| `iv` | Observed provider or converged model IV; otherwise explicitly retained earlier same-contract IV, or `null` when unavailable. New normalization does not invent 15% IV |
 | `contract_id` | Stable Databento `instrument_id` scoped to provider `databento` |
 | `provider_trade_event_id` | Deterministic fingerprint of native Databento trade fields, including price, size and nanosecond timestamps. Distinguishes multiple trade records sharing a venue sequence; not an exchange-assigned trade ID |
 | `event_time` | Timezone-bearing `ts_event` or equivalent provider event time |
@@ -100,8 +101,8 @@ status, not an assumption.
 | `position_source` | `trade_volume` for trade messages; open-interest statistics use `open_interest` with `cumulative` semantics |
 | `aggressor_side` | Databento trade `side`: `B`/bid maps to `buy`, `A`/ask maps to `sell`, and absent/indeterminate side maps to `unknown` |
 | `direction_source` | `provider` when a known Databento side is preserved; otherwise `unknown` |
-| `iv_source` | `provider`, `black_76_inverted`, or `configured_default`; only the fallback degrades feed quality |
-| `iv_provenance` | Required for inverted IV: method/status, option price/source, futures midpoint/source/time, rate, time to expiry, iterations, and absolute price error |
+| `iv_source` | `provider`, `black_76_inverted`, `american_futures_inverted`, `prior_valid` or `unavailable`; historical `configured_default` remains readable |
+| `iv_provenance` | Pricing inputs, bounds, method/status, timing, configured rate, expiry and solver residual; American numerical method/resolution or retained observation source/time/age when applicable |
 | open interest | Valid `statistics` open-interest quantity for add records; delete records emit zero with deletion provenance and ignore their unused quantity. Unavailable add quantities are rejected |
 | `open_interest_reference_date` | ISO trading date from valid `ts_ref`, preserved separately from publication `ts_event` |
 | `open_interest_update_action` | Provider statistics `update_action` `1`/`add` or `2`/`delete`, normalized to `add` or `delete`; missing or unsupported actions are rejected |
@@ -130,6 +131,14 @@ date. A late revision
 for an older trading date cannot replace newer OI, and an old add cannot restore
 a deleted observation. An unreferenced legacy update cannot replace dated OI.
 Positive trade volume retains its separate precedence.
+
+A failed current inversion can retain only an accepted provider or converged IV
+from the same contract, expiry and pricing model, strictly earlier and at most
+300 seconds old. Retained values do not update the observation clock. Without
+such an observation, raw quantity remains recorded and IV is unavailable; GEX
+excludes that contract and reports its unpriced quantity. The same rule avoids
+inventing IV for an OI statistic that supplies quantity alone. See
+[model assumptions](model-assumptions.md#quantity-and-position-sources).
 
 ## Live Requests And Certification
 

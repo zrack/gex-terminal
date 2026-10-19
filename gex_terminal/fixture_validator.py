@@ -136,8 +136,12 @@ def _validate_numeric_fields(message: dict[str, Any]) -> None:
         raise ValueError("options_volume_tick strike must be positive")
     if int(message["volume"]) < 0:
         raise ValueError("options_volume_tick volume must be non-negative")
-    if "iv" in message and float(message["iv"]) <= 0:
-        raise ValueError("options_volume_tick iv must be positive when provided")
+    if "iv" in message:
+        if message["iv"] is None:
+            if message.get("iv_source") != "unavailable":
+                raise ValueError("null IV requires explicit unavailable provenance")
+        elif float(message["iv"]) <= 0:
+            raise ValueError("options_volume_tick iv must be positive when provided")
 
 
 def _add_report_warnings(report: FixtureValidationReport) -> None:

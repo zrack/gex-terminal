@@ -13,6 +13,8 @@ import numpy as np
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.contracts import days_until_expiry
 from gex_terminal.metric_values import optional_float
+from gex_terminal.pricing_assumptions import (build_pricing_assumptions, has_qualified_pricing,
+                                             is_priced_contract, pricing_coverage)
 
 
 @dataclass(frozen=True)
@@ -60,10 +62,15 @@ def build_sensitivity_report(
     scalar Black-Scholes sensitivity baseline.
     """
     loaded_contract_rows = [dict(row) for row in (contract_rows or ())]
+    coverage = pricing_coverage(loaded_contract_rows) if has_qualified_pricing(loaded_contract_rows) else None
+    assumptions = build_pricing_assumptions(loaded_contract_rows, risk_free_rate) if coverage is not None else None
     if not chain_state and not loaded_contract_rows:
         raise ValueError("Sensitivity report requires at least one option strike")
 
     if loaded_contract_rows:
+        loaded_contract_rows = [row for row in loaded_contract_rows if is_priced_contract(row)]
+        if not loaded_contract_rows:
+            raise ValueError("Sensitivity report has no contracts with available IV; raw quantities remain unpriced")
         reference_time = as_of or datetime.now(timezone.utc)
         if reference_time.tzinfo is None:
             raise ValueError("as_of must include a timezone")
@@ -98,6 +105,7 @@ def build_sensitivity_report(
             contract_multipliers=(
                 vectors["multipliers"] * scenario.multiplier_scale
             ),
+            option_types=vectors.get("option_types"),
         )
         if scenario.name == "base" and base_matrix is not None:
             _assert_base_matrix_parity(matrix, base_matrix)
@@ -120,7 +128,7 @@ def build_sensitivity_report(
         metrics["gamma_wall_delta"] = metrics["gamma_wall"] - base_metrics["gamma_wall"]
         rows.append(metrics)
 
-    return {
+    result = {
         "spot": float(spot),
         "inputs": {
             "days_to_expiry": float(days_to_expiry),
@@ -133,6 +141,10 @@ def build_sensitivity_report(
         },
         "scenarios": rows,
     }
+    if coverage is not None:
+        result["inputs"]["pricing_coverage"] = coverage
+        result["inputs"]["pricing_assumptions"] = assumptions
+    return result
 
 
 def _legacy_vectors(
@@ -201,6 +213,7 @@ def _contract_vectors(
             [row.get("contract_multiplier") or fallback_multiplier for row in rows],
             dtype=float,
         ),
+        "option_types": np.array([row["option_type"] for row in rows], dtype=object),
     }
 
 
@@ -246,9 +259,12 @@ def sensitivity_to_csv(report: dict[str, Any]) -> str:
         "call_wall",
         "put_wall",
     )
+    pricing_fields = {key: json.dumps(report["inputs"][key], sort_keys=True)
+                      for key in ("pricing_coverage", "pricing_assumptions") if key in report["inputs"]}
+    fieldnames += tuple(pricing_fields)
     writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
-    writer.writerows(report["scenarios"])
+    writer.writerows({**row, **pricing_fields} for row in report["scenarios"])
     return output.getvalue()
 
 
@@ -271,6 +287,14 @@ def sensitivity_to_markdown(report: dict[str, Any]) -> str:
             f"{_money(row['total_net_gex_delta'])} | {row['gamma_wall']:,.1f} | "
             f"{row['zero_gamma']:,.1f} | {row['zero_gamma_delta']:+,.1f} |"
         )
+    coverage = report["inputs"].get("pricing_coverage")
+    if coverage:
+        lines.extend(["", "## Pricing Coverage", "",
+                      f"Priced {coverage['priced_quantity']}/{coverage['selected_quantity']} selected quantity; "
+                      f"{coverage['unpriced_quantity']} remain unpriced. "
+                      f"{coverage['retained_iv_contract_count']} contract(s) use earlier valid IV.",
+                      "Unpriced exposure remains excluded in every scenario; unavailable does not mean zero.",
+                      "", report["inputs"]["pricing_assumptions"]["summary"]])
     return "\n".join(lines) + "\n"
 
 

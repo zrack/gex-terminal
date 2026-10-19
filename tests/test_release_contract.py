@@ -309,7 +309,7 @@ class BundledResourceContractTests(unittest.TestCase):
         self.assertEqual(injection["source_kind"], "offline_provider_fixture")
         self.assertIs(injection["network_used"], False)
         self.assertEqual(snapshot["feed_quality"]["status"], "REPLAY")
-        self.assertEqual(snapshot["feed_quality"]["health"], "degraded")
+        self.assertEqual(snapshot["feed_quality"]["health"], "simulated")
         self.assertEqual(
             injection["fixture"],
             "gex_terminal/data/provider_fixtures/databento_trade_records.json",

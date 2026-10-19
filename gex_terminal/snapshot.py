@@ -33,6 +33,8 @@ def build_snapshot(
     timestamp: str | None = None,
 ) -> Dict[str, Any]:
     """Assemble a JSON-serializable snapshot from a computed engine `data` dict."""
+    if data.get("error"):
+        raise ValueError(data["error"])
     strikes = []
     call_volumes = data.get("call_volume", ())
     put_volumes = data.get("put_volume", ())
@@ -151,6 +153,7 @@ def build_snapshot(
             "iv_sources": list(data.get("iv_sources", ())),
             "iv_source_counts": dict(data.get("iv_source_counts", {})),
             "iv_inversion_methods": list(data.get("iv_inversion_methods", ())),
+            **({"pricing_coverage": data["pricing_coverage"]} if "pricing_coverage" in data else {}),
             "expiry_filter": data.get("expiry_filter", "all"),
             "as_of": data.get("as_of"),
             "parallel_models": (

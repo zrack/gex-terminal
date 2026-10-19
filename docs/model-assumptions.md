@@ -12,7 +12,9 @@ separately in [model-validation.md](model-validation.md).
 
 Schema-v2 contract rows are priced before aggregation:
 
-- Futures options use Black-76 gamma, which assumes European exercise.
+- European futures options use Black-76 gamma. Newly normalized Databento
+  futures options with confirmed American exercise use the
+  `american_futures_crr` early-exercise model described below.
 - Equity and index options use Black-Scholes gamma. The engine API supports a
   continuous carry/dividend rate; normalized adapters currently use their
   documented value or zero.
@@ -23,9 +25,10 @@ Schema-v2 contract rows are priced before aggregation:
 
 Exercise style is a separate contract attribute from pricing model. Databento
 definitions preserve supported exercise-style metadata, including the option
-CFI classification. American contracts still use the European formula: early
-exercise is **not modeled**, and its effect on IV and Greeks is an unmeasured
-approximation. In particular, CME quarterly ES/NQ options allow early exercise;
+CFI classification. Historical captures that explicitly selected Black-76 keep
+that formula and its unmeasured American approximation qualification. New
+American futures observations select a numerical early-exercise model for both
+premium inversion and gamma. In particular, CME quarterly ES/NQ options allow early exercise;
 weekly and end-of-month families have different exercise rules. See the current
 [ES contract rules](https://www.cmegroup.com/rulebook/CME/IV/350/358A/358A.pdf) and
 [NQ contract rules](https://www.cmegroup.com/rulebook/CME/IV/350/359A/359A.pdf).
@@ -34,8 +37,8 @@ Do not infer exercise style from the underlying symbol alone.
 Missing exercise style remains `unknown`, including older captures that did not
 save it. Replaying those captures does not recover discarded metadata or
 silently classify the contracts as European. Terminal details, snapshot exports
-and Wind Tunnel results expose the European exercise assumption and the
-qualification for American or unknown styles. Matching a European exercise
+and Wind Tunnel results expose the selected model and the
+qualification for historical approximations or unknown styles. Matching a European exercise
 style only qualifies this particular assumption; it does not certify fair
 value, all pricing inputs, dealer positioning or predictive validity.
 
@@ -43,6 +46,29 @@ The risk-free rate is a configured annual rate rather than an observed historica
 yield curve. It is held fixed within a calculation/scenario. Timestamp-derived
 DTE, the configured DTE fallback, contract multipliers, and IV provenance remain
 separate inputs; none changes an American contract into a European one.
+
+### American Futures Numerical Model
+
+The American model assumes a premium-paid option on a lognormal futures
+martingale: the futures risk-neutral drift is zero, not the spot rate. At each
+CRR node it chooses the greater of immediate intrinsic value and discounted
+continuation. The default averages adjacent 512/513-step trees, with an
+analytical European Black-76 control variate to reduce discretization bias.
+Gamma uses the slopes at the second tree layer, with a matching European
+control variate, and is specific to call or put. Immediate exercise has zero
+gamma. IV inversion uses the same American premium model.
+
+Synthetic regression vectors are independently benchmarked against QuantLib
+1.40 finite-difference American prices and gamma. The tested reference cases
+measure numerical error and convergence, not market pricing accuracy. Constant
+volatility, a configured flat discount rate, lognormal futures and finite
+resolution remain assumptions. Provenance distinguishes solver price residual
+from numerical discretization and records the method and tree sizes. QuantLib
+is a test reference, not an application dependency.
+
+See [QuantLib's American option example](https://github.com/lballabio/QuantLib-SWIG/blob/master/Python/examples/american-option.py)
+and [CME's explanation of E-mini option premium cashflows](https://www.cmegroup.com/articles/2024/index-options-box-spreads-as-financing-tool.html).
+This model does not cover futures-style margin-paid option premiums.
 
 A timezone-bearing `expiry_timestamp` is the authoritative source for
 fractional DTE and takes precedence over an explicit `days_to_expiry` value. If
@@ -71,8 +97,9 @@ Schema v2 labels each option quantity and volatility input with explicit provena
 - `volume_semantics`: `incremental` updates add to prior state; `cumulative`
   updates replace the prior absolute value.
 - `position_source`: `trade_volume` or `open_interest`.
-- `iv_source`: `provider`, `black_76_inverted`, or `configured_default`; only
-  the latter is counted and surfaced as degraded feed quality.
+- `iv_source`: `provider`, `black_76_inverted`, `american_futures_inverted`,
+  `prior_valid`, or `unavailable` for new Databento observations. Historical
+  `configured_default` captures remain readable and qualified as before.
 
 Databento's live option-trade path can derive `black_76_inverted` IV from the
 option trade price, latest observed continuous-futures midpoint, authoritative
@@ -80,6 +107,24 @@ expiry timestamp, and configured risk-free rate. The `iv_provenance` object
 records those inputs, the bisection method, convergence status, iterations, and
 absolute option-price error. This is an asynchronous trade/midpoint pairing,
 not a synchronized executable option quote or an exchange-published IV.
+Confirmed American rows invert the American futures model instead. Solver
+convergence does not measure market-model accuracy.
+
+New failed inversions do not manufacture 15% IV. A previously accepted provider
+or converged IV for the same contract and selected model may be retained if it
+strictly precedes the current event and is at most 300 seconds old. The retained
+value, original source, time, age, rate and failed current inversion inputs are
+recorded. Retained values never refresh this observation clock or seed another
+retention chain; later observations are never applied backward.
+
+If no eligible observation exists, IV is explicitly `null` with
+`iv_source=unavailable`. Raw volume remains in contract state and capture, while
+that contract's exposure is unpriced. `pricing_coverage` separates selected raw
+contracts/quantity, priced contracts/quantity, retained-IV quantity and unpriced
+quantity/reasons. One unresolved latest contract observation affects its whole
+current accumulated quantity, not merely its last trade size. A later valid
+observation can price that quantity from that point forward. Entirely unpriced
+selections produce no modeled exposure rather than fabricated zero gamma.
 
 Contract state is scoped by provider, contract ID, and position source. Sequence
 numbers can suppress duplicate updates. If a cumulative source resets below its

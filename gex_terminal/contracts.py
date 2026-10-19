@@ -15,11 +15,12 @@ from typing import Any, Mapping
 
 NORMALIZED_SCHEMA_VERSION = 2
 INSTRUMENT_CLASSES = {"equity_option", "futures_option", "index_option"}
-PRICING_MODELS = {"black_scholes", "black_76"}
+PRICING_MODELS = {"black_scholes", "black_76", "american_futures_crr"}
 VOLUME_SEMANTICS = {"incremental", "cumulative"}
 POSITION_SOURCES = {"trade_volume", "open_interest"}
 OPEN_INTEREST_UPDATE_ACTIONS = {"add", "delete"}
-IV_SOURCES = {"provider", "black_76_inverted", "configured_default"}
+IV_SOURCES = {"provider", "black_76_inverted", "configured_default",
+              "american_futures_inverted", "prior_valid", "unavailable"}
 AGGRESSOR_SIDES = {"buy", "sell", "unknown"}
 DIRECTION_SOURCES = {"provider", "quote_inference", "unknown"}
 EXERCISE_STYLES = {"american", "european", "unknown"}
@@ -82,7 +83,10 @@ def canonical_option_contract(
         instrument_class = str(
             message.get("instrument_class") or infer_instrument_class(symbol)
         ).lower()
-        pricing_model = pricing_model_for_instrument(instrument_class)
+        # A selected model belongs to the captured observation. Do not silently
+        # upgrade historical American Black-76 captures when replaying them.
+        pricing_model = str(message.get("pricing_model") or
+                            pricing_model_for_instrument(instrument_class)).lower()
     else:
         instrument_class = "legacy_option"
         pricing_model = "black_scholes"

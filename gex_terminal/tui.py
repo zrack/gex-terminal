@@ -639,7 +639,7 @@ class GexTerminalApp(App):
             meta.update("by expiry · --")
             return
         parts = " · ".join(
-            f"{label} {self._format_money(total)}" for label, total in breakdown.items()
+            f"{label} {self._format_money(total) if total is not None else 'unpriced'}" for label, total in breakdown.items()
         )
         meta.update(f"by expiry · {parts}")
 
@@ -1025,6 +1025,12 @@ class GexTerminalApp(App):
             f"Rate {self.config.risk_free_rate:.2%} configured · ACT/365 · v for details.",
             style="#94a3b8",
         )
+        coverage = data.get("pricing_coverage")
+        if coverage and coverage["unpriced_contract_count"]:
+            model_text.append(f"\nPriced {coverage['priced_quantity']:,}/{coverage['selected_quantity']:,} selected quantity; "
+                              f"{coverage['unpriced_contract_count']} contract(s) unpriced.", style="#e9b96e")
+        if coverage and coverage["retained_iv_contract_count"]:
+            model_text.append(f"\n{coverage['retained_iv_contract_count']} contract(s) use an earlier valid IV.", style="#e9b96e")
         self.query_one("#pricing-assumptions", Static).update(model_text)
         self._render_regime_map(data)
 

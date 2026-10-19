@@ -16,6 +16,8 @@ from typing import Any
 
 from gex_terminal.contracts import (EXERCISE_STYLES, EXERCISE_STYLE_SOURCES, days_until_expiry,
                                     exercise_style_from_cfi, expiry_date, is_zero_dte, parse_market_datetime)
+from gex_terminal.pricing_assumptions import (AMERICAN_FUTURES_MODEL, IV_PROVENANCE_FIELDS,
+                                             QUALIFIED_IV_SOURCES)
 
 SCHEMA = "gex-terminal.wind-tunnel.terminal-checkpoint.v1"
 MAX_BYTES = 2_000_000
@@ -26,7 +28,8 @@ ROW_FIELDS = {
     "contract_multiplier", "iv_source", "event_time", "directional_volume", "direction_sources",
     "terminal_selected", "open_interest_reference_date",
 }
-OPTIONAL_ROW_FIELDS = {"exercise_style", "exercise_style_source", "provider_cfi", "iv_inversion_risk_free_rate"}
+OPTIONAL_ROW_FIELDS = {"exercise_style", "exercise_style_source", "provider_cfi", "iv_inversion_risk_free_rate",
+                       "iv_provenance"}
 QUALITY_FIELDS = {"status", "health", "message_count", "malformed_count", "dropped_count",
                   "duplicate_message_count", "cumulative_reset_count", "fallback_iv_tick_count"}
 
@@ -129,7 +132,7 @@ def validate_checkpoint(artifact: Any) -> dict:
         if row["symbol"] != source["symbol"]:
             raise ValueError("Checkpoint row symbol/type mismatch")
         _choice(row["option_type"], {"C", "P"}, "checkpoint option type")
-        _choice(row["pricing_model"], {"black_scholes", "black_76"}, "checkpoint pricing model")
+        _choice(row["pricing_model"], {"black_scholes", "black_76", AMERICAN_FUTURES_MODEL}, "checkpoint pricing model")
         style = row.get("exercise_style") or "unknown"
         style_source = row.get("exercise_style_source") or "missing"
         _choice(style, EXERCISE_STYLES, "checkpoint exercise style")
@@ -147,7 +150,11 @@ def validate_checkpoint(artifact: Any) -> dict:
             _number(row["iv_inversion_risk_free_rate"], "captured IV inversion rate", -.1, 1)
         _choice(row["position_source"], {"trade_volume", "open_interest"}, "checkpoint quantity source")
         _number(row["strike"], "strike", 1e-12, 1e9)
-        _number(row["iv"], "iv", 1e-12, 5)
+        if row["iv_source"] == "unavailable":
+            if row["iv"] is not None:
+                raise ValueError("Unavailable checkpoint IV must be null")
+        else:
+            _number(row["iv"], "iv", 1e-12, 5)
         if type(row["accumulated_volume"]) is not int or not 0 <= row["accumulated_volume"] <= 10**12:
             raise ValueError("Checkpoint quantity must be a bounded integer")
         if type(row["terminal_selected"]) is not bool:
@@ -157,7 +164,26 @@ def validate_checkpoint(artifact: Any) -> dict:
         if row["days_to_expiry"] is not None:
             _number(row["days_to_expiry"], "row DTE", 1e-12, 36500)
         if row["iv_source"] is not None:
-            _choice(row["iv_source"], {"provider", "black_76_inverted", "configured_default", "legacy_unspecified"}, "checkpoint IV source")
+            _choice(row["iv_source"], {"provider", "black_76_inverted", "configured_default", "legacy_unspecified"}
+                    | QUALIFIED_IV_SOURCES, "checkpoint IV source")
+        if "iv_provenance" in row:
+            provenance = row["iv_provenance"]
+            if (not isinstance(provenance, dict) or set(provenance) - IV_PROVENANCE_FIELDS
+                    or row["iv_source"] not in QUALIFIED_IV_SOURCES):
+                raise ValueError("Unsupported checkpoint IV provenance")
+            recorded_rate = provenance.get("prior_iv_risk_free_rate") if row["iv_source"] == "prior_valid" else provenance.get("risk_free_rate")
+            if row.get("iv_inversion_risk_free_rate") is not None and row["iv_inversion_risk_free_rate"] != recorded_rate:
+                raise ValueError("Checkpoint IV inversion rate conflicts with its provenance")
+        if row["iv_source"] in QUALIFIED_IV_SOURCES or row["pricing_model"] == AMERICAN_FUTURES_MODEL:
+            # Reuse the normalized pricing contract rather than introducing a
+            # weaker second policy at the browser handoff boundary.
+            from gex_terminal.market_data_adapter import validate_normalized_message
+            message = {key: row[key] for key in ("provider", "contract_id", "symbol", "strike",
+                       "option_type", "expiry", "pricing_model", "position_source", "iv", "iv_source", "event_time")}
+            message.update(schema_version=2, type="options_volume_tick", instrument_class="futures_option",
+                           volume_semantics="cumulative", volume=row["accumulated_volume"])
+            message.update({key: row[key] for key in ("exercise_style", "exercise_style_source", "provider_cfi", "iv_provenance") if key in row})
+            validate_normalized_message(message)
         legacy = source["calculation_mode"] == "legacy_v1"
         event = parse_market_datetime(row["event_time"])
         if (not legacy and event is None) or (event is not None and event > as_of):
@@ -219,10 +245,15 @@ async def build_terminal_checkpoint(consumer, *, fallback_dte: float, source_lab
     rows = []
     for raw in frozen["rows"]:
         row = {key: raw.get(key) for key in ROW_FIELDS}
-        row.update({key: raw[key] for key in OPTIONAL_ROW_FIELDS if key in raw})
+        row.update({key: raw[key] for key in OPTIONAL_ROW_FIELDS - {"iv_provenance"} if key in raw})
         provenance = raw.get("iv_provenance")
         if raw.get("iv_source") == "black_76_inverted" and isinstance(provenance, dict):
             row["iv_inversion_risk_free_rate"] = provenance.get("risk_free_rate")
+        elif raw.get("iv_source") in QUALIFIED_IV_SOURCES and isinstance(provenance, dict):
+            row["iv_provenance"] = {key: value for key, value in provenance.items() if key in IV_PROVENANCE_FIELDS}
+            rate = provenance.get("prior_iv_risk_free_rate") if raw.get("iv_source") == "prior_valid" else provenance.get("risk_free_rate")
+            if rate is not None:
+                row["iv_inversion_risk_free_rate"] = rate
         row["directional_volume"] = raw.get("directional_volume") or {"buy": 0, "sell": 0, "unknown": raw["accumulated_volume"]}
         row["direction_sources"] = raw.get("direction_sources") or []
         rows.append(row)

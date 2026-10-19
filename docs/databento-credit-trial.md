@@ -150,13 +150,17 @@ for observed inputs, exclusions, fallback IV and timing failures before
 interpreting the chart. A failed or empty mapping is an integration finding;
 do not fill missing fields with invented data or claim full-chain coverage.
 
-A successful replay can still contain `configured_default` IV. For example, a
-trade premium can fall outside Black-76 bounds when paired with a sampled
-futures midpoint. Those events use an explicit fallback rather than a successful
-price inversion. Check `fallback_iv_ticks` separately from `inverted_iv_ticks`;
-later trades can change which contracts retain fallback IV in the final state.
+A saved historical capture can still contain `configured_default` IV. New
+conversions instead retain a qualified earlier same-contract IV where available,
+or mark IV unavailable while preserving volume. For example, a trade premium
+can fall outside pricing bounds when paired with a sampled futures midpoint.
+Check `retained_prior_iv_ticks`, `unavailable_iv_ticks` and final
+`pricing_coverage` separately from `inverted_iv_ticks`; event counts and current
+unpriced quantities are different measures. No later observation repairs an
+earlier checkpoint. Confirmed American contracts now use an early-exercise
+futures model for IV and gamma; earlier captures retain their selected model.
 European exercise metadata does not establish that a last-trade IV surface is
-economically accurate.
+economically accurate. See [pricing assumptions](model-assumptions.md).
 
 New conversions preserve a native trade fingerprint because distinct Databento
 records can share the same venue sequence. If an older capture lacks

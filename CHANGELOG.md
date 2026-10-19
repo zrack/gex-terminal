@@ -7,6 +7,19 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — IV Resolution And American Futures Pricing
+
+- Replace new Databento 15% IV defaults with qualified earlier same-contract
+  observations or explicit unavailable IV. Preserve raw quantity, exclude
+  unpriced exposure, and show raw/priced/retained coverage across Terminal,
+  exports, comparisons, sensitivity and Wind Tunnel.
+- Price confirmed American futures options with a zero-drift early-exercise
+  CRR lattice for both IV and call/put-specific gamma. Use adjacent trees and a
+  European control variate; test against independent finite-difference values.
+- Preserve new pricing provenance through capture/checkpoint/import workflows.
+  Historical captures retain their selected model and strict receipt behavior;
+  numerical discretization and empirical pricing accuracy remain qualified.
+
 ## Unreleased — Databento Trade Reconciliation
 
 - Preserve a deterministic native trade fingerprint so distinct Databento fills

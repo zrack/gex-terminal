@@ -99,8 +99,8 @@ class DatabentoMappingTests(unittest.TestCase):
         self.assertTrue(all(message["symbol"] == "ES" for message in messages))
         self.assertTrue(all(message["instrument_class"] == "futures_option" for message in messages))
         self.assertTrue(all(message["volume_semantics"] == "incremental" for message in messages))
-        self.assertTrue(all(message["iv"] == 0.15 for message in messages))
-        self.assertTrue(all(message["iv_source"] == "configured_default" for message in messages))
+        self.assertTrue(all(message["iv"] is None for message in messages))
+        self.assertTrue(all(message["iv_source"] == "unavailable" for message in messages))
         self.assertEqual(messages[0]["contract_symbol"], "ESM6 C5950")
         self.assertEqual(messages[0]["event_time"], "2026-06-18T14:30:00.000000000Z")
         self.assertEqual(

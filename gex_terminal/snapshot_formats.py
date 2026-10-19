@@ -131,7 +131,7 @@ def snapshot_to_markdown(snapshot: Dict[str, Any]) -> str:
     if snapshot.get("expiry_breakdown"):
         lines.extend(["", "## Expiry Breakdown", ""])
         for expiry, value in snapshot["expiry_breakdown"].items():
-            lines.append(f"- `{expiry}`: `{_money(value)}`")
+            lines.append(f"- `{expiry}`: `{_money(value) if value is not None else 'unpriced'}`")
     if snapshot.get("model"):
         model = snapshot["model"]
         lines.extend([
@@ -159,6 +159,14 @@ def snapshot_to_markdown(snapshot: Dict[str, Any]) -> str:
             lines.append(f"- {assumptions['rate_note']}")
             if assumptions.get("time_note"):
                 lines.append(f"- {assumptions['time_note']}")
+        coverage = model.get("pricing_coverage")
+        if isinstance(coverage, dict):
+            lines.extend(["", "## Pricing Coverage", "",
+                          f"- Priced contracts: `{coverage['priced_contract_count']}/{coverage['selected_contract_count']}`",
+                          f"- Priced selected quantity: `{coverage['priced_quantity']}/{coverage['selected_quantity']}`",
+                          f"- Unpriced quantity retained in source state: `{coverage['unpriced_quantity']}`",
+                          f"- Contracts using earlier valid IV: `{coverage['retained_iv_contract_count']}`",
+                          "- Unpriced exposure is excluded from modeled GEX; unavailable does not mean zero."])
     if snapshot.get("directionalized"):
         directional = snapshot["directionalized"]
         lines.extend([

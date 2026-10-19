@@ -51,8 +51,8 @@ class ProviderFixtureLabTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(report["scorecard"]["passed"], len(bundled_provider_fixture_cases()))
         self.assertEqual(report["scorecard"]["failed"], 0)
         self.assertEqual(report["scorecard"]["healthy"], 0)
-        self.assertEqual(report["scorecard"]["simulated"], 3)
-        self.assertEqual(report["scorecard"]["degraded"], 2)
+        self.assertEqual(report["scorecard"]["simulated"], 4)
+        self.assertEqual(report["scorecard"]["degraded"], 1)
 
         summaries = {
             result["name"]: result["summary"]
@@ -80,7 +80,7 @@ class ProviderFixtureLabTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("# Offline Provider Fixture Workbench", markdown)
         self.assertIn("Tradovate Live Frames", markdown)
         self.assertIn("- Healthy live: `0`", markdown)
-        self.assertIn("- Simulated: `3`", markdown)
+        self.assertIn("- Simulated: `4`", markdown)
         self.assertIn("| Mode | Network | Health |", markdown)
         self.assertIn("network used `no`; runtime `REPLAY` / `DISCONNECTED`", markdown)
         self.assertIn("historical compatibility field", markdown)

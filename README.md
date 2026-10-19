@@ -26,10 +26,11 @@ Inspect the structure of a session: exposure by strike, modeled levels, source
 quality and the assumptions behind the numbers. Press `p` to select a replay,
 `v` to inspect source and model details, and `e` to export a snapshot.
 
-Futures-option calculations use European Black-76 pricing. American exercise
-and unknown exercise style are explicitly qualified; early exercise is not
-modeled. Missing call/put sides show unavailable levels rather than inferred
-walls. See [model assumptions](docs/model-assumptions.md).
+Confirmed American futures observations use an early-exercise lattice;
+European futures rows use Black-76. Historical approximations and unknown
+exercise style stay explicitly qualified. Unresolved IV preserves raw volume
+and shows unavailable exposure. Missing call/put sides show unavailable levels
+rather than inferred walls. See [model assumptions](docs/model-assumptions.md).
 
 ![Terminal component: GEX research dashboard showing synthetic exposure metrics, strike-level rows and replay controls](assets/gex-terminal-actual.png)
 
@@ -133,8 +134,9 @@ Credentials belong in the local environment and must never be committed. See
 
 The two interfaces are backed by the same research tools:
 
-- Price futures-option rows with Black-76 and equity/index-option rows with
-  Black-Scholes before strike aggregation.
+- Price European futures rows with Black-76, confirmed American futures rows
+  with an early-exercise lattice, and equity/index rows with Black-Scholes before
+  strike aggregation.
 - Keep open interest, raw trade volume, and directionalized volume as separate
   position models.
 - Replay bundled sessions and provider-shaped fixtures without credentials.

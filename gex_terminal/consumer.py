@@ -20,7 +20,8 @@ from gex_terminal.contracts import (
 from gex_terminal.engine import IntradayGexEngine
 from gex_terminal.feed_quality import build_feed_quality_snapshot
 from gex_terminal.market_data_adapter import validate_normalized_message
-from gex_terminal.pricing_assumptions import build_pricing_assumptions
+from gex_terminal.pricing_assumptions import (build_pricing_assumptions, has_qualified_pricing,
+                                             is_priced_contract, pricing_coverage)
 
 LOGGER = logging.getLogger(__name__)
 MAX_TRADE_IDENTITIES_PER_SEQUENCE = 4096
@@ -287,6 +288,20 @@ class StatefulGexConsumer:
             if snapshot["health"] not in {"down", "entitlement", "stale"}:
                 snapshot["health"] = "degraded"
         snapshot["fallback_iv_tick_count"] = self.fallback_iv_tick_count
+        current_rows = list(self.contract_state.values())
+        if has_qualified_pricing(current_rows):
+            selected, _ = self._select_position_states(current_rows)
+            coverage = pricing_coverage(selected)
+            if coverage["unpriced_contract_count"]:
+                snapshot["notes"] = list(dict.fromkeys((*(note for note in snapshot["notes"] if note != "feed checks clean"),
+                    f"{coverage['unpriced_contract_count']} selected contract(s) have unavailable IV; their quantities are excluded from GEX")))
+                if snapshot["health"] not in {"down", "entitlement", "stale"}:
+                    snapshot["health"] = "degraded"
+            if any(row.get("iv_source") == "prior_valid" for row in selected):
+                snapshot["notes"] = list(dict.fromkeys((*(note for note in snapshot["notes"] if note != "feed checks clean"),
+                    "Some IV observations use a labeled earlier valid same-contract value")))
+                if snapshot["health"] not in {"down", "entitlement", "stale"}:
+                    snapshot["health"] = "degraded"
         return snapshot
 
     async def update_market_state(self, raw_message: str) -> bool:
@@ -595,7 +610,7 @@ class StatefulGexConsumer:
         state = dict(existing or {})
         state.update(contract)
         state.update({
-            "iv": float(message.get("iv", 0.15)),
+            "iv": None if contract.get("iv_source") == "unavailable" else float(message.get("iv", 0.15)),
             "accumulated_volume": accumulated,
             "last_reported_volume": volume,
             "last_sequence": sequence,
@@ -638,7 +653,7 @@ class StatefulGexConsumer:
             strike = float(state["strike"])
             option_type = str(state["option_type"])
             volume = int(state.get("accumulated_volume", 0))
-            iv = float(state.get("iv", 0.15))
+            iv = float(state.get("iv", 0.15)) if is_priced_contract(state) else None
             row = chain.setdefault(strike, {"C": 0, "P": 0, "iv": iv})
             row[option_type] += volume
             row["iv"] = iv
@@ -720,6 +735,9 @@ class StatefulGexConsumer:
                 expiry_days=expiry_days,
             )
         else:
+            if any(not is_priced_contract(state) for state in contracts):
+                return {"error": "Unresolved IV cannot be priced through a mixed legacy aggregate.",
+                        "status": "no_data", "pricing_coverage": pricing_coverage(contracts)}
             selected_map = self._legacy_filter_map(
                 aggregate,
                 projected_buckets,
@@ -804,6 +822,10 @@ class StatefulGexConsumer:
 
         contracts, _ = self._select_position_states(contracts)
         pure_v2 = bool(contracts) and self._v1_option_count == 0
+        if not pure_v2 and any(not is_priced_contract(state) for state in contracts):
+            # The mixed legacy projection cannot preserve per-contract pricing
+            # exclusions. Match the snapshot refusal instead of pricing null IV.
+            return {}
         if pure_v2:
             reference_time = market_time or datetime.now(timezone.utc)
             grouped: Dict[str, list[Dict[str, Any]]] = {}
@@ -824,7 +846,7 @@ class StatefulGexConsumer:
                     reference_time,
                     expiry_days=expiry_days,
                 )
-                return {f"{days_to_expiry:g}DTE": float(data["total_net_gex"])}
+                return {f"{days_to_expiry:g}DTE": (float(data["total_net_gex"]) if "total_net_gex" in data else None)}
 
             breakdown = {}
             for label, states in sorted(grouped.items()):
@@ -837,7 +859,7 @@ class StatefulGexConsumer:
                     expiry_override=override,
                     expiry_days=expiry_days,
                 )
-                breakdown[label] = float(data["total_net_gex"])
+                breakdown[label] = float(data["total_net_gex"]) if "total_net_gex" in data else None
             return breakdown
 
         if not buckets:
@@ -1073,6 +1095,13 @@ class StatefulGexConsumer:
         expiry_override: float | None = None,
         expiry_days: dict[str, float] | None = None,
     ) -> dict:
+        selected_contracts = contracts
+        coverage = pricing_coverage(contracts) if has_qualified_pricing(contracts) else None
+        contracts = [state for state in contracts if is_priced_contract(state)]
+        if not contracts:
+            return {"error": "No selected option contracts have an available IV; raw quantities are retained.",
+                    "status": "no_data", "pricing_coverage": coverage or pricing_coverage(selected_contracts),
+                    "pricing_assumptions": build_pricing_assumptions(selected_contracts, self.risk_free_rate)}
         strikes = np.array([state["strike"] for state in contracts], dtype=float)
         ivs = np.array([state.get("iv", 0.15) for state in contracts], dtype=float)
         calls = np.array([
@@ -1104,6 +1133,7 @@ class StatefulGexConsumer:
             state.get("contract_multiplier") or self.engine.multiplier
             for state in contracts
         ], dtype=float)
+        option_types = np.array([state["option_type"] for state in contracts], dtype=object)
 
         matrix = self.engine.compute_intraday_gex_matrix(
             spot_price=spot,
@@ -1115,6 +1145,7 @@ class StatefulGexConsumer:
             accumulated_put_vol=puts,
             pricing_model=pricing_models,
             contract_multipliers=multipliers,
+            option_types=option_types,
         )
         directional = self.engine.compute_directionalized_gex_matrix(
             spot_price=spot,
@@ -1138,6 +1169,7 @@ class StatefulGexConsumer:
             ], dtype=float),
             pricing_model=pricing_models,
             contract_multipliers=multipliers,
+            option_types=option_types,
         )
         directional["direction_sources"] = sorted({
             source
@@ -1178,7 +1210,10 @@ class StatefulGexConsumer:
             and state.get("iv_provenance", {}).get("method")
         })
         matrix["risk_free_rate"] = self.risk_free_rate
-        matrix["pricing_assumptions"] = build_pricing_assumptions(contracts, self.risk_free_rate)
+        matrix["pricing_assumptions"] = build_pricing_assumptions(selected_contracts, self.risk_free_rate)
+        if coverage is not None:
+            matrix["pricing_coverage"] = coverage
+            matrix["directionalized"]["pricing_coverage"] = copy.deepcopy(coverage)
         return matrix
 
     @staticmethod

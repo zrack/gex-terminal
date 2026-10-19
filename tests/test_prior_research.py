@@ -1,4 +1,4 @@
-"""Regression checks for the frozen 0.5.0 sparse-side migration review."""
+"""Regression checks for the frozen 0.5.0 research migration review."""
 
 from copy import deepcopy
 import json
@@ -12,6 +12,9 @@ from gex_terminal.demo_lab import build_demo_lab, reproduce_demo_lab, verify_dem
 from gex_terminal.demo_lab_receipt import file_sha256, stable_json_sha256
 from scripts.verify_prior_research import (
     EPHEMERAL_RUNTIME_FIELDS,
+    EXPECTED_CURRENT_PROVIDER_SCORECARD,
+    EXPECTED_PRIOR_PROVIDER_SCORECARD,
+    PRIOR_NQ_PROFILE_SHA256,
     EXPECTED_PRICING_ASSUMPTIONS,
     PRIOR_NQ_SOURCE_SHA256,
     verify_known_prior_output_changes,
@@ -36,13 +39,13 @@ def _comparison_fixture(root):
     replay = {"sessions": [{"snapshot": deepcopy(snapshot), "summary": {"symbol": "NQ"},
                             "timeline": timeline}], "alerts": []}
     artifacts = {"snapshot.json": snapshot, "replay_lab.json": replay,
-                 "manifest.json": {"symbol": "NQ"},
+                 "manifest.json": {"symbol": "NQ", "provider_fixture_lab": deepcopy(EXPECTED_PRIOR_PROVIDER_SCORECARD)},
                  "model-comparison.json": {"total": 10.0},
                  "position-model-comparison.json": {"total": 10.0}}
     receipt = {
         "application": {"version": "0.5.0"},
         "source": {"session_name": "nq-research-loop", "sha256": PRIOR_NQ_SOURCE_SHA256},
-        "model": {"profile_sha256": "frozen-profile"},
+        "model": {"profile_sha256": PRIOR_NQ_PROFILE_SHA256},
         "canonicalization": {"schema": "gex-terminal.demo-lab-canonical-json.v1",
                              "omitted_ephemeral_fields": sorted(EPHEMERAL_RUNTIME_FIELDS),
                              "generated_at_bound": True},
@@ -52,6 +55,7 @@ def _comparison_fixture(root):
         _write(previous, name, payload)
     _write(previous, "review-receipt.json", receipt)
     updated = deepcopy(artifacts)
+    updated["manifest.json"]["provider_fixture_lab"] = deepcopy(EXPECTED_CURRENT_PROVIDER_SCORECARD)
     for snap in (updated["snapshot.json"], updated["replay_lab.json"]["sessions"][0]["snapshot"]):
         snap["metrics"]["side_coverage"] = "both_sides"
         snap["model"]["pricing_assumptions"] = deepcopy(EXPECTED_PRICING_ASSUMPTIONS)
@@ -79,6 +83,10 @@ class PriorResearchDiffTests(unittest.TestCase):
             self.assertTrue(result["all_other_decision_content_equal"])
             self.assertEqual(len(result["additive_metadata_paths"]), 32)
             self.assertEqual(len(result["corrected_values"]), 2)
+            self.assertEqual(result["synthetic_fixture_scorecard_corrections"], [
+                {"path": "manifest.json.provider_fixture_lab.degraded", "previous": 2, "current": 1},
+                {"path": "manifest.json.provider_fixture_lab.simulated", "previous": 3, "current": 4},
+            ])
             self.assertEqual(before, {str(path): path.read_bytes() for root in (previous, current)
                                       for path in root.rglob("*") if path.is_file()})
 
@@ -90,6 +98,7 @@ class PriorResearchDiffTests(unittest.TestCase):
             ("snapshot.json", lambda value: value.update(unrecognized_metadata="must stay bound")),
             ("model-comparison.json", lambda value: value.update(total=11.0)),
             ("model-comparison.json", lambda value: value.update(total=10)),
+            ("manifest.json", lambda value: value.update(symbol="ES")),
         )
         for reference, mutate in mutations:
             with self.subTest(reference=reference), tempfile.TemporaryDirectory() as directory:
@@ -98,6 +107,25 @@ class PriorResearchDiffTests(unittest.TestCase):
                 mutate(payload)
                 _write(current, reference, payload)
                 with self.assertRaisesRegex(AssertionError, "decision content drift"):
+                    verify_known_prior_output_changes(previous, current)
+
+    def test_fixture_scorecard_correction_requires_exact_counters_and_json_types(self):
+        for target, mutate in (
+            ("previous", lambda score: score.update(degraded=1, simulated=4)),
+            ("current", lambda score: score.update(degraded=2, simulated=3)),
+            ("current", lambda score: score.update(simulated=4.0)),
+            ("current", lambda score: score.update(degraded=True)),
+            ("current", lambda score: score.update(passed=4, failed=1)),
+            ("current", lambda score: score.update(normalized_messages=27)),
+            ("current", lambda score: score.update(unrecognized="must remain bound")),
+        ):
+            with self.subTest(target=target), tempfile.TemporaryDirectory() as directory:
+                previous, current = _comparison_fixture(Path(directory))
+                root = previous if target == "previous" else current
+                payload = json.loads((root / "manifest.json").read_text())
+                mutate(payload["provider_fixture_lab"])
+                _write(root, "manifest.json", payload)
+                with self.assertRaisesRegex(AssertionError, "synthetic fixture scorecard"):
                     verify_known_prior_output_changes(previous, current)
 
     def test_pricing_and_side_disclosures_must_have_exact_expected_values(self):
@@ -134,6 +162,16 @@ class PriorResearchDiffTests(unittest.TestCase):
                 _write(root, reference, payload)
                 with self.assertRaises(AssertionError):
                     verify_known_prior_output_changes(previous, current)
+
+    def test_matching_but_different_model_profiles_cannot_use_migration_exception(self):
+        with tempfile.TemporaryDirectory() as directory:
+            previous, current = _comparison_fixture(Path(directory))
+            for root in (previous, current):
+                receipt = json.loads((root / "review-receipt.json").read_text())
+                receipt["model"]["profile_sha256"] = "different-but-equal-model-profile"
+                _write(root, "review-receipt.json", receipt)
+            with self.assertRaisesRegex(AssertionError, "source/model identity changed"):
+                verify_known_prior_output_changes(previous, current)
 
 
 def _config():

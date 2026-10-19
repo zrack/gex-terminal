@@ -288,13 +288,17 @@ async def build_databento_certification_report(
         "fallback_iv_ticks",
         _counter(adapter, "_iv_fallback_count"),
     )
+    american_iv_count = _diagnostic_count(
+        model_diagnostics, "american_futures_inverted_ticks",
+        _counter(adapter, "_american_inverted_iv_count"),
+    )
     provider_iv_count = _diagnostic_count(
         model_diagnostics,
         "provider_iv_ticks",
         _counter(
             adapter,
             "_provider_iv_count",
-            default=max(0, option_trades - inverted_iv_count - fallback_iv_count),
+            default=max(0, option_trades - inverted_iv_count - american_iv_count - fallback_iv_count),
         ),
     )
     inversion_failure_count = _diagnostic_count(
@@ -302,7 +306,7 @@ async def build_databento_certification_report(
         "iv_inversion_failures",
         fallback_iv_count,
     )
-    usable_iv_count = provider_iv_count + inverted_iv_count
+    usable_iv_count = provider_iv_count + inverted_iv_count + american_iv_count
     usable_iv_coverage = _coverage(usable_iv_count, option_trades)
     fallback_iv_coverage = _coverage(fallback_iv_count, option_trades)
     inversion_failure_coverage = _coverage(inversion_failure_count, option_trades)
@@ -864,6 +868,7 @@ async def build_databento_certification_report(
             "iv_sources_observed": sorted(state_iv_sources),
             "provider_iv_ticks": provider_iv_count,
             "black_76_inverted_ticks": inverted_iv_count,
+            "american_futures_inverted_ticks": american_iv_count,
             "fallback_iv_ticks": fallback_iv_count,
             "iv_inversion_failures": inversion_failure_count,
             "usable_iv_ticks": usable_iv_count,
@@ -876,7 +881,8 @@ async def build_databento_certification_report(
             "underlying_age_ms_mean": underlying_age_mean,
             "inverted_iv_age_coverage": inverted_iv_age_coverage,
             "risk_free_rate": float(risk_free_rate),
-            "pricing_model": "black_76",
+            "pricing_model": ("mixed_futures_models" if american_iv_count and inverted_iv_count
+                              else "american_futures_crr" if american_iv_count else "black_76"),
             "maximum_underlying_age_ms": adapter.max_underlying_age_seconds * 1000.0,
         },
         "coverage": coverage,

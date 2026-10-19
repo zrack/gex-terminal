@@ -64,8 +64,8 @@ and JSONL files containing complete `a[...]` frames.
 
 ## Databento Fixtures
 
-Databento sample injection joins definition metadata to trade records, then
-optionally injects an underlying quote fixture:
+Databento sample injection routes definitions, an optional underlying quote,
+and trades through the production adapter's ordered join and IV policy:
 
 ```bash
 gex-terminal inject-provider bundled:databento-glbx
@@ -73,6 +73,12 @@ gex-terminal inject-provider bundled:databento-glbx
 
 This exercises the documented `GLBX.MDP3` fixture mapping without requiring a
 live Databento key.
+
+The bundled definitions explicitly declare a synthetic expiry instant of
+`2026-06-19T20:00:00Z`. Together with the timed futures quote, this permits IV
+inversion from the synthetic premiums. A date-only expiry does not establish an
+expiry instant: without provider IV or an earlier qualified observation, that
+contract's IV remains unavailable and its quantity is excluded from GEX.
 
 The fixture includes known buy/sell and unknown trade-side examples. Generate a
 side-by-side model report through the same adapter and consumer path:
