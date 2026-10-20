@@ -7,6 +7,20 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Wind Tunnel Model Comparisons
+
+- Compare the default and aggressor-directionalized proxies side by side from
+  one frozen checkpoint, with shared price, IV and time assumptions, matched
+  strike axes and separate pricing coverage and exclusions.
+- Add isolated-shock presets and an explicit, bounded 54-case sensitivity grid
+  per market. Unavailable cases remain distinct from zero; sign and wall
+  stability describe only evaluated points, not future market behavior.
+- Keep model-comparison requests and results in portable, reproducible local
+  receipts. All calculations and chart assets remain offline.
+- Allow explicitly supplied saved ES/NQ checkpoints in one workbench. The saved
+  starter offers the other registered checkpoint when it remains valid; source
+  selection does not download data or request provider credentials.
+
 ## Unreleased — Full Historical Sessions
 
 - Stream and verify explicit local captures up to 1 GiB / 2 million events,

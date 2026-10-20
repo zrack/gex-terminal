@@ -44,6 +44,15 @@ Ask “what changes if…?” without changing the source checkpoint. Shift spot
 implied volatility or model time, exclude the nearest expiry, and compare the
 recalculated structure. Save a scenario receipt to verify or reproduce later.
 
+Open **Model comparison** to put the default and directionalized proxies side
+by side on the same frozen input. Shared price, IV and time controls reprice
+both models, with separate coverage and unpriced-contract details. Run the
+explicit **54-case grid** to inspect which net signs and dominant walls survive
+the tested combinations. ES uses ±25 price points; NQ uses ±100; both use
+±1 IV point and 0/30/60 minutes. These are finite sensitivity tests, with no
+provider requests or predicted market outcomes. See the
+[comparison guide](docs/wind-tunnel.md).
+
 ![Market Wind Tunnel component: browser workbench showing a calculated ES exposure landscape and controls for price, volatility, time and expiry assumptions](assets/market-wind-tunnel.png)
 
 *Actual Wind Tunnel capture: synthetic ES, final replay checkpoint, IV shifted

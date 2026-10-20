@@ -58,6 +58,7 @@ class SavedWorkspaceTests(unittest.TestCase):
         self.capture.write_text("external original changed after preparation")
         self.assertEqual(Path(plan["capture_path"]).read_bytes(), original)
         checkpoint = read_checkpoint(plan["checkpoint_path"])
+        self.assertEqual(plan["checkpoint_sha256"], checkpoint["sha256"])
         self.assertEqual(checkpoint["parameters"], {"spot": 5200., "risk_free_rate": .017,
                                                    "fallback_dte": .7, "contract_multiplier": 12})
         self.assertEqual(checkpoint["source"]["as_of"], "2026-10-18T15:45:00Z")

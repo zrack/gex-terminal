@@ -71,6 +71,21 @@ Unavailable IV and raw quantities are preserved, with excluded exposure shown
 in pricing coverage. Subsequent source selections and scenarios are independent.
 This path uses no provider requests or credits.
 
+When both symbols have been registered by a current starter, the same Wind
+Tunnel also offers the other saved symbol in its source picker. The selected
+symbol remains the initial source and Terminal's input. The other checkpoint
+and its frozen capture are checked against their registered hashes without
+replaying that additional capture. A missing, changed or older unbound
+registration is skipped with a startup note; register that symbol again to
+enable switching. No source is discovered by scanning your historical folders.
+
+Open **Models** to review the default proxy and aggressor-directionalized proxy
+side by side for the chosen ES or NQ checkpoint. Price, IV and elapsed-time
+controls apply to both models from the same frozen state. The models remain
+separate estimates; agreement is conditional on those inputs and does not
+establish dealer identity or predictive accuracy. Unavailable IV stays excluded
+and pricing coverage remains visible.
+
 Frozen checkpoints above 500 source rows open in **Compare**. Their landscape
 is calculated only when requested, using a labeled 3 × 3 preview (nine sampled
 points); all contracts participate. The mesh between those points is an
@@ -111,6 +126,17 @@ open it. These commands run without live provider access:
 gex-terminal --replay-session nq-research-loop --symbol NQ --multiplier 20 --wind-tunnel-checkpoint nq-checkpoint.json
 gex-terminal wind-tunnel --checkpoint nq-checkpoint.json --port 0
 ```
+
+To make two explicit saved files available in one source picker:
+
+```bash
+gex-terminal wind-tunnel --checkpoint es-checkpoint.json --comparison-checkpoint nq-checkpoint.json --port 0
+```
+
+`--checkpoint` sets the initial source. Repeat `--comparison-checkpoint` at most
+twice; identical checkpoints appear once. All supplied files must pass the same
+bounded checkpoint validation before the server starts. The browser receives
+detached inputs and cannot select local paths.
 
 Use a new output filename; an existing checkpoint is never overwritten. Input
 files must be regular, bounded checkpoint JSON, not symlinks. The server reads
@@ -177,6 +203,39 @@ Each plotted value comes from a calculation. A 2D view and inspectable tables
 keep results accessible where WebGL is unavailable. Compare uses matched axes
 so a larger-looking plot cannot come from a different scale. Fragility shows
 only tested cells: missing or invalid cells do not mean stability.
+
+## Compare Default And Directionalized Models
+
+Choose **Model comparison** to view both quantity proxies side by side. Each
+column shows its original and recalculated net GEX, dominant wall, pricing
+coverage and unpriced-contract details. The strike charts use matched axes;
+the exact-values table distinguishes unavailable output from zero.
+
+The default is **Terminal selected proxy** for a frozen checkpoint and
+**Volume proxy** for a bundled replay. The directionalized model uses signed
+aggressor-side volume under an assumed passive-counterparty position. The two
+models can use different quantity cohorts. Neither observes actual dealer
+inventory or whether a trade opens or closes a position; never add them.
+
+Price, IV and time controls apply to both columns. Presets reset the other
+shocks to zero so you can inspect one change at a time. **Run 54-case grid** is
+an explicit, separate calculation from the original checkpoint: price
+−25/0/+25 points for ES or −100/0/+100 for NQ, IV −1/0/+1 volatility point, and
+time 0/30/60 minutes, with nearest-expiry exclusion off. Its 27 coordinates per
+model include combined shocks. A large saved ES checkpoint can take several
+minutes; calculations remain local and bounded.
+
+Grid summaries count positive, negative, zero and unavailable results and show
+the tested exposure range and dominant walls. Missing cases do not establish
+stability. Changing the source or scenario clears the current results and grid
+conclusions. The grid does not ingest later events, fill unavailable IV, or
+estimate future prices or probabilities. Time beyond the capture is model time.
+
+Save a model comparison with **Save scenario**. Its receipt includes the
+original input, both models, exact controls and the grid when requested.
+Reopening verifies it against the same calculation build and runtime. Old
+receipts retain their original implementation identity and need their original
+build for exact reproduction.
 
 ## Read Pricing Coverage
 

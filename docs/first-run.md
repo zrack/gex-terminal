@@ -99,6 +99,18 @@ Then run `"./GEX App/run-gex" --saved-data NQ` in an interactive terminal.
 Add `--no-browser` to a launch command to print the local Wind Tunnel URL;
 the paired launch still needs an interactive terminal.
 
+With a current starter, register both ES and NQ to switch between their saved
+checkpoints in one Wind Tunnel. Startup verifies the other symbol's registered
+checkpoint and capture hashes without replaying that additional source. Older
+registrations gain the checkpoint binding after a successful saved-data launch;
+an unavailable or changed other source is skipped with a note. Terminal continues
+to use the symbol selected at launch.
+
+In Wind Tunnel, choose a saved symbol and open **Models** for default and
+directionalized results side by side. Apply price, IV and elapsed-time changes
+to both from the same frozen checkpoint. Pricing coverage and exclusions remain
+visible. These conditional proxy comparisons use no provider requests or credits.
+
 Each launch reconstructs a fresh final checkpoint through the installed
 application. Both views apply the capture header's multiplier, risk-free rate
 and fallback DTE. A missing value uses an explicit default: multiplier **ES 50**

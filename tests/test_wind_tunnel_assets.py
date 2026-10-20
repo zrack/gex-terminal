@@ -8,6 +8,16 @@ import unittest
 
 
 class WindTunnelAssetTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("node"), "Node.js is needed for model comparison browser regressions")
+    def test_browser_model_comparison_controls_grid_receipts_and_stale_responses(self):
+        root = files("gex_terminal").joinpath("wind_tunnel_web")
+        result = subprocess.run(
+            [shutil.which("node"), "-e", BROWSER_MODELS_HARNESS, str(root)],
+            text=True, capture_output=True, timeout=15, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("model comparison browser regressions passed", result.stdout)
+
     @unittest.skipUnless(shutil.which("node"), "Node.js is needed for pricing coverage browser regressions")
     def test_browser_pricing_coverage_and_unpriced_diagnostics(self):
         root = files("gex_terminal").joinpath("wind_tunnel_web")
@@ -105,7 +115,8 @@ for (const match of page.matchAll(/<select\b[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<
     if (!select.value || optionMatch[1].includes('selected')) select.value = option.value;
   }
 }
-elements.set('#comparison-table tbody', new Element('tbody')); elements.set('#search-table tbody', new Element('tbody'));
+for (const id of ['comparison-table', 'search-table', 'model-values-table', 'model-grid-table']) elements.set('#' + id + ' tbody', new Element('tbody'));
+for (const [selector, id] of [['.metric-strip', null], ['.pricing-coverage', null], ['.search-controls', null]]) elements.set(selector, new Element('section'));
 global.document = {querySelector: selector => {if (selector.includes('option[value=')) return null; assert(elements.has(selector), 'Missing browser element: ' + selector); return elements.get(selector);}, querySelectorAll: () => [], createElement: tag => new Element(tag), addEventListener() {}, body: new Element('body')};
 global.window = {addEventListener() {}};
 global.location = {origin: 'http://127.0.0.1:12345', hash: '#cap=local-test-capability', pathname: '/', search: ''};
@@ -323,6 +334,8 @@ assert.match(coverageText(), /Coverage unavailable/);
 assert(!coverageText().includes('508'));
 browser.renderPricingAssumptions(null);
 assert.match(coverageText(), /Pricing coverage pending/);
+assert.match(elements.get('#pricing-model-context').textContent, /Pricing assumptions pending.*Recalculating/);
+assert(!elements.get('#pricing-model-context').textContent.includes('early exercise is not modeled'), 'A pending calculation cannot imply European-only pricing');
 
 // Exercise the actual source-change path while its local checkpoint request is pending.
 global.fetch = () => new Promise(() => {});
@@ -342,6 +355,61 @@ assert.equal(browser.state.calculation, null, 'Direct replay and breaking-case r
 assert.match(coverageText(), /Pricing coverage pending/);
 assert(!coverageText().includes('508'));
 console.log('pricing coverage browser regressions passed');
+"""
+
+
+BROWSER_MODELS_HARNESS = BROWSER_DOM_HARNESS + r"""
+const renderedText = element => [element.textContent, ...element.children.map(renderedText)].join(' ');
+const textAt = selector => renderedText(elements.get(selector));
+const terminalArtifact = JSON.stringify({source: {symbol: 'ES', as_of: '2026-10-16T20:59:59Z', data_mode: 'REPLAY', synthetic: false}, parameters: {fallback_dte: .25, risk_free_rate: .045}, rows: [{contract_id: 'missing-es', expiry: '2026-10-19', strike: 7770, option_type: 'P', symbol: 'ES'}]});
+const nqArtifact = JSON.stringify({source: {symbol: 'NQ', as_of: '2026-10-16T20:59:59Z', data_mode: 'REPLAY', synthetic: false}, parameters: {fallback_dte: .25, risk_free_rate: .045}, rows: []});
+const defaults = {session: 'terminal-checkpoint', checkpoint: 0, model: 'terminal_selected', fallback_dte: .25, risk_free_rate: .045};
+const terminal = {name: 'terminal-checkpoint', label: 'ES primary', source_kind: 'terminal_checkpoint', symbol: 'ES', as_of: '2026-10-16T20:59:59Z', status: 'available', defaults, terminal_checkpoint: terminalArtifact};
+const bundled = {name: 'wind-tunnel-lab', symbol: 'ES', status: 'available'};
+const coverage = {status: 'partial', selected_contract_count: 3, priced_contract_count: 2, selected_quantity: 15, priced_quantity: 14, unpriced_contract_count: 1, unpriced_quantity: 1};
+const makeState = (value, model, available = true) => ({model, status: available ? 'available' : 'insufficient_directional_coverage', reason: available ? null : 'No observed aggressor side', spot: 7770, summary: available ? {total_net_gex: value, gamma_wall: 7770, net_sign: Math.sign(value)} : null, matrix: available ? {strikes: [7700, 7770], net_gex: [value / 2, value / 2], call_wall_strike: model === 'terminal_selected' ? 7770 : null, put_wall_strike: model === 'terminal_selected' ? 7700 : null} : null, counts: {source_rows: 1001}, directional_coverage: model === 'directionalized_trade_volume' ? .9 : undefined, pricing_coverage: coverage, excluded_contracts: [{contract_id: 'missing-es', expiry: '2026-10-19', quantity: 1, reason: 'iv_unavailable', iv_provenance: {status: 'outside_no_arbitrage_bounds', option_price: 1, lower_bound: 2}}], pricing_assumptions: {summary: 'Frozen pricing inputs', early_exercise_modeled: true}});
+const makeReport = (request, unavailable = false) => ({request: {...request, model: request.terminal_checkpoint ? 'terminal_selected' : 'raw_trade_volume'}, result_sha256: 'b'.repeat(64), models: [{model: request.terminal_checkpoint ? 'terminal_selected' : 'raw_trade_volume', label: 'Call-positive put-negative proxy', baseline: makeState(-10, 'terminal_selected'), scenario: makeState(-20, 'terminal_selected')}, {model: 'directionalized_trade_volume', label: 'Signed aggressor proxy', baseline: makeState(5, 'directionalized_trade_volume'), scenario: makeState(0, 'directionalized_trade_volume', !unavailable)}], agreement: {scenario: {status: unavailable ? 'not_evaluable' : 'available', net_sign_matches: false, gamma_wall_matches: true}}, grid: request.grid ? {axes: {spot_shifts: [-25, 0, 25], iv_shifts: [-1, 0, 1], time_advances: [0, 30, 60]}, case_count: 54, summaries: [{model: 'terminal_selected', label: 'default', case_count: 27, evaluable_count: 27, not_evaluable_count: 0, net_sign_counts: {positive: 0, negative: 27, zero: 0}, net_gex_range: {min: -20, max: -10}, gamma_wall_strikes: [7770], net_sign_stable: true, gamma_wall_stable: true}, {model: 'directionalized_trade_volume', case_count: 27, evaluable_count: 26, not_evaluable_count: 1, net_sign_counts: {positive: 26, negative: 0, zero: 0}, net_gex_range: {min: 0, max: 5}, gamma_wall_strikes: [7770], net_sign_stable: null, gamma_wall_stable: null}], cases: [{model: 'terminal_selected', spot_shift: 0, iv_shift: 0, time_advance: 0, status: 'available', total_net_gex: 0, gamma_wall_strike: 7770, pricing_coverage: coverage}, {model: 'directionalized_trade_volume', spot_shift: -25, iv_shift: -1, time_advance: 0, status: 'insufficient_directional_coverage', total_net_gex: null, gamma_wall_strike: null, reason: 'Missing aggressor quantity'}]} : null});
+const tabs = ['landscape', 'compare', 'fragility', 'models'].map(view => {const element = elements.get('#tab-' + view); element.dataset = {view}; return element;});
+const presets = ['baseline', 'price-down', 'price-up', 'iv-down', 'iv-up', 'time-30', 'time-60'].map(modelPreset => {const element = new Element('button'); element.dataset = {modelPreset}; return element;});
+document.querySelectorAll = selector => selector === '.tabs button' ? tabs : selector === '[data-model-preset]' ? presets : [];
+let requests = [], saved, deferModels = false, pending = [], unavailable = false, plots = [], deferCalculate = false, pendingCalculations = [];
+global.Plotly = {react: async (target, traces, layout) => {target.data = traces; plots.push({target, traces, layout});}, purge: target => {target.data = null;}, Plots: {resize() {}}}; window.Plotly = global.Plotly;
+global.fetch = async (url, options) => {assert(url.startsWith('/api/'), 'Offline controller must use only same-origin API'); const path = url.replace('/api/', ''), body = options.body ? JSON.parse(options.body) : null; requests.push({path, body, signal: options.signal}); let result;
+  if (path === 'catalog') result = {sessions: [terminal, bundled], defaults, bundled_defaults: {...defaults, session: 'wind-tunnel-lab', model: 'raw_trade_volume'}, saved_checkpoints: [{artifact: terminalArtifact, label: 'Saved ES', symbol: 'ES', checkpoint_sha256: 'es'}, {artifact: nqArtifact, label: 'Saved NQ', symbol: 'NQ', checkpoint_sha256: 'nq'}]};
+  else if (path === 'calculate') {const calculation = {request: body, baseline: makeState(-10, body.model), scenario: makeState(-20, body.model), result_sha256: 'a'.repeat(64)}; if (deferCalculate) return new Promise(resolve => pendingCalculations.push(() => resolve({ok: true, status: 200, json: async () => calculation}))); result = calculation;}
+  else if (path === 'models') {if (deferModels) return new Promise(resolve => pending.push({body, signal: options.signal, resolve: () => resolve({ok: true, status: 200, json: async () => makeReport(body)})})); result = makeReport(body, unavailable);}
+  else if (path === 'receipts') {saved = body; result = {id: 'saved'};}
+  else if (path === 'surface') result = {request: body, axes: {}, points: []};
+  else throw new Error('Unexpected request ' + path);
+  return {ok: true, status: 200, json: async () => result};
+};
+let app = fs.readFileSync(root + '/app.js', 'utf8'); app = app.replace('  initialize();', '  globalThis.browser = {initialize, loadSource, setView, requestFromControls, calculateModels, scheduleCalculation, applyModelPreset, renderModels, reopenRequest, saveReceipt, showSource, state};'); vm.runInThisContext(app, {filename: 'app.js'});
+const flush = async () => {for (let i = 0; i < 15; i++) await Promise.resolve();};
+(async () => {
+  await browser.initialize(); assert.equal(browser.state.view, 'compare', 'Large source must keep its existing initial Compare view'); assert.equal(browser.state.sources.length, 3, 'Primary saved checkpoint is deduplicated');
+  elements.get('#spot-number').value = '25'; elements.get('#iv-number').value = '1'; elements.get('#time-number').value = '30'; browser.setView('models'); await flush();
+  assert.equal(browser.state.view, 'models'); assert(elements.get('.metric-strip').hidden); assert(elements.get('.pricing-coverage').hidden); assert(elements.get('.search-controls').hidden); assert(elements.get('#position-model').disabled);
+  let request = requests.filter(item => item.path === 'models').at(-1).body; assert.deepEqual([request.spot_shift, request.iv_shift, request.time_advance, request.grid], [25, 1, 30, false]); assert.equal(request.terminal_checkpoint, terminalArtifact);
+  assert.match(textAt('#model-cards'), /Default.*Directionalized/); assert.match(textAt('#model-cards'), /2 \/ 3 contracts priced/); assert.match(textAt('#model-cards'), /90% of priced volume/); assert.match(textAt('#model-cards'), /ES 7,770 put.*missing-es/); assert.match(textAt('#model-cards'), /no valid IV/);
+  const rows = elements.get('#model-values-table tbody').children; assert.equal(rows.length, 4); assert.equal(rows[3].children[3].textContent, '0', 'A real zero must remain zero'); assert.equal(rows[3].children[5].textContent, 'Unavailable', 'Directional call wall is not a default wall or zero'); assert.equal(rows[1].children[5].textContent, '7,770', 'Default wall comes from its matrix');
+  const modelPlots = plots.filter(item => [elements.get('#model-default-plot'), elements.get('#model-directional-plot')].includes(item.target)); assert.equal(modelPlots.length, 2); assert.deepEqual(modelPlots[0].layout.xaxis.range, modelPlots[1].layout.xaxis.range); assert.deepEqual(modelPlots[0].layout.yaxis.range, modelPlots[1].layout.yaxis.range);
+  await browser.calculateModels(true); assert.equal(browser.state.models.request.grid, true); assert.equal(requests.filter(item => item.path === 'models').at(-1).body.time_advance, 30); assert.match(textAt('#model-grid-summary'), /54 calculated model cases/); assert.match(textAt('#model-grid-summary'), /stability is not established/); assert.match(textAt('#model-grid-table tbody'), /available.*0.*insufficient_directional_coverage.*Unavailable/);
+  elements.get('#scenario-name').value = 'Both models'; await browser.saveReceipt({preventDefault() {}}); assert.equal(saved.kind, 'models'); assert.equal(saved.request.grid, true); assert.equal(saved.request.terminal_checkpoint, terminalArtifact);
+  const reproduction = browser.state.models; await browser.reopenRequest('models', saved.request, reproduction); assert.equal(browser.state.view, 'models'); assert.equal(browser.state.models, reproduction); assert.equal(browser.state.models.request.grid, true, 'Reopening must preserve the saved exact grid request');
+  const nullWall = makeReport(browser.state.models.request); nullWall.agreement.scenario = {status: 'available', net_sign_matches: true, gamma_wall_matches: null}; for (const model of nullWall.models) {model.scenario.summary.total_net_gex = 0; model.scenario.summary.gamma_wall = null;} browser.state.models = nullWall; browser.renderModels(); assert.match(textAt('#model-agreement'), /net sign agrees.*dominant gamma wall is not evaluable/); assert(!textAt('#model-agreement').includes('wall differs'), 'Null walls cannot establish model disagreement');
+  unavailable = true; await browser.calculateModels(); assert.match(textAt('#model-agreement'), /not_evaluable/); assert.equal(elements.get('#model-values-table tbody').children[3].children[3].textContent, 'Unavailable'); assert.match(textAt('#model-directional-plot'), /No observed aggressor side/); unavailable = false;
+  // A late response must never resurrect a grid after shared controls change.
+  deferModels = true; const pendingGrid = browser.calculateModels(true); await flush(); const firstPending = pending.at(-1); browser.applyModelPreset('iv-down'); assert(firstPending.signal.aborted); assert.equal(browser.state.models, null); assert(!textAt('#model-grid-summary').includes('54 calculated')); assert.deepEqual([elements.get('#spot-number').value, elements.get('#iv-number').value, elements.get('#time-number').value], [0, -1, 0]); firstPending.resolve(); await pendingGrid; assert.equal(browser.state.models, null);
+  // A source change must clear pending model results and use the selected portable artifact.
+  const pendingOld = browser.calculateModels(); await flush(); const oldSource = pending.at(-1); deferModels = false; await browser.loadSource('saved-checkpoint-nq'); assert(oldSource.signal.aborted); oldSource.resolve(); await pendingOld; assert.equal(browser.state.source, 'saved-checkpoint-nq'); assert.equal(browser.requestFromControls().session, 'terminal-checkpoint'); assert.equal(browser.requestFromControls().terminal_checkpoint, nqArtifact); assert.equal(browser.state.models.request.terminal_checkpoint, nqArtifact); assert.match(elements.get('#model-price-down').textContent, /100/); assert.match(elements.get('#model-grid-bounds').textContent, /−100 \/ 0 \/ \+100/); assert.equal(browser.state.models.grid, null);
+  browser.applyModelPreset('price-up'); assert.equal(elements.get('#spot-number').value, 100); assert.equal(elements.get('#iv-number').value, 0); assert.equal(elements.get('#time-number').value, 0);
+  browser.setView('compare'); await flush(); assert(!elements.get('#position-model').disabled); assert(!elements.get('.metric-strip').hidden); assert(browser.state.calculation, 'Returning to Compare recalculates the shared controls');
+  // Returning to Fragility after a model-only edit must not reveal stale single-model metrics.
+  browser.setView('models'); await flush(); browser.applyModelPreset('time-60'); assert.equal(browser.state.calculation, null); browser.setView('fragility'); assert(elements.get('.metric-strip').hidden, 'Stale metric strip stays hidden while refreshing'); await flush(); assert(browser.state.calculation); assert.equal(browser.state.calculation.request.time_advance, 60); assert(!elements.get('.metric-strip').hidden);
+  // A stale ES receipt reproduction must not replace a newer NQ source and its results.
+  browser.setView('models'); await flush(); const esRequest = {...defaults, terminal_checkpoint: terminalArtifact, spot_shift: 0, iv_shift: 0, time_advance: 0, grid: true}; const esReproduction = makeReport(esRequest); deferCalculate = true; const reopening = browser.reopenRequest('models', esRequest, esReproduction).then(() => null, error => error); await flush(); assert.equal(pendingCalculations.length, 1); deferCalculate = false; await browser.loadSource('saved-checkpoint-nq'); const currentModels = browser.state.models; pendingCalculations[0](); const staleError = await reopening; assert.match(staleError.message, /Source or assumptions changed/); assert.equal(browser.state.source, 'saved-checkpoint-nq'); assert.equal(browser.state.models, currentModels); assert.equal(browser.state.models.request.terminal_checkpoint, nqArtifact); assert.notEqual(browser.state.models, esReproduction);
+  console.log('model comparison browser regressions passed');
+})().catch(error => {console.error(error); process.exitCode = 1;});
 """
 
 

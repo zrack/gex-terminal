@@ -71,7 +71,8 @@ class Element {
 const page = fs.readFileSync(root + '/index.html', 'utf8'), elements = new Map(), element = id => elements.get('#' + id);
 for (const match of page.matchAll(/<([a-z][a-z0-9]*)\b[^>]*\bid="([^"]+)"[^>]*>/g)) {const e = new Element(match[1]); e.value = match[0].match(/\bvalue="([^"]*)"/)?.[1] || ''; elements.set('#' + match[2], e);}
 for (const match of page.matchAll(/<select\b[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)) {const select = element(match[1]); for (const om of match[2].matchAll(/<option\b([^>]*)>([^<]*)<\/option>/g)) {const option = new Element('option'); option.value = om[1].match(/value="([^"]*)"/)?.[1] || ''; option.textContent = om[2]; select.append(option); if (!select.value || om[1].includes('selected')) select.value = option.value;}}
-elements.set('#comparison-table tbody', new Element('tbody')); elements.set('#search-table tbody', new Element('tbody'));
+for (const id of ['comparison-table', 'search-table', 'model-values-table', 'model-grid-table']) elements.set('#' + id + ' tbody', new Element('tbody'));
+for (const selector of ['.metric-strip', '.pricing-coverage', '.search-controls']) elements.set(selector, new Element('section'));
 global.document = {querySelector: selector => {if (selector.includes('option[value=')) return null; assert(elements.has(selector), 'Missing ' + selector); return elements.get(selector);}, querySelectorAll: () => [], createElement: tag => new Element(tag), addEventListener() {}, body: new Element('body')};
 global.window = {addEventListener() {}}; global.location = {origin: 'http://127.0.0.1:12345', hash: '#cap=local-test-capability', pathname: '/', search: ''}; global.history = {replaceState() {}}; global.sessionStorage = {setItem() {}, getItem() {return null;}, removeItem() {}};
 const bundled = {name: 'wind-tunnel-lab', label: 'Synthetic lab', symbol: 'ES', status: 'available'};

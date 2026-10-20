@@ -55,6 +55,14 @@ SAVED_PREPARE = (
     "restrict_network_to_loopback(); "
     "print(json.dumps(prepare_saved_workspace(Path(sys.argv[1]),sys.argv[2],Path(sys.argv[3]))))"
 )
+SAVED_COMPARISON_CHECK = (
+    "import json,sys; from pathlib import Path; "
+    "from gex_terminal.saved_workspace import restrict_network_to_loopback; "
+    "restrict_network_to_loopback(); "
+    "from gex_terminal.wind_tunnel_sources import validate_registered_checkpoint; "
+    "print(json.dumps(validate_registered_checkpoint(Path(sys.argv[1]),Path(sys.argv[2]),"
+    "sys.argv[3],sys.argv[4],sys.argv[5])))"
+)
 
 
 def digest(path: Path) -> str:
@@ -416,7 +424,8 @@ def saved_sources(research: Path) -> dict:
     if record.get("schema") != SAVED_SCHEMA or not isinstance(sessions, dict) or set(sessions) - {"ES", "NQ"}:
         raise ValueError("Invalid saved-data settings. Register a capture in a new research folder.")
     for item in sessions.values():
-        if (not isinstance(item, dict) or set(item) != {"capture_path", "capture_sha256"}
+        if (not isinstance(item, dict) or not {"capture_path", "capture_sha256"} <= set(item)
+                or set(item) - {"capture_path", "capture_sha256", "checkpoint_path", "checkpoint_sha256"}
                 or not isinstance(item["capture_path"], str) or not Path(item["capture_path"]).is_absolute()
                 or not isinstance(item["capture_sha256"], str)
                 or not re.fullmatch(r"[a-f0-9]{64}", item["capture_sha256"])):
@@ -443,8 +452,43 @@ def prepare_saved_data(environment: Path, research: Path, capture: Path, symbol:
 def remember_saved_data(research: Path, plan: dict) -> None:
     record = saved_sources(research)
     record["sessions"][plan["symbol"]] = {key: plan[key] for key in ("capture_path", "capture_sha256")}
+    # Older installed helpers still launch correctly but cannot advertise an
+    # unbound alternate checkpoint. A verified current plan adds that binding.
+    if "checkpoint_sha256" in plan:
+        record["sessions"][plan["symbol"]].update(
+            {key: plan[key] for key in ("checkpoint_path", "checkpoint_sha256")})
     atomic_write(research / SAVED_DATA, (json.dumps(record, indent=2) + "\n").encode())
     (research / SAVED_DATA).chmod(0o600)
+
+
+def saved_comparison_checkpoint(environment: Path, research: Path, symbol: str,
+                                scratch: Path) -> Path | None:
+    """Return only the other explicitly registered, still-verified checkpoint."""
+    other = "NQ" if symbol == "ES" else "ES"
+    item = saved_sources(research)["sessions"].get(other)
+    if item is None:
+        return None
+    path, checksum = item.get("checkpoint_path"), item.get("checkpoint_sha256")
+    note = (f"Saved {other} comparison skipped: its registered checkpoint is unavailable or changed. "
+            f"Register {other} again to enable source switching. The selected {symbol} source will still open.")
+    if (not isinstance(path, str) or not Path(path).is_absolute() or not isinstance(checksum, str)
+            or not re.fullmatch(r"[a-f0-9]{64}", checksum)):
+        print(note, flush=True)
+        return None
+    try:
+        checked = json.loads(run(
+            [str(environment / "bin" / "python"), "-I", "-c", SAVED_COMPARISON_CHECK,
+             path, item["capture_path"], other, checksum, item["capture_sha256"]],
+            cwd=scratch, stage="Saved comparison verification"))
+        if checked != {"symbol": other, "checkpoint_sha256": checksum}:
+            raise ValueError("Invalid saved comparison verification")
+    except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired):
+        # Avoid echoing private paths or helper tracebacks for an optional source.
+        print(note, flush=True)
+        return None
+    print(f"Verified saved {other} checkpoint is also available in the Wind Tunnel source picker. "
+          "No replay or provider requests were needed for that additional source.", flush=True)
+    return Path(path)
 
 
 def saved_source_note(plan: dict) -> str:
@@ -668,8 +712,9 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
             plan = prepare_saved_data(environment, research, captured_session, symbol, scratch,
                                       expected_sha256=expected)
             source_note = saved_source_note(plan)
-            # Remember the first checked frozen source, not each subsequent launch copy.
-            if expected is None:
+            # A current verified plan upgrades legacy registrations with an
+            # explicit checkpoint binding; old helpers retain their first copy.
+            if expected is None or "checkpoint_sha256" in plan:
                 remember_saved_data(research, plan)
             print(f"Saved {symbol}: multiplier {plan['contract_multiplier']}, configured rate "
                   f"{plan['risk_free_rate']:.2%}, fallback DTE {plan['fallback_dte']:g} days.", flush=True)
@@ -686,6 +731,10 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
             saved_wind = ["wind-tunnel", "serve", "--checkpoint", plan["checkpoint_path"],
                           "--port", "0", "--workspace", str(Path(plan["checkpoint_path"]).parent / "wind-tunnel"),
                           "--no-browser"]
+            if "gex_terminal/wind_tunnel_sources.py" in receipt["active"]["payload_sha256"]:
+                comparison = saved_comparison_checkpoint(environment, research, symbol, scratch)
+                if comparison is not None:
+                    saved_wind.extend(["--comparison-checkpoint", str(comparison)])
             return run_both([*command, *plan["terminal_args"]], [*command, *saved_wind],
                             cwd=scratch, no_browser=no_browser,
                             source_note=source_note)

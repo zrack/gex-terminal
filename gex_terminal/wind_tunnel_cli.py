@@ -28,6 +28,8 @@ def parser() -> argparse.ArgumentParser:
                        help="Empty or owned research directory, separate from the application.")
     serve.add_argument("--checkpoint", type=Path,
                        help="Read one explicit local demo/replay checkpoint; the browser cannot select input paths.")
+    serve.add_argument("--comparison-checkpoint", type=Path, action="append", default=[],
+                       help="Add an explicit saved checkpoint to the source picker; repeat at most twice and use --checkpoint for the initial source.")
     example = commands.add_parser("example", help="Calculate a bundled example and produce a portable receipt.")
     example.add_argument("name", choices=core_module().EXAMPLE_NAMES)
     example.add_argument("--output", type=Path, help="Write a new JSON file; otherwise print JSON.")
@@ -68,12 +70,10 @@ def emit_artifact(value: dict, output: Path | None):
     print("Wrote Wind Tunnel JSON artifact.")
 
 
-async def serve(workspace: Path, *, port: int, no_browser: bool, checkpoint: Path | None = None) -> int:
-    core = None
-    if checkpoint is not None:
-        from .wind_tunnel import TerminalCheckpointCore
-        from .wind_tunnel_checkpoint import read_checkpoint
-        core = TerminalCheckpointCore(read_checkpoint(checkpoint))
+async def serve(workspace: Path, *, port: int, no_browser: bool, checkpoint: Path | None = None,
+                comparison_checkpoints=()) -> int:
+    from .wind_tunnel_sources import checkpoint_core
+    core = checkpoint_core(checkpoint, comparison_checkpoints)
     runner, url = await start_server(workspace, port=port, core=core)
     try:
         print("Wind Tunnel is running locally with " +
@@ -98,6 +98,8 @@ async def run(args) -> int:
         options = {"port": args.port, "no_browser": args.no_browser}
         if args.checkpoint is not None:
             options["checkpoint"] = args.checkpoint
+        if args.comparison_checkpoint:
+            options["comparison_checkpoints"] = args.comparison_checkpoint
         return await serve(args.workspace, **options)
     if args.command == "example":
         example = core_module().examples(args.name)

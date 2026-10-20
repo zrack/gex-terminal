@@ -225,6 +225,44 @@ class StarterSavedDataTests(unittest.TestCase):
                 install_app.prepare_saved_data(self.root / "env", self.research, self.capture, "NQ", self.root,
                                                expected_sha256="0" * 64)
 
+    def test_registered_other_symbol_is_verified_and_forwarded_without_repreparation(self):
+        primary = {**self.plan, "checkpoint_sha256": "3" * 64}
+        other = {**self.plan, "symbol": "ES", "checkpoint_path": str(self.root / "es-checkpoint.json"),
+                 "checkpoint_sha256": "4" * 64}
+        install_app.remember_saved_data(self.research, other)
+        self.receipt["active"]["payload_sha256"]["gex_terminal/wind_tunnel_sources.py"] = "5" * 64
+        with patch.object(install_app, "prepare_saved_data", return_value=primary) as prepare, \
+                patch.object(install_app, "run", return_value=json.dumps({"symbol": "ES", "checkpoint_sha256": "4" * 64})) as run, \
+                patch.object(install_app, "run_both", return_value=0) as both:
+            self.assertEqual(self.launch(saved_data="NQ", captured_session=self.capture), 0)
+        prepare.assert_called_once()
+        self.assertIn(install_app.SAVED_COMPARISON_CHECK, run.call_args.args[0])
+        self.assertIn("restrict_network_to_loopback", install_app.SAVED_COMPARISON_CHECK)
+        wind = both.call_args.args[1]
+        self.assertEqual(wind[wind.index("--checkpoint") + 1], primary["checkpoint_path"])
+        self.assertEqual(wind[wind.index("--comparison-checkpoint") + 1], other["checkpoint_path"])
+        remembered = install_app.saved_sources(self.research)["sessions"]["NQ"]
+        self.assertEqual(remembered["checkpoint_sha256"], "3" * 64)
+
+    def test_optional_stale_or_legacy_registration_skips_safely_and_primary_launches(self):
+        self.receipt["active"]["payload_sha256"]["gex_terminal/wind_tunnel_sources.py"] = "5" * 64
+        for extra in ({}, {"checkpoint_path": str(self.root / "private"), "checkpoint_sha256": "4" * 64},
+                      {"checkpoint_path": "relative", "checkpoint_sha256": "bad"}):
+            with self.subTest(extra=extra):
+                install_app.remember_saved_data(self.research, {**self.plan, "symbol": "ES", **extra})
+                output = TTYInput()
+                with patch.object(install_app.sys, "stdin", TTYInput()), \
+                        patch.object(install_app.sys, "stdout", output), \
+                        patch.object(install_app, "prepare_saved_data", return_value=self.plan), \
+                        patch.object(install_app, "run", side_effect=RuntimeError("private failure contents")), \
+                        patch.object(install_app, "run_both", return_value=0) as both:
+                    self.assertEqual(install_app.launch(self.root / "app", saved_data="NQ",
+                                                       captured_session=self.capture), 0)
+                self.assertNotIn("--comparison-checkpoint", both.call_args.args[1])
+                self.assertIn("Saved ES comparison skipped", output.getvalue())
+                self.assertNotIn("private failure contents", output.getvalue())
+                self.assertNotIn(str(self.root), output.getvalue())
+
 
 CHILD = r'''
 import json, os, signal, socket, sys, time

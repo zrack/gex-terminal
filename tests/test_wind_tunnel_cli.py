@@ -66,6 +66,31 @@ class WindTunnelCLITests(unittest.TestCase):
         self.assertEqual(calls, [(Path("wind_tunnel_research"), 8765, False),
                                  (Path("Research Folder"), 0, True)])
 
+    def test_repeatable_comparison_paths_preserve_primary_and_order(self):
+        calls = []
+
+        async def fake_serve(workspace, **options):
+            calls.append(options)
+            return 0
+
+        with patch.object(cli, "core_module", return_value=SmallCore), patch.object(cli, "serve", fake_serve):
+            self.assertEqual(self.invoke(["--checkpoint", "ES.json", "--comparison-checkpoint", "NQ.json",
+                                          "--comparison-checkpoint", "other.json", "--no-browser"])[0], 0)
+        self.assertEqual(calls[0]["checkpoint"], Path("ES.json"))
+        self.assertEqual(calls[0]["comparison_checkpoints"], [Path("NQ.json"), Path("other.json")])
+        self.assertTrue(calls[0]["no_browser"])
+
+    def test_invalid_comparison_configuration_never_starts_server(self):
+        for arguments in (["--comparison-checkpoint", "private/NQ.json"],
+                          ["--checkpoint", "ES.json", *[item for _ in range(3)
+                                                        for item in ("--comparison-checkpoint", "NQ.json")]]):
+            with self.subTest(arguments=arguments), patch.object(cli, "start_server") as start:
+                code, output, error = self.invoke(arguments)
+                self.assertEqual(code, 1)
+                self.assertEqual(output, "")
+                self.assertNotIn("private", error)
+                start.assert_not_called()
+
     def test_real_cli_examples_reproduce_from_fresh_directory_with_polluted_configuration(self):
         repository = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
