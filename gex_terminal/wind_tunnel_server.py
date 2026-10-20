@@ -101,6 +101,11 @@ async def make_receipt(name: str, kind: str, request: dict, *, core=None) -> dic
     name = validate_name(name)
     if kind not in OPERATIONS or not isinstance(request, dict):
         raise ReceiptError("Unknown calculation kind or invalid request.")
+    if kind == "models" and request.get("detail_level") == "compact":
+        # Compact display payloads omit contract contributions and the embedded
+        # checkpoint echo. Receipts always recompute complete portable evidence
+        # from the original request, rather than storing that display projection.
+        request = {**request, "detail_level": "full"}
     result = await getattr(core or core_module(), kind)(request)
     receipt = {
         "schema": RECEIPT_SCHEMA,
@@ -135,6 +140,8 @@ def validate_receipt(receipt: Any) -> dict:
         raise ReceiptError("Invalid receipt creation time.") from exc
     if not isinstance(receipt["request"], dict) or not isinstance(receipt["result"], dict):
         raise ReceiptError("Receipt request and result must be objects.")
+    if receipt["kind"] == "models" and receipt["request"].get("detail_level") == "compact":
+        raise ReceiptError("Model receipts require full portable detail.")
     if receipt["result"].get("request") != receipt["request"]:
         raise ReceiptError("Receipt request differs from its result.")
     expected = receipt["receipt_sha256"]

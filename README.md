@@ -53,6 +53,15 @@ the tested combinations. ES uses ±25 price points; NQ uses ±100; both use
 provider requests or predicted market outcomes. See the
 [comparison guide](docs/wind-tunnel.md).
 
+Read **Mode** and captured **Health** separately: a saved replay can retain
+degraded source health. **Accepted-IV age** separates recent, older and unknown
+observations from pricing coverage; advancing model time adds no observations.
+Strike charts mark the original and scenario futures prices. **Focused** shows
+their surrounding range and dominant walls; **Full range** restores all strikes.
+Both views retain every modeled strike in their totals and exact-values tables.
+Comparisons reuse identical pricing work locally and send smaller display
+responses; saved receipts retain the complete inputs and contribution details.
+
 ![Market Wind Tunnel component: browser workbench showing a calculated ES exposure landscape and controls for price, volatility, time and expiry assumptions](assets/market-wind-tunnel.png)
 
 *Actual Wind Tunnel capture: synthetic ES, final replay checkpoint, IV shifted

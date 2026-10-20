@@ -148,6 +148,29 @@ selected quantities have usable model inputs; it does not establish a fresh,
 synchronized closing option chain. Expired contracts remain in the capture but
 leave active coverage and GEX.
 
+Wind Tunnel reports **accepted-IV age** independently of pricing coverage.
+The active selected cohort determines both denominators, but age categories
+cover only priced contracts: within 300 seconds, older, unknown, or not
+applicable. Counts and selected quantities are reported separately. Provider
+or converged-IV observations use their accepted event time; retained prior-valid
+IV uses its original accepted observation and provenance, never the later
+failed tick. Configured or legacy unspecified IV has no observed age.
+
+The original state measures age at its frozen capture cutoff. A scenario
+measures age at that cutoff plus the requested model-time advance, with no new
+observations. Missing or invalid clocks and unsupported provenance remain
+unknown. An observation clearly after the capture is unknown, not fresh.
+If a nanosecond event cannot be ordered against a capture cutoff saved only
+to microseconds, its age stays unknown and is counted as capture-precision
+ambiguity rather than confirmed future data. No timestamp is invented to fill
+that gap.
+
+This 300-second age reference is a disclosure, not a pricing filter. It neither
+expires unchanged accepted IV nor changes the failed-inversion retention rule.
+Captured source health is also separate: **REPLAY** is a mode, while a health
+such as **degraded** describes the source ledger and can include events outside
+the current active pricing cohort.
+
 Terminal's `v` details and Wind Tunnel's Source & assumptions explain each
 unpriced contract. When captured evidence is available, they show the original
 premium, violated model bound, underlying input and quote age. Terminal details

@@ -20,6 +20,17 @@ Release is claimed.
 - Allow explicitly supplied saved ES/NQ checkpoints in one workbench. The saved
   starter offers the other registered checkpoint when it remains valid; source
   selection does not download data or request provider credentials.
+- Separate captured source health from replay/demo mode. Show accepted-IV age
+  beside pricing coverage, with original observation clocks for retained IV,
+  explicit unknown ages and capture-precision ambiguity, and scenario model time.
+  The five-minute age reference does not change IV validity or pricing selection.
+- Add original/scenario futures-price markers and matched **Focused** / **Full
+  range** strike charts. Focus changes only presentation; all strikes remain in
+  totals and exact-values tables.
+- Reuse exact gamma vectors within one bounded calculation request and omit
+  redundant contribution rows/checkpoint echoes from browser model comparisons.
+  Save full portable receipts from the original input, preserving deterministic
+  reproduction and separate model cohorts without provider requests.
 
 ## Unreleased — Full Historical Sessions
 

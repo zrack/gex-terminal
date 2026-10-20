@@ -368,6 +368,7 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Certification gates | `gex_terminal/model_properties.py`, `gex_terminal/provider_fault_lab.py`, `gex_terminal/performance_lab.py` | Exercise numerical properties, provider-shaped fault states, and explicit generated-chain performance budgets. |
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/tui_views.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows and responsive layout; present focused replay/help views, model controls, source and quality context, event history and exports. |
 | Wind Tunnel calculations | `gex_terminal/wind_tunnel.py` | Reconstruct a bundled replay cutoff or validate a frozen Terminal artifact, copy checkpoint rows, and use engine code for comparisons, surfaces and bounded searches. Model comparison evaluates the default and directionalized proxies separately against the same checkpoint; its optional 54-case grid uses fixed price/IV/time coordinates. |
+| IV observation age | `gex_terminal/iv_freshness.py` | Describe accepted-IV ages for an already selected active cohort at captured or scenario model time. Preserve original retained-IV clocks and unknown timing/precision without filtering or repricing contracts. |
 | Saved comparison sources | `gex_terminal/wind_tunnel_sources.py` | Validate explicitly supplied frozen checkpoints for one local source catalog; the browser selects catalog sources and never filesystem paths. Each request retains its own checkpoint, assumptions and identity. |
 | Terminal checkpoint transport and lifecycle | `gex_terminal/wind_tunnel_checkpoint.py`, `gex_terminal/wind_tunnel_handoff.py` | Validate allowlisted offline state, preserve no-overwrite local inputs, embed portable source data and own loopback service cleanup. The consumer remains the sole mutable market-state owner. |
 | Guided captured-session intake | `gex_terminal/session_intake.py`, `gex_terminal/session_capture.py` | Verify bounded selected bytes in memory, discard private extensions, retain a bounded allowlisted registry and freeze a selected prefix through the production consumer. |
@@ -677,6 +678,24 @@ through eight paths, with consumer instances owned by the invoking workflow:
   Terminal's active replay nor fabricate a future market path. Saved receipts
   embed a selected frozen source when needed and retain the normalized request
   and exact source, calculation and result identities for reproduction.
+- **Wind Tunnel numerical reuse:** an evaluation-local gamma cache holds at
+  most 32 vectors and 2 MiB of vector/key data. Exact ordered strikes, remaining
+  times, IVs, pricing models, option sides, spot, rate and carry bind each key.
+  Immutable numeric vectors can be reused across identical baseline/scenario
+  inputs and quantity models; cohort selection, quantities, multipliers and
+  aggregation remain separate. No cache persists across requests or source
+  changes, and American lattice policy is unchanged. Scenario preparation copies
+  row fields while reading nested metadata without mutation; exported nested
+  diagnostics remain detached from the frozen source.
+- **Comparison transport and display:** the browser explicitly requests compact
+  model results, retaining summaries, matrices, exclusions, pricing coverage and
+  IV ages while omitting contributing-contract lists and the checkpoint echo.
+  It retains the original submitted request for saving. Receipt creation
+  recomputes full detail with the embedded source; a compact display projection
+  cannot become a portable receipt request. Price markers and Focused/Full range
+  controls alter only chart rendering, retaining every strike in the result and
+  exact-value tables. Source mode, captured health and active IV age remain
+  separate presentation fields.
 - **Governed research:** model profiles, experiment manifests, append-only
   corpus registration, and batch comparison bind source identity, assumptions,
   splits, outcomes, costs, and semantic results.
