@@ -115,6 +115,11 @@ finish before comparing the two views. Large files require verification and
 checkpoint preparation before the interfaces open. Later source changes and scenarios
 are independent; this launch does not create live synchronization.
 
+Large frozen checkpoints open in **Compare** so you can inspect their coverage
+and save a scenario promptly. Select **Exposure landscape** to calculate a
+clearly labeled coarse preview; all source contracts remain included. Smaller
+sources retain their denser default landscape.
+
 For a complete trading day, quantities accumulate across UTC midnight. The final
 checkpoint excludes contracts that expired during the session, while the capture
 retains their trades. Expired quantity is separate from active contracts excluded

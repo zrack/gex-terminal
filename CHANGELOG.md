@@ -20,6 +20,9 @@ Release is claimed.
 - Batch offline compatibility-summary refreshes while preserving every canonical
   event update. Publish a complete accepted prefix before yielding, snapshots
   and checkpoints, and flush on cancellation; ordinary per-event behavior remains.
+- Open large frozen sources in Compare and calculate their labeled coarse
+  landscape only on request. Preserve valid comparison/coverage on a surface
+  failure, and yield between sampled cells for bounded cancellation.
 - Add a metadata-quoted, $5-capped full-day ES/NQ acquisition helper with
   immutable plans, fresh cost checks, private progress receipts and no retries.
   Convert native data with a disk-backed causal merge and one consumer across

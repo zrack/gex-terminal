@@ -71,6 +71,12 @@ Unavailable IV and raw quantities are preserved, with excluded exposure shown
 in pricing coverage. Subsequent source selections and scenarios are independent.
 This path uses no provider requests or credits.
 
+Frozen checkpoints above 500 source rows open in **Compare**. Their landscape
+is calculated only when requested, using a labeled 3 × 3 preview (nine sampled
+points); all contracts participate. The mesh between those points is an
+interpolation. A failed landscape request leaves the valid comparison and
+coverage available. Smaller sources retain the 17 × 9 landscape.
+
 The explicit local starter accepts captures up to 1 GiB / 2 million events;
 guided browser upload keeps its smaller limits. Frozen checkpoints remain
 bounded to 8 MiB / 5,000 rows. Full-day final checkpoints exclude contracts that
