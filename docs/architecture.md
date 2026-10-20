@@ -683,10 +683,11 @@ through eight paths, with consumer instances owned by the invoking workflow:
   times, IVs, pricing models, option sides, spot, rate and carry bind each key.
   Immutable numeric vectors can be reused across identical baseline/scenario
   inputs and quantity models; cohort selection, quantities, multipliers and
-  aggregation remain separate. No cache persists across requests or source
-  changes, and American lattice policy is unchanged. Scenario preparation copies
-  row fields while reading nested metadata without mutation; exported nested
-  diagnostics remain detached from the frozen source.
+  aggregation remain separate. This vector cache never persists across requests
+  or source changes. The existing bounded American lattice price cache still
+  reuses exact-input results across calls; lattice policy is unchanged. Scenario
+  preparation copies row fields while reading nested metadata without mutation;
+  exported nested diagnostics remain detached from the frozen source.
 - **Comparison transport and display:** the browser explicitly requests compact
   model results, retaining summaries, matrices, exclusions, pricing coverage and
   IV ages while omitting contributing-contract lists and the checkpoint echo.
