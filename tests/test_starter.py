@@ -81,6 +81,9 @@ class StarterSavedDataTests(unittest.TestCase):
         self.plan = {"capture_path": str(self.capture), "checkpoint_path": str(self.root / "checkpoint.json"),
                      "symbol": "NQ", "contract_multiplier": 20, "risk_free_rate": .035,
                      "fallback_dte": .5, "capture_sha256": install_app.digest(self.capture),
+                     "replay_policy": "event_time_60x", "event_count": 875,
+                     "first_event_time": "2026-10-16T13:34:58Z", "last_event_time": "2026-10-16T13:40:00Z",
+                     "duration_seconds": 302,
                      "terminal_args": ["--mode", "replay", "--captured-session", str(self.capture),
                                        "--symbol", "NQ", "--multiplier", "20", "--expiry-filter", "all",
                                        "--replay-clock", "event", "--replay-speed", "60"]}
@@ -114,6 +117,46 @@ class StarterSavedDataTests(unittest.TestCase):
         self.assertEqual(wind[wind.index("--checkpoint") + 1], self.plan["checkpoint_path"])
         self.assertTrue(both.call_args.kwargs["no_browser"])
         self.assertIn("final frozen", both.call_args.kwargs["source_note"])
+
+    def test_launch_reports_saved_period_and_actual_playback_policy(self):
+        for policy, clock, expected in (("fast_load", "none", "fast-loads"),
+                                        ("event_time_60x", "event", "at 60x")):
+            with self.subTest(policy=policy):
+                plan = {**self.plan, "replay_policy": policy,
+                        "event_count": 123456 if policy == "fast_load" else 875,
+                        "terminal_args": list(self.plan["terminal_args"])}
+                plan["terminal_args"][plan["terminal_args"].index("--replay-clock") + 1] = clock
+                output = TTYInput()
+                with patch.object(install_app.sys, "stdin", TTYInput()), \
+                        patch.object(install_app.sys, "stdout", output), \
+                        patch.object(install_app, "prepare_saved_data", return_value=plan), \
+                        patch.object(install_app, "run_both", return_value=0) as both:
+                    self.assertEqual(install_app.launch(self.root / "app", saved_data="NQ",
+                                                       captured_session=self.capture, no_browser=True), 0)
+                text = output.getvalue()
+                self.assertIn("2026-10-16T13:34:58Z to 2026-10-16T13:40:00Z", text)
+                self.assertIn(f"{plan['event_count']:,} events", text)
+                note = both.call_args.kwargs["source_note"]
+                self.assertIn(expected, note)
+                if policy == "fast_load":
+                    self.assertNotIn("60x", note)
+                terminal, wind = both.call_args.args
+                self.assertEqual(terminal[terminal.index("--replay-clock") + 1], clock)
+                self.assertEqual(wind[wind.index("--checkpoint") + 1], plan["checkpoint_path"])
+
+    def test_unknown_playback_policy_stops_before_remembering_or_launching(self):
+        plan = {**self.plan, "replay_policy": "unknown"}
+        with patch.object(install_app, "prepare_saved_data", return_value=plan), \
+                patch.object(install_app, "run_both") as both:
+            with self.assertRaisesRegex(ValueError, "unsupported playback policy"):
+                self.launch(saved_data="NQ", captured_session=self.capture)
+        both.assert_not_called()
+        self.assertFalse((self.research / install_app.SAVED_DATA).exists())
+
+    def test_older_saved_helper_without_policy_keeps_short_replay_disclosure(self):
+        plan = dict(self.plan)
+        plan.pop("replay_policy")
+        self.assertIn("at 60x", install_app.saved_source_note(plan))
 
     def test_first_use_menu_selects_nq_and_registers_provided_capture(self):
         with patch.object(install_app.sys, "stdin", TTYInput(f"4\n2\n'{self.capture}'\n")), \

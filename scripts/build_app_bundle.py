@@ -116,7 +116,8 @@ if [ -t 0 ] && [ -t 1 ]; then
         "Interactive setup and GEX App/Start GEX.command offer 1 Terminal, 2 Wind Tunnel, 3 Both, q Cancel.\n"
         + ("Choose 4 Saved data — Both, then ES or NQ, to use an existing normalized capture without provider requests or credits.\n"
            "First use asks for a completed *.gex-session.jsonl file; later launches remember a private frozen copy.\n"
-           "Wind Tunnel opens its final checkpoint while Terminal replays the same capture at 60x.\n"
+           "Wind Tunnel opens its final checkpoint while Terminal loads the same capture.\n"
+           "Full sessions fast-load; smaller captures replay at 60x. The starter shows the chosen policy.\n"
            "Direct saved launch: GEX App/run-gex --saved-data ES (or NQ).\n"
            if has_saved_data else "") +
         "On Linux, run GEX App/run-gex --choose in a terminal.\n"

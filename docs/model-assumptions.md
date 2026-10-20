@@ -77,6 +77,11 @@ date-only `expiry` label supports selection but does not imply an
 exchange-specific settlement instant; the configured scalar DTE is the visible
 fallback.
 
+Native Databento event ordering and fill identities preserve nanoseconds.
+Reported quote-age and fractional-DTE model calculations use Python's
+microsecond datetime clock. Offline validation checks those reported values
+against that clock while checking causal native quote/trade order separately.
+
 Schema-v1 messages remain on the original strike-level Black-Scholes path.
 Mixed v1/v2 option state reports `mixed_legacy_fallback` rather than presenting
 partly contract-aware output as authoritative.
@@ -132,6 +137,16 @@ current expiry and quantity-source selection; they are not event counts.
 Earlier valid IVs count as priced and are separately labeled. An empty selection
 shows no selected contracts, while legacy aggregates without contract records
 show coverage as not reported. A partial selection never rounds to 100% coverage.
+
+In a full saved session, a contract without another trade keeps its last captured
+IV while its accumulated session quantity remains selected. That observation can
+be hours older than the closing checkpoint. The 300-second rule above governs
+retention after a new failed inversion; it is not a universal expiry for every
+unchanged IV. Closing calculations hold those IVs constant and reprice at the
+checkpoint futures price and remaining maturity. Pricing coverage measures which
+selected quantities have usable model inputs; it does not establish a fresh,
+synchronized closing option chain. Expired contracts remain in the capture but
+leave active coverage and GEX.
 
 Terminal's `v` details and Wind Tunnel's Source & assumptions explain each
 unpriced contract. When captured evidence is available, they show the original

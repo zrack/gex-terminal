@@ -44,7 +44,7 @@ def read_artifact(path: Path) -> dict:
     try:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_JSON_BYTES:
-            raise ReceiptError("Input must be a regular JSON file no larger than 4 MiB.")
+            raise ReceiptError("Input must be a regular JSON file no larger than 32 MiB.")
         with os.fdopen(fd, "rb", closefd=False) as stream:
             return decode_json(stream.read(MAX_JSON_BYTES + 1))
     finally:

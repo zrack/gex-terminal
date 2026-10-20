@@ -100,6 +100,13 @@ later launches reuse the remembered private source. See
 [saved-data startup](docs/first-run.md#open-saved-es-or-nq-data) for capture
 selection, launch commands and the fresh-setup requirement.
 
+Saved-data startup supports complete local sessions up to **1 GiB / 2 million
+events** using streaming verification. Long sessions load to their final state;
+short samples replay at 60×. Wind Tunnel opens the same final checkpoint, with
+pricing coverage and unavailable-IV details. Use the
+[full-day historical workflow](docs/databento-credit-trial.md#full-trading-day-es-and-nq)
+to quote, acquire, convert and validate a bounded ES/NQ day before registering it.
+
 Choose **Wind Tunnel** in the starter for browser research, or **Both** to
 open it alongside the terminal. Both manages their lifetime together: quitting
 the terminal also stops that Wind Tunnel server. The two views keep independent

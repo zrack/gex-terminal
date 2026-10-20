@@ -558,8 +558,9 @@ async def surface(request: Mapping[str, Any]) -> dict:
                            "baseline_gamma_wall": a["gamma_wall"] if a else None,
                            "scenario_gamma_wall": b["gamma_wall"] if b else None,
                            "delta_total_net_gex": b["total_net_gex"] - a["total_net_gex"] if a and b else None})
-        # Keep bounded requests cancellable without changing numeric ordering.
-        await asyncio.sleep(0)
+            # A large checkpoint may make one grid row expensive. Yield after
+            # every calculated cell so cancellation/timeouts remain responsive.
+            await asyncio.sleep(0)
     return _report("surface", request=normalized, source=checkpoint.source,
                    baseline=_state(checkpoint, baseline_request), scenario=_state(checkpoint, normalized),
                    axes={"spot_shifts": normalized["spot_shifts"],

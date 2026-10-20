@@ -65,6 +65,13 @@ run keeps the `.partial` file for diagnosis. Partial files, missing footers,
 sequence gaps, changed messages, changed records, or changed aggregate hashes
 fail integrity verification and cannot be replayed.
 
+Explicit local captured-session replay verifies the complete file before its
+first event and reads a detached private disk copy. It supports up to 1 GiB,
+2,000,000 events and 1 MiB per line without retaining the event history in
+Python memory. Changing the original file after verification cannot alter the
+running replay. Closing during verification cancels the work and closes the
+temporary file. Guided browser intake retains its 4 MiB / 5,000-event limit.
+
 The capture sequence is authoritative. `event_time` determines replay pacing;
 it does not reorder records. If a normalized message has no usable event time,
 the recorder uses receipt time and counts that fallback in the footer.

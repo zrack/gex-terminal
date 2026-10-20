@@ -87,6 +87,8 @@ class AppBundleTests(unittest.TestCase):
         self.assertIn("--saved-data ES (or NQ)", instructions)
         self.assertIn("completed *.gex-session.jsonl", instructions)
         self.assertIn("without provider requests or credits", instructions)
+        self.assertIn("Full sessions fast-load", instructions)
+        self.assertIn("smaller captures replay at 60x", instructions)
         subprocess.run(["sh", "-n", str(output / "Install.command")], check=True)
 
     def test_setup_wrapper_passes_paths_with_spaces_and_apostrophes_intact(self):
