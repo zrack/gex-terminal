@@ -185,4 +185,3 @@ class WindTunnelIvFreshnessTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(state["iv_freshness"]["unpriced_quantity"], 7)
             self.assertEqual(state["iv_freshness"]["priced_quantity"], 0)
             self.assertIsNone(state["iv_freshness"]["max_age_seconds"])
-
