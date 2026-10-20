@@ -1,0 +1,255 @@
+{
+  "archived_assets": [
+    {
+      "bytes": 113263,
+      "format": "svg",
+      "height": null,
+      "kind": "preserved_pre_refresh_bytes",
+      "original_path": "assets/gex-terminal-actual.svg",
+      "path": "assets/history/terminal-before-20261019.svg",
+      "sha256": "0570b981f30ae9b0160673812175e04b577c6566bc8f37069fdf1b17e7884185",
+      "viewBox": "0 0 1726 1074.8",
+      "width": null
+    },
+    {
+      "bytes": 296009,
+      "format": "png",
+      "height": 1075,
+      "kind": "preserved_pre_refresh_bytes",
+      "original_path": "assets/gex-terminal-actual.png",
+      "path": "assets/history/terminal-before-20261019.png",
+      "sha256": "6d7fb8c7d83e40780fb91916a925742348f60c8692d2cd4257f0f941a11e7157",
+      "width": 1726
+    },
+    {
+      "bytes": 662564,
+      "format": "png",
+      "height": 1058,
+      "kind": "preserved_pre_refresh_bytes",
+      "original_path": "assets/market-wind-tunnel.png",
+      "path": "assets/history/wind-tunnel-before-20261019.png",
+      "sha256": "f53012caaf1262de14330fad4e001a863a6868e4a58dcc13bcd6c39adcaf92b7",
+      "width": 1487
+    },
+    {
+      "bytes": 4053,
+      "format": "svg",
+      "height": "640",
+      "kind": "preserved_pre_refresh_bytes",
+      "original_path": "assets/github-social-preview.svg",
+      "path": "assets/history/social-preview-before-20261019.svg",
+      "sha256": "25122a4a8c2290235663d7ffc60286ca2681b226c50e3a396578234b5f3cd619",
+      "viewBox": "0 0 1280 640",
+      "width": "1280"
+    },
+    {
+      "bytes": 92757,
+      "format": "png",
+      "height": 640,
+      "kind": "preserved_pre_refresh_bytes",
+      "original_path": "assets/github-social-preview.png",
+      "path": "assets/history/social-preview-before-20261019.png",
+      "sha256": "fb3be102e9fcb5fac3c97808e77bd69510464982ff63826cbc44fa3b55d47d82",
+      "width": 1280
+    },
+    {
+      "bytes": 157009,
+      "format": "svg",
+      "height": null,
+      "kind": "preserved_pre_refresh_bytes",
+      "original_path": "assets/gex-terminal-onboarding.svg",
+      "path": "assets/history/onboarding-before-20261019.svg",
+      "sha256": "efb29b2f6629ea14eaa6ee04b612075bd9b810dd665eae4df8acae2fab5fa5f9",
+      "viewBox": "0 0 2214 1611.6",
+      "width": null
+    },
+    {
+      "bytes": 7448,
+      "format": "svg",
+      "height": "860",
+      "kind": "preserved_pre_refresh_bytes",
+      "original_path": "assets/gex-terminal-demo-lab.svg",
+      "path": "assets/history/demo-lab-before-20261019.svg",
+      "sha256": "ccd7d56b91be21914b1ed29db75391251adf4ea4264a910e6238e2a160bd2b2b",
+      "viewBox": "0 0 1400 860",
+      "width": "1400"
+    }
+  ],
+  "assets": [
+    {
+      "bytes": 115969,
+      "format": "svg",
+      "height": null,
+      "kind": "runtime_capture",
+      "path": "assets/gex-terminal-actual.svg",
+      "settings": "Seeded synthetic ES demo; 140x42 terminal cells",
+      "sha256": "6f58bac0820c8669d1a9061703456acb3e4758c228ca50627e67e0da2235a29b",
+      "viewBox": "0 0 1726 1074.8",
+      "width": null
+    },
+    {
+      "bytes": 311781,
+      "format": "png",
+      "height": 1075,
+      "kind": "raster_from_runtime_svg",
+      "path": "assets/gex-terminal-actual.png",
+      "settings": "Unchanged Terminal SVG rasterized; no resize or numerical editing",
+      "sha256": "87246f62c1184d776e731f48b572f581d625f0a75519850a5a04653798279500",
+      "width": 1726
+    },
+    {
+      "bytes": 895194,
+      "format": "png",
+      "height": 1432,
+      "kind": "runtime_capture",
+      "path": "assets/market-wind-tunnel.png",
+      "settings": "Bundled ES Wind Tunnel Lab checkpoint 33; raw trade volume; IV +2 points; price/time unchanged; full-page capture",
+      "sha256": "a053a911a0171b2737dc1f74e3c62a65e5713ef5db05c5bdab1586450bae5c40",
+      "width": 1280
+    },
+    {
+      "bytes": 644460,
+      "format": "png",
+      "height": 720,
+      "kind": "runtime_capture",
+      "path": "assets/wind-tunnel-model-comparison.png",
+      "settings": "Synthetic nq-research-loop exported by Terminal; checkpoint cutoff 2026-09-04T15:30:00Z; +100 price, +1 IV point, +30 model minutes; expiry removal off",
+      "sha256": "af82c23dd19c0b2217ea38b28e6e8612eaab7a7100a781070e226f2de4452cb4",
+      "width": 1280
+    },
+    {
+      "bytes": 343593,
+      "format": "png",
+      "height": 720,
+      "kind": "runtime_capture",
+      "path": "assets/wind-tunnel-focused-strikes.png",
+      "settings": "Same synthetic NQ checkpoint/scenario; Focused strike range; native viewport",
+      "sha256": "c209322ebddc54edf4e4c328fb4c1fec3a9ddaea7b886fbda39389c49c5f7279",
+      "width": 1280
+    },
+    {
+      "bytes": 7448,
+      "format": "svg",
+      "height": "860",
+      "kind": "generated_synthetic_research",
+      "path": "assets/gex-terminal-demo-lab.svg",
+      "settings": "Maintained preview script; zero-gamma-flip; 180x54 cells",
+      "sha256": "ccd7d56b91be21914b1ed29db75391251adf4ea4264a910e6238e2a160bd2b2b",
+      "viewBox": "0 0 1400 860",
+      "width": "1400"
+    },
+    {
+      "bytes": 156214,
+      "format": "svg",
+      "height": null,
+      "kind": "runtime_capture",
+      "path": "assets/gex-terminal-onboarding.svg",
+      "settings": "Maintained preview script; zero-gamma-flip replay picker; 180x64 cells",
+      "sha256": "5c235098bfdf4637f7a9dd71806fef9eb94e8eed99ff281fd991f8d906afe841",
+      "viewBox": "0 0 2214 1611.6",
+      "width": null
+    },
+    {
+      "bytes": 5161,
+      "format": "svg",
+      "height": "1080",
+      "kind": "derived_architecture",
+      "path": "assets/workbench-components.svg",
+      "settings": "Current starter, Terminal/Wind Tunnel, saved source and immutable checkpoint state boundaries",
+      "sha256": "a0b48562056cefa9a02421c78bc6e7a5e52a45fb5158af21cc88e109061f26aa",
+      "viewBox": "0 0 1200 1080",
+      "width": "1200"
+    },
+    {
+      "bytes": 7156,
+      "format": "svg",
+      "height": "1230",
+      "kind": "derived_architecture",
+      "path": "assets/offline-research-architecture.svg",
+      "settings": "Current offline source, calculation/cache, compact/full receipt and research-authority boundaries",
+      "sha256": "f4c1a31db214a82e5b8bd37000ece011f753f00f8a26413a0d66d027e89f5598",
+      "viewBox": "0 0 1400 1230",
+      "width": "1400"
+    },
+    {
+      "bytes": 3784,
+      "format": "svg",
+      "height": "640",
+      "kind": "illustrative_product_artwork",
+      "path": "assets/github-social-preview.svg",
+      "settings": "Two-component local product; not runtime evidence",
+      "sha256": "54a710c430489fa8691ab2b74e8740c23af020f0aff4a998e93a631fb0f30a00",
+      "viewBox": "0 0 1280 640",
+      "width": "1280"
+    },
+    {
+      "bytes": 119030,
+      "format": "png",
+      "height": 640,
+      "kind": "raster_from_product_svg",
+      "path": "assets/github-social-preview.png",
+      "settings": "PNG rendition of current illustrative product SVG",
+      "sha256": "987a658b3aea39eb663fcb8eb4567ca4598261e887300304bf888db74fe83c54",
+      "width": 1280
+    }
+  ],
+  "browser": {
+    "horizontal_overflow": false,
+    "landscape_document": {
+      "height": 1432,
+      "width": 1280
+    },
+    "model_capture_scope": "two native viewport captures at separate scroll positions",
+    "normal_viewport": {
+      "height": 720,
+      "width": 1280
+    },
+    "pixel_policy": "Native pixels; PNG re-encoding only. No resize, chart repaint, value edits or hidden unavailable metadata."
+  },
+  "documentation_only_changes": true,
+  "interpretation": [
+    "Current screenshots use bundled synthetic data, not private Databento observations.",
+    "Legacy coverage metadata is explicitly unreported/unavailable in the seeded Terminal demo and NQ model fixture. Accepted-IV age may be separately reportable.",
+    "Unknown exercise style is not promoted to confirmed American or European compatibility.",
+    "Native screenshot clocks/fonts/identifiers can vary on regeneration; file hashes identify reviewed assets.",
+    "No new observed participant, live provider, predictive, execution or commercial evidence is claimed."
+  ],
+  "offline": {
+    "application_network": "IPv4 loopback only",
+    "credits_used": 0,
+    "market_downloads": 0,
+    "provider_requests": 0
+  },
+  "python": "3.12.13",
+  "refresh_date_local": "2026-10-19",
+  "renderer": {
+    "librsvg": "2.63.2",
+    "node": "24.19.0",
+    "sharp": "0.35.5",
+    "vips": "8.18.7"
+  },
+  "runtime_application_version": "0.6.0",
+  "runtime_source_commit": "2d6a239edd509a5dde8eb5019d0b634311c1784b",
+  "schema": "gex-terminal.documentation-visuals.v1",
+  "source_qualification": "Working-tree changes are documentation/assets only; screenshot runtime code and bundled inputs match the named commit. Diagrams are derived from the current documentation and are not screenshots.",
+  "synthetic_inputs": [
+    {
+      "path": "gex_terminal/data/wind_tunnel/es_multi_expiry.jsonl",
+      "sha256": "71cd795e19bd89a878013b5ffadb449b9bc59c76dee738c59287240bd1e31525"
+    },
+    {
+      "path": "gex_terminal/data/replays/nq_research_loop_v2.jsonl",
+      "sha256": "1935529bdf4e594c56d26fdc8f5139f78d3eefbada8bbb70d7adb138c67b73c6"
+    },
+    {
+      "path": "gex_terminal/data/replays/es_zero_gamma_flip.jsonl",
+      "sha256": "fabb925d53942deb2e9abe182659027946e6a8e04b529219e457ceb528952507"
+    }
+  ],
+  "timezone": "America/Los_Angeles",
+  "web_source_sha256": {
+    "app.css": "d1534429b3b571cc16b5b9cca6f160701951cf34b316a867000e2ba60940d9a7",
+    "app.js": "1bca4ebfdba31666f1d024f0fa9a69e7748756ed15e4e762fe77793d4314453f",
+    "index.html": "febbf5fa4781a27704875820be48d3ef9c1f2df8e4aeef10ecf3db6d7b76f967"
+  }
+}

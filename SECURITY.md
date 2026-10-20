@@ -6,10 +6,12 @@ API tokens, session tokens, or private market-data entitlement details.
 
 ## Supported Versions
 
-This project is pre-1.0. The supported source/package version is `0.5.0`.
-Annotated version tags identify verified merged trees; `v0.4.0` remains an
-unchanged historical release. No published PyPI artifact or hosted GitHub
-Release is claimed. Security fixes target the latest `main` branch.
+This project is pre-1.0. The current source/package version is `0.6.0`.
+Annotated version tags identify their verified merged trees and remain
+unchanged. Later fixes can share that package version, so retain the exact
+source commit and wheel SHA-256 when reporting a problem or reproducing a
+receipt. No published PyPI artifact or hosted GitHub Release is claimed.
+Security fixes target the latest `main` branch.
 
 ## Reporting a Vulnerability
 
@@ -55,3 +57,31 @@ Include:
   review every artifact before sharing it.
 - Never paste Tradovate access tokens, market-data tokens, authorization frames,
   usernames, client secrets, or account identifiers into issues or fixtures.
+
+## Local Wind Tunnel And Saved Data
+
+- Wind Tunnel serves on IPv4 loopback (`127.0.0.1`) and requires the launch
+  session's capability for API access. Host and origin checks reject other
+  origins. Keep the full launch URL, its `#cap=` fragment, and capability headers
+  private. A screenshot or browser address bar can expose the launch URL.
+- Use the provided starter or CLI locally. The current server is not a remote
+  deployment, shared authentication service, or authorization boundary against
+  someone who controls your operating-system account.
+- The browser can select server-registered sources or inspect a bounded local
+  capture upload. It cannot request arbitrary server filesystem paths. Large
+  saved sessions use operator-configured paths through the saved-data starter;
+  this does not enable provider access or downloads.
+- Checkpoints and full saved receipts embed calculation inputs, contract rows,
+  source times, and assumptions. A compact comparison response is only a
+  display projection; saving still creates a full portable receipt. Treat both
+  checkpoints and receipts as potentially licensed private market data, even
+  when an integrity or reproduction check passes.
+- Saved-data registrations can contain private local paths and source hashes.
+  Keep the adjacent research folder, receipt workspace, installation records,
+  exported results, and backups out of public commits and support attachments
+  unless their contents and sharing rights have been reviewed.
+- Receipt storage rejects symlinks, unrecognized files, replacement writes,
+  and exhausted quotas. These checks preserve existing research; they do not
+  encrypt it, grant redistribution rights, or enforce a retention/deletion
+  policy. See [Local Support](docs/local-support.md) and
+  [Wind Tunnel](docs/wind-tunnel.md) for recovery and storage details.

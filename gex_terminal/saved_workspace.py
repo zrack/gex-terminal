@@ -197,7 +197,8 @@ def prepare_saved_workspace(capture: Path, symbol: str, destination: Path) -> di
         checkpoint_path = destination / "checkpoint.json"
         write_checkpoint(checkpoint_path, checkpoint)
         return {
-            "capture_path": str(frozen), "checkpoint_path": str(checkpoint_path), "symbol": symbol,
+            "capture_path": str(frozen), "checkpoint_path": str(checkpoint_path),
+            "checkpoint_sha256": checkpoint["sha256"], "symbol": symbol,
             "contract_multiplier": values["contract_multiplier"], "risk_free_rate": values["risk_free_rate"],
             "fallback_dte": values["days_to_expiry"], "capture_sha256": capture_hash,
             "capture_content_sha256": footer["content_sha256"], "assumptions": assumptions,

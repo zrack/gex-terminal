@@ -111,7 +111,7 @@ with all 12 runs in the plan's exact order. The top-level shape is:
       "actual_start_utc": "2026-10-05T14:30:00Z",
       "actual_stop_utc": "2026-10-05T14:50:00Z",
       "runtime": {
-        "gex_terminal_version": "0.5.0",
+        "gex_terminal_version": "0.6.0",
         "python_version": "3.12.11",
         "provider_sdk_version": "0.83.0",
         "operating_system": "macOS 15.6.1",
@@ -128,6 +128,12 @@ with all 12 runs in the plan's exact order. The top-level shape is:
   "evidence_ceiling": "offline structural validation only; no execution authority, live-provider observation, report-authenticity, provider-readiness, predictive, execution, or profitability claim"
 }
 ```
+
+Those runtime values and dates are illustrative, not an observed provider run
+or a validated environment. Record the actual accepted runtime in the frozen
+plan and the runtime actually used in every attempt. A shared package version
+does not establish identical source or wheel bytes; preserve the reviewed
+build identity with the separate operator evidence.
 
 That excerpt is not a valid manifest because it omits the other 11 runs. Allowed
 outcomes are `passed`, `authentication_failure`, `entitlement_failure`,

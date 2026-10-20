@@ -5,6 +5,37 @@ position-source comparisons, and saved-price behavior without opening a market
 data connection. Passing these workflows is software evidence, not live-provider
 or predictive certification.
 
+## Saved ES/NQ Product Regressions
+
+The saved-data starter and Wind Tunnel can be exercised entirely from existing
+captures or synthetic fixtures. The targeted product regressions are:
+
+```bash
+python -m unittest -v \
+  tests.test_starter tests.test_full_session_saved \
+  tests.test_full_session_transport tests.test_full_session_browser \
+  tests.test_wind_tunnel_models tests.test_wind_tunnel_compact_performance \
+  tests.test_iv_freshness tests.test_wind_tunnel_assets \
+  tests.test_wind_tunnel_intake_assets
+```
+
+They check bounded streaming verification, full-session loading, shared saved
+source registration, both quantity models, missing/prior IV and accepted-IV clocks,
+compact/full result parity, bounded exact pricing reuse, portable receipts and
+browser source changes. Browser-controller regressions exercise price markers,
+matched focused/full strike axes, all-strike tables, unchanged totals and ready
+states. They use a local DOM/API harness; the relevant cases explicitly skip
+when Node.js is unavailable. They are not a substitute for inspecting a real
+browser or observing a user's task session.
+
+For licensed downloaded full-session data, use the independent reconciliation
+workflow in the [Databento guide](databento-credit-trial.md#full-trading-day-es-and-nq).
+It reads already-owned native files and normalized captures, validates opening,
+expiry and close checkpoints, and reproduces full Wind Tunnel receipts without
+provider calls. Preserve original captures and report every failed, skipped or
+unavailable check. Match inputs, implementation and runtime before comparing
+results; a passing count by itself does not establish a complete option chain.
+
 ## Tradovate Acknowledgement Frames
 
 Run the in-memory frame and scripted-session regressions without credentials:
@@ -123,8 +154,9 @@ API key. JSON/JSONL records need a `record_type` or `schema` discriminator.
 Records pass through the same Databento record handler used by live mode.
 
 The report separates definitions, underlying quotes, option trades, OI updates,
-IV inversion/fallback counts, dropped/control records, feed quality, and a
-computed snapshot. `software_path_certified=true` requires aligned timestamps,
+European/American IV inversions, retained prior IV, unavailable IV,
+dropped/control records, feed quality, and a computed snapshot.
+`software_path_certified=true` requires aligned timestamps,
 matching futures identity, at least one converged IV inversion, no fallback IV,
 and no parse errors. `live_transport_certified` is always false.
 
@@ -185,15 +217,28 @@ explicit budget.
 
 ## Temporal Integrity
 
-Black-76 trade-price inversion records option and futures event times,
+Trade-price inversion records option and futures event times,
 `underlying_price_age_ms`, `maximum_underlying_age_ms`, futures identity, option
 price, futures midpoint, rate, time to expiry, iterations, and solver error.
+New confirmed American options use `american_futures_crr`; European options use
+Black-76. Older saved captures keep their selected pricing models.
 
 A futures midpoint is not eligible when it is older than the configured limit,
 timestamped after the option trade, missing event time, or mapped to another
 futures contract. Crossed and one-sided books are also rejected. The option
-trade may remain in the raw-volume model with labeled fallback IV, but the
-quantitative-input gate fails.
+trade remains in the raw-volume state. A qualified earlier same-contract IV can
+be retained within the failed-inversion policy; otherwise IV remains unavailable
+and GEX excludes that unpriced quantity. Both outcomes keep the strict
+quantitative-input gate false. Current conversion does not invent a configured
+IV to fill the gap. The report's fallback counter includes prior-valid and
+unavailable outcomes; it must not be read as a count of substituted default IVs.
+
+Accepted-IV age is a separate disclosure in Wind Tunnel. It uses the captured
+cutoff or scenario model time, with retained IV timed from its original accepted
+observation. Missing or ambiguous clocks stay unknown. The five-minute age
+reference does not discard an otherwise unchanged accepted IV; it is separate
+from the bound on retaining prior IV after a new failed inversion. See
+[model assumptions](model-assumptions.md) for the current policies.
 
 ## Adversarial Software Certification
 

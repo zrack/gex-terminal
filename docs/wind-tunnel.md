@@ -16,6 +16,11 @@ retain the European-approximation qualification. Missing exercise metadata
 remains explicitly unknown.
 See [model assumptions](model-assumptions.md).
 
+![Wind Tunnel scenario workbench using bundled synthetic input](../assets/market-wind-tunnel.png)
+
+The documentation visuals use declared synthetic inputs. They illustrate the
+current interface, not a live or complete ES/NQ options chain.
+
 ## Open The Workbench
 
 In a fresh setup folder with the unified starter, open **Start GEX.command**
@@ -71,6 +76,21 @@ Unavailable IV and raw quantities are preserved, with excluded exposure shown
 in pricing coverage. Subsequent source selections and scenarios are independent.
 This path uses no provider requests or credits.
 
+When both symbols have been registered by a current starter, the same Wind
+Tunnel also offers the other saved symbol in its source picker. The selected
+symbol remains the initial source and Terminal's input. The other checkpoint
+and its frozen capture are checked against their registered hashes without
+replaying that additional capture. A missing, changed or older unbound
+registration is skipped with a startup note; register that symbol again to
+enable switching. No source is discovered by scanning your historical folders.
+
+Open **Model comparison** to review the default proxy and aggressor-directionalized proxy
+side by side for the chosen ES or NQ checkpoint. Price, IV and elapsed-time
+controls apply to both models from the same frozen state. The models remain
+separate estimates; agreement is conditional on those inputs and does not
+establish dealer identity or predictive accuracy. Unavailable IV stays excluded
+and pricing coverage remains visible.
+
 Frozen checkpoints above 500 source rows open in **Compare**. Their landscape
 is calculated only when requested, using a labeled 3 × 3 preview (nine sampled
 points); all contracts participate. The mesh between those points is an
@@ -111,6 +131,17 @@ open it. These commands run without live provider access:
 gex-terminal --replay-session nq-research-loop --symbol NQ --multiplier 20 --wind-tunnel-checkpoint nq-checkpoint.json
 gex-terminal wind-tunnel --checkpoint nq-checkpoint.json --port 0
 ```
+
+To make two explicit saved files available in one source picker:
+
+```bash
+gex-terminal wind-tunnel --checkpoint es-checkpoint.json --comparison-checkpoint nq-checkpoint.json --port 0
+```
+
+`--checkpoint` sets the initial source. Repeat `--comparison-checkpoint` at most
+twice; identical checkpoints appear once. All supplied files must pass the same
+bounded checkpoint validation before the server starts. The browser receives
+detached inputs and cannot select local paths.
 
 Use a new output filename; an existing checkpoint is never overwritten. Input
 files must be regular, bounded checkpoint JSON, not symlinks. The server reads
@@ -178,6 +209,65 @@ keep results accessible where WebGL is unavailable. Compare uses matched axes
 so a larger-looking plot cannot come from a different scale. Fragility shows
 only tested cells: missing or invalid cells do not mean stability.
 
+## Compare Default And Directionalized Models
+
+Choose **Model comparison** to view both quantity proxies side by side. Each
+column shows its original and recalculated net GEX, dominant wall, pricing
+coverage and unpriced-contract details. The strike charts use matched axes;
+the exact-values table distinguishes unavailable output from zero.
+
+![Default and directionalized comparison using bundled synthetic input](../assets/wind-tunnel-model-comparison.png)
+
+The default is **Terminal selected proxy** for a frozen checkpoint and
+**Volume proxy** for a bundled replay. The directionalized model uses signed
+aggressor-side volume under an assumed passive-counterparty position. The two
+models can use different quantity cohorts. Neither observes actual dealer
+inventory or whether a trade opens or closes a position; never add them.
+
+Price, IV and time controls apply to both columns. Presets reset the other
+shocks to zero so you can inspect one change at a time. **Run 54-case grid** is
+an explicit, separate calculation from the original checkpoint: price
+−25/0/+25 points for ES or −100/0/+100 for NQ, IV −1/0/+1 volatility point, and
+time 0/30/60 minutes, with nearest-expiry exclusion off. Its 27 coordinates per
+model include combined shocks. A large saved checkpoint is a batch calculation;
+calculations remain local and bounded. The workbench reuses identical
+pricing work within a request without changing either model's selected quantities.
+
+Grid summaries count positive, negative, zero and unavailable results and show
+the tested exposure range and dominant walls. Missing cases do not establish
+stability. Changing the source or scenario clears the current results and grid
+conclusions. The grid does not ingest later events, fill unavailable IV, or
+estimate future prices or probabilities. Time beyond the capture is model time.
+
+Save a model comparison with **Save scenario**. Its receipt includes the
+original input, both models, exact controls and the grid when requested.
+The browser receives a smaller display response without repeated contract
+contributions or an echoed checkpoint. Saving recalculates a full receipt from
+the original input; exported receipts retain the source and contribution details.
+Reopening verifies it against the same calculation build and runtime. Old
+receipts retain their original implementation identity and need their original
+build for exact reproduction.
+
+[Model comparison](model-comparison.md) explains how to interpret model
+agreement, directional coverage and the separate CLI report harness.
+
+### Locate Price And Choose A Strike Range
+
+**Compare** and **Model comparison** mark the original and scenario futures
+prices on their strike charts. A dotted cyan line marks the original price and
+a dashed gold line marks the scenario price. If the prices match, one solid
+line marks both; missing prices do not produce a fabricated marker.
+
+**Strike range — Focused** starts around the two prices with a ±2% envelope,
+expands to include the displayed dominant walls, and adds chart padding.
+**Full range** restores all modeled strikes. Both charts use matched strike
+and exposure axes within the chosen range. The note reports how many strikes
+are outside the view. This is a display setting: quantities, pricing selection,
+GEX totals and grid results do not change. **Inspect all modeled strike values**
+in Model comparison includes the strikes outside the chart view.
+
+![Focused strike charts with original and scenario futures-price markers](../assets/wind-tunnel-focused-strikes.png)
+
 ## Read Pricing Coverage
 
 The **Pricing coverage** panel above the charts shows priced/selected contracts
@@ -203,6 +293,38 @@ do not fill unavailable IV or rewrite that evidence. A mismatch explains the
 model failure without establishing its market or feed cause.
 [Model Assumptions](model-assumptions.md#quantity-and-position-sources) owns the
 pricing and retention policy.
+
+## Read Source Health And Accepted-IV Age
+
+The header shows **Mode** and **Health** separately. **REPLAY** describes how
+the saved source runs; **degraded** describes its captured source ledger.
+That health can include earlier or expired contract events, so it is separate
+from the active pricing-coverage denominator. Freezing or replaying a source
+does not repair its recorded health.
+
+**Accepted-IV age** appears in pricing coverage, each model card and
+**Source & assumptions**. It counts priced contracts within five minutes,
+older than five minutes, unknown, or not applicable, and shows the oldest
+measurable observation and affected selected quantities. Unpriced contracts
+remain outside this age distribution. Configured or unspecified IV is not
+presented as an observed fresh quote.
+
+Coverage and age headlines stay visible. Expand **Pricing, IV age & unpriced
+details** for the observation clocks, quantity breakdown, timing uncertainty
+and captured unpriced-contract inputs.
+
+Original ages use the **Captured cutoff**; scenario ages use the displayed
+**Scenario model time**. Time changes add elapsed model time to the same
+accepted observations without reading later data. Retained prior-valid IV uses
+its original accepted observation time, not the subsequent failed-inversion
+tick. Missing provenance, invalid/future clocks or ambiguity in the saved
+capture timestamp's precision can leave age unknown.
+
+Five minutes is an age reference, not an IV validity filter. An unchanged
+accepted IV can be hours old and still count as priced. The separate 300-second
+rule for retaining IV after a new failed inversion remains unchanged. Freshness,
+pricing coverage and source health answer different questions; none establishes
+a synchronized complete option chain.
 
 ## What The Controls Mean
 

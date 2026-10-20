@@ -1,5 +1,9 @@
 # Market Wind Tunnel Design QA
 
+The original review below retains its earlier build and viewport scope.
+Current screenshots are described in the
+[October 19 supplement](#2026-10-19-comparison-and-documentation-refresh).
+
 ## Reference And Rendered Evidence
 
 The selected direction is the Exposure Landscape concept, with Scenario Compare
@@ -7,7 +11,7 @@ and Fragility Atlas implemented as additional tabs. The source landscape image
 is the generated `exec-b0c115bc-72d8-47c0-89f3-be62d1ce4d39.png` in this task's
 generated-images folder. It is illustrative, not numerical evidence.
 
-The actual implementation capture is [the committed landscape](assets/market-wind-tunnel.png).
+The original implementation capture is [the archived landscape](assets/history/wind-tunnel-before-20261019.png).
 It uses ES Wind Tunnel Lab's final checkpoint, volume proxy and +2 absolute IV
 points. Source and implementation images are both 1487×1058 pixels. The desktop
 browser viewport was 1487×1058 CSS pixels at device scale 1 for this capture.
@@ -155,3 +159,36 @@ The diagram's accessible description follows the same ownership rules.
 A true PNG render and a source-SVG SHA-256 manifest are retained locally under
 ignored `dist/docs-closeout/2026-10-18/`. This is a diagram render for label and
 arrow inspection, not application QA or a new screenshot of either study build.
+
+## 2026-10-19 Comparison And Documentation Refresh
+
+Fresh runtime captures use source
+`2d6a239edd509a5dde8eb5019d0b634311c1784b`, Python 3.12.13 and bundled synthetic
+inputs. No provider connection, private market-data image or new credit use is
+part of this refresh. [Visual Assets](assets/README.md) owns the complete
+[hash and setting inventory](assets/visual-provenance.json).
+
+| View | Input and settings | Reviewed output |
+| --- | --- | --- |
+| [Landscape](assets/market-wind-tunnel.png) | ES Wind Tunnel Lab, final checkpoint, Volume proxy, IV +2, no price/time change | +420.12M to +391.47M; wall remains 6,000; separate coverage and accepted-IV age |
+| [Model cards](assets/wind-tunnel-model-comparison.png) | Terminal-exported synthetic `nq-research-loop` checkpoint, +100 price, +1 IV point, +30 model minutes | Default +364.14M to +245.23M; directionalized −240.79M to −42.26M; separate model conclusions and ages |
+| [Focused strikes](assets/wind-tunnel-focused-strikes.png) | Same NQ source/scenario; Focused view | Original 21,135 dotted marker and scenario 21,235 dashed marker, matched axes and retained exact values |
+
+The model fixture has legacy coverage metadata. Its explicit unavailable
+coverage is preserved in the capture, while observation ages and known
+aggressor coverage remain separately reportable. Unknown exercise style also
+stays visible; the fixture is not restated as a confirmed European or American
+contract. “Health: simulated” on the checkpoint is captured source state,
+separate from replay mode and the age of an accepted IV.
+
+The normal browser viewport was 1280×720. The complete landscape capture is
+1280×1432; the measured document width was 1280 with no horizontal overflow.
+Both model images are native 1280×720 viewport captures. The rendered files
+were inspected for complete plot axes, legible labels, correct source/settings
+and real PNG encoding. The two architecture diagrams and social preview were
+also rendered and inspected after editing. No screenshot values were repainted.
+
+The earlier 390×844 result remains limited to its original reviewed build.
+This refresh adds desktop documentation evidence only. It does not repeat
+cross-browser/accessibility testing, observe participants, recertify live
+providers or alter the frozen September and October study materials.

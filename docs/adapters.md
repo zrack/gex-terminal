@@ -144,6 +144,34 @@ strike-level Black-Scholes and incremental-volume behavior for existing replay
 fixtures. Mixed v1/v2 sessions report a legacy fallback calculation instead of
 claiming contract-aware provenance.
 
+## Saved Sessions And Quality Displays
+
+Saved-data startup and Wind Tunnel comparisons do not instantiate a live-provider
+adapter or require credentials. A saved complete capture is verified and replayed
+through the production consumer to freeze its final checkpoint. Browser
+scenarios operate on that allowlisted checkpoint; local conversion of already
+downloaded Databento records is distinct from a new historical API request.
+[Saved ES/NQ startup](first-run.md#open-saved-es-or-nq-data) and
+[the historical trial workflow](databento-credit-trial.md) own the procedures.
+The saved-data starter supports full sessions through its local-file path;
+the browser's smaller guided-upload bounds remain separate.
+
+Provider readiness, runtime mode, captured health, pricing coverage and accepted
+IV age are separate fields. **REPLAY** does not imply healthy inputs. A closing
+saved checkpoint can have nearly complete pricing coverage while many accepted
+IVs are hours old. Unchanged contracts keep their last accepted observation;
+underlying ticks do not refresh those IV clocks. A retained prior-valid IV uses
+its original accepted timestamp, not the later failed inversion. Unknown clocks
+and cutoff-precision ambiguity stay unknown. The five-minute age reference is
+an explicit disclosure, not a filter on unchanged accepted IV.
+
+Unpriced rows retain their selected quantity and failed-input provenance and
+are excluded from modeled exposure. Directionalized rows additionally require
+known eligible direction, so its cohort can differ from the default model's.
+No saved-data validation, historical download or complete capture promotes
+live-provider readiness. [Model Assumptions](model-assumptions.md) owns these
+pricing, quantity and timing semantics.
+
 ## Provider Selection
 
 List known providers:

@@ -1,8 +1,9 @@
 # Application State And Health Review
 
-Updated October 18, 2026 against the current `0.6.0` source, including Market
-Wind Tunnel, the unified starter, provider repairs, checkpoint handoff and
-guided captured-session intake. This document
+Updated October 19, 2026 against the current `0.6.0` source, including Market
+Wind Tunnel, the saved-data starter, full-session ES/NQ replay, paired-model
+comparisons, explicit pricing/IV-age displays and comparison optimizations.
+Earlier provider, checkpoint-handoff and guided-intake assessments are preserved. This document
 owns the dated state assessment and verification limits; earlier release
 evidence is retained below rather than presented as verification of later changes.
 [Architecture](architecture.md) owns implementation structure;
@@ -51,13 +52,31 @@ private REST and WebSocket evidence before normalization. It requires explicit
 network acknowledgement and a valid capture policy, excludes authentication
 material, and records limits and omissions. Its output needs manual review and
 actual ES/NQ mapping validation; it does not feed guided intake or change
-provider readiness. No actual provider payloads were captured during this work.
+provider readiness. The collector implementation acceptance used mocked input;
+it did not capture actual Tradovate payloads. The later saved-data review below
+uses previously downloaded Databento records in its separately stated scope.
+
+The saved-data starter now launches Terminal and Wind Tunnel together for a
+registered ES or NQ capture. Full sessions fast-load in Terminal while the
+browser starts from the verified final checkpoint; the other registered market
+can also appear in the source picker. Default and directionalized models can
+be reviewed side by side, including an optional 54-case price/IV/time grid.
+Mode and health are distinct; contract/quantity pricing coverage, retained and
+unpriced inputs, and accepted-IV age remain visible. Focused/full strike ranges
+and exact original/scenario price markers affect presentation only.
+
+Comparison work now reuses exact gamma vectors within one request and avoids
+repeating contribution lists and checkpoint echoes in the browser response.
+Full receipts retain the source and full detail and reproduce before being
+reported verified. This reduces review cost while preserving calculation
+identity; it does not make a stale IV current or price an unresolved contract.
 
 Three remaining technical priorities affect trustworthy functionality:
 
 - The current Databento option path derives IV from trades without requesting
   option bid/ask quotes. Stream freshness and per-option model-input freshness
-  need separate quality reporting; quote bootstrap is further provider work.
+  are now reported separately in the browser; quote bootstrap and calibration
+  remain further provider work.
 - Exercise style, exact expiry timezone, calendars/session rules and supported
   approximations need an explicit contract-domain policy. Uniform IV shocks
   remain sensitivity tests, not a general skew/term-structure risk engine.
@@ -136,14 +155,14 @@ frozen study; participant acceptance remains unmeasured.
 
 | Area | Observed state | Limit |
 | --- | --- | --- |
-| Model and state | Contract-aware Black-76/Black-Scholes with separate OI, raw-volume and directionalized-volume paths | Numerical correctness does not establish dealer inventory or forecasting value |
+| Model and state | Contract-aware Black-76/Black-Scholes and confirmed-American futures pricing; separate OI, raw-volume and directionalized-volume paths; visible pricing coverage and unpriced provenance | Numerical correctness and solver convergence do not establish calibration, dealer inventory or forecasting value |
 | Replay and identity | Eleven bundled scenarios including NQ ×20 schema-v2; catalog identity, actual/fallback multipliers and accepted-event chronology are explicit | Synthetic fixtures do not establish provider support for ES or NQ |
 | Research loop | Demo Lab, captured sessions, journals, experiments, model profiles, corpus registration, batch comparison and portable receipts | Strict identity/runtime compatibility and source-specific point-in-time gates; unkeyed hashes are not signatures |
-| Wind Tunnel | Packaged browser surfaces, scenarios, expiry removal, comparison and fragility; explicit immutable demo/replay Terminal checkpoint; guided native captured-session inspection and prefix selection; self-contained save/open/export/reproduce receipts | Intake supports complete native captures within declared bounds; source rights and real-user input qualification remain external; no general CSV/provider import, live capture or synchronization; shocks freeze quantities and do not forecast future positions |
+| Wind Tunnel | Browser scenarios, paired default/directionalized models, 54-case price/IV/time grid and fragility; saved ES/NQ source picker; health/IV age and unpriced detail; exact price markers, focused/full strike ranges and full portable receipts | Guided upload and full-session saved startup have distinct bounds; older accepted IV stays older; ranges do not filter totals; no general CSV/provider importer, live capture or synchronization; shocks freeze quantities |
 | Terminal | Essential columns at 100×32+, full-table view at 140×42; focused picker/help/details and strike selection retained across refresh | Not a mobile interface, screen-reader certification or unaided usability study |
 | Preflight | Offline doctor checks package, resources, config, provider structure and temporary storage with text/JSON exit status | No live authentication, entitlements, SDK behavior or market-quality check |
 | Distribution | Reviewed wheel, local setup handoff, optional platform-specific wheelhouse and disposable lifecycle checks | Python remains required; no signed native installer or customer-selected channel |
-| Local launcher | Unified Terminal/Wind/Both starter, managed child-process lifetime, exact payload checks and separate research directory; `w` performs explicit checkpoint transfer | Combined launch alone coordinates processes, not market state; checkpoint services belong to their Terminal owner and stop with it; observed activation is still open |
+| Local launcher | Terminal/Wind/Both plus registered Saved data — Both for ES/NQ; full-session preparation, bound capture/checkpoint identities, managed child lifetime and separate research; `w` performs explicit checkpoint transfer | Saved interfaces share source inputs after Terminal finishes loading; later controls remain independent; local files and data rights required; observed activation remains open |
 | Local interfaces | Snapshot exports, static TradingView overlay and capability-protected Wind loopback HTTP service | No supported public SDK/REST/MCP contract, continuous chart synchronization or hosted platform |
 | Support and lifecycle | Redacted diagnostics; verified owner-only backup/restore; whole-group retention bound to a verified backup and exact confirmation | POSIX safety support only; no general database, automatic migration or licensed-capture lifecycle claim |
 | Product preparation | September study preserved; October guided-intake cohort freezes exact source/wheel/runtime/materials, with a separate participant-only delivery and blank recruitment templates | Zero observed participants; no activation, demand, price, margin, license or conversion measurement; personal records stay outside Git and shared kits |
@@ -203,9 +222,12 @@ Each row identifies its own historical scope. The October assessment's focused
 checks do not rerun or supersede a prior full-suite result, and neither is
 evidence that a participant used the product successfully.
 
-Local environment: macOS ARM64, CPython 3.12.13. Generated inputs and artifacts
-are synthetic and retained in disposable directories outside the repository.
-Package dependency downloads are not market-data connections.
+Historical synthetic checks used macOS ARM64, CPython 3.12.13 and disposable
+artifact directories. October 19 saved-data checks additionally used already
+downloaded private ES/NQ records, retained under ignored `historical_sessions/`.
+Those inputs and receipts are not public fixtures or redistribution permission.
+The refinement and documentation pass made no provider requests or downloads;
+earlier historical acquisition remains separately documented.
 
 | Check | Verified result | Boundary |
 | --- | --- | --- |
@@ -227,6 +249,35 @@ Package dependency downloads are not market-data connections.
 | Terminal checkpoint handoff | PR #40 merged as `cd81cc7`; 637 tests passed on clean merged main, including 23 new regressions, with installed-wheel/browser reproduction and all eight final hosted jobs | Exact immutable demo/replay capture only; [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns acceptance; no live readiness or participant evidence |
 | Guided intake and study preparation | PR #41 merged as `0dab6bb`; 673 tests passed on clean merged main, including 36 new regressions; all eight final hosted jobs passed; the separately frozen October kit has 86 verified files, reproducible wheel bytes, 23 preparation checks and 16 independent installed-wheel checks | [GEX-INTAKE-STUDY-001](work-packets/GEX-INTAKE-STUDY-001.md) and the [dated cohort record](studies/guided-intake-2026-10-18.md) bind exact identities; zero observed participants; #4 remains open |
 | Tradovate raw collector | PR #43 merged as `486abd6`; 776 tests passed on clean merged main, including 42 new regressions; all four required PR matrix jobs passed; all 42 new tests also passed from a separately installed candidate wheel | [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md) owns exact evidence; mocked collection only, no actual ES/NQ payloads, #4 OPEN and readiness `scaffold` |
+
+### October 19 Saved-Data Refinement
+
+The saved-data refinement culminated in local source `2d6a239` (package version
+still `0.6.0`). The updated starter was installed and browser-reviewed against
+frozen full-session ES/NQ checkpoints. The retained local evidence reports:
+
+- 108 previously evaluated ES/NQ model cases reproduced; full/compact retained
+  fields matched, full portable receipts recalculated, and original capture and
+  checkpoint hashes stayed unchanged.
+- The initial 1,031-test suite passed. A later repeat reported three failures;
+  all 16 tests in those affected modules passed unchanged when rerun. These are
+  distinct records, not an unqualified green repeat-suite claim.
+- Source switching, model controls, exact price markers, focus/full ranges,
+  health/age disclosure and full-receipt reopening were checked in the installed
+  browser. This is technical inspection, not an unaided participant study.
+- Controlled same-input NQ grid measurements improved from 25.6 to 21.8 seconds
+  cold and 4.4 to 1.8 seconds warm. Compact grid responses were 253,783 bytes for
+  ES and 248,146 bytes for NQ, versus the earlier 17,459,667 and 9,113,918 bytes.
+  These are individual in-process measurements with identified cache state,
+  not p95, end-to-end UI latency, a service guarantee or a vendor comparison.
+- No provider requests or additional credits were used. No live-readiness or
+  predictive-validity status changed.
+
+Private evidence remains under
+`historical_sessions/databento_trial/full-session-20261019/`, including the
+`wind-tunnel-refinement-20261019/` acceptance and
+`performance-controlled-nq-20261019/` benchmark records. Documentation and new
+public visuals describe the workflow without publishing those licensed records.
 
 The historical release closeout and annotated tag identify their released tree;
 later PR and study records identify subsequent builds.

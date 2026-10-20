@@ -1,5 +1,9 @@
 # Deployment And Terminal Experience Review
 
+This is the dated September 26 review. Its original captures are archived;
+the [October 19 documentation refresh](#2026-10-19-documentation-capture-refresh)
+below routes to current images without repeating the original usability claim.
+
 Review date: September 26, 2026. Baseline: `f4df041`.
 [GEX-UX-002](work-packets/GEX-UX-002.md) owns implementation and exact verification
 status. The scope is the existing local terminal, from setup through selecting
@@ -27,15 +31,15 @@ The dashboard also labels unchanged sampled values instead of drawing a full
 sparkline band. A refresh is not a new market observation. Positive/negative
 values keep signs and text labels as well as color.
 
-## Current Screens
+## September 26 Screens
 
 Dashboard using packaged synthetic data:
 
-![Current research terminal](../assets/gex-terminal-actual.svg)
+![September 26 research terminal](../assets/history/terminal-before-20261019.svg)
 
 Focused replay chooser:
 
-![Focused replay chooser](../assets/gex-terminal-onboarding.svg)
+![Earlier focused replay chooser](../assets/history/onboarding-before-20261019.svg)
 
 These are actual Textual captures, not concepts or live-market evidence.
 [Visual Assets](../assets/README.md) owns their source and reproduction notes.
@@ -77,3 +81,17 @@ labels were checked with synthetic data. No participant was observed. These
 checks do not establish unaided activation, customer preference, screen-reader
 compatibility or full accessibility conformance. The original frozen study
 bundle remains unchanged; a future study of this UI needs its own exact build.
+
+## 2026-10-19 Documentation Capture Refresh
+
+Current [Terminal](../assets/gex-terminal-actual.png) and
+[replay-picker](../assets/gex-terminal-onboarding.svg) images were regenerated
+from source `2d6a239edd509a5dde8eb5019d0b634311c1784b` with bundled synthetic
+inputs. The Terminal includes the newer coverage availability and pricing
+qualification displays. Its seeded legacy demo intentionally says that contract
+coverage is not reported; it does not invent a percentage.
+
+[Visual Assets](../assets/README.md) records source/settings, dimensions,
+reproduction steps and current/archive file hashes. This is a documentation
+capture refresh, not a repeated setup matrix, new participant observation,
+provider certification or modification of either frozen study cohort.

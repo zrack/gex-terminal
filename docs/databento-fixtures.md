@@ -7,8 +7,8 @@ the live service.
 
 ## Current Status
 
-- For a small real historical sample using signup credits, follow
-  [Databento Credit Trial](databento-credit-trial.md). The checkout helpers
+- For cost-previewed historical samples or full sessions using signup credits,
+  follow [Databento Credit Trial](databento-credit-trial.md). The checkout helpers
   preview/download bounded schema files and convert them to local captured
   sessions without promoting live readiness.
 - That historical helper uses one-second BBO midpoints for the underlying and
@@ -25,7 +25,8 @@ the live service.
 - Implemented locally: official SDK live client setup; required `definition`,
   `mbp-1`, and `trades` requests; optional `statistics` request;
   option-definition joins; ES/NQ continuous-futures midpoint tracking;
-  option-trade and OI normalization; aggressor side; Black-76 IV inversion;
+  option-trade and OI normalization; aggressor side; exercise-style-aware
+  Black-76 or American futures CRR IV inversion;
   bounded shutdown; and reconnect/sequence diagnostics.
 - Operationally unverified in this repository: credentials, entitlements,
   current contract coverage, licensed OI availability, latency, provider-side

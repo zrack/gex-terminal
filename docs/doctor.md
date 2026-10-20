@@ -25,6 +25,11 @@ python -m gex_terminal.doctor --json
 
 Both formats are rendered from the same report and return its exit code.
 
+For a reviewed setup bundle, use `"./GEX App/run-gex" --doctor` from its setup
+folder. That checks the installed environment under the starter's offline
+configuration. The direct CLI above reads the normal application configuration.
+See [First Run](first-run.md#local-setup-options) for installation diagnostics.
+
 ## What It Checks
 
 - the supported Python version and installed package-version agreement
@@ -50,6 +55,15 @@ flag returns, prefer the reviewed wheel in a dedicated virtual environment;
 reinstalling editable metadata is not a durable repair for the observed
 filesystem behavior. The report never prints the file's location, and it does
 not recommend clearing flags broadly.
+
+Doctor is not a capture or scenario validator. It does not verify the full
+saved-data registry, replay a full trading day, reproduce Wind Tunnel receipts
+or measure accepted-IV ages. A successful preflight can coexist with degraded
+saved source health, partial pricing coverage or old IV observations. Use the
+starter's source verification, [Wind Tunnel](wind-tunnel.md) diagnostics and
+[offline validation](offline-validation.md#saved-esnq-product-regressions) for
+those separate questions. Offloaded files in cloud-synchronized folders must
+also be locally readable before a disconnected saved-data launch.
 
 ## Exit Codes
 

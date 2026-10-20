@@ -1,7 +1,10 @@
 # Competitive Landscape and Product Strategy
 
 Reviewed October 18, 2026 against the current `0.6.0` source and first-party
-vendor materials. This replaces the September 3 / `0.4.0` capability snapshot;
+vendor materials. Local capability notes were refreshed October 19 for saved
+ES/NQ sessions and the paired-model Wind Tunnel; vendor prices and claims were
+not rechecked during that offline documentation pass. This replaces the
+September 3 / `0.4.0` capability snapshot;
 earlier assessments remain in Git. [Application Review](application-review.md)
 owns current capabilities and historical verification limits;
 [Roadmap](../ROADMAP.md) owns sequencing, authorization and exit gates.
@@ -42,11 +45,11 @@ predictive validity.
 
 | Foundation available | Material boundary |
 | --- | --- |
-| Contract-aware Black-76/Black-Scholes, effective multipliers and explicit pricing/IV/time provenance | Exercise style, exact expiry/session calendars and declared approximations need a supported-domain policy |
+| Contract-aware Black-76/Black-Scholes and confirmed-American futures pricing, effective multipliers, explicit pricing/IV/time provenance and visible unpriced coverage | The finite early-exercise model and trade-price IV inversion have declared assumptions; broader expiry/session calendars and independent calibration remain open |
 | Separate OI, raw-trade-volume and aggressor-directionalized models, with contribution and disagreement reports | They are distinct proxies; dealer/customer and opening/closing states remain unobserved |
 | Captures, deterministic replay, journals, experiments, corpus registration, model profiles and portable receipts | Authorized input, point-in-time eligibility and the retained executable environment are separate obligations |
-| Browser Wind Tunnel, scenarios, expiry removal, comparison, sampled fragility and saved receipts; explicit immutable Terminal checkpoint handoff | Default launch uses bundled replays; explicit checkpoint launch accepts frozen demo/replay state, not a general importer, live capture or continuous synchronization |
-| Reviewed wheel setup, reusable offline starter, managed combined launch, diagnostics and backup/recovery | Python remains required; signed native distribution and generalized licensed-capture migration are not established |
+| Browser Wind Tunnel, scenarios, paired default/directionalized models, price/IV/time grid, sampled fragility and full saved receipts; immutable checkpoints from Terminal or saved ES/NQ sessions | Default launch uses bundled replays; guided capture intake and full-session saved startup have distinct bounds; no general importer, live capture or continuous synchronization |
+| Reviewed wheel setup, reusable offline starter, saved ES/NQ full-session combined launch, diagnostics and backup/recovery | Python remains required; data must be locally available and authorized; signed native distribution and generalized licensed-capture migration are not established |
 | Exports, static TradingView overlay and a capability-protected Wind loopback HTTP service | The internal service is not a supported public SDK/REST/MCP contract; continuous chart synchronization is not shipped |
 | Databento provider normalization and offline multiplier/product/OI repairs; Tradovate ACK-frame repair | Databento remains `live-uncertified`; Tradovate/IBKR remain `scaffold`; fixtures cannot certify actual access or payload coverage |
 
@@ -59,15 +62,24 @@ assumption identity for reproduction without the original file/server.
 [Wind Tunnel](wind-tunnel.md) owns the user/receipt contract and
 [GEX-WIND-HANDOFF-001](work-packets/GEX-WIND-HANDOFF-001.md) owns integration
 evidence. This connection does not establish observed user value or authorize
-live capture; general historical intake and recurring investigation remain
-separate product questions.
+live capture. Complete native captured-session intake and full-session saved
+startup are now available in declared bounds; recurring investigation and
+observed user value remain separate product questions.
 
-A substantive remaining gap is option-chain quality. The current Databento path
-uses option trades to derive IV without subscribing to option bid/ask quotes.
-Continuing underlying updates can keep stream health fresh while particular
-option IVs remain older or use fallbacks. A usable chain-health surface must
-separate per-option model-input quality from connection/stream freshness.
-Provider quote initialization and its IV policy need separately routed work.
+Option-chain quality remains a material product boundary. The current Databento
+path uses option trades to derive IV without subscribing to option bid/ask
+quotes. The Wind Tunnel now separates captured health, replay mode, contract and
+quantity pricing coverage, unpriced explanations and accepted-IV age. Older
+observations remain visible rather than acquiring a new clock from a later
+underlying tick. This improves interpretation of saved data; it does not create
+a synchronized closing chain. Provider quote initialization and calibration
+policy still need separately routed work.
+
+Price markers, matched focused/full strike views and compact comparison
+transport improve the local review surface. Controlled saved-data benchmarks
+and numerical parity checks describe this implementation, not independently
+measured speed or UX superiority over the vendors below. No competitor latency,
+accessibility or unaided-task benchmark was run in the October 19 offline pass.
 
 No recorded participant activation, tested price, commercial data agreement or
 supported recurring live operating envelope is established by this review.

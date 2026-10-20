@@ -1,69 +1,32 @@
-<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">gex-terminal social preview</title>
-  <desc id="desc">Open-source terminal UI for inspectable gamma-exposure proxies, reproducible offline research, and provider certification.</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0" stop-color="#06111a"/>
-      <stop offset="0.5" stop-color="#0b141d"/>
-      <stop offset="1" stop-color="#111827"/>
-    </linearGradient>
-    <linearGradient id="lane" x1="0" x2="1">
-      <stop offset="0" stop-color="#fb7185"/>
-      <stop offset="0.45" stop-color="#fbbf24"/>
-      <stop offset="0.62" stop-color="#38bdf8"/>
-      <stop offset="1" stop-color="#4ade80"/>
-    </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <style>
-      .mono { font-family: "Fira Code", "SFMono-Regular", Consolas, monospace; }
-      .title { fill: #f8fafc; font-size: 72px; font-weight: 800; }
-      .subtitle { fill: #cbd5e1; font-size: 28px; font-weight: 500; }
-      .small { fill: #94a3b8; font-size: 22px; }
-      .label { fill: #64748b; font-size: 18px; }
-      .value { fill: #e2e8f0; font-size: 30px; font-weight: 700; }
-    </style>
-  </defs>
-
-  <rect width="1280" height="640" fill="url(#bg)"/>
-  <rect x="58" y="54" width="1164" height="532" rx="18" fill="#0b1118" stroke="#2a394a" stroke-width="2"/>
-  <rect x="58" y="54" width="1164" height="54" rx="18" fill="#111827"/>
-  <circle cx="90" cy="82" r="8" fill="#fb7185"/>
-  <circle cx="118" cy="82" r="8" fill="#fbbf24"/>
-  <circle cx="146" cy="82" r="8" fill="#4ade80"/>
-  <text x="178" y="90" class="mono label">gex-terminal // local market-structure research</text>
-
-  <text x="92" y="205" class="mono title">gex-terminal</text>
-  <text x="98" y="252" class="mono subtitle">Open-source intraday Gamma Exposure terminal</text>
-  <text x="98" y="296" class="mono small">GEX proxies • reproducible research • provider evidence</text>
-
-  <rect x="96" y="352" width="760" height="58" rx="7" fill="url(#lane)" opacity="0.86"/>
-  <line x1="438" y1="336" x2="438" y2="430" stroke="#fbbf24" stroke-width="4" stroke-dasharray="8 7"/>
-  <line x1="526" y1="328" x2="526" y2="438" stroke="#38bdf8" stroke-width="5"/>
-  <line x1="684" y1="336" x2="684" y2="430" stroke="#4ade80" stroke-width="5"/>
-  <circle cx="438" cy="352" r="8" fill="#fbbf24" filter="url(#glow)"/>
-  <circle cx="684" cy="352" r="8" fill="#4ade80" filter="url(#glow)"/>
-  <text x="112" y="392" class="mono" fill="#f8fafc" font-size="22" font-weight="700">NEG PROXY</text>
-  <text x="462" y="392" class="mono" fill="#f8fafc" font-size="22" font-weight="700">SPOT</text>
-  <text x="610" y="392" class="mono" fill="#f8fafc" font-size="22" font-weight="700">POS PROXY</text>
-  <text x="348" y="462" class="mono" fill="#fbbf24" font-size="18" font-weight="700">COMPATIBILITY</text>
-  <text x="644" y="462" class="mono" fill="#4ade80" font-size="18" font-weight="700">GAMMA WALL</text>
-
-  <rect x="896" y="178" width="272" height="284" rx="10" fill="#101923" stroke="#253244"/>
-  <text x="922" y="220" class="mono label">REGIME</text>
-  <text x="922" y="262" class="mono" fill="#4ade80" font-size="25" font-weight="800">POS PROXY</text>
-  <text x="922" y="306" class="mono label">SPOT</text>
-  <text x="1022" y="306" class="mono value">5948.75</text>
-  <text x="922" y="352" class="mono label">WALL</text>
-  <text x="1022" y="352" class="mono value">5965</text>
-  <text x="922" y="398" class="mono label">ALERT</text>
-  <text x="1022" y="398" class="mono" fill="#fbbf24" font-size="24" font-weight="700">ARMED</text>
-
-  <text x="96" y="530" class="mono small">Python • Textual • ES/NQ • offline-certified</text>
-  <text x="850" y="530" class="mono small">github.com/zrack/gex-terminal</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+<title id="title">gex-terminal — Terminal and Market Wind Tunnel</title>
+<desc id="description">Illustrative product artwork, not a screenshot or market result. One local installation offers a Terminal replay dashboard and Market Wind Tunnel browser workbench. The starter can launch both from registered saved ES or NQ data. Wind Tunnel compares default and directionalized proxies and tests price, IV and model-time assumptions against frozen inputs. Source and model identity remain inspectable, with full reproducible receipts. Saved-data workflows require no provider connection. Derived from README.md and docs/architecture.md.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07121d"/><stop offset="1" stop-color="#14273b"/></linearGradient>
+<style>text{font-family:Arial,Helvetica,sans-serif}.eyebrow{font-size:16px;font-weight:700;letter-spacing:2px;fill:#8da5bd}.brand{font-size:58px;font-weight:800;fill:#f4f7fb}.subtitle{font-size:27px;fill:#c7d6e4}.name{font-size:30px;font-weight:700;fill:#f4f7fb}.body{font-size:22px;fill:#c7d6e4}.small{font-size:18px;fill:#9db3c8}.label{font-size:15px;font-weight:700;letter-spacing:1px;fill:#9db3c8}</style>
+</defs>
+<rect width="1280" height="640" fill="url(#bg)"/>
+<text x="64" y="45" class="eyebrow">OPEN SOURCE / LOCAL MARKET-STRUCTURE RESEARCH</text>
+<text x="64" y="115" class="brand">gex-terminal</text>
+<text x="64" y="159" class="subtitle">Two interfaces. One inspectable research loop.</text>
+<rect x="64" y="190" width="1152" height="58" rx="12" fill="#182e44" stroke="#455e76"/>
+<text x="88" y="226" class="body"><tspan font-weight="700" fill="#f4f7fb">ONE STARTER</tspan><tspan dx="26">Terminal · Wind Tunnel · Both · Saved data — Both → ES / NQ</tspan></text>
+<path d="M345 248 V279 M935 248 V279" stroke="#546d85" stroke-width="2"/>
+<rect x="64" y="280" width="562" height="229" rx="16" fill="#102b37" stroke="#72dce9" stroke-width="2"/>
+<text x="90" y="324" class="name">Terminal</text>
+<text x="90" y="362" class="body">Inspect the saved session</text>
+<text x="90" y="396" class="small">Strikes · pricing coverage · unpriced inputs</text>
+<path d="M90 421 H596 M90 450 H596 M90 479 H596" stroke="#274653"/>
+<path d="M90 433 H127 M160 433 H298 M347 433 H428 M476 433 H569 M90 462 H127 M160 462 H322 M347 462 H450 M476 462 H584 M90 491 H127 M160 491 H279 M347 491 H408 M476 491 H552" stroke="#72dce9" stroke-width="5" opacity="0.8"/>
+<rect x="654" y="280" width="562" height="229" rx="16" fill="#2a281f" stroke="#f4c869" stroke-width="2"/>
+<text x="680" y="324" class="name">Market Wind Tunnel</text>
+<text x="680" y="362" class="body">Compare models on one frozen checkpoint</text>
+<text x="680" y="396" class="small">Default + directionalized · price / IV / time</text>
+<path d="M680 480 H1190 M680 432 H1190" stroke="#4b4634"/>
+<path d="M680 466 719 466 748 450 778 458 808 432 837 453 867 466 896 466 927 446 958 458 987 438 1017 455 1048 465 1080 465 1112 445 1144 462 1190 466" fill="none" stroke="#72dce9" stroke-width="3"/>
+<path d="M680 475 719 475 748 467 778 471 808 459 837 467 867 475 896 475 927 458 958 468 987 450 1017 463 1048 474 1080 474 1112 459 1144 471 1190 475" fill="none" stroke="#f4c869" stroke-width="3"/>
+<path d="M970 416 V490" stroke="#f4c869" stroke-width="2" stroke-dasharray="5 5"/>
+<text x="64" y="559" class="subtitle">Frozen inputs. Explicit assumptions. Reproducible receipts.</text>
+<text x="64" y="606" class="small">Illustrative product diagram · saved-data workflows require no provider connection</text>
+<text x="1216" y="606" text-anchor="end" class="label">ES / NQ RESEARCH</text>
 </svg>

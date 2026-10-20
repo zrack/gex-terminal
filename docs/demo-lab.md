@@ -10,6 +10,13 @@ workflow works outside a source checkout. It does not establish live-provider
 readiness, dealer inventory, predictive validity, execution quality, or
 profitability.
 
+For a licensed saved ES/NQ sample or full trading day, use the separate
+[saved-data starter](first-run.md#open-saved-es-or-nq-data) and
+[Wind Tunnel](wind-tunnel.md) workflow. Demo Lab's portable synthetic pack is not
+a downloader or an archive of the starter's private captures. Its review receipt
+and a Wind Tunnel experiment receipt have different schemas and verification
+commands. Neither makes licensed market data shareable.
+
 ## Generate
 
 Bundle and manual-wheel users should first follow the

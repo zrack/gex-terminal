@@ -4,6 +4,77 @@
 beside the unchanged call-positive/put-negative GEX proxy. The alternate model
 is a research comparison, not a replacement default or a predictive signal.
 
+Use [Wind Tunnel](wind-tunnel.md) for an interactive comparison of a saved ES or
+NQ checkpoint. Use the CLI harness below for a report from a normalized replay
+or provider-shaped fixture. The position-source ladder adds OI as a separate
+view; it does not change the browser's two-model comparison.
+
+## Compare Saved Data In Wind Tunnel
+
+Open **Start GEX.command → Saved data — Both → ES or NQ** in a reviewed setup
+with saved-data support. Register both symbols to make both checkpoints
+available in one Wind Tunnel source picker. Terminal keeps the symbol selected
+at launch. [First Run](first-run.md#open-saved-es-or-nq-data) owns source
+registration, long-session loading and local-file limits.
+
+Select **Model comparison**. A frozen Terminal checkpoint uses **Terminal
+selected proxy** as its default; a bundled replay uses **Volume proxy**.
+The second column uses aggressor-directionalized trade volume. Each column
+shows original and scenario net GEX, dominant wall, pricing coverage and
+accepted-IV age. Inspect directional coverage as well as pricing coverage:
+the signed model can use a smaller quantity cohort than the default.
+
+Price, IV and elapsed-time controls reprice both models from the same frozen
+checkpoint. Price changes are underlying points; IV changes are absolute
+volatility points; elapsed time does not consume later events. One-axis presets
+reset the other changes to zero. **Run 54-case grid** separately tests 27
+coordinates for each model: ES price −25/0/+25 or NQ −100/0/+100, IV −1/0/+1,
+and elapsed time 0/30/60 minutes. Its nearest-expiry exclusion is off. The grid
+always starts from the original checkpoint, independently of the current shocks.
+
+The strike charts share axes and mark the original and scenario futures prices.
+**Focused** starts around both prices and includes displayed dominant walls;
+**Full range** restores every modeled strike to the charts. Changing the range
+does not request another calculation or change totals, quantities, exclusions
+or grid conclusions. The exact-values table retains all modeled strikes.
+
+Read these findings separately:
+
+| Finding | What it establishes |
+| --- | --- |
+| Same net sign or wall at one point | Agreement for these models, inputs and available quantity cohorts at that point |
+| Same sign or wall across the grid | Agreement or stability at the explicitly tested points only |
+| Different magnitudes | A difference that may reflect the proxy's signs, eligible quantities, IVs or expiry composition |
+| Missing direction or unpriced contracts | An evidence limit; unavailable exposure cannot be counted as zero or stable |
+| Older accepted IV | The age of a usable pricing input, separate from pricing coverage and saved source health |
+
+Changing the source or scenario clears stale results and grid conclusions.
+Neither agreement nor stability establishes dealer inventory, forecasting
+accuracy or a probability. Compare the displayed model clocks and coverage
+before explaining a magnitude difference.
+
+### Display Responses And Portable Evidence
+
+The browser requests a compact comparison response. It retains summaries,
+strike matrices, coverage, accepted-IV ages, exclusions and grid results while
+omitting repeated contract-contribution lists and the echoed checkpoint.
+This is a transport optimization, not a smaller research population.
+
+**Save scenario** recalculates a full receipt from the retained original input.
+Exported and reopened receipts contain the frozen checkpoint, both models,
+contract contributions and the grid when requested. Reopening verifies the
+calculation and reports a verified status; a matching rounded headline alone
+does not establish reproduction. See
+[receipt verification](wind-tunnel.md#save-export-and-reproduce) and
+[Export Formats](exports.md#wind-tunnel-experiments).
+
+Repeated pricing work is reused only when its complete ordered pricing inputs
+match. Quantity cohorts remain independently aggregated. Large American-option
+grids can still take seconds to tens of seconds; cold and warm runs differ.
+Local measurements are workload- and runtime-specific, not live latency,
+throughput or service-level guarantees. [Architecture](architecture.md) owns
+the cache and process boundaries.
+
 ## Model Contract
 
 For each incremental trade with known aggressor direction:

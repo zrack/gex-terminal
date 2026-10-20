@@ -23,6 +23,21 @@ Use `x`, `d`, `m`, and `i` to change expiry selection, fallback DTE, contract
 multiplier, and risk-free rate. Those controls recompute the current offline
 snapshot through the same consumer and engine path.
 
+For data already downloaded to this computer, choose **Start GEX.command →
+Saved data — Both → ES or NQ**. This opens a verified normalized capture in
+Terminal and its final checkpoint in Wind Tunnel. Long captures load to the
+final state; short captures replay at the starter's declared speed. Register
+both symbols to switch their saved final checkpoints within one Wind Tunnel.
+This is separate from the bundled synthetic catalog and uses no provider
+requests or credits. [First Run](first-run.md#open-saved-es-or-nq-data) owns
+registration, full-session bounds and loading behavior.
+
+Press **`w`** in a demo/replay Terminal to open its current frozen state in
+Wind Tunnel. Later Terminal updates do not change that checkpoint. Use the
+browser's **Model comparison** to compare default and directionalized proxies
+under price, IV and elapsed-time changes; inspect pricing coverage and
+accepted-IV age alongside source health. See [Wind Tunnel](wind-tunnel.md).
+
 ## Bundled Sessions
 
 | Session | Intended scenario |
@@ -37,6 +52,7 @@ snapshot through the same consumer and engine path.
 | `zero-gamma-flip` | Position-proxy rotation across the compatibility level |
 | `expiration-compression` | Late 0DTE concentration around the modeled wall |
 | `quality-stress` | Off-symbol drops and partial-chain feed-health states |
+| `nq-research-loop` | Schema-v2 NQ with separate OI, raw trade volume and aggressor-direction evidence, multiplier 20 |
 
 These sessions are synthetic software fixtures. Their labels describe intended
 test behavior, not observed market regimes or predictive results.
@@ -53,6 +69,7 @@ test behavior, not observed market regimes or predictive results.
 | Inject provider-shaped input before normalization | [Provider Injection](provider-injection.md) |
 | Validate time, adversarial cases, later prices, or position models | [Offline Validation](offline-validation.md) |
 | Run sensitivity or numerical evidence | [Model Validation](model-validation.md) and [Model Assumptions](model-assumptions.md) |
+| Compare two frozen quantity proxies with price, IV and time changes | [Wind Tunnel](wind-tunnel.md#compare-default-and-directionalized-models) and [Model Comparison](model-comparison.md) |
 | Register a corpus or reproduce a versioned experiment | [Research Governance](research-governance.md) |
 | Inspect output schemas | [Export Formats](exports.md) |
 

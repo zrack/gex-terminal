@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -26,6 +27,7 @@ from gex_terminal import __version__
 from gex_terminal.consumer import StatefulGexConsumer
 from gex_terminal.contracts import days_until_expiry, expiry_date, parse_market_datetime
 from gex_terminal.engine import IntradayGexEngine
+from gex_terminal.iv_freshness import iv_freshness
 from gex_terminal.market_data_adapter import validate_normalized_message
 from gex_terminal.pricing_assumptions import (build_pricing_assumptions, has_qualified_pricing,
                                              is_priced_contract, pricing_coverage)
@@ -85,7 +87,7 @@ def _sha(value: Any) -> str:
 
 def calculation_identity() -> dict:
     """Bind numeric behavior and replay projection to exact local implementation."""
-    names = ("wind_tunnel.py", "wind_tunnel_checkpoint.py", "engine.py", "consumer.py", "contracts.py", "pricing_assumptions.py", "american_futures.py", "implied_volatility.py", "market_data_adapter.py", "replay_catalog.py")
+    names = ("wind_tunnel.py", "wind_tunnel_checkpoint.py", "engine.py", "consumer.py", "contracts.py", "pricing_assumptions.py", "american_futures.py", "implied_volatility.py", "market_data_adapter.py", "replay_catalog.py", "iv_freshness.py")
     return {
         "contract_version": VERSION, "application_version": __version__,
         "python": f"{sys.version_info.major}.{sys.version_info.minor}", "numpy": np.__version__,
@@ -230,10 +232,11 @@ def _axis(value: Any, name: str) -> list[float]:
 
 def normalize_request(request: Mapping[str, Any], operation: str = "calculate") -> dict:
     """Reject unknown, nonfinite, unbounded or ambiguous public input."""
-    if not isinstance(request, Mapping) or operation not in {"calculate", "surface", "search"}:
+    if not isinstance(request, Mapping) or operation not in {"calculate", "surface", "search", "models"}:
         raise ValueError("Expected a Wind Tunnel request object and supported operation")
     extra = {"calculate": set(), "surface": {"spot_shifts", "time_advances"},
-             "search": {"x_axis", "y_axis", "x_values", "y_values", "claim", "comparison_model"}}[operation]
+             "search": {"x_axis", "y_axis", "x_values", "y_values", "claim", "comparison_model"},
+             "models": {"grid", "detail_level"}}[operation]
     unknown = set(request) - (set(DEFAULTS) | extra | {"schema", "operation", "terminal_checkpoint"})
     if unknown:
         raise ValueError("Unknown Wind Tunnel fields: " + ", ".join(sorted(map(str, unknown))))
@@ -268,7 +271,15 @@ def normalize_request(request: Mapping[str, Any], operation: str = "calculate") 
         raise ValueError("exclude_nearest_expiry must be boolean")
     for name in BOUNDS:
         result[name] = _number(result[name], name)
-    if operation == "surface":
+    if operation == "models":
+        if type(result.setdefault("grid", False)) is not bool:
+            raise ValueError("grid must be boolean")
+        if result.setdefault("detail_level", "full") not in ("full", "compact"):
+            raise ValueError("detail_level must be full or compact")
+        # This operation always compares the app default with the directional
+        # proxy. A current single-model selector cannot silently change the pair.
+        result["model"] = CHECKPOINT_MODEL if checkpoint_source is not None else "raw_trade_volume"
+    elif operation == "surface":
         result["spot_shifts"] = _axis(result.get("spot_shifts", [float(x) for x in range(-100, 101, 10)]), "spot_shift")
         result["time_advances"] = _axis(result.get("time_advances", [float(t) for t in range(0, 181, 15)]), "time_advance")
     elif operation == "search":
@@ -366,7 +377,68 @@ def _baseline(request: dict) -> dict:
     return {**request, "spot_shift": 0.0, "iv_shift": 0.0, "time_advance": 0.0, "exclude_nearest_expiry": False}
 
 
-def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> dict:
+class _GammaCache:
+    """Bounded numerical reuse for one evaluation, never shared across requests.
+
+    Quantity models often reprice the same ordered contracts. Only the exact
+    gamma inputs are memoized; quantities, cohort selection and aggregation are
+    still evaluated separately. Keys retain fixed-size digests, not row arrays.
+    """
+
+    MAX_ENTRIES = 32
+    MAX_BYTES = 2 * 1024 * 1024
+
+    def __init__(self):
+        self._values: OrderedDict[bytes, np.ndarray] = OrderedDict()
+        self.bytes = 0
+
+    def gamma(self, engine, S, K, t, r, sigma, *, pricing_model, carry_rate, option_types):
+        shape = np.asarray(K).shape
+        digest = hashlib.sha256()
+        for value in (S, r):
+            digest.update(np.asarray(value, dtype=np.float64).tobytes())
+        for values in (K, t, sigma, engine._aligned_values(carry_rate, shape, "carry_rate")):
+            array = np.asarray(values, dtype=np.float64)
+            digest.update(_canonical(array.shape))
+            digest.update(array.tobytes(order="C"))
+        # Object arrays cannot be keyed by their bytes (those are pointers).
+        digest.update(_canonical(engine._pricing_models(pricing_model, shape).tolist()))
+        digest.update(_canonical(None if option_types is None else np.asarray(option_types).tolist()))
+        key = digest.digest()
+        if key in self._values:
+            self._values.move_to_end(key)
+            return self._values[key]
+        values = IntradayGexEngine.calculate_gamma(
+            engine, S, K, t, r, sigma, pricing_model=pricing_model,
+            carry_rate=carry_rate, option_types=option_types,
+        )
+        values = np.array(values, dtype=float, copy=True)
+        values.setflags(write=False)
+        size = values.nbytes + len(key)
+        if size <= self.MAX_BYTES:
+            while self._values and (len(self._values) >= self.MAX_ENTRIES or self.bytes + size > self.MAX_BYTES):
+                old_key, old_values = self._values.popitem(last=False)
+                self.bytes -= old_values.nbytes + len(old_key)
+            self._values[key] = values
+            self.bytes += size
+        return values
+
+
+class _EvaluationEngine(IntradayGexEngine):
+    def __init__(self, multiplier, cache: _GammaCache):
+        super().__init__(multiplier)
+        self._gamma_cache = cache
+
+    def calculate_gamma(self, S, K, t, r, sigma, *, pricing_model="black_scholes",
+                        carry_rate=0.0, option_types=None):
+        return self._gamma_cache.gamma(
+            self, S, K, t, r, sigma, pricing_model=pricing_model,
+            carry_rate=carry_rate, option_types=option_types,
+        )
+
+
+def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True,
+           contributions: bool = True, gamma_cache: _GammaCache | None = None) -> dict:
     model = request["model"]
     spot = checkpoint.spot + request["spot_shift"]
     advance = request["time_advance"]
@@ -380,6 +452,7 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
                    "excluded_nearest_rows": 0, "fallback_expiry_rows": 0},
         "contracts": [], "excluded_contracts": [],
         "pricing_assumptions": build_pricing_assumptions(original or checkpoint.rows, request["risk_free_rate"]),
+        "iv_freshness": iv_freshness([], as_of, capture_as_of=checkpoint.as_of),
     }
     if checkpoint.spot <= 0 or not original:
         result["reason"] = "No underlying and quantity-source state is available at this checkpoint."
@@ -397,7 +470,10 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
             return result
     prepared = []
     for raw in original:
-        row = copy.deepcopy(raw)
+        # Only derived top-level fields are written below. Nested checkpoint
+        # metadata stays read-only; returned provenance/direction diagnostics
+        # are detached separately. Avoid recopying that metadata for every cell.
+        row = dict(raw)
         exact = days_until_expiry(row.get("expiry_timestamp"), checkpoint.as_of)
         base_dte = exact if exact is not None else float(row.get("days_to_expiry") or request["fallback_dte"])
         row["checkpoint_dte"] = base_dte
@@ -429,6 +505,7 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
             result["excluded_contracts"].append({"contract_id": row["contract_id"], "position_source": row["position_source"],
                                                   "expiry": row.get("expiry"), "reason": reason})
     result["counts"]["selected_rows"] = len(active)
+    result["iv_freshness"] = iv_freshness(active, as_of, capture_as_of=checkpoint.as_of)
     if active:
         result["pricing_assumptions"] = build_pricing_assumptions(active, request["risk_free_rate"])
     result["counts"]["fallback_expiry_rows"] = sum(row["expiry_authority"] != "exact_timestamp" for row in active)
@@ -461,7 +538,7 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
     multipliers = np.array([row.get("contract_multiplier") or checkpoint.multiplier for row in active], dtype=float)
     quantities = np.array([row["accumulated_volume"] for row in active], dtype=float)
     option_types = np.array([row["option_type"] for row in active], dtype=object)
-    engine = IntradayGexEngine(checkpoint.multiplier)
+    engine = _EvaluationEngine(checkpoint.multiplier, gamma_cache or _GammaCache())
     arguments = dict(spot_price=spot, strikes=strikes, days_to_expiry=dtes,
                      risk_free_rate=request["risk_free_rate"], implied_vols=ivs,
                      pricing_model=models, contract_multipliers=multipliers, option_types=option_types)
@@ -497,7 +574,7 @@ def _state(checkpoint: _Checkpoint, request: dict, *, details: bool = True) -> d
         "pricing_models": matrix["pricing_models"], "units": matrix["units"],
     }
     result.update(status="available", reason=None, matrix=matrix, summary=summary)
-    if details:
+    if details and contributions:
         gammas = engine.calculate_gamma(spot, strikes, dtes / 365.0, request["risk_free_rate"], ivs, pricing_model=models, option_types=option_types)
         for row, gamma, multiplier, signed in zip(active, gammas, multipliers, signed_quantities):
             result["contracts"].append({
@@ -534,9 +611,119 @@ def _comparison(baseline: dict, scenario: dict) -> dict:
 async def calculate(request: Mapping[str, Any]) -> dict:
     normalized = normalize_request(request)
     checkpoint = await _checkpoint(normalized)
-    baseline, scenario = _state(checkpoint, _baseline(normalized)), _state(checkpoint, normalized)
+    gamma_cache = _GammaCache()
+    baseline = _state(checkpoint, _baseline(normalized), gamma_cache=gamma_cache)
+    scenario = _state(checkpoint, normalized, gamma_cache=gamma_cache)
     return _report("calculation", request=normalized, source=checkpoint.source,
                    baseline=baseline, scenario=scenario, comparison=_comparison(baseline, scenario))
+
+
+def _model_agreement(states: list[dict]) -> dict:
+    comparable = all(state["status"] == "available" for state in states)
+    summaries = [state["summary"] for state in states]
+    walls = [summary["gamma_wall"] if summary else None for summary in summaries]
+    return {
+        "status": "available" if comparable else "not_evaluable",
+        "net_sign_matches": summaries[0]["net_sign"] == summaries[1]["net_sign"] if comparable else None,
+        "gamma_wall_matches": walls[0] == walls[1] if comparable and all(wall is not None for wall in walls) else None,
+        "models": [{"model": state["model"], "status": state["status"],
+                    "net_sign": state["summary"]["net_sign"] if state["summary"] else None,
+                    "gamma_wall": state["summary"]["gamma_wall"] if state["summary"] else None}
+                   for state in states],
+    }
+
+
+def _model_grid_summary(model: str, label: str, cases: list[dict], baseline: dict) -> dict:
+    available = [case for case in cases if case["status"] == "available"]
+    complete = len(available) == len(cases)
+    walls = sorted({case["gamma_wall_strike"] for case in available if case["gamma_wall_strike"] is not None})
+    signs = {case["net_sign"] for case in available}
+    totals = [case["total_net_gex"] for case in available]
+    return {
+        "model": model, "label": label, "case_count": len(cases),
+        "evaluable_count": len(available), "not_evaluable_count": len(cases) - len(available),
+        "status_counts": {status: sum(case["status"] == status for case in cases) for status in sorted({case["status"] for case in cases})},
+        "net_sign_counts": {label: sum(case["net_sign"] == sign for case in available)
+                            for label, sign in (("positive", 1), ("negative", -1), ("zero", 0))},
+        "net_gex_range": {"min": min(totals), "max": max(totals)} if totals else None,
+        "gamma_wall_strikes": walls,
+        "gamma_wall_counts": [{"strike": wall, "count": sum(case["gamma_wall_strike"] == wall for case in available)} for wall in walls],
+        # A partial grid cannot establish that a conclusion survives the grid.
+        "net_sign_stable": len(signs) == 1 if complete else None,
+        "gamma_wall_stable": len(walls) == 1 if complete and all(case["gamma_wall_strike"] is not None for case in available) else None,
+        "baseline_net_sign_matches": all(case["net_sign"] == baseline["summary"]["net_sign"] for case in available)
+            if complete and baseline["status"] == "available" else None,
+    }
+
+
+async def models(request: Mapping[str, Any]) -> dict:
+    """Compare two quantity models on one immutable, offline checkpoint.
+
+    The optional fixed grid deliberately ignores the current shock controls:
+    every coordinate is absolute to the original checkpoint with all expiries.
+    """
+    normalized = normalize_request(request, "models")
+    checkpoint = await _checkpoint(normalized)
+    selected = (normalized["model"], "directionalized_trade_volume")
+    compact = normalized["detail_level"] == "compact"
+    gamma_cache = _GammaCache()
+    results = []
+    for model in selected:
+        candidate = {**normalized, "model": model}
+        baseline = _state(checkpoint, _baseline(candidate), contributions=not compact, gamma_cache=gamma_cache)
+        scenario = _state(checkpoint, candidate, contributions=not compact, gamma_cache=gamma_cache)
+        if compact:
+            for state in (baseline, scenario):
+                state.pop("contracts", None)
+        results.append({"model": model, "label": baseline["model_label"],
+                        "baseline": baseline, "scenario": scenario,
+                        "comparison": _comparison(baseline, scenario)})
+        await asyncio.sleep(0)
+    grid = None
+    if normalized["grid"]:
+        width = 100.0 if checkpoint.source["symbol"] == "NQ" else 25.0
+        axes = {"spot_shifts": [-width, 0.0, width], "iv_shifts": [-1.0, 0.0, 1.0],
+                "time_advances": [0.0, 30.0, 60.0]}
+        cases, summaries = [], []
+        for result in results:
+            model_cases = []
+            fixed = {**_baseline(normalized), "model": result["model"]}
+            for shift in axes["spot_shifts"]:
+                for iv in axes["iv_shifts"]:
+                    for minutes in axes["time_advances"]:
+                        state = _state(checkpoint, {**fixed, "spot_shift": shift, "iv_shift": iv,
+                                                    "time_advance": minutes}, details=False, gamma_cache=gamma_cache)
+                        summary, matrix = state["summary"], state["matrix"]
+                        model_cases.append({
+                            "model": result["model"], "spot_shift": shift, "iv_shift": iv, "time_advance": minutes,
+                            "status": state["status"], "reason": state["reason"],
+                            "total_net_gex": summary["total_net_gex"] if summary else None,
+                            "net_sign": summary["net_sign"] if summary else None,
+                            "gamma_wall_strike": summary["gamma_wall"] if summary else None,
+                            "call_wall_strike": matrix.get("call_wall_strike") if matrix else None,
+                            "put_wall_strike": matrix.get("put_wall_strike") if matrix else None,
+                            "pricing_coverage": state.get("pricing_coverage"),
+                            "directional_coverage": state.get("directional_coverage"), "counts": state["counts"],
+                        })
+                        # Yield at every cell for the server's cancellation and
+                        # timeout boundary, including large saved checkpoints.
+                        await asyncio.sleep(0)
+            cases.extend(model_cases)
+            summaries.append(_model_grid_summary(result["model"], result["label"], model_cases, result["baseline"]))
+        grid = {"axes": axes, "case_count": len(cases), "cases": cases, "summaries": summaries,
+                "interpretation": "Fixed Cartesian grid, absolute to the original zero-shock checkpoint; nearest-expiry exclusion is off. Unavailable cases do not establish stability. No future events or outcome probabilities are used."}
+    response_request = dict(normalized)
+    if compact and "terminal_checkpoint" in response_request:
+        # Browser views retain their original submitted request for saves. A
+        # compact display response is deliberately not a portable source copy.
+        response_request.pop("terminal_checkpoint")
+        response_request["terminal_checkpoint_sha256"] = checkpoint.source["checkpoint_sha256"]
+    return _report("models", request=response_request, source=checkpoint.source, models=results,
+                   full_request_sha256=_sha(normalized),
+                   agreement={"baseline": _model_agreement([result["baseline"] for result in results]),
+                              "scenario": _model_agreement([result["scenario"] for result in results]),
+                              "interpretation": "Agreement compares conditional model outputs only. Models may use different quantity cohorts and may not be summed; neither reveals actual dealer positions or predictive validity."},
+                   grid=grid)
 
 
 async def surface(request: Mapping[str, Any]) -> dict:
@@ -695,6 +882,9 @@ class TerminalCheckpointCore:
 
     async def calculate(self, request: Mapping[str, Any]) -> dict:
         return await calculate(self._request(request))
+
+    async def models(self, request: Mapping[str, Any]) -> dict:
+        return await models(self._request(request))
 
     async def surface(self, request: Mapping[str, Any]) -> dict:
         return await surface(self._request(request))

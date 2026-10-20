@@ -99,6 +99,22 @@ Then run `"./GEX App/run-gex" --saved-data NQ` in an interactive terminal.
 Add `--no-browser` to a launch command to print the local Wind Tunnel URL;
 the paired launch still needs an interactive terminal.
 
+With a current starter, register both ES and NQ to switch between their saved
+checkpoints in one Wind Tunnel. Startup verifies the other symbol's registered
+checkpoint and capture hashes without replaying that additional source. Older
+registrations gain the checkpoint binding after a successful saved-data launch;
+an unavailable or changed other source is skipped with a note. Terminal continues
+to use the symbol selected at launch.
+
+In Wind Tunnel, choose a saved symbol and open **Model comparison** for default and
+directionalized results side by side. Apply price, IV and elapsed-time changes
+to both from the same frozen checkpoint. Pricing coverage and exclusions remain
+visible. Original and scenario prices are marked on the strike charts; use
+**Focused** to inspect nearby strikes or **Full range** to restore the full
+chart. This changes only the view, not quantities or totals. These conditional
+proxy comparisons use no provider requests or credits. See
+[model comparison](model-comparison.md#compare-saved-data-in-wind-tunnel).
+
 Each launch reconstructs a fresh final checkpoint through the installed
 application. Both views apply the capture header's multiplier, risk-free rate
 and fallback DTE. A missing value uses an explicit default: multiplier **ES 50**
@@ -132,6 +148,12 @@ pricing-coverage panels explain excluded exposure. Startup uses no provider
 requests or credits. Inherited provider credentials and `.env` settings are
 ignored, and Python remote connections are blocked; the local browser service
 uses loopback only.
+
+Keep the selected captures locally available before disconnecting. A file in a
+cloud-synchronized folder can be listed on disk while its contents are offloaded;
+the starter must read and verify those bytes. Allow the operating system to make
+the original file available locally, then launch again. Provider access is not
+needed to read a previously downloaded capture.
 
 ## Market Wind Tunnel
 
@@ -309,6 +331,22 @@ quote age. These explain why that captured IV calculation failed; they do not
 establish why the market inputs disagreed or supply a replacement IV.
 [Model Assumptions](model-assumptions.md#quantity-and-position-sources) owns the
 pricing and retention policy.
+
+### Read source health and IV age in Wind Tunnel
+
+The browser header keeps **Mode: REPLAY** separate from the source's saved
+**Health**. A degraded source remains degraded when replayed. Health can describe
+earlier or expired contract events, while coverage describes the current selected
+active contracts. Neither label replaces the other.
+
+**Accepted-IV age** tells you how old the priced contracts' accepted observations
+were at the captured cutoff. Scenario time advances that same clock without
+reading later data. A contract can be priced with an observation that is hours
+old; five minutes is a reference window, not an automatic IV expiry rule.
+Unknown ages stay unknown. Expand **Pricing, IV age & unpriced details** to
+inspect clocks, selected quantities and retained prior-IV evidence. See
+[Wind Tunnel's age guide](wind-tunnel.md#read-source-health-and-accepted-iv-age)
+for provenance and timestamp-precision limits.
 
 ## Compare, Replay and Review
 

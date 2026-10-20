@@ -182,3 +182,19 @@ lifecycle. Licensed-data rights, retention, redistribution, and deletion need
 their own policy and evidence. This slice also does not provide encryption,
 cloud backup, scheduling, filesystem snapshots, secure erase, or generalized
 migration tooling.
+
+The installed starter's `saved-data.json`, private ES/NQ capture copies,
+checkpoint bindings and Wind Tunnel receipt workspaces are also outside the
+recognized backup/retention artifact groups. Do not pass the whole installed
+research folder to these commands and assume it is covered. Preserve those
+files separately under an operator-controlled private backup procedure, verify
+their copied bytes, and retain the reviewed setup and installation receipt
+needed to reproduce earlier scenarios. See
+[saved-data setup](first-run.md#open-saved-es-or-nq-data) and
+[Wind Tunnel reproduction](wind-tunnel.md#save-export-and-reproduce).
+
+Before a disconnected launch, confirm cloud-synchronized capture and research
+files are locally available. A visible filename can represent offloaded
+contents; delays reading that file are different from provider authentication
+or Databento spending. Do not delete an unchanged capture or retry a provider
+download to repair a local availability problem.

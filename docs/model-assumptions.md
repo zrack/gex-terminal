@@ -148,6 +148,29 @@ selected quantities have usable model inputs; it does not establish a fresh,
 synchronized closing option chain. Expired contracts remain in the capture but
 leave active coverage and GEX.
 
+Wind Tunnel reports **accepted-IV age** independently of pricing coverage.
+The active selected cohort determines both denominators, but age categories
+cover only priced contracts: within 300 seconds, older, unknown, or not
+applicable. Counts and selected quantities are reported separately. Provider
+or converged-IV observations use their accepted event time; retained prior-valid
+IV uses its original accepted observation and provenance, never the later
+failed tick. Configured or legacy unspecified IV has no observed age.
+
+The original state measures age at its frozen capture cutoff. A scenario
+measures age at that cutoff plus the requested model-time advance, with no new
+observations. Missing or invalid clocks and unsupported provenance remain
+unknown. An observation clearly after the capture is unknown, not fresh.
+If a nanosecond event cannot be ordered against a capture cutoff saved only
+to microseconds, its age stays unknown and is counted as capture-precision
+ambiguity rather than confirmed future data. No timestamp is invented to fill
+that gap.
+
+This 300-second age reference is a disclosure, not a pricing filter. It neither
+expires unchanged accepted IV nor changes the failed-inversion retention rule.
+Captured source health is also separate: **REPLAY** is a mode, while a health
+such as **degraded** describes the source ledger and can include events outside
+the current active pricing cohort.
+
 Terminal's `v` details and Wind Tunnel's Source & assumptions explain each
 unpriced contract. When captured evidence is available, they show the original
 premium, violated model bound, underlying input and quote age. Terminal details
@@ -181,6 +204,34 @@ or replace the default model. See [model-comparison.md](model-comparison.md).
 
 Schema v1 retains its historical accumulated-volume proxy for compatibility.
 Snapshot provenance identifies that path as `legacy_volume_proxy`.
+
+## Controlled Scenarios And Chart Ranges
+
+Wind Tunnel's **Model comparison** view compares the default and directionalized proxies
+against the same frozen ES or NQ checkpoint. Price changes are absolute futures
+points; IV changes are percentage-point shifts (for example, +1 point changes
+20% to 21%); time changes advance the model clock without adding market events.
+Each model keeps its own coverage, signed quantities and aggregation. Agreement
+on sign or a dominant strike is a statement about these selected models and
+inputs, not confirmation of dealer positioning.
+
+Both models use sticky-strike IV with the requested uniform shift, captured
+quantities, configured rate and per-contract exercise/pricing model. Time
+advance can expire contracts and makes accepted observations older. It does not
+simulate new trades, IV updates, a forward price path or changed inventories.
+The optional 27-coordinate price/IV/time grid produces 54 model cases. It tests
+stability within those declared shocks; it is not a calibrated risk distribution.
+
+Original and scenario futures-price markers show the exact inputs on strike
+charts. **Focused** view includes both prices and dominant walls; **Full range**
+shows the entire selected strike span. The displayed count of off-screen strikes
+is a view disclosure. Neither control filters contracts, changes totals or
+reprices the scenario; every modeled strike remains in the exact-value table.
+
+The browser's compact comparison response removes repeated contribution lists
+and checkpoint echoes. Full receipts retain the embedded source and full
+contributions and recalculate for reproduction. Presentation size and cache
+reuse do not change pricing assumptions or imply measured trading performance.
 
 ## Call And Put Sign Convention
 
@@ -258,8 +309,9 @@ the scalar DTE changes only rows that need that fallback.
   occurrence and provenance, not executable calibration quality.
 - That midpoint must be timestamped no later than the option trade and no older
   than the configured maximum age. Its age and threshold are explicit
-  provenance; timing failure forces labeled fallback IV and blocks quantitative
-  certification.
+  provenance; timing failure retains only an eligible qualified prior IV or
+  leaves the contract unpriced. Historical configured-default captures remain
+  readable with their original qualification.
 - Market-maker inventory and proprietary positioning assumptions are not
   modeled.
 - Exchange settlement conventions are not inferred from a date-only expiry.

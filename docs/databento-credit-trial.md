@@ -6,16 +6,23 @@ need a live subscription or change provider readiness. The first test covers a
 quarterly option-parent subset and uses trade volume, not open interest or
 observed dealer positions.
 
+If the data is already downloaded, skip signup, quoting and downloading. The
+conversion, replay, validation and saved-data starter paths below read local
+files and use no new credits. A cost quote still contacts Databento; it is not
+part of an offline review. [First Run](first-run.md#open-saved-es-or-nq-data)
+owns launching saved ES/NQ data in both interfaces.
+
 ## 1. Create The Account
 
 Open [Databento signup](https://databento.com/signup), verify your email, and use
 historical usage-based access. Databento may request a payment card during
 onboarding. Do not activate a live subscription for this exercise.
 
-Check **Billing** for your actual credit balance. New teams receive $125 in
-credits, shared across the team and expiring after six months. Credits apply
-before charges. Eligibility and the remaining balance are provider-controlled;
-an existing team may have already used its credits.
+Check **Billing** for your actual credit balance, eligibility and expiry before
+making a request. The original October 2026 trial used an advertised $125
+new-team credit offer with a six-month validity period; this guide does not
+guarantee that offer for another signup or confirm a current balance. Credits
+are shared across a team, and an existing team may already have used them.
 
 Set a low historical monthly usage limit in Billing before testing; $5 is a
 reasonable initial ceiling if the portal accepts it. Databento describes this as
@@ -50,9 +57,10 @@ It refuses to replace an existing key file. If needed, edit that file locally
 and retain its owner-only permissions. `check` verifies local format,
 permissions and SDK availability; it does not authenticate or use credits.
 
-The current checkout already has the optional SDK. On a fresh developer checkout,
-install the project's pinned extra with
-`./.venv/bin/python -m pip install -e '.[databento]'` first.
+The helper's local `check` reports SDK availability. If the developer environment
+does not have it, install the project's pinned extra with
+`./.venv/bin/python -m pip install -e '.[databento]'` first. Installing missing
+dependencies can use the network; replaying files after installation does not.
 
 ## 3. Preview A Small ES Request
 
@@ -85,8 +93,10 @@ reports excluded other-month contracts. It does not substitute ETF options.
 Definitions published after replay start are excluded. This prevents using
 later metadata to construct an earlier checkpoint. The underlying quote must
 match each option's `underlying_id`. The existing adapter calculates IV from
-option trade price and a sufficiently recent futures midpoint with Black-76;
-this feed does not supply a ready-made Greeks chain for this workflow.
+option trade price and a sufficiently recent futures midpoint. New conversions
+use Black-76 for European options and the numerical `american_futures_crr`
+model for confirmed American exercise. This feed does not supply a ready-made
+Greeks chain for this workflow.
 One-second underlying snapshots reduce quote traffic while preserving every
 requested option trade. BBO quotes become available at their `ts_recv` interval
 end; their `ts_event` is a last-trade timestamp and is not used as quote time.
@@ -183,6 +193,12 @@ Alternatively, captures within the guided intake's 4 MiB/5,000-event limits can
 be opened with **Open local session** in Wind Tunnel; see
 [guided intake](wind-tunnel.md#bring-a-local-captured-session).
 Replay and scenario changes use saved local data and consume no new credits.
+
+To open both interfaces from the same completed capture, use the
+[saved-data starter](first-run.md#open-saved-es-or-nq-data). Browser upload keeps
+its smaller limit; a full trading day uses the starter's explicit local-file
+streaming path. Preserve older captures and convert into a new folder when
+testing a corrected mapping or pricing model.
 
 ## 6. Repeat For NQ
 
@@ -321,6 +337,15 @@ network arrival. Rate and model assumptions remain configured research inputs.
 Closing calculations use each contract's latest captured IV, which can predate
 the close by hours. Coverage describes usable model inputs, not a synchronized
 closing chain; see [full-session assumptions](model-assumptions.md).
+
+Wind Tunnel shows the distinction directly: **Mode: REPLAY** is separate from
+the captured **Health**; pricing coverage separates priced contracts and selected
+quantity from excluded exposure; accepted-IV ages use the captured cutoff or
+advanced scenario model time. Five minutes is an age reference, not a filter
+that drops unchanged IV. Retained prior-valid IV keeps its original observation
+clock, and missing or timestamp-ambiguous clocks remain unknown. Price, IV and
+time shocks do not repair captured premium/bound failures or acquire later
+observations. See [the diagnostic guide](wind-tunnel.md#read-source-health-and-accepted-iv-age).
 
 Validate the native files against the normalized captures and checkpoint output:
 

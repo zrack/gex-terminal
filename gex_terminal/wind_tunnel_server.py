@@ -30,7 +30,9 @@ WORKSPACE_SCHEMA = "gex-terminal.wind-tunnel.workspace.v1"
 MAX_JSON_BYTES = 32 * 1024 * 1024
 MAX_WORKSPACE_BYTES = 64 * 1024 * 1024
 MAX_RECEIPTS = 100
-OPERATIONS = ("calculate", "surface", "search")
+CALCULATION_TIMEOUT_SECONDS = 60
+MODELS_TIMEOUT_SECONDS = 300
+OPERATIONS = ("calculate", "surface", "search", "models")
 ID_PATTERN = re.compile(r"[0-9a-f]{64}")
 OWNER_FILE = ".wind-tunnel-workspace.json"
 CORE_KEY = web.AppKey("core", object)
@@ -99,6 +101,11 @@ async def make_receipt(name: str, kind: str, request: dict, *, core=None) -> dic
     name = validate_name(name)
     if kind not in OPERATIONS or not isinstance(request, dict):
         raise ReceiptError("Unknown calculation kind or invalid request.")
+    if kind == "models" and request.get("detail_level") == "compact":
+        # Compact display payloads omit contract contributions and the embedded
+        # checkpoint echo. Receipts always recompute complete portable evidence
+        # from the original request, rather than storing that display projection.
+        request = {**request, "detail_level": "full"}
     result = await getattr(core or core_module(), kind)(request)
     receipt = {
         "schema": RECEIPT_SCHEMA,
@@ -133,6 +140,8 @@ def validate_receipt(receipt: Any) -> dict:
         raise ReceiptError("Invalid receipt creation time.") from exc
     if not isinstance(receipt["request"], dict) or not isinstance(receipt["result"], dict):
         raise ReceiptError("Receipt request and result must be objects.")
+    if receipt["kind"] == "models" and receipt["request"].get("detail_level") == "compact":
+        raise ReceiptError("Model receipts require full portable detail.")
     if receipt["result"].get("request") != receipt["request"]:
         raise ReceiptError("Receipt request differs from its result.")
     expected = receipt["receipt_sha256"]
@@ -367,12 +376,16 @@ async def read_intake_body(request) -> bytes:
     return bytes(data)
 
 
-async def run_bounded(request, operation):
+async def run_bounded(request, operation, *, kind=None):
     lock = request.app[LOCK_KEY]
     if lock.locked():
         return error_response(429, "busy", "A calculation is running; wait for it to finish.")
     async with lock:
-        async with asyncio.timeout(60):
+        # The explicitly requested two-model 54-cell grid can include thousands
+        # of American-option lattice rows. Keep it bounded and cancellable while
+        # allowing the same operation to finish when saved or reproduced.
+        deadline = MODELS_TIMEOUT_SECONDS if kind == "models" else CALCULATION_TIMEOUT_SECONDS
+        async with asyncio.timeout(deadline):
             return web.json_response(await operation(), dumps=lambda value: canonical_bytes(value).decode())
 
 
@@ -406,7 +419,8 @@ def create_app(workspace: Path | str, *, token: str | None = None,
 
     async def calculate(request):
         body = await read_body(request)
-        return await run_bounded(request, lambda: getattr(app[CORE_KEY], request.match_info["kind"])(body))
+        kind = request.match_info["kind"]
+        return await run_bounded(request, lambda: getattr(app[CORE_KEY], kind)(body), kind=kind)
 
     async def receipts(request):
         if request.method == "GET":
@@ -419,7 +433,7 @@ def create_app(workspace: Path | str, *, token: str | None = None,
             receipt = await make_receipt(body["name"], body["kind"], body["request"], core=app[CORE_KEY])
             return app[STORE_KEY].save(receipt)
 
-        return await run_bounded(request, calculate_and_save)
+        return await run_bounded(request, calculate_and_save, kind=body["kind"])
 
     async def receipt(request):
         value = app[STORE_KEY].load(request.match_info["id"])
@@ -430,7 +444,7 @@ def create_app(workspace: Path | str, *, token: str | None = None,
 
     async def reproduce(request):
         body = await read_body(request)
-        return await run_bounded(request, lambda: reproduce_receipt(body, core=app[CORE_KEY]))
+        return await run_bounded(request, lambda: reproduce_receipt(body, core=app[CORE_KEY]), kind=body.get("kind"))
 
     async def inspect_intake(request):
         if request.content_type != "application/octet-stream":
@@ -466,7 +480,7 @@ def create_app(workspace: Path | str, *, token: str | None = None,
     app.router.add_get("/api/catalog", catalog)
     app.router.add_get("/api/checkpoints", checkpoints)
     app.router.add_get("/api/examples", examples)
-    app.router.add_post("/api/{kind:calculate|surface|search}", calculate)
+    app.router.add_post("/api/{kind:calculate|surface|search|models}", calculate)
     app.router.add_get("/api/receipts", receipts)
     app.router.add_post("/api/receipts", receipts)
     app.router.add_get("/api/receipts/{id}", receipt)

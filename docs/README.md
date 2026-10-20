@@ -4,6 +4,11 @@ This index routes each topic to one canonical document. Keep summaries and links
 outside the owning document; do not copy full command references, contracts, or
 status checklists into multiple files.
 
+The usage guides describe the current source. Dated studies, work packets and
+ADRs retain their original build identities and evidence. A frozen October 18
+study is not an observation of later pricing or comparison changes. Current
+screenshots and diagram provenance are indexed in [Visual Assets](../assets/README.md).
+
 ## Canonical Ownership
 
 | Topic | Canonical document | What belongs there |
@@ -18,11 +23,13 @@ status checklists into multiple files.
 | Market evidence | [Competitive Analysis](market-analysis.md) | Dated competitor/persona evidence and implications; not active delivery status |
 | Customer validation | [Product Validation](product-validation.md) | Interview/tasks, matched-fidelity concepts, scorecard, rights questions and assumption-based economics |
 | Study build handoff | [Study Build](study-build.md) | Exact source/wheel/runtime and frozen materials, automated rehearsal and build-record routing |
-| Dated study build evidence | [Current guided-intake build](studies/guided-intake-2026-10-18.md) and [September build](studies/offline-first-use-2026-09-20.md) | Separate immutable cohort identities and technical rehearsal results; no private participant records |
+| Dated study build evidence | [October 18 guided-intake build](studies/guided-intake-2026-10-18.md) and [September build](studies/offline-first-use-2026-09-20.md) | Separate immutable cohort identities and technical rehearsal results; no private participant records |
 | Recruitment and scheduling | [Study Recruitment](study-recruitment.md) | Blank sources, participant-only delivery, consent choices and private organizer workflow |
 | Dated participant delivery | [October 18 delivery amendment](studies/participant-delivery-2026-10-18.md) | Exact participant/organizer archive identities and packaging evidence; no observed outcomes |
 | Install and first use | [First Run](first-run.md) | Reviewed wheel setup, Terminal/Wind Tunnel/Both starter, guided journey and package lifecycle |
 | Market Wind Tunnel | [Wind Tunnel](wind-tunnel.md) | Browser workflow, frozen Terminal checkpoint handoff, scenarios, sampled search, portable experiments and worked examples |
+| Model comparisons | [Model Comparison](model-comparison.md) | Side-by-side default/directionalized results, price/IV/time grid, exact values and separate CLI artifacts |
+| Documentation visuals | [Visual Assets](../assets/README.md) | Current synthetic screenshots, architecture diagrams, capture settings, image hashes and archived concepts |
 | Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
 | Local support and recovery | [Local Support](local-support.md) | Shareable diagnostics versus private backup, whole-artifact retention, recovery and credential/uninstall boundaries |
 | Normalized provider contract | [Market-Data Adapters](adapters.md) | Message shapes, quantity semantics, provider readiness, and adapter extension rules |
@@ -97,10 +104,12 @@ offline live-population contract that supports that later external gate.
 
 ### Work Offline
 
+- [First Run](first-run.md) — wheel installation, **Saved data — Both** for ES/NQ
+  full sessions, and the guided research loop.
 - [Market Wind Tunnel](wind-tunnel.md) — landscape, scenario comparison, fragility
   search and reproducible synthetic experiments.
-
-- [First Run](first-run.md) — wheel installation and the guided research loop.
+- [Model Comparison](model-comparison.md) — default/directionalized views,
+  focused strikes and explicit price/IV/time sensitivity cases.
 - [Study Build](study-build.md) — freeze a reviewed wheel and materials before
   observed first use; the protocol remains in Product Validation.
 - [Study Recruitment](study-recruitment.md) — participant-only delivery, blank

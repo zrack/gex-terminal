@@ -16,6 +16,14 @@ The default journal directory is `research_journal/`, and it is ignored by Git.
 Do not store raw provider frames, credentials, account identifiers, or
 unlicensed proprietary data in journal entries.
 
+Journal comparisons describe separately saved studies; they do not reprice two
+models from one frozen checkpoint. Use [Wind Tunnel](wind-tunnel.md) for paired
+default/directionalized scenarios, price/IV/time changes and portable experiment
+receipts. A completed capture can be opened through the
+[saved-data starter](first-run.md#open-saved-es-or-nq-data) without acquiring
+more provider data. Keep its private capture, registry and scenario receipts
+separate from journal entries when retaining or sharing evidence.
+
 ## Add Entries
 
 Save a replay session into the local journal:

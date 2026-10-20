@@ -6,7 +6,7 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
-Priorities reviewed October 18, 2026 against the current `0.6.0` source and
+Priorities reconciled October 19, 2026 against the current `0.6.0` source and
 the refreshed [Competitive Landscape](docs/market-analysis.md) and
 [Application Review](docs/application-review.md). The checkpoint handoff,
 guided native captured-session intake and separately frozen current-build
@@ -16,6 +16,13 @@ it is not repeated as future feature work here. [Wind Tunnel](docs/wind-tunnel.m
 owns its user contract. [GEX-INTAKE-STUDY-001](docs/work-packets/GEX-INTAKE-STUDY-001.md)
 owns intake and study preparation. Broader features below remain demand-gated;
 [Changelog](CHANGELOG.md) and the routed work packet own shipped acceptance.
+
+Saved-data startup for full ES/NQ sessions, qualified IV/American-option
+pricing, paired default/directionalized comparisons, accepted-IV age, price
+markers and focused strike views are implemented. They belong to the
+[current guides](docs/README.md), not the future-feature queue. Saved historical
+validation and local performance measurements do not complete a live-provider,
+participant, predictive or commercial gate.
 
 ## Current Work Order
 
@@ -140,9 +147,9 @@ collection with a recorded reason.
 
 ## Prioritized Feature Candidates
 
-The checkpoint handoff and guided native capture intake are implemented in
-their bounded offline scopes; their usage and evidence belong to the guides
-and work packets. The remaining items
+The checkpoint handoff, guided native capture intake and saved-session model
+comparisons are implemented in their bounded offline scopes; their usage and
+evidence belong to the guides and work packets. The remaining items
 below are hypotheses ordered by dependency and the inspected workflow gaps,
 not measured demand, promised delivery dates, estimated returns or current
 implementation authority. Reuse existing research, export and lifecycle
@@ -151,7 +158,7 @@ capabilities before adding parallel systems.
 | Priority | Candidate | Acceptance or demand gate |
 | --- | --- | --- |
 | P1 | Qualify real-user session input | Bounded native captured-session intake is shipped; remaining gates are authorized real-user inputs, source/rights and quality qualification, and a user completing and repeating the named investigation; any additional format needs its own demand and contract decision |
-| P1 | Chain health and IV initialization | Distinguish stream health from per-option IV/quote age; expose coverage, spreads, fallback share and exclusions; route provider quote bootstrap and IV policy separately |
+| P1 | Quote freshness and chain bootstrap | Captured health, pricing coverage and accepted-IV ages are shipped. Extend evidence to quote age/spreads and provider bootstrap only when those inputs and an explicit IV policy are available; do not infer quote freshness from an accepted IV timestamp |
 | P1 | Explain this change | Reconcile matched results to contract, expiry, quantity, IV/time/price and assumption changes; expose interactions and describe model-output effects without market-causation claims |
 | P1 | Preserve and compare builds | Retain the executable environment for an old receipt; separately identify original-model reproduction and intentional current-model restatement; fail clearly if unavailable |
 | P1 | Contract/session conventions | Declare exercise style, expiry timezone, session/holiday rules, futures linkage and supported approximations; validate authoritative metadata independently |

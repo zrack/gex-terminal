@@ -189,6 +189,14 @@ For generated documentation visuals, use the maintained refresh command in
 retain its local provenance manifest. Keep full generated packs outside Git
 and preserve existing frozen study bundles.
 
+The [visual asset guide](assets/README.md) owns current capture recipes and the
+public hash/dimension inventory. Recreate screenshots through the actual CLI
+or browser with bundled synthetic inputs; use authorized private captures only
+in private evidence. Preserve the original capture bytes for dated reviews,
+record source/runtime/settings, and verify that PNG files contain PNG bytes.
+Do not repaint values, hide unavailable metadata or recast an older screenshot
+as proof of a newer build. Render and inspect SVG diagrams after editing them.
+
 Install the wheel into a temporary virtual environment, change to a directory
 outside the checkout, and exercise `gex-terminal --version`, a named replay,
 and `fixture-lab`. Bundled data must resolve from package resources rather than
@@ -204,6 +212,10 @@ git diff --check
 When renaming a heading, update incoming `#heading` links as part of the change.
 The tests verify local destinations; inspect rendered diagrams separately and
 check architectural claims against the source modules.
+For a broad refresh, also run the same bounded link parser over every tracked
+Markdown file, check the asset hashes against `assets/visual-provenance.json`,
+and inspect the newly saved raster files. Documentation-only changes do not
+require new provider requests, market downloads or a pricing recalibration.
 The bounded parser covers inline links/images and ordinary ATX/Setext headings,
 including duplicate heading IDs. Reference-style links, raw HTML anchors and
 headings nested in lists or quotes require manual review.

@@ -7,6 +7,43 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Documentation And Visual Refresh
+
+- Reconcile setup, saved full sessions, pricing models, IV age, comparisons,
+  private artifacts and contributor guidance with the current source.
+- Refresh the actual synthetic Terminal, replay-picker and Wind Tunnel captures;
+  add paired-model and focused-strike views. Refresh both architecture diagrams
+  and the two-component social preview with file-level provenance.
+- Preserve older visual captures and dated study/build records. Keep historical
+  data validation separate from live readiness and observed participant evidence.
+- Correct stale security/package and fixture-result examples. This refresh
+  changes documentation and visuals, with no pricing or runtime changes.
+
+## Unreleased — Wind Tunnel Model Comparisons
+
+- Compare the default and aggressor-directionalized proxies side by side from
+  one frozen checkpoint, with shared price, IV and time assumptions, matched
+  strike axes and separate pricing coverage and exclusions.
+- Add isolated-shock presets and an explicit, bounded 54-case sensitivity grid
+  per market. Unavailable cases remain distinct from zero; sign and wall
+  stability describe only evaluated points, not future market behavior.
+- Keep model-comparison requests and results in portable, reproducible local
+  receipts. All calculations and chart assets remain offline.
+- Allow explicitly supplied saved ES/NQ checkpoints in one workbench. The saved
+  starter offers the other registered checkpoint when it remains valid; source
+  selection does not download data or request provider credentials.
+- Separate captured source health from replay/demo mode. Show accepted-IV age
+  beside pricing coverage, with original observation clocks for retained IV,
+  explicit unknown ages and capture-precision ambiguity, and scenario model time.
+  The five-minute age reference does not change IV validity or pricing selection.
+- Add original/scenario futures-price markers and matched **Focused** / **Full
+  range** strike charts. Focus changes only presentation; all strikes remain in
+  totals and exact-values tables.
+- Reuse exact gamma vectors within one bounded calculation request and omit
+  redundant contribution rows/checkpoint echoes from browser model comparisons.
+  Save full portable receipts from the original input, preserving deterministic
+  reproduction and separate model cohorts without provider requests.
+
 ## Unreleased — Full Historical Sessions
 
 - Stream and verify explicit local captures up to 1 GiB / 2 million events,

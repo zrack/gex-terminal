@@ -117,6 +117,21 @@ sessions only, reconstructs a selected prefix through the existing consumer,
 and saves a portable frozen checkpoint in scenario receipts. This does not
 acquire provider data or grant permission to reuse an original capture.
 
+For a completed ES/NQ trading day larger than the browser upload limit, use
+**Start GEX.command → Saved data — Both → ES or NQ**. The starter streams and
+verifies an explicit local capture up to the local-file limits above, keeps a
+private frozen copy and reconstructs its final checkpoint. Long captures load
+Terminal to the final state without source-time delays; Wind Tunnel opens that
+final checkpoint. It does not provide full-session scrubbing in the browser.
+Register both symbols to switch their final checkpoints in the same workbench.
+See [saved-data first run](first-run.md#open-saved-es-or-nq-data).
+
+Capture length and pricing coverage are different. A final checkpoint excludes
+contracts already expired at its cutoff; active contracts without usable IV
+retain their raw quantity but remain unpriced. Wind Tunnel separately displays
+saved health, replay mode and accepted-IV ages. None of these offline operations
+requests new provider data or consumes credits.
+
 ## Inventory And Research Workflows
 
 List complete, integrity-verified captures in the local session store:
