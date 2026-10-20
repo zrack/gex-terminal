@@ -513,7 +513,7 @@
       text('#bounds-summary', `±${$('#search-price').value} pts · ±${$('#search-iv').value} vol pts`);
       await runSearch(request);
     } else if (kind === 'models') {
-      if (reproduced) {state.models = reproduced; state.modelsRequest = {...request, detail_level: 'full'};} else {await calculateModels(Boolean(request.grid), request, opened.calculationRevision);} if (opened.sourceRevision !== state.sourceRevision || opened.calculationRevision !== state.revision) throw new Error('Source or assumptions changed while opening the receipt. Its saved result was not applied.'); setView('models');
+      if (reproduced) {state.models = reproduced; state.modelsRequest = {...request, detail_level: 'full'};} else {await calculateModels(Boolean(request.grid), request, opened.calculationRevision);} if (opened.sourceRevision !== state.sourceRevision || opened.calculationRevision !== state.revision) throw new Error('Source or assumptions changed while opening the receipt. Its saved result was not applied.'); setView('models'); if (reproduced) status('Saved model comparison verified · local inputs only');
     } else {
       if (kind === 'surface') {state.surface = reproduced || await post('surface', request); state.surfaceRequest = request;}
       setView(kind === 'surface' ? 'landscape' : 'compare');
