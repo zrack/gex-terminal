@@ -3,12 +3,22 @@
 The Historical Session Store saves computed GEX snapshots as local records. It
 is separate from the Historical Research Journal: the journal is for replay-study
 notes and comparisons, while the session store is a lightweight archive of
-snapshot records that can later support live-day replay and day-over-day review.
+snapshot records for point-in-time and day-over-day review.
 
 The same store root also inventories internally checked normalized event
 captures. Snapshot records and captures are deliberately different artifacts:
 a snapshot stores one computed result; a capture preserves the ordered inputs
 that can be replayed through a later model version.
+
+The [saved-data starter](first-run.md#open-saved-es-or-nq-data) has a separate
+ES/NQ registry, `saved-data.json`, in the installed research folder. It remembers
+verified capture copies and final Wind Tunnel checkpoints; it does not scan or
+automatically register this session store. Use it to launch Terminal and Wind
+Tunnel together from an existing short sample or full trading-day capture.
+The [journal](research-journal.md) stores study entries, and
+[Wind Tunnel receipts](wind-tunnel.md#save-export-and-reproduce) bind scenario
+inputs and reproduced results. Keep these artifact roles distinct when backing
+up research or comparing versions.
 
 The default folder is `historical_sessions/`, which is ignored by Git.
 

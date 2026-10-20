@@ -95,6 +95,13 @@ moderator materials from [Study Build](study-build.md). The September cohort
 keeps its original tasks and artifacts. Never pool task times across these
 cohorts without retaining their build, task and fixture identities.
 
+This named cohort is the frozen October 18 guided-intake build. Later full-session,
+American-option pricing, paired-model, IV-age and focused-strike changes have
+not been observed through that cohort. To study those features, freeze a new
+source/wheel and task/scoring supplement before recruiting; preserve the older
+kit, answer key and unobserved outcomes. New documentation screenshots are
+maintainer implementation evidence, not participant results.
+
 | Task ID | Observed action | Success evidence |
 | --- | --- | --- |
 | GI-01 | Install and obtain offline readiness | Exact kit wheel/version and fresh environment; preinstallation is assisted preparation |

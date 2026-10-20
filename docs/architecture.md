@@ -16,6 +16,15 @@ interfaces does not synchronize their source, replay checkpoint, model controls
 or scenario selections. An explicit handoff copies one demo/replay checkpoint;
 it never synchronizes the mutable consumer with the browser.
 
+The starter also offers **Saved data — Both** for explicitly registered ES/NQ
+captures. Terminal loads the selected complete session; Wind Tunnel opens its
+verified final checkpoint. Both registered markets can appear in the browser's
+source picker, with separate original/scenario default and directionalized
+results. Shared inputs at the closing cutoff do not create ongoing state
+synchronization.
+
+![Starter, Terminal and Wind Tunnel boundaries](../assets/workbench-components.svg)
+
 This document owns the current architecture, including the C4 views below.
 The diagrams describe shipped source; roadmap items and product concepts are
 not deployed components. The [visual asset guide](../assets/README.md) records
@@ -95,15 +104,18 @@ flowchart LR
         package[("One installed package<br/>Shared code definitions, inputs and web assets")]
         files[("Terminal / CLI research files<br/>Inputs, packs, journals and exports")]
         capture[("Selected complete capture<br/>Existing local input file")]
+        saved[("Explicitly registered ES / NQ session<br/>Verified private copy + final frozen checkpoint")]
         receipts[("Wind Tunnel receipts<br/>Separate wind-tunnel research subfolder")]
         raw[("Private raw Tradovate evidence<br/>Separate operator-owned directory")]
     end
-    researcher -->|Choose Terminal, Wind Tunnel or Both| starter
+    researcher -->|Choose Terminal, Wind Tunnel, Both or Saved data — Both| starter
     researcher -->|Terminal commands and keyboard| terminal
     researcher -->|Scenario controls and plots| browser
     starter -.->|Start and supervise owned child| terminal
     starter -.->|Start and supervise owned child| wind
     browser <-->|Capability-protected loopback HTTP| wind
+    saved -->|Starter verifies binding; Terminal loads full capture| terminal
+    saved -->|Final checkpoint; optional other registered market| wind
     capture -->|File chooser reads selected bytes| browser
     browser -->|Bounded capture bytes; no input path| wind
     package -->|Load code and resources| terminal
@@ -149,7 +161,10 @@ excluded, then writes requested exports in the selected research directory.
 Direct `gex-terminal` invocations retain their existing configuration behavior.
 
 Fresh Wind Tunnel-capable setup folders offer Terminal, Wind Tunnel or Both
-through the starter. Both starts its background Wind Tunnel child first, waits
+through the starter; saved-data-capable setups also offer Saved data — Both
+with first-use capture selection or an explicitly registered ES/NQ session.
+Both starts its background
+Wind Tunnel child first, waits
 for the service's launch URL, requests a browser window, then starts its
 foreground terminal child. Server output stays off the terminal UI. Quitting
 Terminal stops only that combined session's Wind Tunnel service; an interruption
@@ -227,10 +242,11 @@ flowchart TB
         windcli["wind_tunnel_cli.py<br/>Start server and coordinate shutdown"]
         server["wind_tunnel_server.py<br/>HTTP routes, capability and request bounds"]
         intake["SessionIntake + capture verifier<br/>Bounded bytes; allowlisted ephemeral registry"]
-        core["wind_tunnel.py<br/>Scenarios, surfaces and sampled searches"]
+        core["wind_tunnel.py<br/>Scenarios, paired models, grids and sampled searches"]
         checkpoint["Fresh StatefulGexConsumer<br/>Reconstruct bundled or selected capture prefix"]
         frozen["wind_tunnel_checkpoint.py<br/>Validated opaque immutable checkpoint"]
         pricing["Request-local IntradayGexEngine<br/>Price copied baseline / scenario rows"]
+        age["iv_freshness.py<br/>Accepted observations at capture / model clock"]
         receipts["Receipt identity and ReceiptStore<br/>Save, load and reproduce"]
         windcli -->|Standalone / Both startup| server
         server -->|Validated operation request| core
@@ -240,12 +256,13 @@ flowchart TB
         frozen -->|Portable source for each scenario request| core
         core -->|Apply source cutoff and replay messages| checkpoint
         checkpoint -->|Copied checkpoint rows| core
-        core -->|Reprice explicit assumptions| pricing
+        core -->|Reprice explicit assumptions; exact gamma reuse| pricing
+        core -->|Selected active cohort; no age filter| age
         server -->|Requested receipt operation| receipts
         receipts -->|Recalculate and bind exact result identity| core
     end
     handoff -->|Start and own cleanup of local listener| server
-    web <-->|Loopback HTTP: requests and JSON results| server
+    web <-->|Loopback HTTP: compact display or full receipt results| server
     capture -->|File chooser reads bytes| web
     server -->|Opaque checkpoint after prefix validation| web
 ```
@@ -313,7 +330,7 @@ persists its allowlisted frozen source in a receipt; it does not persist the
 raw capture. These bounds and privacy rules are recorded in
 [ADR-003](decisions/ADR-003-guided-session-intake.md).
 
-## Repository Map
+### Full-Session Saved-Data Path
 
 The saved-data starter uses a separate explicit local-file path: it verifies
 up to 1 GiB / 2 million events into a private disk copy, then replays the verified
@@ -328,6 +345,17 @@ midnight. Neither conversion nor saved startup contacts a provider. Checkpoint
 transport allows 8 MiB / 5,000 rows and JSON receipts up to 32 MiB; browser intake limits above are
 unchanged. [First Run](first-run.md#open-saved-es-or-nq-data) and the
 [full-day workflow](databento-credit-trial.md#full-trading-day-es-and-nq) own usage.
+
+Registration binds each market to capture and checkpoint hashes. The other
+registered market is an optional source: an unavailable or changed alternate
+checkpoint is skipped explicitly while the selected valid market can still
+launch. No replacement synthetic source is silently substituted for a requested
+saved-data launch. Short captures retain accelerated event-time playback; long
+captures use fast load. Wind Tunnel starts from the final cutoff, so Terminal's
+input state matches only after its load completes. User model and scenario
+choices remain independent thereafter.
+
+## Repository Map
 
 | Path | Architectural role |
 | --- | --- |
@@ -374,7 +402,7 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Guided captured-session intake | `gex_terminal/session_intake.py`, `gex_terminal/session_capture.py` | Verify bounded selected bytes in memory, discard private extensions, retain a bounded allowlisted registry and freeze a selected prefix through the production consumer. |
 | Wind Tunnel service and CLI | `gex_terminal/wind_tunnel_server.py`, `gex_terminal/wind_tunnel_cli.py` | Serve packaged assets and bounded loopback API operations, protect requests with a per-run capability, and save/verify/reproduce receipts. CLI example and reproduction commands also run without the browser server. |
 | Wind Tunnel browser | `gex_terminal/wind_tunnel_web/` | Hold source/checkpoint/scenario selections, request calculations, render Plotly views and expose receipt controls; never read the Terminal's consumer state. |
-| Setup and starter | `scripts/install_app.py`, `scripts/build_app_bundle.py` | Prepare and verify an owned wheel installation, keep research separate, generate shortcuts and offer Terminal/Wind Tunnel/Both. Both supervises two application children with readiness checks and owned-process cleanup. |
+| Setup and starter | `scripts/install_app.py`, `scripts/build_app_bundle.py`, `gex_terminal/saved_workspace.py` | Prepare and verify an owned wheel installation, keep research separate, generate shortcuts and offer Terminal/Wind Tunnel/Both or registered Saved data — Both. Verify complete captures and final checkpoint bindings; Both supervises two application children with readiness checks and owned-process cleanup. |
 | Offline labs | `gex_terminal/replay_lab.py`, `gex_terminal/demo_lab.py`, `gex_terminal/provider_fixture_lab.py`, `gex_terminal/batch_comparison.py` | Produce replay, demo, provider-fixture, and multi-session model-comparison reports without live credentials. |
 | Portable research receipt | `gex_terminal/demo_lab_receipt.py` | Bind authorized copied replay, model/runtime identity, exact inventory and semantic content; reject unsupported or changed packs before reproduction. |
 | Research/export tools | `gex_terminal/snapshot_formats.py`, `gex_terminal/overlays.py`, `gex_terminal/sensitivity.py`, `gex_terminal/research_journal.py`, `gex_terminal/session_store.py` | Save snapshots, overlays, model-sensitivity reports, journal entries, and historical records from normalized state. |
@@ -433,6 +461,11 @@ Install.command -> verified application environment -> Start GEX.command chooser
         +-> Both -> supervised Wind Tunnel service becomes ready
                        -> request browser window -> start Terminal child
                        -> Terminal exit stops this session's Wind Tunnel service
+        |
+        +-> Saved data — Both -> choose registered ES or NQ
+                       -> verify complete capture and final checkpoint
+                       -> Wind Tunnel opens closing state; Terminal loads all events
+                       -> optional other registered market in browser source picker
 ```
 
 The setup launcher's Terminal path selects `zero-gamma-flip`; the direct
@@ -685,7 +718,10 @@ through eight paths, with consumer instances owned by the invoking workflow:
   inputs and quantity models; cohort selection, quantities, multipliers and
   aggregation remain separate. This vector cache never persists across requests
   or source changes. The existing bounded American lattice price cache still
-  reuses exact-input results across calls; lattice policy is unchanged. Scenario
+  reuses exact-input results across calls in its 4,096-entry LRU; lattice
+  policy is unchanged. Cold and warm measurements must therefore be identified
+  separately; the new vector cache alone does not explain cross-request reuse.
+  Scenario
   preparation copies row fields while reading nested metadata without mutation;
   exported nested diagnostics remain detached from the frozen source.
 - **Comparison transport and display:** the browser explicitly requests compact
@@ -696,7 +732,11 @@ through eight paths, with consumer instances owned by the invoking workflow:
   cannot become a portable receipt request. Price markers and Focused/Full range
   controls alter only chart rendering, retaining every strike in the result and
   exact-value tables. Source mode, captured health and active IV age remain
-  separate presentation fields.
+  separate presentation fields. The two models share one chart range and price
+  markers. Focused view includes both futures prices and dominant walls, labels
+  the count of strikes outside view, and never changes cohort selection or
+  scenario inputs. Reopening a receipt reproduces its full result before the UI
+  reports it verified; display-only source or range changes cannot certify it.
 - **Governed research:** model profiles, experiment manifests, append-only
   corpus registration, and batch comparison bind source identity, assumptions,
   splits, outcomes, costs, and semantic results.
@@ -828,6 +868,8 @@ and provides no shared-memory or replay-synchronization channel.
 | Wind Tunnel numerical, service or CLI behavior | `tests/test_wind_tunnel.py`, `tests/test_wind_tunnel_server.py`, `tests/test_wind_tunnel_cli.py`; inspect the browser against computed results |
 | Immutable Terminal checkpoint and owned handoff | `tests/test_wind_tunnel_checkpoint.py`, `tests/test_wind_tunnel_handoff.py`, `tests/test_wind_tunnel_assets.py`; inspect demo/replay isolation and fresh-service receipt reproduction |
 | Guided local capture intake | `tests/test_session_intake.py`, `tests/test_session_intake_server.py`, `tests/test_wind_tunnel_intake_assets.py`; inspect selected-byte upload, source review, chosen prefix, cancellation and portable receipt reproduction |
+| Full-session saved startup and transport | `tests/test_full_session_saved.py`, `tests/test_full_session_transport.py`, `tests/test_full_session_browser.py`, `tests/test_full_session_validation.py`; compare final capture state with the bound checkpoint and retain guided-intake limits |
+| Paired models, compact transport and IV-age display | `tests/test_wind_tunnel_models.py`, `tests/test_iv_freshness.py`, `tests/test_wind_tunnel_assets.py`, `tests/test_wind_tunnel_intake_assets.py`; check exact numerical parity, independent denominators, source/receipt switching and view-only strike ranges |
 | Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py`, `tests/test_session_store.py` |
 | Capture integrity, policy, or event clocks | `tests/test_session_capture.py`, `tests/test_capture_governance.py`, `tests/test_replay_adapter.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |

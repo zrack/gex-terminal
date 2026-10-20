@@ -25,9 +25,9 @@ gex-terminal fixture-lab provider_fixture_lab.json
 gex-terminal fixture-lab provider_fixture_lab.csv
 ```
 
-The workbench currently covers sanitized Tradovate live frames, a Tradovate
-metadata join, Databento GLBX-style fixtures, a yfinance ETF option-chain sample,
-and a Cboe-style option quote CSV. Use it before and after adapter changes to
+The workbench currently covers provider-shaped Tradovate WebSocket fixtures, a
+Tradovate metadata join, synthetic Databento GLBX-style fixtures, a yfinance ETF
+option-chain sample, and a Cboe-style option quote CSV. Use it before and after adapter changes to
 produce one shareable pass/fail scorecard with health counters, computed gamma
 wall, strike-profile flip/compatibility level, and saved snapshot baselines.
 `Passed` means the fixture produced a computable mapping and snapshot. The
@@ -36,6 +36,11 @@ separately, so a mapping pass is never presented as live-provider health.
 
 The checked-in example output is available at
 [docs/examples/provider_fixture_lab.md](examples/provider_fixture_lab.md).
+The historical selector `bundled:tradovate-live-sample` and report label
+`Tradovate Live Frames` identify an offline mapping fixture, not observed
+credentialed ES/NQ payloads or a successful live connection. Actual provider
+qualification remains a separate gate; see
+[Tradovate Raw-Payload Capture](tradovate-capture.md).
 
 ## Tradovate Frames
 

@@ -8,13 +8,20 @@ and the application journey. A prepared bundle is not a completed user study.
 The prepared [September 20 build record](studies/offline-first-use-2026-09-20.md)
 identifies that cohort's repaired wheel, frozen materials, fixture hashes and
 rehearsal. Preserve it unchanged. Guided session intake and Terminal checkpoint
-handoff use a separate current-build cohort and the frozen GI-01 through GI-06
+handoff use the separate October 18 cohort and the frozen GI-01 through GI-06
 supplement in [Product Validation](product-validation.md). A matching version
 number cannot substitute for source, wheel, runtime and material identities.
 
 The prepared [October 18 guided-intake build](studies/guided-intake-2026-10-18.md)
-binds the current wheel, separate cohort, synthetic fixtures and execution
+binds that cohort's wheel, synthetic fixtures and execution
 evidence. Use that exact kit for its cohort; preserve both historical records.
+
+The current product also supports full-session saved ES/NQ data, pricing and
+accepted-IV diagnostics, focused strike charts and two-model comparisons. Those
+later changes do not update the frozen October 18 kit or establish observed
+acceptance. Use [First Run](first-run.md) and [Wind Tunnel](wind-tunnel.md) for
+current operation. A study of the later product needs a separately reviewed
+build/cohort identity, updated materials and its own rehearsal evidence.
 
 For recruitment, use the separate
 [participant-only delivery](studies/participant-delivery-2026-10-18.md) and
@@ -92,7 +99,8 @@ Use a reviewed commit containing the intended workflow and regression repairs.
 Record the full source commit, Git tree, application version and build tools.
 Build from a clean export of that commit with the existing
 [contributor procedure](../CONTRIBUTING.md#verification). Keep the original
-release tags unchanged. `0.5.0` alone cannot identify the repair.
+release tags unchanged. A package version alone cannot identify a reviewed
+build; preserve the exact source, wheel and runtime identities.
 
 Set `SOURCE_DATE_EPOCH` to the source commit timestamp for both builds. Preserve
 the exact wheel SHA-256 and source archive, and compare a second independently

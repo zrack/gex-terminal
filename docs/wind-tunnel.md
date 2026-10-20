@@ -16,6 +16,11 @@ retain the European-approximation qualification. Missing exercise metadata
 remains explicitly unknown.
 See [model assumptions](model-assumptions.md).
 
+![Wind Tunnel scenario workbench using bundled synthetic input](../assets/market-wind-tunnel.png)
+
+The documentation visuals use declared synthetic inputs. They illustrate the
+current interface, not a live or complete ES/NQ options chain.
+
 ## Open The Workbench
 
 In a fresh setup folder with the unified starter, open **Start GEX.command**
@@ -211,6 +216,8 @@ column shows its original and recalculated net GEX, dominant wall, pricing
 coverage and unpriced-contract details. The strike charts use matched axes;
 the exact-values table distinguishes unavailable output from zero.
 
+![Default and directionalized comparison using bundled synthetic input](../assets/wind-tunnel-model-comparison.png)
+
 The default is **Terminal selected proxy** for a frozen checkpoint and
 **Volume proxy** for a bundled replay. The directionalized model uses signed
 aggressor-side volume under an assumed passive-counterparty position. The two
@@ -241,6 +248,9 @@ Reopening verifies it against the same calculation build and runtime. Old
 receipts retain their original implementation identity and need their original
 build for exact reproduction.
 
+[Model comparison](model-comparison.md) explains how to interpret model
+agreement, directional coverage and the separate CLI report harness.
+
 ### Locate Price And Choose A Strike Range
 
 **Compare** and **Model comparison** mark the original and scenario futures
@@ -255,6 +265,8 @@ and exposure axes within the chosen range. The note reports how many strikes
 are outside the view. This is a display setting: quantities, pricing selection,
 GEX totals and grid results do not change. **Inspect all modeled strike values**
 in Model comparison includes the strikes outside the chart view.
+
+![Focused strike charts with original and scenario futures-price markers](../assets/wind-tunnel-focused-strikes.png)
 
 ## Read Pricing Coverage
 

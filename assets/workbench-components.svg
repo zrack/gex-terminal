@@ -1,72 +1,48 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1120" viewBox="0 0 1200 1120" role="img" aria-labelledby="title description">
-  <title id="title">GEX: two interfaces and an explicit frozen checkpoint handoff</title>
-  <desc id="description">Start Terminal, Market Wind Tunnel or Both from one local installation. Standalone Wind Tunnel and Both use a separate Wind Tunnel Python process; Terminal and Wind Tunnel own independent mutable state. The browser workbench accepts bundled synthetic inputs and locally selected captured-session bytes after verification. Pressing w in Terminal is a separate explicit path: Terminal freezes its demo or replay state into an immutable checkpoint and owns a loopback Wind Tunnel service inside the Terminal Python process. That service stops when Terminal exits. Later Terminal changes never update the frozen checkpoint. Both stops only its owned separate Wind Tunnel process when Terminal exits; standalone instances remain independent. Shared package arrows mean code reuse. Derived from docs/architecture.md; this is an architectural explanation, not a screenshot or a shared live-state service.</desc>
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#9aaabb"/></marker>
-    <style>
-      text{font-family:Arial,Helvetica,sans-serif}
-      .heading{font-size:32px;font-weight:700;fill:#f3f6fa}
-      .label{font-size:13px;font-weight:700;letter-spacing:1.5px;fill:#9aaabb}
-      .name{font-size:26px;font-weight:700;fill:#f3f6fa}
-      .body{font-size:19px;fill:#c5d0dd}
-      .small{font-size:16px;fill:#aab8c8}
-      .launch{fill:none;stroke:#9aaabb;stroke-width:2;marker-end:url(#arrow)}
-      .reuse{fill:none;stroke:#9aaabb;stroke-width:2;stroke-dasharray:6 6;marker-end:url(#arrow)}
-    </style>
-  </defs>
-  <rect width="1200" height="1120" rx="20" fill="#0b121a"/>
-  <text x="54" y="53" class="label">GEX / LOCAL RESEARCH WORKBENCH</text>
-  <text x="54" y="105" class="heading">Two interfaces. One local installation.</text>
-
-  <rect x="310" y="143" width="580" height="104" rx="12" fill="#172331" stroke="#4b5d70"/>
-  <text x="600" y="181" text-anchor="middle" class="name">Start GEX</text>
-  <text x="415" y="220" text-anchor="middle" class="body">1  Terminal</text>
-  <text x="610" y="220" text-anchor="middle" class="body">2  Wind Tunnel</text>
-  <text x="795" y="220" text-anchor="middle" class="body">3  Both</text>
-  <path d="M600 247 V272 H304 V306" class="launch"/>
-  <path d="M600 272 H896 V306" class="launch"/>
-
-  <rect x="54" y="309" width="500" height="225" rx="12" fill="#10232b" stroke="#69c6d8" stroke-width="2"/>
-  <text x="80" y="346" class="label" style="fill:#69c6d8">TERMINAL / PYTHON PROCESS</text>
-  <text x="80" y="389" class="name">Terminal dashboard</text>
-  <text x="80" y="423" class="body">Keyboard interface · own market state</text>
-  <text x="80" y="455" class="body">Replay sessions, inspect strikes and levels</text>
-  <path d="M80 478 H528" stroke="#29464f"/>
-  <text x="80" y="510" class="small">Saves local snapshots and explicit checkpoints</text>
-
-  <rect x="646" y="309" width="500" height="225" rx="12" fill="#272319" stroke="#f3c45b" stroke-width="2"/>
-  <text x="672" y="346" class="label" style="fill:#f3c45b">STANDALONE / BOTH: SEPARATE PYTHON PROCESS</text>
-  <text x="672" y="389" class="name">Wind Tunnel service</text>
-  <text x="672" y="423" class="body">Serves browser · request-local calculations</text>
-  <text x="672" y="455" class="body">Bundled inputs or verified local capture bytes</text>
-  <path d="M672 478 H1120" stroke="#51462c"/>
-  <text x="672" y="510" class="small">Saves portable scenario receipts</text>
-
-  <path d="M304 534 V580" class="reuse"/>
-  <path d="M896 534 V580" class="reuse"/>
-  <rect x="54" y="584" width="1092" height="99" rx="12" fill="#17202b" stroke="#4b5d70"/>
-  <text x="600" y="620" text-anchor="middle" class="name" style="font-size:23px">Shared installed package and calculation code</text>
-  <text x="600" y="656" text-anchor="middle" class="body">Dashed arrows mean code reuse. Mutable market and scenario state stay independent.</text>
-
-  <text x="54" y="733" class="label" style="fill:#69c6d8">EXPLICIT TERMINAL HANDOFF / PRESS w</text>
-  <rect x="54" y="758" width="714" height="235" rx="12" fill="#10232b" stroke="#69c6d8" stroke-width="2"/>
-  <text x="80" y="793" class="label" style="fill:#69c6d8">INSIDE THE TERMINAL PYTHON PROCESS</text>
-  <rect x="80" y="815" width="252" height="130" rx="8" fill="#172331" stroke="#4b5d70"/>
-  <text x="100" y="847" class="body">Current demo/replay</text>
-  <text x="100" y="877" class="body">state and assumptions</text>
-  <text x="100" y="916" class="small">Freeze once on user action</text>
-  <path d="M332 880 H382" class="launch"/>
-  <rect x="388" y="815" width="354" height="130" rx="8" fill="#172331" stroke="#4b5d70"/>
-  <text x="408" y="847" class="body">Terminal-owned loopback service</text>
-  <text x="408" y="877" class="body">Detached immutable checkpoint</text>
-  <text x="408" y="916" class="small">Later Terminal changes cannot alter it</text>
-  <text x="80" y="976" class="small">Terminal owns this listener and stops it on exit.</text>
-  <path d="M768 880 H810" class="launch"/>
-  <rect x="816" y="815" width="330" height="130" rx="8" fill="#272319" stroke="#f3c45b" stroke-width="2"/>
-  <text x="840" y="849" class="name" style="font-size:23px">Wind Tunnel browser</text>
-  <text x="840" y="881" class="body">Stress the fixed checkpoint</text>
-  <text x="840" y="916" class="small">Save and reproduce a receipt</text>
-
-  <text x="600" y="1041" text-anchor="middle" class="small">Both stops its owned Wind Tunnel process when Terminal exits; separately launched instances keep running.</text>
-  <text x="600" y="1080" text-anchor="middle" class="small">Neither launch path automatically follows Terminal replay selections, later events or scenario changes.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1080" viewBox="0 0 1200 1080" role="img" aria-labelledby="title description">
+<title id="title">GEX Starter, Terminal and Market Wind Tunnel</title>
+<desc id="description">Current local product boundaries, derived from docs/architecture.md. One starter opens Terminal, Market Wind Tunnel, Both, or registered Saved data — Both for ES or NQ. Saved startup verifies a complete local capture and prepares its final immutable checkpoint. Terminal loads the whole session; the Wind Tunnel local service opens the frozen final state in a browser. At load completion the source inputs match, but the processes and later selections stay independent. The browser compares default and directionalized proxies under price, IV and model-time changes. Health, pricing coverage and accepted-IV age are distinct. Explicit Terminal w handoff freezes another eligible demo/replay checkpoint into a Terminal-owned local service; it does not stream later state. Full receipts embed frozen inputs and retain calculation identity for reproduction. No provider connection is needed for these saved-data paths. This is an architecture diagram, not a product screenshot.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#91a5b9"/></marker>
+<style>text{font-family:Arial,Helvetica,sans-serif}.eyebrow{font-size:16px;letter-spacing:2px;font-weight:700;fill:#91a5b9}.title{font-size:36px;font-weight:700;fill:#f5f8fc}.name{font-size:28px;font-weight:700;fill:#f5f8fc}.body{font-size:23px;fill:#cbd7e3}.small{font-size:20px;fill:#a6b9cc}.line{stroke:#91a5b9;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.dash{stroke-dasharray:7 6}.cyan{fill:#72dce9}.gold{fill:#f4c869}.purple{fill:#c1b0ff}</style>
+</defs>
+<rect width="1200" height="1080" rx="22" fill="#0a1420"/>
+<text x="48" y="51" class="eyebrow">GEX / TWO COMPONENTS / ONE LOCAL INSTALLATION</text>
+<text x="48" y="101" class="title">Load a saved session. Inspect a frozen market.</text>
+<rect x="48" y="139" width="1104" height="111" rx="14" fill="#14263a" stroke="#526d86"/>
+<text x="76" y="180" class="name">Start GEX</text>
+<text x="76" y="220" class="body">Terminal · Wind Tunnel · Both · Saved data — Both → ES or NQ</text>
+<path d="M600 250 V277 H316 V309" class="line"/>
+<path d="M600 277 H884 V309" class="line"/>
+<rect x="48" y="313" width="536" height="268" rx="14" fill="#0f2933" stroke="#72dce9" stroke-width="2"/>
+<text x="76" y="351" class="eyebrow cyan">COMPONENT 1 / KEYBOARD INTERFACE</text>
+<text x="76" y="397" class="name">Terminal</text>
+<text x="76" y="438" class="body">Load the complete saved session</text>
+<text x="76" y="475" class="body">Inspect strikes, coverage and inputs</text>
+<text x="76" y="512" class="body">Own consumer and replay lifecycle</text>
+<text x="76" y="552" class="small">Textual UI inside its Python process</text>
+<rect x="616" y="313" width="536" height="268" rx="14" fill="#2b281c" stroke="#f4c869" stroke-width="2"/>
+<text x="644" y="351" class="eyebrow gold">COMPONENT 2 / BROWSER INTERFACE</text>
+<text x="644" y="397" class="name">Market Wind Tunnel</text>
+<text x="644" y="438" class="body">Open the verified final checkpoint</text>
+<text x="644" y="475" class="body">Compare default and directionalized</text>
+<text x="644" y="512" class="body">Stress price, IV and model time</text>
+<text x="644" y="552" class="small">Browser ↔ local Python service</text>
+<rect x="48" y="616" width="1104" height="132" rx="14" fill="#14263a" stroke="#526d86"/>
+<text x="76" y="656" class="name">Same saved source. Independent state.</text>
+<text x="76" y="694" class="body">Starter verifies capture + checkpoint identities; Terminal loads all events.</text>
+<text x="76" y="730" class="small">Inputs match after loading. Later replay, model and scenario choices do not synchronize.</text>
+<path d="M316 581 V616" class="line"/>
+<path d="M884 581 V616" class="line"/>
+<rect x="48" y="781" width="536" height="167" rx="14" fill="#14263a" stroke="#72dce9"/>
+<text x="76" y="821" class="name">Freeze another checkpoint</text>
+<text x="76" y="861" class="body">Press w in eligible Terminal replay</text>
+<text x="76" y="902" class="small">Explicit copy → Terminal-owned local service</text>
+<text x="76" y="931" class="small">Later events never alter the frozen input</text>
+<rect x="616" y="781" width="536" height="167" rx="14" fill="#14263a" stroke="#f4c869"/>
+<text x="644" y="821" class="name">Save a reproducible explanation</text>
+<text x="644" y="861" class="body">Full input + request + calculation identity</text>
+<text x="644" y="902" class="small">Recalculate the receipt before “verified”</text>
+<text x="644" y="931" class="small">Health, pricing coverage and IV age stay visible</text>
+<text x="600" y="1000" text-anchor="middle" class="body">Shared package and pricing code · local files · no provider requests</text>
+<text x="600" y="1041" text-anchor="middle" class="small">Saved-data workflow only. Live access and predictive validity require separate evidence.</text>
 </svg>

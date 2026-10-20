@@ -1,40 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
-  <title id="title">Offline Research Certification Workbench architecture</title>
-  <desc id="desc">Derived summary of docs/architecture.md and docs/research-governance.md. Local inputs enter offline workflows that reuse adapters, the state consumer, and the pricing engine. Orchestration binds experiment identity. Corpus verification is an independent registry check. All evidence remains bounded to offline software and process behavior.</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#12263d"/></linearGradient>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#75e6da"/></marker>
-    <style>
-      .title{font:700 34px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#f4f7fb}.sub{font:18px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#a8bbcf}.box{fill:#102b43;stroke:#4dd0c8;stroke-width:2}.gate{fill:#242744;stroke:#b19cff;stroke-width:2}.out{fill:#173526;stroke:#68d391;stroke-width:2}.warn{fill:#3d291c;stroke:#f6ad55;stroke-width:2}.h{font:700 20px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#fff}.t{font:15px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#d6e2ee}.line{stroke:#75e6da;stroke-width:3;fill:none;marker-end:url(#arrow)}
-    </style>
-  </defs>
-  <rect width="1280" height="720" rx="28" fill="url(#bg)"/>
-  <text x="64" y="66" class="title">Offline Research Certification Workbench</text>
-  <text x="64" y="101" class="sub">contract identity → deterministic execution → bounded evidence</text>
-
-  <rect x="64" y="150" width="285" height="145" rx="16" class="box"/>
-  <text x="88" y="188" class="h">Versioned inputs</text>
-  <text x="88" y="222" class="t">• source + model profile</text><text x="88" y="250" class="t">• experiment / batch spec</text><text x="88" y="278" class="t">• declared as-of cutoff</text>
-
-  <rect x="64" y="340" width="285" height="145" rx="16" class="box"/>
-  <text x="88" y="378" class="h">Corpus registry</text>
-  <text x="88" y="412" class="t">• append-only hash chain</text><text x="88" y="440" class="t">• rights + redaction</text><text x="88" y="468" class="t">• immutable split identity</text>
-
-  <rect x="447" y="185" width="330" height="235" rx="16" class="gate"/>
-  <text x="475" y="225" class="h">Offline workflows</text>
-  <text x="475" y="265" class="t">adapter → consumer → engine</text><text x="475" y="295" class="t">OI · raw volume · directional</text><text x="475" y="325" class="t">kept separate in calculations</text><text x="475" y="355" class="t">orchestration binds identity</text><text x="475" y="385" class="t">and semantic result digests</text>
-
-  <rect x="875" y="150" width="335" height="205" rx="16" class="out"/>
-  <text x="903" y="190" class="h">Reviewable evidence</text>
-  <text x="903" y="225" class="t">• experiments / portable packs</text><text x="903" y="255" class="t">• corpus verification</text><text x="903" y="285" class="t">• batch comparison</text><text x="903" y="315" class="t">• property/fault/perf reports</text>
-
-  <rect x="875" y="410" width="335" height="155" rx="16" class="warn"/>
-  <text x="903" y="450" class="h">Evidence ceiling</text>
-  <text x="903" y="485" class="t">offline software + process only</text><text x="903" y="515" class="t">predictive validity: unmeasured</text><text x="903" y="545" class="t">live certification is separate</text>
-
-  <path d="M349 223 H447" class="line"/><path d="M349 412 H390 V530 H830 V338 H875" class="line"/><path d="M777 282 H875" class="line"/><path d="M1042 355 V410" class="line"/>
-  <text x="447" y="510" class="t">Independent membership verification</text>
-  <text x="64" y="605" class="t">Derived from docs/architecture.md and docs/research-governance.md · one local Python application</text>
-  <text x="64" y="650" class="sub">Readiness vocabulary: offline-certified · delayed · scaffold · live-uncertified · live-certified</text>
-  <text x="64" y="682" class="sub">Runtime state, separate from readiness: SIM · REPLAY · CONNECTED · LIVE · STALE · DISCONNECTED</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1230" viewBox="0 0 1400 1230" role="img" aria-labelledby="title description">
+<title id="title">GEX offline inputs, calculation identity and reproducible evidence</title>
+<desc id="description">Technical architecture derived from docs/architecture.md, docs/model-assumptions.md and docs/research-governance.md. Authorized existing full-session captures enter a separate saved-data path, bounded at 1 GiB and two million events, which verifies a private disk copy, replays one consumer and freezes the final checkpoint. Smaller browser-selected guided intake remains bounded at 4 MiB and five thousand events and freezes a chosen prefix. Terminal explicit handoff freezes an eligible demo/replay state. The same immutable checkpoint model feeds request-local original/scenario calculations through shared engine code. Default and directionalized quantities are evaluated independently. A gamma-vector cache is request-local, bounded at 32 vectors and 2 MiB; the existing American lattice scalar cache is a distinct 4096-entry cross-call LRU. Compact browser results omit repeated contributions and source echoes but retain summaries, matrices, exclusions, pricing coverage, freshness and identities. Full portable receipts are recalculated with embedded source and complete detail and compared by semantic result identity. Experiments and corpus verification are separate research authorities, not automatic prerequisites for all scenarios. Readiness, runtime mode, captured health, pricing coverage, IV age and predictive validity remain distinct. No provider access is part of these saved-data paths.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#91a5b9"/></marker>
+<style>text{font-family:Arial,Helvetica,sans-serif}.eyebrow{font-size:16px;letter-spacing:2px;font-weight:700;fill:#91a5b9}.title{font-size:36px;font-weight:700;fill:#f5f8fc}.name{font-size:28px;font-weight:700;fill:#f5f8fc}.body{font-size:23px;fill:#cbd7e3}.small{font-size:20px;fill:#a6b9cc}.line{stroke:#91a5b9;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.dash{stroke-dasharray:7 6}.cyan{fill:#72dce9}.gold{fill:#f4c869}.purple{fill:#c1b0ff}</style>
+</defs>
+<rect width="1400" height="1230" rx="22" fill="#0a1420"/>
+<text x="48" y="51" class="eyebrow">GEX / OFFLINE RESEARCH ARCHITECTURE</text>
+<text x="48" y="103" class="title">Frozen input → controlled calculation → reproducible evidence</text>
+<text x="48" y="146" class="body">Local browser ↔ capability-protected 127.0.0.1 service · packaged charts, no CDN</text>
+<rect x="48" y="190" width="392" height="250" rx="14" fill="#102936" stroke="#72dce9" stroke-width="2"/>
+<text x="74" y="231" class="name">Full saved session</text>
+<text x="74" y="273" class="body">Starter: registered ES / NQ</text>
+<text x="74" y="310" class="body">Verify private disk copy</text>
+<text x="74" y="347" class="body">One consumer → final state</text>
+<text x="74" y="387" class="small">≤ 1 GiB / 2 million events</text>
+<text x="74" y="417" class="small">Terminal loads the complete history</text>
+<rect x="48" y="470" width="392" height="245" rx="14" fill="#102936" stroke="#72dce9" stroke-width="2"/>
+<text x="74" y="511" class="name">Other offline sources</text>
+<text x="74" y="553" class="body">Bundled replay checkpoint</text>
+<text x="74" y="590" class="body">Explicit Terminal w handoff</text>
+<text x="74" y="627" class="body">Guided selected-byte intake</text>
+<text x="74" y="667" class="small">Guided: ≤ 4 MiB / 5,000 events</text>
+<text x="74" y="697" class="small">Verified chosen prefix; no server path</text>
+<path d="M440 315 H476 V365 H510" class="line"/>
+<path d="M440 590 H476 V400 H510" class="line"/>
+<rect x="514" y="190" width="372" height="525" rx="14" fill="#20243c" stroke="#c1b0ff" stroke-width="2"/>
+<text x="540" y="231" class="name">Immutable checkpoint</text>
+<text x="540" y="273" class="body">Source + cutoff + rows</text>
+<text x="540" y="310" class="body">Assumptions + quality ledger</text>
+<path d="M540 337 H860" stroke="#52516d"/>
+<text x="540" y="379" class="name" style="font-size:26px">Request-local evaluation</text>
+<text x="540" y="421" class="body">Original + scenario states</text>
+<text x="540" y="458" class="body">Separate quantity models</text>
+<text x="540" y="495" class="body">Shared pricing engine code</text>
+<path d="M540 522 H860" stroke="#52516d"/>
+<text x="540" y="561" class="small">Exact gamma-vector reuse:</text>
+<text x="540" y="593" class="body">32 entries / 2 MiB per request</text>
+<text x="540" y="636" class="small">Existing American lattice cache:</text>
+<text x="540" y="668" class="body">4,096-entry LRU across calls</text>
+<text x="540" y="697" class="small">Separate lifetimes; same formulas</text>
+<path d="M886 337 H950" class="line"/>
+<path d="M886 575 H950" class="line"/>
+<rect x="954" y="190" width="398" height="250" rx="14" fill="#2c281b" stroke="#f4c869" stroke-width="2"/>
+<text x="980" y="231" class="name">Compact browser view</text>
+<text x="980" y="273" class="body">Summaries, matrices, coverage</text>
+<text x="980" y="310" class="body">Health + accepted-IV age</text>
+<text x="980" y="347" class="body">Price markers + strike range</text>
+<text x="980" y="387" class="small">No repeated contribution/source echo</text>
+<text x="980" y="417" class="small">Focus changes view, never totals</text>
+<rect x="954" y="470" width="398" height="245" rx="14" fill="#133126" stroke="#79dbab" stroke-width="2"/>
+<text x="980" y="511" class="name">Full portable receipt</text>
+<text x="980" y="553" class="body">Embedded allowlisted input</text>
+<text x="980" y="590" class="body">Full request + contributions</text>
+<text x="980" y="627" class="body">Exact calculation identity</text>
+<text x="980" y="667" class="small">Recalculate + compare result digests</text>
+<text x="980" y="697" class="small">Compact projection cannot be a receipt</text>
+<rect x="48" y="765" width="1304" height="177" rx="14" fill="#14263a" stroke="#526d86"/>
+<text x="74" y="809" class="name">Separate research authority: experiments and corpus</text>
+<text x="74" y="853" class="body">Profiles + input/build identity → deterministic experiments → semantic results</text>
+<text x="74" y="893" class="body">Corpus membership and hash-chain verification remain independent checks.</text>
+<text x="74" y="926" class="small">No automatic corpus prerequisite; integrity does not establish rights or historical authenticity.</text>
+<rect x="48" y="978" width="1304" height="162" rx="14" fill="#2c241b" stroke="#f4c869"/>
+<text x="74" y="1021" class="name">Evidence ceiling</text>
+<text x="74" y="1064" class="body">Readiness ≠ runtime mode ≠ captured health ≠ pricing coverage ≠ IV observation age</text>
+<text x="74" y="1106" class="body">Numerical parity and replay do not establish live readiness or predictive validity.</text>
+<text x="48" y="1187" class="small">Derived from architecture, model assumptions and research governance · no provider I/O on these paths</text>
 </svg>

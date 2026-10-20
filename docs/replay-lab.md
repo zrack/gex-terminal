@@ -5,6 +5,13 @@ research artifacts. It is designed for contributors who do not have paid market
 data yet but still want to improve fixtures, alert logic, exports, and model
 assumptions.
 
+For private downloaded ES/NQ captures, use
+[Captured Sessions](captured-sessions.md) and the
+[saved-data starter](first-run.md#open-saved-es-or-nq-data) instead. Replay Lab's
+catalog leaderboard is a descriptive comparison of its synthetic sessions, not
+the Wind Tunnel's paired model or 54-case scenario grid. Those conditional
+comparisons are documented in [Model Comparison](model-comparison.md).
+
 ## Run The Lab
 
 Generate a Markdown report across every bundled replay session:

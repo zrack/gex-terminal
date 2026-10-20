@@ -7,6 +7,12 @@ full moderator kit. The [October 18 delivery record](studies/participant-deliver
 binds the participant-only amendment to that kit. Preparation has produced no
 participant observations, invitations or bookings.
 
+This is the frozen October 18 cohort procedure. Later pricing, saved-session,
+model-comparison, and display changes do not replace its wheel, protocol, or
+materials. Use [First Run](first-run.md) and [Wind Tunnel](wind-tunnel.md) for
+the current application; a study of that newer application needs a separately
+reviewed build/cohort identity under [Study Build](study-build.md).
+
 ## Prepare the owner copy
 
 The reusable blank sources are in [study-kit/recruitment](study-kit/recruitment/START-HERE.md):

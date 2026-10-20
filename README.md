@@ -51,7 +51,7 @@ explicit **54-case grid** to inspect which net signs and dominant walls survive
 the tested combinations. ES uses ±25 price points; NQ uses ±100; both use
 ±1 IV point and 0/30/60 minutes. These are finite sensitivity tests, with no
 provider requests or predicted market outcomes. See the
-[comparison guide](docs/wind-tunnel.md).
+[comparison guide](docs/model-comparison.md).
 
 Read **Mode** and captured **Health** separately: a saved replay can retain
 degraded source health. **Accepted-IV age** separates recent, older and unknown
@@ -64,9 +64,21 @@ responses; saved receipts retain the complete inputs and contribution details.
 
 ![Market Wind Tunnel component: browser workbench showing a calculated ES exposure landscape and controls for price, volatility, time and expiry assumptions](assets/market-wind-tunnel.png)
 
-*Actual Wind Tunnel capture: synthetic ES, final replay checkpoint, IV shifted
-by +2 volatility points. Cyan marks the original state and gold the recalculated
-scenario. [Wind Tunnel guide](docs/wind-tunnel.md).*
+*Current Wind Tunnel capture: bundled synthetic ES, final replay checkpoint,
+IV shifted by +2 volatility points. Cyan marks the original state and gold the
+recalculated scenario. [Wind Tunnel guide](docs/wind-tunnel.md).*
+
+![Current Wind Tunnel model charts with matched axes, focused strike range and original and scenario price markers](assets/wind-tunnel-focused-strikes.png)
+
+*The paired charts use a frozen checkpoint exported from the bundled synthetic
+NQ replay: +100 price points, +1 IV point and +30 minutes of model time.
+[Comparison cards](assets/wind-tunnel-model-comparison.png) expose each model's
+result and accepted-IV age. This legacy fixture has no reportable pricing
+coverage metadata; the app leaves that coverage unavailable. The figures are
+conditional examples, not observations from the saved Databento day.*
+
+Capture settings, source identity and image hashes are recorded in
+[Visual Assets](assets/README.md). Older study screenshots remain dated records.
 
 ## How The Components Fit Together
 
@@ -210,6 +222,8 @@ canonical guide:
 
 | Goal | Starting command | Guide |
 | --- | --- | --- |
+| Open saved ES or NQ in both components | Starter → **Saved data — Both** | [Saved-data startup](docs/first-run.md#open-saved-es-or-nq-data) |
+| Compare default and directionalized scenarios | Wind Tunnel → **Model comparison** | [Model Comparison](docs/model-comparison.md) |
 | Inspect a local captured session | `gex-terminal wind-tunnel` → **Open local session** | [Guided Intake](docs/wind-tunnel.md#bring-a-local-captured-session) |
 | Stress market structure offline | `gex-terminal wind-tunnel` | [Market Wind Tunnel](docs/wind-tunnel.md) |
 | Diagnose a local installation | `gex-terminal doctor` | [Offline Doctor](docs/doctor.md) |

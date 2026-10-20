@@ -1,8 +1,9 @@
 # Export Formats
 
 `gex-terminal` exports research artifacts from computed snapshots so users can
-review levels outside the terminal without exposing credentials or live feed
-payloads.
+review levels outside the terminal. Built-in outputs omit provider credentials,
+but snapshots, captures and Wind Tunnel receipts can contain licensed market
+data. Review content and redistribution rights before sharing them.
 
 ## Demo Lab Pack
 
@@ -264,6 +265,38 @@ gex-terminal position-model-compare INPUT.json position_comparison.csv
 
 Each format preserves the information cutoff, rejected-future counters,
 model-specific results, pairwise differences, and evidence limitations.
+
+## Wind Tunnel Experiments
+
+Wind Tunnel saves and exports a full JSON experiment receipt. A receipt binds
+the normalized request, bundled source or embedded frozen checkpoint,
+calculation implementation, application/runtime identity, exact results and
+integrity checksum. Model comparisons retain both quantity proxies, original
+and scenario states, contract contributions, pricing coverage, accepted-IV ages,
+unpriced evidence and the 54-case grid when requested.
+
+The browser's compact model-comparison response is a separate display projection.
+It omits echoed checkpoint and repeated contribution lists to reduce transport,
+while retaining matrices, summaries, coverage, ages and grid results. Saving
+recalculates full evidence from the original input; a compact response cannot
+stand in for a portable receipt. Focused/Full range affects chart rendering only
+and does not change exported quantities or totals.
+
+Verify or reproduce an exported receipt with the same calculation build and
+compatible runtime:
+
+```bash
+gex-terminal wind-tunnel verify experiment.json
+gex-terminal wind-tunnel reproduce experiment.json --output reproduction.json
+```
+
+Choose a new output path; existing files are not overwritten. Preserve receipt
+JSON text unchanged rather than parsing and reserializing it in another
+language, which can alter numeric formatting and invalidate its checksum.
+Receipt integrity is not an authenticity signature, a data license or evidence
+of predictive validity. See [Wind Tunnel](wind-tunnel.md#save-export-and-reproduce)
+for size limits, workspace ownership and reproduction rules, and
+[model comparison](model-comparison.md) for interpretation.
 
 ## Tradovate Certification Reports
 

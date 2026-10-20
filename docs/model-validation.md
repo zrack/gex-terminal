@@ -53,6 +53,31 @@ high-volatility Greeks can have larger errors. Solver convergence is not a
 numerical error bound or evidence of market calibration. QuantLib is not a
 runtime dependency.
 
+### Saved-Data Scenario And Transport Regressions
+
+Wind Tunnel regression tests compare the two-model calculation with separate
+existing model evaluations, including differing quantity cohorts, expiry
+exclusions, rates, IV and price changes. Exact pricing reuse keys every ordered
+pricing input and retains independent quantity aggregation. Tests compare
+cached and uncached results and guard against mutation of frozen source rows
+or exported nested evidence.
+
+Compact browser responses must preserve every numerical and coverage field
+retained by the full result. Saving recomputes a full portable receipt, including
+its original checkpoint and contract contributions; receipt reproduction checks
+the calculation implementation and runtime identity. These tests prevent a
+display optimization from becoming a changed model or incomplete research
+artifact. They do not certify a latency target.
+
+Pricing coverage, accepted-IV age and source health have separate contracts.
+Regressions keep unpriced quantity out of calculated GEX, preserve the original
+clock for retained prior IV, leave unqualified or timestamp-ambiguous ages
+unknown, and advance scenario ages without acquiring observations. The
+five-minute age window is a disclosure rather than an IV validity filter.
+See [Offline Validation](offline-validation.md#saved-esnq-product-regressions)
+for the targeted commands and native-data reconciliation route, and
+[Model Comparison](model-comparison.md) for the interpretation limits.
+
 ## Versioned Model Contract
 
 Snapshot schema `gex-terminal.snapshot.v2` records the model provenance needed

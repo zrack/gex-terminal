@@ -130,6 +130,24 @@ models, research notebooks, local services, and integrations can reuse the
 same semantics. External interfaces must not create a second, less-governed
 definition of the data or model.
 
+## Review Source, Test Assumptions, Retain Evidence
+
+Source inspection, controlled scenarios and reproduction should form one
+research loop. A researcher should be able to inspect a session in Terminal,
+freeze a declared cutoff, and compare credible quantity models in Wind Tunnel
+without silently changing the input population. Price and model-time changes,
+missing direction, unpriced inputs and older observations must remain explicit.
+
+The retained explanation must bind the inputs, assumptions and calculation
+identity. A faster or clearer display must preserve that evidence. The product
+question is whether a researcher can complete a recurring, rights-authorized
+investigation and understand its limits unaided; implementation alone cannot
+establish that value, a unique market position or a predictive result.
+
+[Architecture](architecture.md) owns the current components and data boundaries;
+[Application Review](application-review.md) owns shipped capabilities and their
+verification limits. [Roadmap](../ROADMAP.md) owns the remaining evidence gates.
+
 ## Product Form
 
 The durable shape is an open research kernel surrounded by optional convenience

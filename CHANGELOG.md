@@ -7,6 +7,18 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — Documentation And Visual Refresh
+
+- Reconcile setup, saved full sessions, pricing models, IV age, comparisons,
+  private artifacts and contributor guidance with the current source.
+- Refresh the actual synthetic Terminal, replay-picker and Wind Tunnel captures;
+  add paired-model and focused-strike views. Refresh both architecture diagrams
+  and the two-component social preview with file-level provenance.
+- Preserve older visual captures and dated study/build records. Keep historical
+  data validation separate from live readiness and observed participant evidence.
+- Correct stale security/package and fixture-result examples. This refresh
+  changes documentation and visuals, with no pricing or runtime changes.
+
 ## Unreleased — Wind Tunnel Model Comparisons
 
 - Compare the default and aggressor-directionalized proxies side by side from

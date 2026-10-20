@@ -1,11 +1,11 @@
 # Offline Provider Fixture Workbench
 
-- Generated: `2026-09-04T13:40:02`
+- Generated: `2026-10-19T20:14:42`
 - Cases run: `5`
 - Passed: `5`
 - Healthy live: `0`
-- Simulated: `3`
-- Degraded: `2`
+- Simulated: `4`
+- Degraded: `1`
 - Failed: `0`
 - Days to expiry: `0.25`
 - Contract multiplier: `50`
@@ -20,7 +20,7 @@ It is not a portfolio root obtained by repricing across hypothetical spot.
 | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Tradovate Live Frames | tradovate | tradovate | ES | REPLAY | no | degraded | 6 | 3 | 1 | 1 | 5,950.0 | 5,909.6 |
 | Tradovate Metadata Join | tradovate | tradovate | ES | REPLAY | no | simulated | 3 | 1 | 0 | 0 | 5,950.0 | 5,907.4 |
-| Databento GLBX Fixture | databento | databento | ES | REPLAY | no | degraded | 4 | 4 | 0 | 0 | 5,950.0 | 5,906.0 |
+| Databento GLBX Fixture | databento | databento | ES | REPLAY | no | simulated | 4 | 4 | 0 | 0 | 5,950.0 | 5,914.7 |
 | yfinance ETF Options | yfinance | yfinance | SPY | REPLAY | no | simulated | 5 | 1 | 0 | 0 | 515.0 | 505.5 |
 | Cboe Option Quotes CSV | cboe | cboe-option-quotes | SPY | REPLAY | no | simulated | 8 | 4 | 0 | 0 | 515.0 | 505.5 |
 
@@ -52,9 +52,9 @@ It is not a portfolio root obtained by repricing across hypothetical spot.
 - Description: Synthetic GLBX.MDP3 definitions, option trades, and underlying mbp-1 quote sample.
 - Command: `gex-terminal inject-provider bundled:databento-glbx`
 - Source: `offline_provider_fixture`; network used `no`; runtime `REPLAY` / `DISCONNECTED`.
-- Result: `computed` mapping, `degraded` health, `4` normalized messages, `4` provider frames.
-- Levels: gamma wall `5,950.0`, zero gamma `5,906.0`, net GEX `+10.91M`.
-- Notes: `simulated local feed; 3 option tick(s) used labeled fallback IV`
+- Result: `computed` mapping, `simulated` health, `4` normalized messages, `4` provider frames.
+- Levels: gamma wall `5,950.0`, zero gamma `5,914.7`, net GEX `+4.75M`.
+- Notes: `simulated local feed`
 
 ### yfinance ETF Options
 
@@ -85,7 +85,11 @@ It is not a portfolio root obtained by repricing across hypothetical spot.
 
 ## Recommended Next Checks
 
-- Review degraded health counters in: tradovate-live-sample, databento-glbx.
+- Review degraded health counters in: tradovate-live-sample.
 - Attach the Markdown report to provider-adapter issues or pull requests.
 - Use the JSON report as a baseline when changing adapter normalization.
 - Add new sanitized provider samples as fixture cases before wiring live credentials.
+
+## Example Boundary
+
+This current generated example uses only bundled offline fixtures. The legacy `Tradovate Live Frames` label names a provider-shaped mapping test; it is not observed credentialed ES/NQ data. A mapping pass, simulated/degraded health, and pricing assumptions are separate results. No provider request, download, or credit use occurs during this run. See [Provider Injection](../provider-injection.md) for reproduction and [Market-Data Adapters](../adapters.md) for readiness boundaries.

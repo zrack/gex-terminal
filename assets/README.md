@@ -1,120 +1,111 @@
 # Visual Assets
 
-This directory contains documentation graphics, generated terminal captures,
-and retained visual concepts. A graphic is presentation material unless its
-own source and verification record identify it as runtime evidence.
+Current visuals describe the two-component local product: Terminal and Market
+Wind Tunnel. Screenshots use bundled synthetic inputs. Architecture and social
+artwork explain the product; they are not screenshots or measured results.
 
-## Ownership And Reproduction
+## Current Assets
 
-| Asset | Canonical owner and source | Evidence boundary |
+| Asset | Source and owner | What it shows |
 | --- | --- | --- |
-| `market-wind-tunnel.png` | [Wind Tunnel](../docs/wind-tunnel.md) and [design QA](../design-qa.md); browser capture of ES Wind Tunnel Lab at final checkpoint, IV +2 points | Calculated synthetic scenario, 1487×1058 desktop capture; not a forecast or live observation |
-| `workbench-components.svg` | [Architecture](../docs/architecture.md#c4-views); derived overview of the Terminal and Market Wind Tunnel interfaces, shared package code and separate runtime state | Current component explanation, including the explicit immutable Terminal handoff; not a screenshot or shared live-state service |
-| `offline-research-architecture.svg` | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md); maintained SVG summary of those contracts | Derived architectural explanation; not a run result or deployment diagram |
-| C4 context, container and component views | Mermaid source lives in [Architecture](../docs/architecture.md#c4-views), not a separate asset copy | Two interfaces shipped in one Python package; standalone/Both use separate processes, while explicit Terminal handoff owns its listener inside the Terminal process |
-| `gex-terminal-demo-lab.svg`, `gex-terminal-onboarding.svg` | [Demo Lab](../docs/demo-lab.md#contributor-preview) owns `scripts/refresh_previews.py` and its local provenance manifest | Calculated synthetic demo graphic and actual replay-picker capture for the generating source build |
-| `gex-terminal-actual.svg`, `gex-terminal-actual.png` | [Deployment And Terminal Experience Review](../docs/deployment-ux-review.md), using the CLI screenshot command below; PNG is a raster rendition of that SVG | Actual 140×42 terminal with synthetic demo data; not live-market evidence |
-| `gex-terminal-mockup.png`, `gex-terminal-mockup 2.png`, `live-gamma-regime-map-mockup.svg` | Retained product/visual concepts; interpretation belongs with [Product Validation](../docs/product-validation.md) | Illustrative concepts; no implementation or usability claim |
-| `github-social-preview.svg`, `github-social-preview.png`, `github-social-preview 2.png` | Repository presentation artwork | Promotional illustration; no runtime or provider-readiness claim |
+| [Terminal](gex-terminal-actual.png), [source SVG](gex-terminal-actual.svg) | Current source CLI, seeded demo, 140×42 cells; [First Run](../docs/first-run.md) | Actual Terminal with strike rows, source health, pricing qualifications and coverage availability |
+| [Wind Tunnel landscape](market-wind-tunnel.png) | Actual browser; ES Wind Tunnel Lab, checkpoint 33, Volume proxy, IV +2, price/time unchanged | Original and recalculated synthetic exposure surfaces, coverage and accepted-IV age |
+| [Model comparison](wind-tunnel-model-comparison.png) | Actual browser; Terminal-exported `nq-research-loop` checkpoint, +100 price, +1 IV point, +30 model minutes | Separate default/directionalized cards, net signs, walls and observation ages |
+| [Focused strikes](wind-tunnel-focused-strikes.png) | Same NQ checkpoint and scenario | Matched chart axes, original/scenario futures-price markers, Focused selector and exact-value access |
+| [Demo pack](gex-terminal-demo-lab.svg), [replay picker](gex-terminal-onboarding.svg) | Maintained synthetic preview command; bundled `zero-gamma-flip`; [Demo Lab](../docs/demo-lab.md#contributor-preview) | Generated research graphic and actual replay-picker capture |
+| [Product architecture](workbench-components.svg) | Derived from [Architecture](../docs/architecture.md#c4-views) | Starter, saved sessions, independent Terminal/Wind Tunnel state and frozen checkpoint handoff |
+| [Research architecture](offline-research-architecture.svg) | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md) | Input bounds, local calculation/cache boundaries, compact views, full receipts and separate research authority |
+| [Social preview SVG](github-social-preview.svg), [PNG](github-social-preview.png) | Product presentation artwork, 1280×640 | Illustrative two-component product overview; no runtime or provider claim |
 
-When changing a source boundary, update the canonical architecture prose and
-C4 views first, then reconcile the derived SVG in the same pull request. The
-research SVG separates workflow execution from corpus verification; manifest
-and semantic-result identity belongs to orchestration, not the pricing engine.
-Its accessible title/description identifies the owning guides. Inspect the
-rendered SVG for clipped labels and incorrect arrows after editing.
+The screenshot runtime is source commit
+`2d6a239edd509a5dde8eb5019d0b634311c1784b`, application version `0.6.0`, with
+Python 3.12.13. Documentation-only changes do not restate these as captures from
+a later runtime. [Visual provenance](visual-provenance.json) records current
+file hashes, dimensions, source inputs and reproduction settings. The local
+execution manifests remain under ignored `dist/documentation-refresh-20261019/`.
+No capability-bearing launch URL is included in public provenance.
 
-The workbench overview describes shared installed code and two explicit launch
-paths. Standalone Wind Tunnel and **Both** use a separate Wind Tunnel Python
-process with independent mutable state. **Both** manages that process's lifetime
-with Terminal; separately launched instances remain independent. Wind Tunnel
-accepts bundled sources and locally selected captured-session bytes after
-integrity verification.
+The Terminal seeded demo and the NQ comparison fixture retain legacy coverage
+metadata. Their explicit “not reported” or “unavailable” coverage labels are
+intentional; the images do not invent percentages. Accepted-IV age can still be
+reported from qualified observation clocks. The ES landscape has separate
+complete coverage metadata. Exercise style remains unknown in these older
+synthetic fixtures and is shown as unqualified. These examples do not represent
+the later private Databento ES/NQ captures or validate empirical pricing accuracy.
 
-Pressing **`w`** in Terminal freezes its current demo/replay state into a detached
-immutable checkpoint. This path owns a loopback Wind Tunnel service **inside the
-Terminal Python process** and stops it when Terminal exits. Its browser talks to
-that owned listener. Later replay events, source choices and model changes do
-not update the frozen checkpoint. The owning C4 views carry the detailed process
-and intake boundaries. The SVG keeps this explicit path separate from the
-standalone/Both process view.
+## Reproduce And Review
 
-Rebuild screenshots through their owning guide, recording the source commit,
-command, terminal dimensions, and input fixture in the change evidence. Existing
-assets are not automatically screenshots of a later study build. Use
-[Study Build](../docs/study-build.md) for exact build identity and fresh rehearsal
-evidence, and [Contributing](../CONTRIBUTING.md#documentation-and-diagram-ownership)
-for documentation placement and validation.
+Use a source environment with the app's installed runtime dependencies. Keep
+provider credentials and ambient configuration out of capture processes. The
+maintained preview command isolates its child processes and records source,
+runtime, input and asset identities:
 
-The preview command stages fresh output under ignored `dist/previews-*` by
-default; `--write-assets` explicitly refreshes the repository copies. Its local
-manifest binds source/runtime/input identities and exact asset hashes. Inspect
-both SVGs before accepting the diff. Snapshot calculations are repeatable, while
-legacy replay report timestamps and terminal SVG identifiers/timing may vary.
-The current preview refresh does not replace the frozen study bundle.
+```bash
+python scripts/refresh_previews.py --include-onboarding --write-assets
+```
 
-The front-door terminal capture uses `gex-terminal --demo --screenshot
+It stages a fresh directory under ignored `dist/previews-*`, verifies the demo
+pack and refreshes only the demo and replay-picker SVGs. It does not modify a
+frozen study bundle or refresh either front-door screenshot automatically.
+
+The Terminal front-door view uses the source CLI with `--demo --screenshot
 assets/gex-terminal-actual.svg --screenshot-width 140 --screenshot-height 42`.
-Run from a clean configuration with `NO_COLOR` unset for color captures; record
-source and file hashes with the review. The running app continues to honor a
-user's monochrome preference. The replay-picker asset uses the maintained
-preview refresh command and its explicit bundled `zero-gamma-flip` input.
+Run it through `source_command` and `clean_environment` from the maintained
+preview helper, from a scratch working directory. Use the same clean source
+invocation to export a new checkpoint with `--replay-session nq-research-loop
+--wind-tunnel-checkpoint NEW_CHECKPOINT.json`.
 
-## Front-Door Capture Provenance
+For the browser images:
 
-The README reuses reviewed runtime captures. It does not substitute product
-concepts or imply that the Terminal and Wind Tunnel are showing one synchronized
-session. Display each capture at full content width and link to the original
-for closer inspection; side-by-side thumbnails make the table and controls
-too small to read.
+1. Start a loopback Wind Tunnel with bundled sources; choose **ES Wind Tunnel
+   Lab**, its last checkpoint, **Volume proxy**, and IV **+2**. Capture
+   **Exposure landscape** after “Calculated locally.”
+2. Start a new workbench with the explicit synthetic NQ checkpoint. Open
+   **Model comparison**, set price **+100**, IV **+1**, time **+30**, and leave
+   expiry removal off. Wait for “Both models ready.” Capture the cards, then
+   scroll to **Focused** and the two marker charts. Do not alter chart values.
+3. Inspect source labels, units, assumptions, readouts, legends, clipping and
+   overflow. Save native browser pixels without editing labels or numbers.
+   Encode actual PNG bytes even when a capture API returns another raster format.
 
-- **Terminal:** `gex-terminal-actual.svg` entered Git in
-  `b4c37d5481ac3917d58c47bea9e8b5611a16b2e9`. It matches the recorded
-  `after-04-dashboard.svg` hash in the local
-  `dist/deployment-ux-review/comparison/manifest.json`: a 140×42 Textual capture
-  of the seeded demo. That manifest identifies the edited source files used
-  before their commit. The retained SVG has a 1726×1074.8 view box. Its PNG
-  rendition is 1726×1075, rendered locally with Sharp from the unchanged SVG;
-  no values, labels or layout were edited. The PNG fixes the displayed font
-  rendering for README viewers while the SVG remains the capture source.
-- **Market Wind Tunnel:** the browser capture entered Git in
-  `c6545c53268a37035167af2fba695f8cfd8bee96`; commit
-  `d59e34203fc9d1748631b6ac61e0d9cb37d8616c` stored it with correct PNG encoding.
-  [Design QA](../design-qa.md#reference-and-rendered-evidence) owns its reviewed
-  1487×1058 viewport and source settings. To recreate the view, open the local
-  Wind Tunnel, select **ES Wind Tunnel Lab**, the final checkpoint and
-  **Volume proxy**, then set IV shift to **+2** with spot/time shifts at zero
-  and expiry removal off. Capture **Exposure landscape** at that viewport.
-  Preserve the synthetic source label and omit the capability-bearing URL.
+The landscape is a complete 1280×1432 page captured from the normal 1280×720
+viewport. Its measured document width is 1280, with no horizontal overflow.
+The two comparison images are 1280×720 viewport captures. The Terminal PNG is
+1726×1075, rendered locally from the unchanged new SVG with Sharp. No raster
+resize, chart repaint or numerical editing is applied. Fonts, SVG identifiers,
+report clocks and UI timing can change on a later regeneration; these hashes
+identify the reviewed files, not a promise of universal pixel identity.
 
-These front-door captures document their reviewed source settings and earlier
-builds. They do not show the later Terminal handoff or guided captured-session
-intake. The dated [design QA supplement](../design-qa.md#2026-10-18-handoff-and-guided-intake-supplement)
-records those additional workflows separately. Retaining a capture does not
-claim that it was rerun on a later installed or frozen study build. Original
-files and the PNG rendition have these SHA-256 identities:
+Update architecture prose and C4 views before reconciling derived SVGs.
+Inspect a rendered version of each diagram; XML parsing alone cannot detect
+clipped text or misleading arrows. Keep overview labels legible at README
+width, and keep implementation detail in the technical diagram.
 
-| File | SHA-256 |
-| --- | --- |
-| `gex-terminal-actual.svg` | `0570b981f30ae9b0160673812175e04b577c6566bc8f37069fdf1b17e7884185` |
-| `gex-terminal-actual.png` | `6d7fb8c7d83e40780fb91916a925742348f60c8692d2cd4257f0f941a11e7157` |
-| `market-wind-tunnel.png` | `f53012caaf1262de14330fad4e001a863a6868e4a58dcc13bcd6c39adcaf92b7` |
+## Historical Captures And Concepts
 
-Historical documentation review renditions remain under ignored
-`dist/component-docs/`. The 2026-10-18 component SVG reconciliation has a rendered
-PNG and source-hash manifest under ignored `dist/docs-closeout/2026-10-18/`.
-Rendering the diagram does not run a provider, change an installed research
-folder or alter either frozen study build.
+The previous current captures are preserved byte-for-byte in [history](history/).
+They retain the settings and evidence ceilings of their original reviews:
 
-## Retained Concepts
+- [Earlier Terminal SVG](history/terminal-before-20261019.svg) and
+  [PNG](history/terminal-before-20261019.png): SVG originally entered Git in
+  `b4c37d5481ac3917d58c47bea9e8b5611a16b2e9`; the reviewed 140×42 capture is
+  documented in [Deployment Review](../docs/deployment-ux-review.md).
+- [Earlier Wind Tunnel landscape](history/wind-tunnel-before-20261019.png):
+  original source entered Git in `c6545c53268a37035167af2fba695f8cfd8bee96`;
+  `d59e34203fc9d1748631b6ac61e0d9cb37d8616c` stored correct PNG encoding.
+  [Design QA](../design-qa.md) preserves the original 1487×1058 review scope.
+- The earlier [replay picker](history/onboarding-before-20261019.svg),
+  [demo graphic](history/demo-lab-before-20261019.svg) and
+  [social preview](history/social-preview-before-20261019.png) retain the
+  pre-refresh bytes. Their hashes are in the provenance inventory.
 
-`gex-terminal-mockup 2.png` and `github-social-preview 2.png` are preserved
-alternate concepts supplied by the maintainer. They are not application
-screenshots, live-provider certification, or evidence of observed dealer
-inventory. Labels such as `LIVE`, WebSocket connectivity, OI proxy status, and
-dealer regime are illustrative and do not override the readiness and evidence
-boundaries in the [project status](../README.md#current-status) or
-[architecture](../docs/architecture.md).
+`gex-terminal-mockup.png`, `gex-terminal-mockup 2.png`,
+`live-gamma-regime-map-mockup.svg` and `github-social-preview 2.png` are retained
+concepts or maintainer-supplied alternatives. Labels such as LIVE, dealer
+regime, connectivity and OI status in a concept are illustrative. They do not
+override [current status](../README.md#current-status), model semantics or
+provider-readiness gates. Do not present them as current application captures.
 
-For current public documentation, prefer an asset already referenced by the
-owning document or a fresh deterministic export from the repository.
+Dated September/October study records and participant materials remain frozen.
+A fresh source screenshot is implementation evidence; it does not establish
+unaided usability, live access, predictive validity or trading performance.

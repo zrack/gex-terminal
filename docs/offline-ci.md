@@ -12,6 +12,14 @@ definition and statistics records exercise fixed-point units, unset fields,
 reference dates and deletion actions in every matrix job. These regressions use
 no provider client, credentials or market-data connection.
 
+The source suite also covers synthetic full-session saved-data transport,
+default/directionalized Wind Tunnel comparisons, independent health and replay
+mode, accepted-IV age, price markers, focused strike ranges, and compact versus
+full receipt behavior. Those regressions use local fixtures; private downloaded
+ES/NQ captures and local performance measurements are not uploaded or implied
+by a green synthetic job. A local working-tree pass is distinct from hosted
+checks on an exact pushed commit.
+
 Installed-wheel verification also runs the 18-case Databento CLI/binary/terminal
 functional harness outside the checkout and verifies installed bytes against
 the candidate wheel. The source checkout runs the provider-handler load gate.
