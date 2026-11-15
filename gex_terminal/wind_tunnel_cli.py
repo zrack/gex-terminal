@@ -14,8 +14,10 @@ from tempfile import TemporaryDirectory
 import webbrowser
 
 from .wind_tunnel_server import (
-    BLIND_COMPARISON, BLIND_REVIEW, BLIND_SESSION_COMPARISON, MAX_JSON_BYTES, SAVED_FLIP_COMPARISON, SAVED_INVESTIGATION_MARKETS,
-    SAVED_SESSION_COMPARISON, ReceiptError, canonical_bytes, core_module, decode_json, operation_core,
+    BLIND_COMPARISON, BLIND_REVIEW, BLIND_SAVED_STUDY, BLIND_SAVED_STUDY_COMPARISON, BLIND_SESSION_COMPARISON, BLIND_STUDY,
+    BLIND_STUDY_COMPARISON, MAX_JSON_BYTES,
+    SAVED_FLIP_COMPARISON, SAVED_INVESTIGATION_MARKETS, SAVED_SESSION_COMPARISON,
+    ReceiptError, canonical_bytes, core_module, decode_json, operation_core,
     make_receipt, reproduce_receipt, start_server, validate_receipt,
 )
 
@@ -24,6 +26,12 @@ def add_saved_capture_options(command: argparse.ArgumentParser, help_text: str) 
     for symbol in ("ES", "NQ"):
         command.add_argument(f"--saved-{symbol.lower()}-capture", type=Path, action="append",
                              help=help_text.format(symbol=symbol))
+
+
+def add_study_pair_options(command: argparse.ArgumentParser) -> None:
+    for side in ("a", "b"):
+        command.add_argument(f"--study-{side}-capture", type=Path, action="append",
+                             help=f"Choose a saved capture for Study {side.upper()}. Repeat for each capture in that study.")
 
 
 def capture_inputs(es: Path | list[Path] | None, nq: Path | list[Path] | None) -> list[tuple[str, Path]]:
@@ -47,12 +55,16 @@ def parser() -> argparse.ArgumentParser:
                        help="Read one explicit local demo/replay checkpoint; the browser cannot select input paths.")
     serve.add_argument("--comparison-checkpoint", type=Path, action="append", default=[],
                        help="Add an explicit saved checkpoint to the source picker; repeat at most twice and use --checkpoint for the initial source.")
-    add_saved_capture_options(serve, "Open a local {symbol} capture. Repeat for a second {symbol} session.")
+    add_saved_capture_options(serve, "Open a local {symbol} capture. Repeat to choose more captures.")
+    add_study_pair_options(serve)
     serve.add_argument("--saved-capture-sha256", help=argparse.SUPPRESS)
     serve.add_argument("--comparison-capture-sha256", help=argparse.SUPPRESS)
     serve.add_argument("--comparison-workspace", type=Path, help=argparse.SUPPRESS)
-    serve.add_argument("--blind-review", action="store_true",
-                       help="Review flips from one or two distinct saved ES or NQ captures in one window.")
+    review_modes = serve.add_mutually_exclusive_group()
+    review_modes.add_argument("--blind-review", action="store_true",
+                              help="Review flips from one or two distinct saved ES or NQ captures in one window.")
+    review_modes.add_argument("--blind-study", action="store_true",
+                              help="Open the synthetic study, saved market studies, or a comparison with both study capture flags.")
     serve.add_argument("--flip-sequence", type=int,
                        help="Choose the initial capture's exact flip sequence (ES when both markets are supplied).")
     example = commands.add_parser("example", help="Calculate a bundled example and produce a portable receipt.")
@@ -63,7 +75,8 @@ def parser() -> argparse.ArgumentParser:
         command = commands.add_parser(name, help=help_text)
         command.add_argument("receipt", type=Path)
         command.add_argument("--output", type=Path, help="Write a new JSON report; otherwise print JSON.")
-        add_saved_capture_options(command, "Original local {symbol} capture. Repeat when both receipt inputs are {symbol}.")
+        add_saved_capture_options(command, "Original local {symbol} capture. Repeat for each original {symbol} input.")
+        add_study_pair_options(command)
     return result
 
 
@@ -240,8 +253,122 @@ async def serve_blind_review(args) -> int:
     return 0
 
 
+async def serve_blind_study(args) -> int:
+    from .wind_tunnel_blind_saved_study import SavedBlindStudy, SavedNQBlindStudy
+    from .wind_tunnel_blind_study import BlindStudy
+
+    if (args.comparison_checkpoint or any(value is not None for value in (
+            args.checkpoint, args.saved_capture_sha256,
+            args.comparison_capture_sha256, args.comparison_workspace, args.flip_sequence))):
+        raise ReceiptError("Choose saved study captures or open the synthetic study without inputs.")
+    captures = capture_inputs(args.saved_es_capture, args.saved_nq_capture)
+    slots = study_pair_inputs(args)
+    if slots is not None and captures:
+        raise ReceiptError("Use either the Study A/B capture flags or the saved ES/NQ capture flags.")
+    with ExitStack() as resources:
+        if slots is not None:
+            selected = await saved_study_pair_captures(slots)
+            study_types = {"ES": SavedBlindStudy, "NQ": SavedNQBlindStudy}
+            pair = {side: study_types[market](inputs) for side, (market, inputs) in selected.items()}
+            for study in pair.values():
+                resources.callback(study.close)
+            await serve_window(args.workspace or Path("wind_tunnel_studies"), args.port, args.no_browser,
+                               "a comparison of saved Blind Replay Studies.", blind_study_pair=pair)
+            return 0
+
+        studies = {}
+        seen = set()
+        for symbol, study_type in (("ES", SavedBlindStudy), ("NQ", SavedNQBlindStudy)):
+            selected = [(market, path) for market, path in captures if market == symbol]
+            if not selected:
+                continue
+            inputs = await saved_study_captures(selected, symbol)
+            if not seen.isdisjoint(inputs):
+                raise ReceiptError("Choose distinct capture files for the ES and NQ studies.")
+            seen.update(inputs)
+            studies[symbol] = study_type(inputs)
+            resources.callback(studies[symbol].close)
+
+        if len(studies) == 2:
+            source = "saved ES and NQ Blind Replay Studies."
+            options = {"blind_studies": studies}
+        elif studies:
+            symbol, study = next(iter(studies.items()))
+            source = f"a saved {symbol} Blind Replay Study."
+            options = {"blind_study": study}
+        else:
+            study = BlindStudy()
+            resources.callback(study.close)
+            source = "the synthetic ES Blind Replay Study."
+            options = {"blind_study": study}
+        await serve_window(args.workspace or Path("wind_tunnel_studies"), args.port, args.no_browser,
+                           source, **options)
+    return 0
+
+
+async def saved_study_captures(captures: list[tuple[str, Path]], symbol: str) -> dict[str, Path]:
+    from .wind_tunnel_blind_saved_study import MAX_STUDY_CAPTURES
+    from .wind_tunnel_sources import saved_capture_digest
+
+    if not 1 <= len(captures) <= MAX_STUDY_CAPTURES or any(market != symbol for market, _ in captures):
+        raise ReceiptError(f"Use one to {MAX_STUDY_CAPTURES} original {symbol} files with --saved-{symbol.lower()}-capture.")
+    inputs = {}
+    for index, (_, path) in enumerate(captures, start=1):
+        path = path.expanduser().absolute()
+        try:
+            checksum = await asyncio.to_thread(saved_capture_digest, path)
+        except (ValueError, OSError) as exc:
+            raise ReceiptError(f"The saved {symbol} file for case {index} could not be read.") from exc
+        if checksum in inputs:
+            raise ReceiptError(f"Choose distinct saved {symbol} captures for the study.")
+        inputs[checksum] = path
+    return inputs
+
+
+def study_pair_inputs(args) -> dict[str, list[Path]] | None:
+    if args.study_a_capture or args.study_b_capture:
+        return {"a": args.study_a_capture or [], "b": args.study_b_capture or []}
+    return None
+
+
+async def saved_study_pair_captures(slots: dict[str, list[Path]]) -> dict[str, tuple[str, dict[str, Path]]]:
+    from .session_capture import verify_captured_session_file
+    from .wind_tunnel_blind_saved_study import MAX_STUDY_CAPTURES
+
+    if any(not 1 <= len(paths) <= MAX_STUDY_CAPTURES for paths in slots.values()):
+        raise ReceiptError(f"Use one to {MAX_STUDY_CAPTURES} captures for each of --study-a-capture and --study-b-capture.")
+    selected = {}
+    seen = set()
+    for side, paths in slots.items():
+        inputs = {}
+        market = None
+        for index, path in enumerate(paths, start=1):
+            path = path.expanduser().absolute()
+            try:
+                header, footer, stats = await asyncio.to_thread(verify_captured_session_file, path)
+            except (ValueError, OSError) as exc:
+                raise ReceiptError(f"Capture {index} for Study {side.upper()} could not be verified.") from exc
+            source = header.get("source")
+            symbol = source.get("symbol") if isinstance(source, dict) else None
+            if symbol not in ("ES", "NQ") or header.get("normalized_contract") != "gex-terminal.normalized-message":
+                raise ReceiptError(f"Study {side.upper()} requires completed, normalized ES or NQ captures.")
+            if market is not None and market != symbol:
+                raise ReceiptError(f"Study {side.upper()} must use captures from one market.")
+            if footer["content_sha256"] in seen:
+                raise ReceiptError("Choose distinct captures within and across Study A and Study B.")
+            seen.add(footer["content_sha256"])
+            inputs[stats["sha256"]] = path
+            market = symbol
+        selected[side] = (market, inputs)
+    return selected
+
+
 async def run(args) -> int:
     if args.command == "serve":
+        if args.blind_study:
+            return await serve_blind_study(args)
+        if study_pair_inputs(args) is not None:
+            raise ReceiptError("--study-a-capture and --study-b-capture require --blind-study.")
         if args.blind_review:
             return await serve_blind_review(args)
         if args.flip_sequence is not None:
@@ -267,6 +394,14 @@ async def run(args) -> int:
     receipt = validate_receipt(read_artifact(args.receipt))
     captures = capture_inputs(args.saved_es_capture, args.saved_nq_capture)
     kind = receipt["kind"]
+    slots = study_pair_inputs(args)
+    if kind == BLIND_SAVED_STUDY_COMPARISON:
+        if slots is None or captures:
+            raise ReceiptError("Reproduce this comparison with both original Study A and Study B capture sets.")
+    elif slots is not None:
+        raise ReceiptError("Use the Study A/B capture flags for a saved Study A/B comparison receipt.")
+    if kind == BLIND_STUDY and captures:
+        raise ReceiptError("Reproduce this study without capture flags. Its synthetic inputs are built in.")
     with ExitStack() as resources:
         sources = {}
         if kind in (SAVED_FLIP_COMPARISON, BLIND_COMPARISON):
@@ -285,6 +420,20 @@ async def run(args) -> int:
             sources["comparison_replays"] = replays
         elif kind in (SAVED_SESSION_COMPARISON, BLIND_SESSION_COMPARISON):
             sources["session_replays"] = await comparison_receipt_replays(receipt, captures, resources)
+        elif kind == BLIND_SAVED_STUDY:
+            try:
+                symbol = operation_core(kind).capture_market(receipt["request"])
+            except ValueError as exc:
+                raise ReceiptError(str(exc)) from exc
+            sources["study_captures"] = await saved_study_captures(captures, symbol)
+        elif kind == BLIND_STUDY_COMPARISON:
+            sources["study_captures"] = {
+                symbol: await saved_study_captures([(market, path) for market, path in captures if market == symbol], symbol)
+                for symbol in ("ES", "NQ")
+            }
+        elif kind == BLIND_SAVED_STUDY_COMPARISON:
+            selected = await saved_study_pair_captures(slots)
+            sources["study_captures"] = {side: inputs for side, (_, inputs) in selected.items()}
         elif captures or kind == BLIND_REVIEW:
             from .wind_tunnel_saved_replay import SavedReplay
             if kind == BLIND_REVIEW:

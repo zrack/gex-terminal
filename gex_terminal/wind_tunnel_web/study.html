@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>GEX / Blind Replay Study</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script defer src="/static/vendor/plotly.min.js"></script>
+  <script defer src="/static/study.js"></script>
+</head>
+<body class="blind-study-page">
+<a class="skip-link" href="#study-main">Skip to blind replay study</a>
+<header class="app-header">
+  <div class="brand"><strong>GEX</strong><span>/</span> WIND TUNNEL</div>
+  <div class="header-actions study-header-actions">
+    <div id="study-source-picker" class="blind-source-picker" hidden>
+      <label for="study-source-select">Saved market</label>
+      <select id="study-source-select" disabled></select>
+    </div>
+    <button type="button" id="study-compare-toggle" class="secondary-button" hidden>Compare ES and NQ</button>
+    <button type="button" id="study-receipts" class="quiet" disabled><img src="/static/icons/folder-open.svg" alt=""><span>Saved studies</span></button>
+  </div>
+</header>
+<main id="study-main" tabindex="-1">
+  <div class="study-title">
+    <div>
+      <h1 id="study-title">Blind Replay Study</h1>
+      <p id="study-instructions">Read each saved session’s first eligible flip and call what its net-GEX sign will do 30 minutes later.</p>
+    </div>
+  </div>
+  <p id="study-status" class="blind-notice" role="status">Opening saved study cases…</p>
+  <div id="study-comparison-actions" hidden>
+    <button type="button" id="study-save-comparison" class="secondary-button" disabled hidden><img src="/static/icons/floppy-disk.svg" alt=""><span>Save comparison</span></button>
+    <p id="study-comparison-status" class="investigation-status" role="status" tabindex="-1"></p>
+  </div>
+  <div id="study-panes" class="study-panes"></div>
+</main>
+
+<template id="study-pane-template">
+  <article class="study-pane">
+    <div class="study-pane-heading">
+      <div>
+        <h2 id="study-pane-title" class="study-pane-title"></h2>
+        <p id="study-protocol" class="blind-context" hidden></p>
+      </div>
+      <span id="study-stage" class="blind-stage" hidden></span>
+    </div>
+    <p id="study-pane-status" class="blind-notice" role="status"></p>
+    <div id="study-workspace" class="study-workspace" hidden>
+      <aside class="blind-panel study-queue" aria-labelledby="study-cases-title">
+        <h2 id="study-cases-title">Study cases</h2>
+        <ol id="study-cases" class="study-cases"></ol>
+        <p id="study-progress" class="study-progress" role="status"></p>
+        <button type="button" id="study-submit" class="primary-button study-submit" disabled>Lock calls and reveal</button>
+      </aside>
+      <section class="study-active" aria-labelledby="study-case-title">
+        <div class="study-case-heading">
+          <h2 id="study-case-title" tabindex="-1"></h2>
+          <p id="study-case-context" class="blind-context"></p>
+        </div>
+        <p id="study-no-flip" class="blind-notice" hidden>No eligible flip was found for this saved session. This case requires no call.</p>
+        <div id="study-cutoff" class="study-evidence-slot"></div>
+        <section id="study-call-panel" class="blind-panel blind-read-panel study-call-panel" aria-labelledby="study-call-title" hidden>
+          <h3 id="study-call-title">Your call</h3>
+          <fieldset id="study-forecast">
+            <legend>What will the net-GEX sign do by the 30-minute cutoff?</legend>
+            <div class="study-options">
+              <label><input type="radio" name="prediction" value="holds"> Sign holds</label>
+              <label><input type="radio" name="prediction" value="changes"> Sign changes</label>
+            </div>
+          </fieldset>
+          <label for="study-read">Reasoning <span class="muted">(optional)</span></label>
+          <textarea id="study-read" class="blind-read" rows="3" maxlength="4000" autocomplete="off" placeholder="Record why you expect this outcome"></textarea>
+          <button type="button" id="study-next" class="secondary-button" hidden>Next unanswered case</button>
+        </section>
+      </section>
+    </div>
+
+    <section id="study-results" hidden aria-labelledby="study-results-title">
+      <div class="study-results-heading">
+        <div>
+          <h2 id="study-results-title" tabindex="-1">Study results</h2>
+          <p id="study-result-coverage" class="blind-context"></p>
+        </div>
+        <button type="button" id="study-save" class="secondary-button study-single-receipt" disabled><img src="/static/icons/floppy-disk.svg" alt=""><span>Save study</span></button>
+      </div>
+      <div class="study-scorecards" aria-label="Study score and comparison">
+        <div class="blind-panel study-score"><span class="metric-label">YOUR ACCURACY</span><strong id="study-accuracy"></strong><span id="study-accuracy-count"></span></div>
+        <div class="blind-panel study-score"><span class="metric-label">ALWAYS-HOLDS BASELINE</span><strong id="study-baseline"></strong><span id="study-baseline-count"></span></div>
+      </div>
+      <p id="study-results-note" class="chart-caption"></p>
+      <section class="blind-panel study-result-cases" aria-labelledby="study-breakdown-title">
+        <h3 id="study-breakdown-title">Case results</h3>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Case predictions and outcomes">
+          <table>
+            <thead><tr><th scope="col">Case</th><th scope="col">Your call</th><th scope="col">Actual</th><th scope="col">Score</th><th scope="col">Evidence</th></tr></thead>
+            <tbody id="study-result-cases"></tbody>
+          </table>
+        </div>
+      </section>
+      <section id="study-drilldown" class="study-drilldown" aria-labelledby="study-drilldown-title" hidden>
+        <div class="study-case-heading">
+          <h3 id="study-drilldown-title" tabindex="-1"></h3>
+          <p id="study-drilldown-context" class="blind-context"></p>
+          <p id="study-committed-read" class="blind-committed-read" hidden></p>
+        </div>
+        <div id="study-drilldown-cutoff" class="study-evidence-slot"></div>
+        <section id="study-outcome" class="blind-panel blind-outcome" aria-labelledby="study-outcome-title" hidden>
+          <h4 id="study-outcome-title">30-minute outcome</h4>
+          <div id="study-outcome-signs" class="blind-outcome-metrics"></div>
+          <p id="study-horizon" class="blind-context"></p>
+          <p id="study-horizon-note" class="chart-caption" hidden></p>
+          <h4 class="blind-chart-heading">Futures price path</h4>
+          <p id="study-price-caption" class="chart-caption"></p>
+          <div id="study-plot" class="plot blind-price-plot" role="img" hidden></div>
+          <details id="study-price-details" class="data-details" hidden>
+            <summary>Inspect price values</summary>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Observed futures price values">
+              <table>
+                <thead><tr><th scope="col">Time (UTC)</th><th scope="col">Futures price</th><th scope="col">Observation</th></tr></thead>
+                <tbody id="study-price-rows"></tbody>
+              </table>
+            </div>
+          </details>
+        </section>
+      </section>
+    </section>
+  </article>
+</template>
+
+<template id="study-evidence-template">
+  <section class="blind-panel blind-flip study-evidence">
+    <h3>Starting flip</h3>
+    <p class="investigation-summary"></p>
+    <div class="investigation-snapshots"></div>
+    <details class="data-details blind-contracts" open>
+      <summary>Contract drivers</summary>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Contract drivers at the flip">
+        <table>
+          <caption>Changed contributions in USD per 1% underlying move</caption>
+          <thead><tr><th scope="col">Contract</th><th scope="col">Quantity before → after</th><th scope="col">GEX change</th><th scope="col">GEX without update</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+</template>
+<dialog id="study-save-dialog" aria-labelledby="study-save-title">
+  <form id="study-save-form">
+    <div class="dialog-header"><h2 id="study-save-title">Save study</h2><button type="button" data-close class="icon-button" aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div>
+    <div class="dialog-body">
+      <label id="study-name-label" for="study-name">Study name</label>
+      <input id="study-name" type="text" maxlength="80" required autocomplete="off">
+      <p id="study-save-error" class="validation-message" role="alert" hidden></p>
+      <button type="submit" id="study-save-confirm" class="primary-button">Save study</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="study-receipts-dialog" aria-labelledby="study-receipts-title">
+  <div class="dialog-header"><h2 id="study-receipts-title">Saved studies</h2><button type="button" data-close class="icon-button" aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div>
+  <div class="dialog-body"><p id="study-receipt-status" role="status"></p><div id="study-receipt-list"></div></div>
+</dialog>
+</body>
+</html>

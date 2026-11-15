@@ -40,7 +40,13 @@ SAVED_SESSION_COMPARISON = "compare-saved-sessions"
 BLIND_REVIEW = "blind-review"
 BLIND_COMPARISON = "blind-comparison"
 BLIND_SESSION_COMPARISON = "blind-session-comparison"
-BLIND_OPERATIONS = (BLIND_REVIEW, BLIND_COMPARISON, BLIND_SESSION_COMPARISON)
+BLIND_STUDY = "blind-study"
+BLIND_SAVED_STUDY = "blind-saved-study"
+BLIND_STUDY_COMPARISON = "blind-study-comparison"
+BLIND_SAVED_STUDY_COMPARISON = "blind-saved-study-comparison"
+STUDY_COMPARISONS = (BLIND_STUDY_COMPARISON, BLIND_SAVED_STUDY_COMPARISON)
+BLIND_OPERATIONS = (BLIND_REVIEW, BLIND_COMPARISON, BLIND_SESSION_COMPARISON,
+                    BLIND_STUDY, BLIND_SAVED_STUDY, *STUDY_COMPARISONS)
 COMPARISONS = (SAVED_FLIP_COMPARISON, SAVED_SESSION_COMPARISON)
 OPERATIONS = ("calculate", "surface", "search", "models", "investigate", *SAVED_INVESTIGATION_MARKETS,
               *COMPARISONS)
@@ -125,12 +131,34 @@ def operation_core(kind: str, core=None):
     if kind == BLIND_SESSION_COMPARISON:
         from . import wind_tunnel_blind_session_comparison
         return wind_tunnel_blind_session_comparison
+    if kind == BLIND_STUDY:
+        from . import wind_tunnel_blind_study
+        return wind_tunnel_blind_study
+    if kind == BLIND_SAVED_STUDY:
+        from . import wind_tunnel_blind_saved_study
+        return wind_tunnel_blind_saved_study
+    if kind == BLIND_STUDY_COMPARISON:
+        from . import wind_tunnel_blind_study_comparison
+        return wind_tunnel_blind_study_comparison
+    if kind == BLIND_SAVED_STUDY_COMPARISON:
+        from . import wind_tunnel_blind_saved_study_comparison
+        return wind_tunnel_blind_saved_study_comparison
     return core or core_module()
 
 
 async def calculate_operation(kind: str, request: dict, *, core=None, saved_replay=None,
-                              comparison_replays=None, session_replays=None) -> dict:
+                              comparison_replays=None, session_replays=None, study_captures=None) -> dict:
     producer = operation_core(kind, core)
+    if kind == BLIND_STUDY:
+        try:
+            return await producer.blind_study(request)
+        except producer.BlindStudyError as exc:
+            raise ReceiptError(str(exc)) from exc
+    if kind in (BLIND_SAVED_STUDY, *STUDY_COMPARISONS):
+        try:
+            return await getattr(producer, kind.replace("-", "_"))(request, study_captures)
+        except producer.BlindStudyError as exc:
+            raise ReceiptError(str(exc)) from exc
     if kind in BLIND_OPERATIONS:
         from .wind_tunnel_blind_review import BlindReviewError
 
@@ -240,7 +268,7 @@ def validate_receipt(receipt: Any) -> dict:
 
 
 async def reproduce_receipt(receipt: dict, *, core=None, saved_replay=None, comparison_replays=None,
-                            session_replays=None) -> dict:
+                            session_replays=None, study_captures=None) -> dict:
     validate_receipt(receipt)
     kind = receipt["kind"]
     producer = operation_core(kind, core)
@@ -258,8 +286,16 @@ async def reproduce_receipt(receipt: dict, *, core=None, saved_replay=None, comp
         if (not matches_es_only_build(kind, recorded, identity)
                 or (saved_replay is not None and saved_replay.symbol != "ES")):
             raise ReceiptError(identity_error)
+        if kind == BLIND_SAVED_STUDY:
+            try:
+                market = producer.capture_market(receipt["request"])
+            except producer.BlindStudyError as exc:
+                raise ReceiptError(str(exc)) from exc
+            if market != "ES":
+                raise ReceiptError(identity_error)
     result = await calculate_operation(kind, receipt["request"], core=core, saved_replay=saved_replay,
-                                       comparison_replays=comparison_replays, session_replays=session_replays)
+                                       comparison_replays=comparison_replays, session_replays=session_replays,
+                                       study_captures=study_captures)
     if es_only_build:
         result = with_recorded_identity(result, recorded)
     exact = (canonical_bytes(result) == canonical_bytes(receipt["result"])
@@ -484,6 +520,11 @@ async def run_bounded(request, operation, *, kind=None, locks=()):
         # allowing the same operation to finish when saved or reproduced.
         if kind in (*COMPARISONS, BLIND_COMPARISON, BLIND_SESSION_COMPARISON):
             deadline = 2 * SAVED_REPLAY_TIMEOUT_SECONDS
+        elif kind in (BLIND_SAVED_STUDY, *STUDY_COMPARISONS):
+            from .wind_tunnel_blind_saved_study import MAX_STUDY_CAPTURES
+
+            study_count = 2 if kind in STUDY_COMPARISONS else 1
+            deadline = study_count * MAX_STUDY_CAPTURES * SAVED_REPLAY_TIMEOUT_SECONDS
         elif kind in ("investigation-timeline", BLIND_REVIEW, *SAVED_INVESTIGATION_MARKETS):
             deadline = SAVED_REPLAY_TIMEOUT_SECONDS
         else:
@@ -684,10 +725,14 @@ def create_app(workspace: Path | str, *, token: str | None = None,
 
 async def start_server(workspace: Path | str, *, port: int = 8765, core=None, saved_replay=None,
                        saved_replays=None, comparison_workspace: Path | str | None = None,
-                       blind_review=None, blind_reviews=None):
+                       blind_review=None, blind_reviews=None, blind_study=None, blind_studies=None,
+                       blind_study_pair=None):
     """Return (runner, launch_url); the caller must await runner.cleanup()."""
     if isinstance(port, bool) or not 0 <= port <= 65535:
         raise ValueError("Port must be between 0 and 65535.")
+    study_mode = any(mode is not None for mode in (blind_study, blind_studies, blind_study_pair))
+    if study_mode and (blind_review is not None or blind_reviews is not None):
+        raise ValueError("Choose either a blind study or a saved blind review.")
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     runner = None
     try:
@@ -695,7 +740,11 @@ async def start_server(workspace: Path | str, *, port: int = 8765, core=None, sa
         listener.setblocking(False)
         actual_port = listener.getsockname()[1]
         origin = f"http://127.0.0.1:{actual_port}"
-        if blind_review is None and blind_reviews is None:
+        if study_mode:
+            from .wind_tunnel_blind_study_server import create_study_app
+            app = create_study_app(workspace, origin=origin, study=blind_study, studies=blind_studies,
+                                   pair=blind_study_pair)
+        elif blind_review is None and blind_reviews is None:
             app = create_app(workspace, origin=origin, core=core, saved_replay=saved_replay,
                              saved_replays=saved_replays, comparison_workspace=comparison_workspace)
         else:
