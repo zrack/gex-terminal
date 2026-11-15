@@ -5,8 +5,9 @@ outside the owning document; do not copy full command references, contracts, or
 status checklists into multiple files.
 
 The usage guides describe the current source. Dated studies, work packets and
-ADRs retain their original build identities and evidence. A frozen October 18
-study is not an observation of later pricing or comparison changes. Current
+ADRs retain their original build identities and evidence. The frozen October 18
+study covers its identified build. Later pricing, flip investigation and blind
+review changes need their own evidence. Current
 screenshots and diagram provenance are indexed in [Visual Assets](../assets/README.md).
 
 ## Canonical Ownership
@@ -27,7 +28,9 @@ screenshots and diagram provenance are indexed in [Visual Assets](../assets/READ
 | Recruitment and scheduling | [Study Recruitment](study-recruitment.md) | Blank sources, participant-only delivery, consent choices and private organizer workflow |
 | Dated participant delivery | [October 18 delivery amendment](studies/participant-delivery-2026-10-18.md) | Exact participant/organizer archive identities and packaging evidence; no observed outcomes |
 | Install and first use | [First Run](first-run.md) | Reviewed wheel setup, Terminal/Wind Tunnel/Both starter, guided journey and package lifecycle |
-| Market Wind Tunnel | [Wind Tunnel](wind-tunnel.md) | Browser workflow, frozen Terminal checkpoint handoff, scenarios, sampled search, portable experiments and worked examples |
+| Market Wind Tunnel | [Wind Tunnel](wind-tunnel.md) | Browser scenarios, frozen Terminal checkpoint handoff, sampled search and reproducible experiments |
+| Saved flip investigations | [Saved Session Flips](wind-tunnel.md#investigate-saved-session-flips) | Timeline markers, contract contributions, driving-update removal and paired investigations |
+| Blind Replay Review | [Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind) | Committed reads, 30-minute outcomes, independent paired reviews and receipt reproduction |
 | Model comparisons | [Model Comparison](model-comparison.md) | Side-by-side default/directionalized results, price/IV/time grid, exact values and separate CLI artifacts |
 | Documentation visuals | [Visual Assets](../assets/README.md) | Current synthetic screenshots, architecture diagrams, capture settings, image hashes and archived concepts |
 | Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
@@ -48,7 +51,9 @@ screenshots and diagram provenance are indexed in [Visual Assets](../assets/READ
 | Security | [Security](../SECURITY.md) | Credential handling and vulnerability reporting |
 
 An active work packet under `work-packets/` owns the status of its authorized
-change. Closed [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md)
+change. [GEX-WIND-REVIEW-001](work-packets/GEX-WIND-REVIEW-001.md) records the
+saved flip investigation, comparison and blind review scope and integration
+conditions. Closed [GEX-TRADOVATE-CAPTURE-001](work-packets/GEX-TRADOVATE-CAPTURE-001.md)
 records the read-only raw collector and its offline regression evidence,
 integrated through [PR #43](https://github.com/zrack/gex-terminal/pull/43).
 Actual ES/NQ collection and validation remain open under issue #4.
@@ -108,6 +113,10 @@ offline live-population contract that supports that later external gate.
   full sessions, and the guided research loop.
 - [Market Wind Tunnel](wind-tunnel.md) — landscape, scenario comparison, fragility
   search and reproducible synthetic experiments.
+- [Saved Session Flips](wind-tunnel.md#investigate-saved-session-flips) — inspect
+  and compare modeled changes in saved ES/NQ captures.
+- [Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind) — commit reads
+  before revealing later evidence from one or two saved captures.
 - [Model Comparison](model-comparison.md) — default/directionalized views,
   focused strikes and explicit price/IV/time sensitivity cases.
 - [Study Build](study-build.md) — freeze a reviewed wheel and materials before

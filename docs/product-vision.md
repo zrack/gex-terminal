@@ -139,10 +139,12 @@ without silently changing the input population. Price and model-time changes,
 missing direction, unpriced inputs and older observations must remain explicit.
 
 The retained explanation must bind the inputs, assumptions and calculation
-identity. A faster or clearer display must preserve that evidence. The product
-question is whether a researcher can complete a recurring, rights-authorized
-investigation and understand its limits unaided; implementation alone cannot
-establish that value, a unique market position or a predictive result.
+identity. At a modeled sign change, show the contract contributions and let
+the researcher test the driving update at the same cutoff. Preserve their
+interpretation before revealing the later modeled state and observed price
+path. When comparing sessions, preserve each read and outcome in its own
+source context. The product question is whether a researcher can complete a
+recurring, rights-authorized investigation and understand its limits unaided.
 
 [Architecture](architecture.md) owns the current components and data boundaries;
 [Application Review](application-review.md) owns shipped capabilities and their

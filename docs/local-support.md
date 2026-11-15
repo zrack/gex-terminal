@@ -189,8 +189,11 @@ recognized backup/retention artifact groups. Do not pass the whole installed
 research folder to these commands and assume it is covered. Preserve those
 files separately under an operator-controlled private backup procedure, verify
 their copied bytes, and retain the reviewed setup and installation receipt
-needed to reproduce earlier scenarios. See
-[saved-data setup](first-run.md#open-saved-es-or-nq-data) and
+needed to reproduce earlier scenarios. Preserve the `wind_tunnel_reviews`
+workspace or your chosen review workspace with the original captures. Saved
+flip investigations and blind review receipts record capture identity and
+require those original files for verification. Paired receipts require both.
+See [saved-data setup](first-run.md#open-saved-es-or-nq-data) and
 [Wind Tunnel reproduction](wind-tunnel.md#save-export-and-reproduce).
 
 Before a disconnected launch, confirm cloud-synchronized capture and research

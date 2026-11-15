@@ -128,6 +128,39 @@
       "width": 1280
     },
     {
+      "bytes": 169006,
+      "capture_batch": "saved-review-2026-11-14",
+      "format": "png",
+      "height": 1179,
+      "kind": "runtime_capture",
+      "path": "assets/wind-tunnel-saved-flip.png",
+      "settings": "Synthetic ES Session A. Saved timeline marker at sequence 2 with the driving update omitted in a matching-cutoff counterfactual.",
+      "sha256": "21ff6c55ad3a3e69443cc4bdc39b5b2dc7960949b415c691d3938e5a83a01bce",
+      "width": 1440
+    },
+    {
+      "bytes": 190221,
+      "capture_batch": "saved-review-2026-11-14",
+      "format": "png",
+      "height": 2025,
+      "kind": "runtime_capture",
+      "path": "assets/wind-tunnel-blind-session-gate.png",
+      "settings": "Two completed synthetic ES captures. A committed and revealed +30-minute positive sign and recorded price path. B still requires commitment.",
+      "sha256": "142782ba0f5060c7dba01928437ce0c9f78c8cb6f75c1c0cf710bb9eaaa0ee82",
+      "width": 1280
+    },
+    {
+      "bytes": 187848,
+      "capture_batch": "saved-review-2026-11-14",
+      "format": "png",
+      "height": 2080,
+      "kind": "runtime_capture",
+      "path": "assets/wind-tunnel-blind-session-comparison.png",
+      "settings": "Same two synthetic ES captures after both commitments. A holds a positive sign and B switches negative at +30 minutes. Both observed price paths and Save comparison are visible.",
+      "sha256": "67e880d952bbcaa52cbf4fb36f303733260536dfe19856cebb82cf9287971340",
+      "width": 1280
+    },
+    {
       "bytes": 7448,
       "format": "svg",
       "height": "860",
@@ -150,25 +183,25 @@
       "width": null
     },
     {
-      "bytes": 5161,
+      "bytes": 5291,
       "format": "svg",
       "height": "1080",
       "kind": "derived_architecture",
       "path": "assets/workbench-components.svg",
-      "settings": "Current starter, Terminal/Wind Tunnel, saved source and immutable checkpoint state boundaries",
-      "sha256": "a0b48562056cefa9a02421c78bc6e7a5e52a45fb5158af21cc88e109061f26aa",
+      "settings": "Starter, Terminal and Wind Tunnel state boundaries, saved flip and blind workflows, and different receipt input requirements.",
+      "sha256": "2cd09da6b905e5c9d49992765111fca43cd16a493e53b314881042be366c74cf",
       "viewBox": "0 0 1200 1080",
       "width": "1200"
     },
     {
-      "bytes": 7156,
+      "bytes": 8004,
       "format": "svg",
-      "height": "1230",
+      "height": "1432",
       "kind": "derived_architecture",
       "path": "assets/offline-research-architecture.svg",
-      "settings": "Current offline source, calculation/cache, compact/full receipt and research-authority boundaries",
-      "sha256": "f4c1a31db214a82e5b8bd37000ece011f753f00f8a26413a0d66d027e89f5598",
-      "viewBox": "0 0 1400 1230",
+      "settings": "Source boundaries, compact scenario computations, portable scenario receipts, and capture-bound replay investigations and blind reviews.",
+      "sha256": "6b48476f6bf09ac530bc8ee8fed3bfe48cc939e6d5aaec20d66d975d03fdc672",
+      "viewBox": "0 0 1400 1432",
       "width": "1400"
     },
     {
@@ -208,7 +241,7 @@
   },
   "documentation_only_changes": true,
   "interpretation": [
-    "Current screenshots use bundled synthetic data, not private Databento observations.",
+    "Screenshots use bundled or script-generated synthetic data. No private Databento observations are pictured.",
     "Legacy coverage metadata is explicitly unreported/unavailable in the seeded Terminal demo and NQ model fixture. Accepted-IV age may be separately reportable.",
     "Unknown exercise style is not promoted to confirmed American or European compatibility.",
     "Native screenshot clocks/fonts/identifiers can vary on regeneration; file hashes identify reviewed assets.",
@@ -231,7 +264,7 @@
   "runtime_application_version": "0.6.0",
   "runtime_source_commit": "2d6a239edd509a5dde8eb5019d0b634311c1784b",
   "schema": "gex-terminal.documentation-visuals.v1",
-  "source_qualification": "Working-tree changes are documentation/assets only; screenshot runtime code and bundled inputs match the named commit. Diagrams are derived from the current documentation and are not screenshots.",
+  "source_qualification": "The 2026-10-19 screenshot batch uses its named runtime commit and bundled inputs. Assets marked with a capture batch use that batch’s exact runtime source and fixtures. Architecture diagrams are derived from maintained documentation.",
   "synthetic_inputs": [
     {
       "path": "gex_terminal/data/wind_tunnel/es_multi_expiry.jsonl",
@@ -251,5 +284,38 @@
     "app.css": "d1534429b3b571cc16b5b9cca6f160701951cf34b316a867000e2ba60940d9a7",
     "app.js": "1bca4ebfdba31666f1d024f0fa9a69e7748756ed15e4e762fe77793d4314453f",
     "index.html": "febbf5fa4781a27704875820be48d3ef9c1f2df8e4aeef10ecf3db6d7b76f967"
+  },
+  "capture_batches": {
+    "saved-review-2026-11-14": {
+      "browser": "Chromium 158.0.8127.18",
+      "capture_date_local": "2026-11-14",
+      "offline": {
+        "application_network": "IPv4 loopback only",
+        "credits_used": 0,
+        "market_downloads": 0,
+        "provider_requests": 0
+      },
+      "pixel_policy": "Native browser viewport pixels. No resize, compositing, numerical edits or chart repaint.",
+      "playwright_cli": "0.1.24",
+      "python": "3.12.16",
+      "runtime_application_version": "0.6.0",
+      "runtime_source_commit": "b3f155169bd2d669ecaae3cf4e1e776e7c7e87e1",
+      "script": {
+        "path": "scripts/refresh_wind_tunnel_review_previews.py",
+        "sha256": "0a7ae9bdd1b41e124928e63bc5dd46b6468572fba65b227bf9adcdb8be106591"
+      },
+      "synthetic_capture_sha256": {
+        "session-a.gex-session.jsonl": "ca95ca571c4566273d5274b99c3c14e1038d738c2939f6ea149bcfca5fde9006",
+        "session-b.gex-session.jsonl": "1503393fa8888ae9692a69d7fd01c146f6a7f0c956fc7e23f2f01d94d06d7cda"
+      },
+      "timezone": "America/Los_Angeles",
+      "web_source_sha256": {
+        "app.css": "35c4d2778a7b4e0cd1821ba5c32deff78378399fbbdcd79bb8a953ce7fb40f82",
+        "app.js": "a93ecf1a16fcba00473a15644583b8dfa7250aba9c133a049f027a35bce932f6",
+        "index.html": "9e9d7d16f7777ec9feabf5acb5a22b650ba15021b2d9d3363b57efcf59167990",
+        "blind.html": "ac5bf0310a063156d137a4907164c2f9a0e714adcd2c13fc4d8dd47105b238f6",
+        "blind.js": "a56ce0bc7520ecd3bfb342b02de4a9e2366ce9f414dc1a0a42c939049a5f8bde"
+      }
+    }
   }
 }

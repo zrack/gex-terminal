@@ -117,7 +117,8 @@ Generated reports, screenshots, graph indexes, and dashboards are derived
 views. They never override their listed source authorities.
 
 Current saved-data startup, full-session replay, Wind Tunnel model comparisons,
-pricing coverage, and IV-age disclosures are documented in
+pricing coverage, IV-age disclosures, saved flip investigations and blind
+review are documented in
 [First Run](first-run.md), [Wind Tunnel](wind-tunnel.md),
 [Model Assumptions](model-assumptions.md), and [Architecture](architecture.md).
 Later builds can retain package version `0.6.0`; record the exact source commit,

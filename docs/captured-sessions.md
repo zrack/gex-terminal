@@ -122,9 +122,15 @@ For a completed ES/NQ trading day larger than the browser upload limit, use
 verifies an explicit local capture up to the local-file limits above, keeps a
 private frozen copy and reconstructs its final checkpoint. Long captures load
 Terminal to the final state without source-time delays; Wind Tunnel opens that
-final checkpoint. It does not provide full-session scrubbing in the browser.
-Register both symbols to switch their final checkpoints in the same workbench.
+final checkpoint. Register both symbols to switch between their checkpoints and
+[clickable net-GEX flip markers](wind-tunnel.md#investigate-saved-session-flips)
+in the same workbench.
 See [saved-data first run](first-run.md#open-saved-es-or-nq-data).
+
+Use the [blind review launch](wind-tunnel.md#review-a-saved-flip-blind) to commit
+a read before viewing the later result. Individual review receipts need the
+original capture, and paired receipts need both originals. Retain those files
+with the receipts according to the capture policy.
 
 Capture length and pricing coverage are different. A final checkpoint excludes
 contracts already expired at its cutoff; active contracts without usable IV

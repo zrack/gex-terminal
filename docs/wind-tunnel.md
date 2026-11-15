@@ -7,6 +7,9 @@ a local captured session. It keeps the selected checkpoint's contract
 quantities fixed and reprices scenarios
 through the same calculation engine as the terminal.
 
+Use [Investigate The Synthetic ES Flip](#investigate-the-synthetic-es-flip) to
+compare two replay checkpoints and test the effect of one option-volume update.
+
 The pricing notice above the charts identifies the formula and exercise-style
 qualification. **Source & assumptions** explains early exercise, the configured
 risk-free rate and ACT/365 timing. Newly normalized Databento futures options
@@ -76,13 +79,16 @@ Unavailable IV and raw quantities are preserved, with excluded exposure shown
 in pricing coverage. Subsequent source selections and scenarios are independent.
 This path uses no provider requests or credits.
 
-When both symbols have been registered by a current starter, the same Wind
-Tunnel also offers the other saved symbol in its source picker. The selected
-symbol remains the initial source and Terminal's input. The other checkpoint
-and its frozen capture are checked against their registered hashes without
-replaying that additional capture. A missing, changed or older unbound
-registration is skipped with a startup note; register that symbol again to
-enable switching. No source is discovered by scanning your historical folders.
+When both symbols have been registered by a current starter, use **Research
+source** to switch between saved ES and NQ in the same Wind Tunnel window. Each
+source has its own [timeline of net-GEX flips](#investigate-saved-session-flips).
+With both captures open, you can [compare flips across saved sessions](#compare-flips-across-saved-sessions)
+in one view.
+The symbol selected at launch remains Terminal's input. Startup checks the
+other checkpoint and its frozen capture against their registered hashes.
+A missing, changed or older unbound registration is skipped with a startup
+note. Register that symbol again to enable switching. The picker uses the
+captures you registered.
 
 Open **Model comparison** to review the default proxy and aggressor-directionalized proxy
 side by side for the chosen ES or NQ checkpoint. Price, IV and elapsed-time
@@ -208,6 +214,210 @@ Each plotted value comes from a calculation. A 2D view and inspectable tables
 keep results accessible where WebGL is unavailable. Compare uses matched axes
 so a larger-looking plot cannot come from a different scale. Fragility shows
 only tested cells: missing or invalid cells do not mean stability.
+
+## Investigate The Synthetic ES Flip
+
+1. Choose **Zero-Gamma Flip** in the source picker, then select **Investigate
+   net-GEX flip**. The investigation compares 16:00:00 and 16:00:04 UTC on
+   July 16, 2026 in the bundled ES replay using the volume proxy.
+2. Compare the two checkpoints and inspect the contract contributions. The
+   futures price is 5,948.75 at both cutoffs. The 5,950 call's 2,880-contract
+   volume update drives the modeled net GEX from negative to positive and the
+   dominant wall from 5,925 to 5,950.
+3. Select **Remove call-volume update**. The workbench recomputes the later
+   cutoff without that update. Net GEX stays negative and the wall stays at
+   5,925 in this calculation.
+4. Choose **Save investigation**. In **Saved scenarios**, use **Reopen** to
+   reproduce the investigation or **Export JSON** to retain a portable receipt.
+   Apply the [verification and reproduction commands](#save-export-and-reproduce)
+   to the exported file.
+
+The investigation uses a fixed pair of checkpoints in the bundled synthetic ES
+replay. The legacy fixture groups option rows by strike and side, with a
+synthetic 0DTE label and a 0.01-day pricing fallback. Its contributions explain
+the change in the model calculation for these replay inputs.
+
+## Investigate Saved Session Flips
+
+Open **Saved data — Both** from a current setup and choose **ES** or **NQ**.
+To start Wind Tunnel directly with both markets, pass both completed normalized
+captures. The window starts on ES and lets you switch to NQ in **Research
+source**. Pass just one capture flag to open a single market.
+
+```bash
+gex-terminal wind-tunnel serve \
+  --saved-es-capture /path/to/es.gex-session.jsonl \
+  --saved-nq-capture /path/to/nq.gex-session.jsonl
+```
+
+1. Select **Find net-GEX flips** on the saved replay timeline. Small
+   captures are checked at each accepted update. On larger or more expensive
+   captures, Wind Tunnel samples the session and narrows detected opposing-sign
+   brackets to an exact driving update. Brief flips between samples can be
+   missed. A flip requires priced exposure with opposing, nonzero signs.
+2. Select a timeline marker to inspect the two states and the change in priced
+   exposure by contract. Capture sequence orders updates with identical
+   timestamps. The timeline uses the Terminal selected proxy and the capture's
+   pricing assumptions. Missing IV remains visible as a pricing coverage gap.
+3. Select **Remove driving update** to omit the selected event at the same cutoff.
+   An underlying tick can reprice many contracts at once. The counterfactual
+   shows whether the modeled sign change survives and reports unavailable
+   exposure when the remaining inputs cannot price it.
+4. Select **Save investigation**. **Saved scenarios** shows receipts from both
+   open markets. Reopening an investigation verifies the receipt against its
+   capture and selects that source. To reproduce an exported receipt from the
+   CLI, pass the original capture and use a compatible calculation build. Match
+   the flag to the receipt's market.
+
+   ```bash
+   gex-terminal wind-tunnel reproduce /path/to/receipt.json --saved-nq-capture /path/to/nq.gex-session.jsonl
+   ```
+
+![Saved synthetic ES flip investigation with a selected event and its contract contributions](../assets/wind-tunnel-saved-flip.png)
+
+*A saved synthetic ES capture in Wind Tunnel. The timeline selects the driving
+event and the comparison shows its exposure change.*
+
+The receipt binds the capture checksum, event sequence, model and calculated
+results. It references the original capture, and its contract details still
+contain market data. Keep the capture and receipt according to your data rights.
+When both captures are open, choose the capture in **Research source** before
+starting an investigation. Each timeline, contribution table, removed update
+and receipt belongs to the capture that supplied the flip. Scenario controls
+continue to operate on the selected frozen checkpoint.
+
+## Review A Saved Flip Blind
+
+Open a dedicated window with one completed capture. Use
+`--saved-es-capture` for ES or `--saved-nq-capture` for NQ.
+
+```bash
+gex-terminal wind-tunnel serve --blind-review --saved-nq-capture /path/to/nq.gex-session.jsonl
+```
+
+To switch between ES and NQ in the same window, supply one completed capture
+per market. ES opens first. Use **Saved session** to switch markets. Switching
+preserves each capture's draft, committed read, reveal result and save progress.
+
+```bash
+gex-terminal wind-tunnel serve --blind-review \
+  --saved-es-capture /path/to/es.gex-session.jsonl \
+  --saved-nq-capture /path/to/nq.gex-session.jsonl
+```
+
+Wind Tunnel stops at the first eligible modeled flip in each capture. Add
+`--flip-sequence N` to select an exact event sequence for the initial capture.
+That sequence applies to ES when both markets are open and to Session A for a
+pair from the same market. Each review starts with the selected flip, its
+contract drivers and its update-removal result. The ordinary final checkpoint,
+full-session timeline and scenario views stay outside this window.
+
+1. Enter **Your read**, then select **Commit read and reveal**. The read locks
+   before Wind Tunnel calculates the outcome.
+2. Review the **30-minute outcome** and **Futures price path**. The net-GEX sign
+   uses the accepted state through the target, valued at that time. The price
+   path shows observations for the same futures identity, with the observation
+   gaps and ages visible. If the capture ends early or the evidence is
+   insufficient, the sign is unavailable and any observed path remains visible.
+3. Choose **Save review**. The receipt binds the capture checksum, event
+   sequence, committed read, and later result for one capture. **Saved reviews**
+   lists receipts for the selected capture. **Reopen** verifies a receipt for
+   that capture and restores its committed read and outcome.
+
+Blind review saves in `wind_tunnel_reviews` by default. Use `--workspace PATH`
+to choose another local receipt workspace. To reproduce an exported review,
+use a compatible calculation build and supply only the original capture with
+its matching market flag. The receipt identifies the event sequence.
+
+```bash
+gex-terminal wind-tunnel reproduce /path/to/review.json \
+  --saved-nq-capture /path/to/nq.gex-session.jsonl
+```
+
+### Compare Two Blind Reviews
+
+For a mixed ES and NQ pair, use the two-market launch command above and select
+**Compare ES and NQ**. For two distinct captures from the same market, repeat
+that market's capture flag and select **Compare saved sessions**. The first
+capture opens as **Session A** and the second as **Session B**. Use
+**Review one session** to return to an individual capture.
+
+```bash
+gex-terminal wind-tunnel serve --blind-review \
+  --saved-es-capture /path/to/es-first.gex-session.jsonl \
+  --saved-es-capture /path/to/es-second.gex-session.jsonl
+```
+
+1. Inspect each capture's flip, contract drivers and update-removal result in
+   its own panel. Enter **Your read** and select **Commit read and reveal** in
+   each panel when ready. Each commitment reveals only that capture's 30-minute
+   net-GEX sign and futures price path.
+2. After both outcomes are visible, choose **Save comparison**. The paired
+   receipt records each capture checksum, flip sequence, committed read and
+   revealed outcome.
+3. In **Saved comparisons**, choose **Reopen** to verify and restore both
+   reviews, or **Export JSON** to keep the paired receipt. To reproduce it from
+   the command line, use a compatible calculation build and supply both
+   original captures with their market flags. Wind Tunnel matches the files by
+   checksum, so either flag order works.
+
+   ```bash
+   gex-terminal wind-tunnel reproduce /path/to/comparison.json \
+     --saved-es-capture /path/to/es.gex-session.jsonl \
+     --saved-nq-capture /path/to/nq.gex-session.jsonl
+
+   gex-terminal wind-tunnel reproduce /path/to/es-comparison.json \
+     --saved-es-capture /path/to/es-first.gex-session.jsonl \
+     --saved-es-capture /path/to/es-second.gex-session.jsonl
+   ```
+
+![Two synthetic ES blind reviews with one committed outcome visible and the other panel waiting for a read](../assets/wind-tunnel-blind-session-gate.png)
+
+*Blind Replay Review can reveal the outcome for Session A while Session B is
+still waiting for its read.*
+
+## Compare Flips Across Saved Sessions
+
+Open two distinct saved captures in the same Wind Tunnel window. The starter
+remembers one capture per symbol and can open the registered ES and NQ pair.
+To open two captures of the same market, repeat that market's capture flag in a
+direct launch. Use `--saved-es-capture` for ES and `--saved-nq-capture` for NQ.
+
+```bash
+gex-terminal wind-tunnel serve \
+  --saved-es-capture /path/to/es-first.gex-session.jsonl \
+  --saved-es-capture /path/to/es-second.gex-session.jsonl
+```
+
+1. Select **Compare saved flips**. Wind Tunnel uses available timeline markers
+   and scans a capture if its markers have yet to load.
+2. Choose a capture for **Session A** and another for **Session B**. Use the
+   capture time and short checksum to tell captures of the same market apart.
+   Choose each session's flip by timestamp, sign change and event sequence, then
+   select **Compare flips** to view the pair.
+3. Review the before and after exposure, contract contributions and removal
+   result in each panel. Wind Tunnel omits each driving update independently at
+   its own event cutoff. Each side retains its capture's model inputs and
+   pricing coverage.
+4. Select **Save comparison** to keep the pair in one receipt. Use **Saved
+   scenarios → Reopen** to reproduce both sides and restore the selections, or
+   use **Export JSON** to reproduce the receipt from the CLI.
+
+The comparison saves to the current window's primary receipt workspace. With
+both workspaces open through the starter, **Saved scenarios** lists the
+comparison when you launch from either market.
+
+The comparison receipt records both capture checksums and event sequences. Keep
+both original captures with the receipt to reproduce the paired calculation on
+a compatible build. The CLI matches the files by checksum regardless of the
+order of the capture flags. The receipt contains calculated contract details
+from both captures.
+
+```bash
+gex-terminal wind-tunnel reproduce /path/to/comparison.json \
+  --saved-es-capture /path/to/es-first.gex-session.jsonl \
+  --saved-es-capture /path/to/es-second.gex-session.jsonl
+```
 
 ## Compare Default And Directionalized Models
 
@@ -396,6 +606,11 @@ gex-terminal wind-tunnel verify experiment.json
 gex-terminal wind-tunnel reproduce experiment.json --output reproduction.json
 ```
 
+[Saved-session flip receipts](#investigate-saved-session-flips) and
+[blind review receipts](#review-a-saved-flip-blind) use the original capture
+files for reproduction. [Paired flip comparisons](#compare-flips-across-saved-sessions)
+and [paired blind reviews](#compare-two-blind-reviews) require both captures.
+
 Files are never overwritten. Choose a new output filename. Exact reproduction
 requires the same supported schema, source, implementation, application version,
 Python minor and NumPy version. A changed build can yield a mismatch even if its
@@ -419,8 +634,9 @@ exports the exact server response bytes.
 ## Three Completed Examples
 
 The **Examples** control runs these requests against the installed calculation
-engine; it does not load a picture or a canned chart. Reproduce them from a
-manual installation with:
+engine. It also opens the [synthetic ES flip investigation](#investigate-the-synthetic-es-flip)
+in the browser. Use these commands to reproduce the three scenario examples
+from a manual installation.
 
 ```bash
 gex-terminal wind-tunnel example discovered-break --output discovered-break.json

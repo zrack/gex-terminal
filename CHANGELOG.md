@@ -7,6 +7,37 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — ES And NQ Flip Investigations
+
+- Review two saved flips side by side in blind review. Pair two ES captures, two
+  NQ captures, or one of each. Commit each read and reveal its outcome
+  independently, then save, reopen or export a single comparison receipt linked
+  to both original captures. See the
+  [blind comparison walkthrough](docs/wind-tunnel.md#compare-two-blind-reviews).
+- Open saved ES and NQ flips in the same blind review window, or open one market
+  on its own. Switch markets while preserving each review's progress. Commit a
+  read to reveal the 30-minute net-GEX sign and observed futures price path.
+  Save and reopen each receipt with its original capture. See the
+  [blind review walkthrough](docs/wind-tunnel.md#review-a-saved-flip-blind).
+- Compare flips from two distinct saved captures side by side. Pair two ES
+  sessions, two NQ sessions, or one of each. Inspect each session's contract
+  contributions and update-removal result, then save and reopen the pair as one
+  receipt bound to both captures. See the
+  [flip comparison walkthrough](docs/wind-tunnel.md#compare-flips-across-saved-sessions).
+- Switch between saved ES and NQ in one Wind Tunnel window. Flip markers,
+  contract contributions, driving-update removal and receipt reproduction use
+  the capture checksum for the selected investigation.
+- Scan a verified saved ES or NQ capture for net-GEX sign flips and select a timeline
+  marker to reconcile the before-and-after exposure by contract. Recalculate
+  the later cutoff with the driving event omitted. Saved investigation receipts
+  reproduce against the same local capture. See the
+  [saved session walkthrough](docs/wind-tunnel.md#investigate-saved-session-flips).
+
+- Inspect both sides of the bundled ES net-GEX sign flip in Wind Tunnel, trace
+  the change to contract contributions, and recalculate with the call-volume
+  update removed. Save, reopen and reproduce the investigation as a local
+  receipt. See [the Wind Tunnel guide](docs/wind-tunnel.md#investigate-the-synthetic-es-flip).
+
 ## Unreleased — Documentation And Visual Refresh
 
 - Reconcile setup, saved full sessions, pricing models, IV age, comparisons,
