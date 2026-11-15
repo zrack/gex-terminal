@@ -15,17 +15,20 @@ Architecture and social artwork illustrate the product.
 | [Saved flip investigation](wind-tunnel-saved-flip.png) | Actual browser with deterministic synthetic ES Session A | Clickable saved timeline marker, contract contributions, and the negative sign when the driving update is removed |
 | [Blind review with one outcome gated](wind-tunnel-blind-session-gate.png) | Actual browser with two synthetic ES captures | A's locked read, 30-minute sign and observed prices beside B's editable read before commitment |
 | [Revealed blind comparison](wind-tunnel-blind-session-comparison.png) | Same two synthetic ES captures after both read commitments | Both drivers and removal results, each 30-minute net-GEX sign and price path, and the combined Save comparison action |
+| [Blind study before submission](wind-tunnel-study-blind.png) | Actual browser with the built-in synthetic ES study | Case queue, starting-flip evidence and a draft call, before the scorecard and later outcomes are revealed |
+| [Revealed study comparison](wind-tunnel-study-comparison.png) | Actual browser with two separate sets of synthetic saved ES captures | Study A/B, both accuracy and always-holds scores, each selected miss and observed price path, and Save comparison |
 | [Demo pack](gex-terminal-demo-lab.svg), [replay picker](gex-terminal-onboarding.svg) | Maintained synthetic preview command; bundled `zero-gamma-flip`; [Demo Lab](../docs/demo-lab.md#contributor-preview) | Generated research graphic and actual replay-picker capture |
-| [Product architecture](workbench-components.svg) | Derived from [Architecture](../docs/architecture.md#c4-views) | Starter, saved sessions, independent Terminal/Wind Tunnel state, checkpoint handoff and capture-bound receipts |
-| [Research architecture](offline-research-architecture.svg) | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md) | Input bounds, calculation/cache boundaries, saved flip replays, blind commit gates and receipt inputs |
-| [Social preview SVG](github-social-preview.svg), [PNG](github-social-preview.png) | Product presentation artwork, 1280×640 | Illustrative two-component product overview; no runtime or provider claim |
+| [Product architecture](workbench-components.svg) | Derived from [Architecture](../docs/architecture.md#c4-views) | Starter, saved sessions, independent Terminal/Wind Tunnel state, checkpoint handoff and capture-bound study receipts |
+| [Research architecture](offline-research-architecture.svg) | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md) | Input bounds, calculation/cache boundaries, saved flip replays, blind call gates and receipt inputs |
+| [Social preview SVG](github-social-preview.svg), [PNG](github-social-preview.png) | Product presentation artwork, 1280×640 | Illustrated two-component overview with Wind Tunnel replay study scoring |
 
 The Terminal, scenario and model images retain their October 19 runtime at
 `2d6a239edd509a5dde8eb5019d0b634311c1784b` with Python 3.12.13. The saved flip
 and blind review captures use November 14 runtime
 `b3f155169bd2d669ecaae3cf4e1e776e7c7e87e1` with Python 3.12.16. Both runtimes
-report application version `0.6.0`. Visual provenance records file hashes,
-dimensions, synthetic inputs and reproduction settings by capture batch.
+report application version `0.6.0`. The Blind Replay Study batch records its
+own source and runtime. Visual provenance records file hashes, dimensions,
+synthetic inputs and reproduction settings by capture batch.
 [Visual provenance](visual-provenance.json).
 
 The Terminal seeded demo and the NQ comparison fixture retain legacy coverage
@@ -95,6 +98,19 @@ by the horizon. The helper launches the source app locally, clicks through each
 flow and writes three PNGs plus the capture and image hashes. Its browser
 viewports include the complete contract table, read gates and price charts.
 Commitment times reflect capture execution, so image hashes can vary on a rerun.
+
+Use the study capture helper with the same Playwright CLI and Chromium setup:
+
+```bash
+python scripts/refresh_wind_tunnel_study_previews.py dist/wind-tunnel-study-previews
+```
+
+Choose a new output directory. Use `--playwright-cli` if the browser CLI needs
+an explicit executable path. The helper opens the built-in synthetic ES study,
+records a draft call, then runs a separate Study A/B comparison from generated
+saved captures. It submits both call sets and opens a miss in each study.
+See [Blind Replay Study](../docs/wind-tunnel.md#blind-replay-study) for the same
+flows in the application.
 
 Update architecture prose and C4 views before reconciling derived SVGs.
 Inspect a rendered version of each diagram; XML parsing alone cannot detect

@@ -161,6 +161,28 @@
       "width": 1280
     },
     {
+      "bytes": 141674,
+      "capture_batch": "blind-study-2026-11-15",
+      "format": "png",
+      "height": 1217,
+      "kind": "runtime_capture",
+      "path": "assets/wind-tunnel-study-blind.png",
+      "settings": "Built-in synthetic ES study with one of three required calls drafted, flip-cutoff contract and removal evidence, a no-eligible-flip case, and outcomes still gated.",
+      "sha256": "f3929525cae1abec99f14b592bef79b44648a5c961d62e36ff82343531fef763",
+      "width": 1440
+    },
+    {
+      "bytes": 217396,
+      "capture_batch": "blind-study-2026-11-15",
+      "format": "png",
+      "height": 2363,
+      "kind": "runtime_capture",
+      "path": "assets/wind-tunnel-study-comparison.png",
+      "settings": "Separate saved synthetic ES cohorts. Study A scores 50% against a 0% always-holds baseline. Study B scores 50% against 100%. Both miss drill-downs show their removal result, 30-minute outcome and observed price path, with Save comparison available.",
+      "sha256": "ccc5ec4d69ac05c160037cd38c00384b142cd19b408e535ed21b300b24ffd2c7",
+      "width": 1440
+    },
+    {
       "bytes": 7448,
       "format": "svg",
       "height": "860",
@@ -183,47 +205,48 @@
       "width": null
     },
     {
-      "bytes": 5291,
+      "bytes": 5374,
       "format": "svg",
       "height": "1080",
       "kind": "derived_architecture",
       "path": "assets/workbench-components.svg",
-      "settings": "Starter, Terminal and Wind Tunnel state boundaries, saved flip and blind workflows, and different receipt input requirements.",
-      "sha256": "2cd09da6b905e5c9d49992765111fca43cd16a493e53b314881042be366c74cf",
+      "settings": "Starter, Terminal and Wind Tunnel state boundaries, with flip investigation, blind review and study workflows and matching receipt inputs.",
+      "sha256": "12f8ed18f17c43390e599320311c3eef860164f6703b1e3f82dac8954b58a614",
       "viewBox": "0 0 1200 1080",
       "width": "1200"
     },
     {
-      "bytes": 8004,
+      "bytes": 8164,
       "format": "svg",
-      "height": "1432",
+      "height": "1468",
       "kind": "derived_architecture",
       "path": "assets/offline-research-architecture.svg",
-      "settings": "Source boundaries, compact scenario computations, portable scenario receipts, and capture-bound replay investigations and blind reviews.",
-      "sha256": "6b48476f6bf09ac530bc8ee8fed3bfe48cc939e6d5aaec20d66d975d03fdc672",
-      "viewBox": "0 0 1400 1432",
+      "settings": "Source and cache boundaries, compact scenarios, and capture-bound flip investigations, blind reviews and study submissions with baseline scoring.",
+      "sha256": "dcb6434aa384cf876b91c1aa2aaee5ef7d53ac2a335f88c551083316997064e2",
+      "viewBox": "0 0 1400 1468",
       "width": "1400"
     },
     {
-      "bytes": 3784,
+      "bytes": 3794,
       "format": "svg",
       "height": "640",
       "kind": "illustrative_product_artwork",
       "path": "assets/github-social-preview.svg",
-      "settings": "Two-component local product; not runtime evidence",
-      "sha256": "54a710c430489fa8691ab2b74e8740c23af020f0aff4a998e93a631fb0f30a00",
+      "settings": "Illustrative two-component local product artwork with model comparison and Blind Replay Study scoring.",
+      "sha256": "ad3141ba7c7494f68b10bb6ec7eb31f552ebbad2d4717c852d2f7b18e36d2ea1",
       "viewBox": "0 0 1280 640",
       "width": "1280"
     },
     {
-      "bytes": 119030,
+      "bytes": 255699,
       "format": "png",
       "height": 640,
       "kind": "raster_from_product_svg",
       "path": "assets/github-social-preview.png",
-      "settings": "PNG rendition of current illustrative product SVG",
-      "sha256": "987a658b3aea39eb663fcb8eb4567ca4598261e887300304bf888db74fe83c54",
-      "width": 1280
+      "settings": "Native 1280×640 Chromium raster from the current illustrative product SVG.",
+      "sha256": "41413cc0c67867faec4c27694fd6fce47333ccd52af989cd52202eb6d3673958",
+      "width": 1280,
+      "renderer": "Chromium 158.0.8127.18"
     }
   ],
   "browser": {
@@ -315,6 +338,46 @@
         "index.html": "9e9d7d16f7777ec9feabf5acb5a22b650ba15021b2d9d3363b57efcf59167990",
         "blind.html": "ac5bf0310a063156d137a4907164c2f9a0e714adcd2c13fc4d8dd47105b238f6",
         "blind.js": "a56ce0bc7520ecd3bfb342b02de4a9e2366ce9f414dc1a0a42c939049a5f8bde"
+      }
+    },
+    "blind-study-2026-11-15": {
+      "browser": "Chromium 158.0.8127.18",
+      "capture_date_local": "2026-11-15",
+      "offline": {
+        "application_network": "IPv4 loopback only",
+        "credits_used": 0,
+        "market_downloads": 0,
+        "provider_requests": 0
+      },
+      "pixel_policy": "Native browser viewport pixels. No resize, compositing, numerical edits or chart repaint.",
+      "playwright_cli": "0.1.24",
+      "python": "3.12.16",
+      "runtime_application_version": "0.6.0",
+      "runtime_source_commit": "daeb369048d74e89c40373b8b90fb4ee2c02f6b7",
+      "script": {
+        "path": "scripts/refresh_wind_tunnel_study_previews.py",
+        "sha256": "ad47751a330ce50cfa8e2e2816f8dba5b5cebc470e22953bc23195ae113be1f3"
+      },
+      "capture_helper": {
+        "path": "scripts/refresh_wind_tunnel_review_previews.py",
+        "sha256": "0a7ae9bdd1b41e124928e63bc5dd46b6468572fba65b227bf9adcdb8be106591"
+      },
+      "synthetic_capture_sha256": {
+        "study-a-1.gex-session.jsonl": "046b658f11b75a9bd636deffd4eaea794727f1103e78eeef8f27d3c89bc4eef3",
+        "study-a-2.gex-session.jsonl": "1503393fa8888ae9692a69d7fd01c146f6a7f0c956fc7e23f2f01d94d06d7cda",
+        "study-b-1.gex-session.jsonl": "1303072bb66be1c9332df2d662c7a95295909090a8823cbce79630d4c64d417f",
+        "study-b-2.gex-session.jsonl": "81f3e3a655f76e7647e7fb3c02e47cf37e19d4edb08b023853330cb25766d7da"
+      },
+      "built_in_synthetic_input": {
+        "protocol": "es-blind-replay-study-v1",
+        "path": "gex_terminal/wind_tunnel_blind_study.py",
+        "sha256": "5b70cba471d769122fed71d28e7976bbc3bc08185127ceeb15d76bbf524f6b7a"
+      },
+      "timezone": "America/Los_Angeles",
+      "web_source_sha256": {
+        "app.css": "03b71121d062aa84496b0940042da98df9e9bd51edeac29d6cef79577b12c07b",
+        "study.html": "2aac0aa45e4f67b42037b9b3627a30d0fa39bdcbe405058f33bdd778cebc6e44",
+        "study.js": "99f948e3bf7e59290a0156f1dfa94ea9eac83868484fe315ef69adda9d8778c8"
       }
     }
   }

@@ -117,6 +117,9 @@ pair or **Compare saved sessions** for two captures from the same market to
 [review both side by side](wind-tunnel.md#compare-two-blind-reviews) and save both
 revealed outcomes in one receipt.
 
+To score calls across a group of captures, see
+[Try Blind Replay Study](#try-blind-replay-study).
+
 In Wind Tunnel, choose a saved symbol and open **Model comparison** for default and
 directionalized results side by side. Apply price, IV and elapsed-time changes
 to both from the same frozen checkpoint. Pricing coverage and exclusions remain
@@ -172,6 +175,27 @@ For manual wheel installations, run `gex-terminal wind-tunnel`. No provider
 credentials or network connection are needed after dependencies are installed.
 Use [Wind Tunnel](wind-tunnel.md) for scenario controls, receipts and the direct
 server command. Manual CLI commands do not add the setup folder's chooser.
+
+### Try Blind Replay Study
+
+Start with the bundled synthetic ES cases:
+
+```bash
+gex-terminal wind-tunnel serve --blind-study
+```
+
+Decide whether the modeled sign will hold for 30 minutes. After you call every
+eligible flip, select **Lock calls and reveal**. Compare your score with
+**Always holds**, then open **Inspect miss** for the contract drivers, removal
+result and observed price path. **Save study** keeps a reproducible receipt.
+
+Repeat `--saved-es-capture PATH` or `--saved-nq-capture PATH` to build a study
+from completed captures. Supply both market flags to switch studies with
+**Saved market** or place them side by side with **Compare ES and NQ**. To choose
+any two separate capture sets directly, use `--study-a-capture PATH` and
+`--study-b-capture PATH`. Each side locks and reveals independently. Select
+**Save comparison** after both reveal and keep the original captures for
+reopening. [Blind Replay Study launch and receipt commands](wind-tunnel.md#blind-replay-study)
 
 ## Install and open the reviewed bundle
 

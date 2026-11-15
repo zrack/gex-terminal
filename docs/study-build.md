@@ -17,11 +17,12 @@ binds that cohort's wheel, synthetic fixtures and execution
 evidence. Use that exact kit for its cohort; preserve both historical records.
 
 The current product also supports full-session saved ES/NQ data, pricing and
-accepted-IV diagnostics, focused strike charts and two-model comparisons. Those
-later changes do not update the frozen October 18 kit or establish observed
-acceptance. Use [First Run](first-run.md) and [Wind Tunnel](wind-tunnel.md) for
-current operation. A study of the later product needs a separately reviewed
-build/cohort identity, updated materials and its own rehearsal evidence.
+accepted-IV diagnostics, focused strike charts, two-model comparisons and
+[Blind Replay Study](wind-tunnel.md#blind-replay-study). The frozen October 18
+kit retains its original scope. Use [First Run](first-run.md) and
+[Wind Tunnel](wind-tunnel.md) for current operation. Observing the later product
+with participants requires a separately reviewed build and cohort identity,
+updated materials and its own rehearsal evidence.
 
 For recruitment, use the separate
 [participant-only delivery](studies/participant-delivery-2026-10-18.md) and

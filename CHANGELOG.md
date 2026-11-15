@@ -7,6 +7,31 @@ The source/package version is `0.6.0`. Release tags identify verified merged
 trees; prior `v0.4.0` remains unchanged. No PyPI publication or hosted GitHub
 Release is claimed.
 
+## Unreleased — ES And NQ Blind Replay Studies
+
+- Compare two saved studies from the same or different markets. Study A and
+  Study B use separate capture sets, submissions, and baseline scores with
+  one reproducible receipt. [Compare two saved studies](docs/wind-tunnel.md#compare-two-saved-studies)
+- Compare saved ES and NQ studies side by side with independent reveal gates,
+  scorecards, and miss investigations. Save and reopen one reproducible
+  receipt for both capture sets. [Study comparison](docs/wind-tunnel.md#compare-saved-es-and-nq-studies)
+- Open saved ES and NQ studies in one Wind Tunnel window and switch with
+  **Saved market**. Each capture set retains separate calls, outcomes, scores,
+  and reproducible receipts. [Same-window studies](docs/wind-tunnel.md#switch-between-saved-es-and-nq-studies)
+- Choose saved NQ captures for a study with the same locked calls, 30-minute
+  outcomes, baseline scoring, and reproducible cohort receipt.
+  [Saved NQ study](docs/wind-tunnel.md#run-a-saved-nq-blind-replay-study)
+- Choose a set of saved ES captures for Blind Replay Study. Run the same blind
+  submission and scoring workflow, then reproduce the receipt using the
+  original captures matched by checksum. [Saved ES study](docs/wind-tunnel.md#run-a-saved-es-blind-replay-study)
+- Submit a complete set of blind calls before seeing any 30-minute outcome.
+  Compare your score against an always-holds baseline, inspect missed flips,
+  and save, export, or reopen one reproducible study receipt.
+  [Blind Replay Study](docs/wind-tunnel.md#blind-replay-study)
+- Document synthetic and saved-study workflows, comparison launch flags and
+  receipt reproduction. Add synthetic browser captures of the call gate and
+  the two-study result. [Visual Assets](assets/README.md)
+
 ## Unreleased — ES And NQ Flip Investigations
 
 - Review two saved flips side by side in blind review. Pair two ES captures, two

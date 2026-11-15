@@ -26,10 +26,13 @@ participant, predictive or commercial gate.
 
 Wind Tunnel now explains saved ES/NQ net-GEX sign changes with contract
 contributions and a driving-update counterfactual. It supports paired saved
-flip investigations and [Blind Replay Review](docs/wind-tunnel.md#review-a-saved-flip-blind)
-for individual and paired captures. The [changelog](CHANGELOG.md) records the
-implemented scope. A study of the current workflows needs its own reviewed
-build and task record.
+flip investigations, [Blind Replay Review](docs/wind-tunnel.md#review-a-saved-flip-blind)
+and [Blind Replay Study](docs/wind-tunnel.md#blind-replay-study). The study
+scores a complete set of calls against an always-holds baseline and can compare
+two saved ES or NQ studies with independent reveals and one receipt. The
+[changelog](CHANGELOG.md#unreleased--es-and-nq-blind-replay-studies) records the
+delivered scope. Participant observation of these workflows needs its own
+reviewed build and task record.
 
 ## Current Work Order
 

@@ -132,6 +132,13 @@ a read before viewing the later result. Individual review receipts need the
 original capture, and paired receipts need both originals. Retain those files
 with the receipts according to the capture policy.
 
+Use [Blind Replay Study](wind-tunnel.md#blind-replay-study) to score calls across
+one to eight completed captures of one market. The first eligible flip in each
+capture sets its starting cutoff. You can also compare two separate capture
+sets, including two studies of the same market. Keep every original capture
+with its receipt, including inputs that had no eligible flip or usable outcome.
+Reproduction checks the exact set and restores the recorded case order.
+
 Capture length and pricing coverage are different. A final checkpoint excludes
 contracts already expired at its cutoff; active contracts without usable IV
 retain their raw quantity but remain unpriced. Wind Tunnel separately displays

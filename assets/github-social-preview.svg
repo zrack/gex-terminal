@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
 <title id="title">gex-terminal — Terminal and Market Wind Tunnel</title>
-<desc id="description">Illustrative product artwork, not a screenshot or market result. One local installation offers a Terminal replay dashboard and Market Wind Tunnel browser workbench. The starter can launch both from registered saved ES or NQ data. Wind Tunnel compares default and directionalized proxies and tests price, IV and model-time assumptions against frozen inputs. Source and model identity remain inspectable, with full reproducible receipts. Saved-data workflows require no provider connection. Derived from README.md and docs/architecture.md.</desc>
+<desc id="description">Illustrative product artwork for the local Terminal replay dashboard and Market Wind Tunnel browser workbench. The starter can launch both from registered saved ES or NQ data. Wind Tunnel compares default and directionalized proxies and tests price, IV and model-time assumptions against frozen inputs. Blind Replay Study scores submitted calls against an always-holds baseline and compares two saved studies in one reproducible receipt. Saved-data workflows require no provider connection. Derived from README.md and docs/architecture.md.</desc>
 <defs>
 <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07121d"/><stop offset="1" stop-color="#14273b"/></linearGradient>
 <style>text{font-family:Arial,Helvetica,sans-serif}.eyebrow{font-size:16px;font-weight:700;letter-spacing:2px;fill:#8da5bd}.brand{font-size:58px;font-weight:800;fill:#f4f7fb}.subtitle{font-size:27px;fill:#c7d6e4}.name{font-size:30px;font-weight:700;fill:#f4f7fb}.body{font-size:22px;fill:#c7d6e4}.small{font-size:18px;fill:#9db3c8}.label{font-size:15px;font-weight:700;letter-spacing:1px;fill:#9db3c8}</style>
@@ -21,7 +21,7 @@
 <rect x="654" y="280" width="562" height="229" rx="16" fill="#2a281f" stroke="#f4c869" stroke-width="2"/>
 <text x="680" y="324" class="name">Market Wind Tunnel</text>
 <text x="680" y="362" class="body">Compare models on one frozen checkpoint</text>
-<text x="680" y="396" class="small">Default + directionalized · price / IV / time</text>
+<text x="680" y="396" class="small">Blind Replay Study · score calls against always holds</text>
 <path d="M680 480 H1190 M680 432 H1190" stroke="#4b4634"/>
 <path d="M680 466 719 466 748 450 778 458 808 432 837 453 867 466 896 466 927 446 958 458 987 438 1017 455 1048 465 1080 465 1112 445 1144 462 1190 466" fill="none" stroke="#72dce9" stroke-width="3"/>
 <path d="M680 475 719 475 748 467 778 471 808 459 837 467 867 475 896 475 927 458 958 468 987 450 1017 463 1048 474 1080 474 1112 459 1144 471 1190 475" fill="none" stroke="#f4c869" stroke-width="3"/>

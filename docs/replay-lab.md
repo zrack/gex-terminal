@@ -15,6 +15,8 @@ To open a modeled sign change, inspect its contract contributions and test the
 driving update interactively, use [Saved Session Flips](wind-tunnel.md#investigate-saved-session-flips).
 To record a read before viewing the later 30-minute result, use
 [Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind).
+To score a group of calls against a baseline, use
+[Blind Replay Study](wind-tunnel.md#blind-replay-study).
 
 ## Run The Lab
 

@@ -33,6 +33,14 @@ the comparison binds both committed reads, revealed results and capture
 identities. [Wind Tunnel](wind-tunnel.md#review-a-saved-flip-blind) owns the
 operator workflow and receipt commands.
 
+**Blind Replay Study** adds a complete set of calls over synthetic ES cases
+or completed saved ES/NQ captures. The app shows evidence at each starting flip
+before submission and scores available 30-minute signs against Always holds
+after each study locks. Two separate capture sets can be compared even when
+their markets match. Each has an independent reveal and score, and one saved
+receipt reproduces both. [Blind Replay Study](wind-tunnel.md#blind-replay-study)
+documents the workflow and exclusions.
+
 This scope exercises offline calculations and application-level reveal gating.
 The October cohort covers the build identified in its study record. Participant
 observation of the newer workflow, repeat use, a recurring live operating
@@ -185,6 +193,7 @@ frozen study; participant acceptance remains unmeasured.
 | Wind Tunnel | Browser scenarios, paired default/directionalized models, 54-case price/IV/time grid and fragility; saved ES/NQ source picker; health/IV age and unpriced detail; exact price markers, focused/full strike ranges and full portable receipts | Guided upload and full-session saved startup have distinct bounds; older accepted IV stays older; ranges do not filter totals; no general CSV/provider importer, live capture or synchronization; shocks freeze quantities |
 | Saved flip investigations | Synthetic and saved ES/NQ flip attribution, same-cutoff removal and paired comparisons | Sampled scans can miss brief transitions. Saved receipts require the original captures |
 | Blind Replay Review | Independent committed reads and 30-minute reveals, individual and side-by-side comparisons, reproducible local receipts | Outcome availability depends on the saved input and matched futures observations. The app controls when the outcome is visible |
+| Blind Replay Study | Complete call sets, 30-minute scoring against Always holds, miss evidence and one reproducible receipt for a same- or mixed-market study pair | Each score describes the available cases in the chosen capture set. Predictive validity remains unmeasured |
 | Terminal | Essential columns at 100×32+, full-table view at 140×42; focused picker/help/details and strike selection retained across refresh | Not a mobile interface, screen-reader certification or unaided usability study |
 | Preflight | Offline doctor checks package, resources, config, provider structure and temporary storage with text/JSON exit status | No live authentication, entitlements, SDK behavior or market-quality check |
 | Distribution | Reviewed wheel, local setup handoff, optional platform-specific wheelhouse and disposable lifecycle checks | Python remains required; no signed native installer or customer-selected channel |
