@@ -31,6 +31,7 @@ screenshots and diagram provenance are indexed in [Visual Assets](../assets/READ
 | Market Wind Tunnel | [Wind Tunnel](wind-tunnel.md) | Browser scenarios, frozen Terminal checkpoint handoff, sampled search and reproducible experiments |
 | Saved flip investigations | [Saved Session Flips](wind-tunnel.md#investigate-saved-session-flips) | Timeline markers, contract contributions, driving-update removal and paired investigations |
 | Blind Replay Review | [Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind) | Committed reads, 30-minute outcomes, independent paired reviews and receipt reproduction |
+| Blind Replay Study | [Blind Replay Study](wind-tunnel.md#blind-replay-study) | Locked calls, 30-minute outcomes, baseline scoring, miss evidence and reproducible saved-study comparisons |
 | Model comparisons | [Model Comparison](model-comparison.md) | Side-by-side default/directionalized results, price/IV/time grid, exact values and separate CLI artifacts |
 | Documentation visuals | [Visual Assets](../assets/README.md) | Current synthetic screenshots, architecture diagrams, capture settings, image hashes and archived concepts |
 | Offline diagnosis | [Doctor](doctor.md) | Preflight checks, exit codes, privacy and diagnostic limits |
@@ -117,6 +118,8 @@ offline live-population contract that supports that later external gate.
   and compare modeled changes in saved ES/NQ captures.
 - [Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind) — commit reads
   before revealing later evidence from one or two saved captures.
+- [Blind Replay Study](wind-tunnel.md#blind-replay-study) — score blind calls
+  across captures and compare two studies from the same or different markets.
 - [Model Comparison](model-comparison.md) — default/directionalized views,
   focused strikes and explicit price/IV/time sensitivity cases.
 - [Study Build](study-build.md) — freeze a reviewed wheel and materials before

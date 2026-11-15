@@ -9,6 +9,8 @@ through the same calculation engine as the terminal.
 
 Use [Investigate The Synthetic ES Flip](#investigate-the-synthetic-es-flip) to
 compare two replay checkpoints and test the effect of one option-volume update.
+[Blind Replay Study](#blind-replay-study) keeps later outcomes hidden while you
+make a call for each flip, then scores the calls against **Always holds**.
 
 The pricing notice above the charts identifies the formula and exercise-style
 qualification. **Source & assumptions** explains early exercise, the configured
@@ -376,6 +378,210 @@ gex-terminal wind-tunnel serve --blind-review \
 *Blind Replay Review can reveal the outcome for Session A while Session B is
 still waiting for its read.*
 
+## Blind Replay Study
+
+Blind Replay Study uses one case per capture. For a saved session, Wind Tunnel
+selects the first eligible net-GEX flip. The case shows the starting flip,
+contract drivers and update-removal result at that cutoff. The outcome and
+price path stay hidden until you lock the study's complete set of calls. Use
+Blind Replay Review to record a read for a single flip.
+
+| To | Open with `gex-terminal wind-tunnel serve --blind-study` and |
+| --- | --- |
+| [Try the built-in synthetic ES study](#run-the-synthetic-es-blind-replay-study) | No capture flags |
+| [Study saved ES](#run-a-saved-es-blind-replay-study) or [saved NQ](#run-a-saved-nq-blind-replay-study) | Repeated `--saved-es-capture` or `--saved-nq-capture` flags for one market |
+| [Switch or compare ES and NQ](#switch-between-saved-es-and-nq-studies) | Both market flags |
+| [Compare two saved studies](#compare-two-saved-studies) | `--study-a-capture` and `--study-b-capture` for separate capture sets from the same or different markets |
+
+### Run The Synthetic ES Blind Replay Study
+
+Open a separate study window with the built-in synthetic ES cases.
+
+```bash
+gex-terminal wind-tunnel serve --blind-study
+```
+
+1. Open each case and choose **Sign holds** or **Sign changes** for the modeled
+   net-GEX sign 30 minutes after the flip. Add an optional note. A session with
+   no eligible flip needs no call.
+2. Select **Lock calls and reveal** after completing every eligible case. All
+   calls lock together. **Sign holds** means the sign at the horizon matches
+   the sign just after the flip. **Sign changes** includes zero at the horizon.
+3. Compare your score with **Always holds**, which makes the **Sign holds**
+   call for every scored case. Both scores use the same denominator. Cases
+   without a flip or usable 30-minute sign remain visible with an exclusion
+   reason. A capture can end early, switch futures contracts or lack usable
+   exposure at the horizon. Select **Inspect miss** to see the committed call,
+   contract contributions, driving-update removal and observed price path.
+4. Choose **Save study** to keep one receipt for the locked calls, capture
+   identities, outcomes, and scores. **Saved studies → Reopen** recomputes the
+   study and restores the verified result.
+
+![Synthetic ES study before submission, with a draft call, case queue and starting flip evidence](../assets/wind-tunnel-study-blind.png)
+
+*Before submission, the synthetic ES study shows the case queue and the
+starting evidence. Its scorecard and later outcomes appear after the calls lock.*
+
+The default receipt workspace is `wind_tunnel_studies`. Use `--workspace PATH`
+to select another workspace. You can export the receipt and reproduce it in a
+fresh process using the built-in synthetic captures.
+
+```bash
+gex-terminal wind-tunnel reproduce /path/to/study-receipt.json
+```
+
+The score measures decisions on this synthetic study of modeled sign
+persistence. Predictive validity remains unmeasured.
+
+### Run A Saved ES Blind Replay Study
+
+Choose one to eight distinct, completed normalized ES captures. Repeat the
+capture flag for every file you want in the study.
+
+```bash
+gex-terminal wind-tunnel serve --blind-study \
+  --saved-es-capture /path/to/es-monday.gex-session.jsonl \
+  --saved-es-capture /path/to/es-tuesday.gex-session.jsonl
+```
+
+Wind Tunnel selects the first eligible flip in each capture and fixes the case
+order for that study. The case list identifies each capture by its checksum and
+shows the cutoff when it has a flip. Submit the full set of calls to reveal the
+30-minute outcomes. Your score and **Always holds** use the same cases with
+available signs. Sessions without a flip and cases with unavailable outcomes
+remain visible in the results. **Inspect miss** opens the drivers, the
+driving-update removal result, and the observed price path for that case.
+
+**Save study** creates one receipt. Open the same set of captures with the
+same workspace to use **Saved studies → Reopen**. A reopened study restores
+the receipt's case order. To verify an exported receipt in a fresh process,
+supply the same original files in any order. Wind Tunnel matches them by checksum.
+
+```bash
+gex-terminal wind-tunnel reproduce /path/to/saved-es-study.json \
+  --saved-es-capture /path/to/es-monday.gex-session.jsonl \
+  --saved-es-capture /path/to/es-tuesday.gex-session.jsonl
+```
+
+The score describes modeled sign persistence on the selected captures.
+Predictive validity remains unmeasured.
+
+### Run A Saved NQ Blind Replay Study
+
+Choose one to eight distinct, completed normalized NQ captures with repeated
+`--saved-nq-capture` flags.
+
+```bash
+gex-terminal wind-tunnel serve --blind-study \
+  --saved-nq-capture /path/to/nq-monday.gex-session.jsonl \
+  --saved-nq-capture /path/to/nq-tuesday.gex-session.jsonl
+```
+
+The study selects the first eligible flip in each capture. Complete all calls
+before revealing outcomes, compare your score with **Always holds**, and use
+**Inspect miss** to review contract contributions, driving-update removal, and
+the observed NQ price path. **Save study** creates one receipt for the group.
+
+Launch with the same original captures and workspace to reopen the receipt
+from **Saved studies**. Both reopening and CLI reproduction match capture
+checksums and restore the recorded case order.
+
+```bash
+gex-terminal wind-tunnel reproduce /path/to/saved-nq-study.json \
+  --saved-nq-capture /path/to/nq-monday.gex-session.jsonl \
+  --saved-nq-capture /path/to/nq-tuesday.gex-session.jsonl
+```
+
+### Switch Between Saved ES And NQ Studies
+
+Launch with both kinds of capture flags to open two independent studies in
+one window. Supply one to eight distinct completed captures per market.
+
+```bash
+gex-terminal wind-tunnel serve --blind-study \
+  --saved-es-capture /path/to/es-monday.gex-session.jsonl \
+  --saved-es-capture /path/to/es-tuesday.gex-session.jsonl \
+  --saved-nq-capture /path/to/nq-monday.gex-session.jsonl \
+  --saved-nq-capture /path/to/nq-tuesday.gex-session.jsonl
+```
+
+ES opens first. Choose **ES** or **NQ** under **Saved market** to switch.
+Each study preserves its own draft calls and notes, locked calls, revealed
+outcomes, and baseline score. **Save study** and **Saved studies** apply to the
+selected market and its exact capture set. To reopen a receipt, select its
+market with the same set of captures and workspace. For CLI reproduction, pass
+only the original captures named by that receipt using the matching market flag.
+The [ES example](#run-a-saved-es-blind-replay-study) and
+[NQ example](#run-a-saved-nq-blind-replay-study) show the individual commands.
+
+#### Compare Saved ES And NQ Studies
+
+Launch with both sets of captures as above, then select **Compare ES and NQ**.
+Use **Review one study** to return to the market picker. The same drafts and
+submitted calls are available in both views.
+
+1. Complete the calls in each panel. **Lock calls and reveal** opens that
+   study's 30-minute outcomes after its entire set of calls is submitted.
+2. Read each scorecard against its own **Always holds** baseline. Select
+   **Inspect miss** to see that case's contract drivers, driving-update removal,
+   and observed futures price path in its market's panel.
+3. Once both scorecards are available, select **Save comparison**. Open
+   **Saved comparisons → Reopen** to verify and restore both studies together.
+   **Export JSON** keeps the comparison in one file.
+
+Use both original capture sets and the same workspace when reopening. To
+reproduce an export in a fresh process, pass every original ES and NQ capture:
+
+```bash
+gex-terminal wind-tunnel reproduce /path/to/study-comparison.json \
+  --saved-es-capture /path/to/es-monday.gex-session.jsonl \
+  --saved-es-capture /path/to/es-tuesday.gex-session.jsonl \
+  --saved-nq-capture /path/to/nq-monday.gex-session.jsonl \
+  --saved-nq-capture /path/to/nq-tuesday.gex-session.jsonl
+```
+
+Wind Tunnel matches capture checksums and restores each study's original case
+order. The two scorecards retain their own scored-case counts and exclusions.
+
+### Compare Two Saved Studies
+
+Use **Study A** and **Study B** to compare two sets of captures directly. Each
+study takes one to eight distinct, completed normalized captures from a single
+market. Use separate captures for each study to keep both reveal gates meaningful.
+Wind Tunnel reads the market from the capture, so both sides can be ES, both can
+be NQ, or the markets can differ.
+
+```bash
+gex-terminal wind-tunnel serve --blind-study \
+  --study-a-capture /path/to/es-monday.gex-session.jsonl \
+  --study-a-capture /path/to/es-tuesday.gex-session.jsonl \
+  --study-b-capture /path/to/es-wednesday.gex-session.jsonl
+```
+
+Call each eligible flip in a study, then select **Lock calls and reveal** in
+its panel. Each scorecard shows your accuracy, the **Always holds** baseline,
+and coverage for that study. Select **Inspect miss** for the case's contract
+drivers, the driving-update removal result, and the observed 30-minute price
+path.
+
+![Two revealed synthetic ES studies with independent baseline scores, miss evidence and price paths](../assets/wind-tunnel-study-comparison.png)
+
+*Scorecards and selected misses for two studies built from synthetic ES captures.*
+
+Once both studies reveal, select **Save comparison**. Launch with the same
+workspace and each study's original captures, then use **Saved comparisons →
+Reopen** to verify and restore both studies. Use **Export JSON** for a portable
+receipt. Supply each original capture to the same side to reproduce the export
+in a fresh process. Wind Tunnel matches the checksums and restores the recorded
+case order within each study.
+
+```bash
+gex-terminal wind-tunnel reproduce /path/to/study-comparison.json \
+  --study-a-capture /path/to/es-tuesday.gex-session.jsonl \
+  --study-a-capture /path/to/es-monday.gex-session.jsonl \
+  --study-b-capture /path/to/es-wednesday.gex-session.jsonl
+```
+
 ## Compare Flips Across Saved Sessions
 
 Open two distinct saved captures in the same Wind Tunnel window. The starter
@@ -610,6 +816,14 @@ gex-terminal wind-tunnel reproduce experiment.json --output reproduction.json
 [blind review receipts](#review-a-saved-flip-blind) use the original capture
 files for reproduction. [Paired flip comparisons](#compare-flips-across-saved-sessions)
 and [paired blind reviews](#compare-two-blind-reviews) require both captures.
+[Synthetic ES study receipts](#run-the-synthetic-es-blind-replay-study) use the
+built-in study captures and reproduce without capture flags.
+[Saved ES study receipts](#run-a-saved-es-blind-replay-study) and
+[saved NQ study receipts](#run-a-saved-nq-blind-replay-study) require every
+original capture with the matching market flag.
+[Study A/B receipts](#compare-two-saved-studies) require the original capture
+sets for the two sides. Receipts from [the ES/NQ study switcher](#compare-saved-es-and-nq-studies)
+use the ES and NQ capture flags.
 
 Files are never overwritten. Choose a new output filename. Exact reproduction
 requires the same supported schema, source, implementation, application version,

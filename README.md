@@ -19,7 +19,7 @@ opens a completed ES or NQ capture in both views without new provider requests.
 | Component | What you do | What you see |
 | --- | --- | --- |
 | [Terminal](#terminal) | Load a replay, inspect exposure and source quality, adjust model controls, export a snapshot | A keyboard-driven dashboard with metrics, strike rows, walls and replay controls |
-| [Market Wind Tunnel](#market-wind-tunnel) | Stress assumptions, investigate saved flips, compare sessions and preserve receipts | A local browser workbench with exposure charts, scenario tools and blind replay reviews |
+| [Market Wind Tunnel](#market-wind-tunnel) | Stress assumptions, investigate saved flips, score blind calls and preserve receipts | A local browser workbench with exposure charts, replay reviews and side-by-side studies |
 
 ### Terminal
 
@@ -100,6 +100,25 @@ side reveals independently. Save one comparison receipt after both reveals.
 
 *Two synthetic ES captures in Blind Replay Review. Each panel keeps its own
 flip, read and observed path.*
+
+### Score Blind Calls Across Sessions
+
+**Blind Replay Study** gives you the evidence at each starting flip. Call whether
+its modeled net-GEX sign will hold 30 minutes later. Lock every eligible call in
+the study to reveal the outcomes and compare your score with **Always holds**.
+Open a miss to see the contract drivers, what happens when the driving update is
+removed at the same cutoff, and the observed futures price path.
+
+Try `gex-terminal wind-tunnel serve --blind-study` with the built-in synthetic ES
+cases. Choose saved ES or NQ captures to build your own study, or compare two
+capture sets from the same or different markets. Each side reveals independently.
+Save both studies in one receipt and reopen it with the original capture sets.
+[Blind Replay Study guide](docs/wind-tunnel.md#blind-replay-study)
+
+![Wind Tunnel showing two completed synthetic ES studies, each with its own score, always-holds baseline, and selected miss](assets/wind-tunnel-study-comparison.png)
+
+*Study A and Study B use separate sets of synthetic ES captures. Each scorecard
+keeps its own cases, and **Save comparison** records both.*
 
 Capture settings, source identity and image hashes are recorded in
 [Visual Assets](assets/README.md). Older study screenshots remain dated records.
@@ -227,9 +246,10 @@ advanced traders who want an inspectable local workflow. See
 
 ## Current Status
 
-Version **0.6.0 — Market Wind Tunnel** is a research alpha. Saved flip
-investigation, comparisons and blind review are in the current source and the
-[unreleased changelog](CHANGELOG.md#unreleased--es-and-nq-flip-investigations).
+Version **0.6.0 — Market Wind Tunnel** is a research alpha. The current source
+includes saved-flip investigations, Blind Replay Review and Blind Replay Study.
+The [unreleased changelog](CHANGELOG.md#unreleased--es-and-nq-blind-replay-studies)
+records the study and comparison workflows.
 The repository and its reviewed Git tags are the release record.
 
 Bundled demo/replay is `offline-certified`. Databento is `live-uncertified`;
@@ -254,6 +274,7 @@ canonical guide:
 | Compare default and directionalized scenarios | Wind Tunnel → **Model comparison** | [Model Comparison](docs/model-comparison.md) |
 | Investigate a saved net-GEX flip | Wind Tunnel → **Find net-GEX flips** | [Saved Flip Investigations](docs/wind-tunnel.md#investigate-saved-session-flips) |
 | Commit a read and reveal later evidence | `gex-terminal wind-tunnel serve --blind-review` with the capture flags | [Blind Replay Review](docs/wind-tunnel.md#review-a-saved-flip-blind) |
+| Score a set of blind calls or compare two studies | `gex-terminal wind-tunnel serve --blind-study` | [Blind Replay Study](docs/wind-tunnel.md#blind-replay-study) · [Compare two saved studies](docs/wind-tunnel.md#compare-two-saved-studies) |
 | Inspect a local captured session | `gex-terminal wind-tunnel` → **Open local session** | [Guided Intake](docs/wind-tunnel.md#bring-a-local-captured-session) |
 | Stress market structure offline | `gex-terminal wind-tunnel` | [Market Wind Tunnel](docs/wind-tunnel.md) |
 | Diagnose a local installation | `gex-terminal doctor` | [Offline Doctor](docs/doctor.md) |

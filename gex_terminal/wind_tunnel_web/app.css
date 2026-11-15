@@ -206,3 +206,77 @@
 #blind-comparison-actions .investigation-status {margin: 0;}
 @media(max-width:820px) {.blind-review-grid {grid-template-columns: minmax(0, 1fr);}}
 @media(max-width:880px) {.blind-markets.side-by-side {grid-template-columns: minmax(0, 1fr);}}
+
+/* The study uses only the evidence available at each eligible cutoff until the call set is locked. */
+.blind-study-page main {width: min(1240px, 100%); margin: 0 auto; padding: clamp(18px, 3.5vw, 42px) clamp(16px, 3vw, 32px) 48px;}
+.study-title, .study-results-heading {display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 20px; margin-bottom: 20px;}
+.study-header-actions {align-items: center; gap: 8px 12px;}
+.study-multiple .app-header {position: sticky; top: 0; z-index: 10; background: var(--bg);}
+.study-multiple .study-queue {top: 80px;}
+.study-multiple [tabindex="-1"] {scroll-margin-top: 80px;}
+.study-title p {margin-top: 10px; max-width: 640px; line-height: 1.5; color: var(--muted);}
+#study-status:not([hidden]), .study-pane > .blind-notice:not([hidden]) {margin-bottom: 14px;}
+.study-pane {min-width: 0;}
+.study-pane-heading {display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px 14px; margin-bottom: 14px;}
+.study-pane-heading > div {min-width: 0;}
+.study-pane-title {font-size: 21px;}
+.study-panes:not(.side-by-side) .study-pane-title {display: none;}
+.study-panes:not(.side-by-side) .study-pane-heading .blind-context {margin-top: 0;}
+.study-panes.side-by-side {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start;}
+.study-panes.side-by-side .study-pane-heading {padding: 12px; border: 1px solid var(--border); background: var(--panel);}
+.study-panes.side-by-side .study-workspace {grid-template-columns: minmax(0, 1fr);}
+.study-panes.side-by-side .study-queue {position: static;}
+.study-panes.side-by-side .study-cases {max-height: 206px; grid-template-columns: repeat(2, minmax(0, 1fr));}
+.study-panes.side-by-side .study-single-receipt {display: none;}
+.study-panes.side-by-side .blind-price-plot {overflow: hidden;}
+#study-comparison-actions {display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;}
+#study-comparison-actions:has(button:not([hidden])), #study-comparison-actions:has(.investigation-status:not(:empty)) {margin-bottom: 14px;}
+#study-comparison-actions .investigation-status {margin: 0;}
+.study-workspace {display: grid; grid-template-columns: minmax(195px, 250px) minmax(0, 1fr); gap: 18px; align-items: start;}
+.study-queue {position: sticky; top: 16px;}
+.study-queue h2 {font-size: 18px;}
+.study-cases {display: grid; grid-auto-rows: 1fr; gap: 8px; margin: 14px 0; padding: 4px; max-height: min(53vh, 560px); overflow-y: auto; list-style: none;}
+.study-cases button {display: flex; flex-direction: column; justify-content: center; gap: 4px; width: 100%; height: 100%; padding: 8px 9px; text-align: left; overflow-wrap: anywhere; font-size: 13px;}
+.study-cases button[aria-current="true"] {border-color: var(--amber); background: #25231d;}
+.study-cases button small {color: var(--muted); font-size: 11px;}
+.blind-study-page .study-case-binding {display: block; color: var(--quiet); font: 10px/1.4 var(--mono); overflow-wrap: anywhere;}
+.study-result-cases .study-case-binding {margin-top: 4px;}
+.study-progress {margin-bottom: 10px; color: var(--muted); font: 11px/1.55 var(--mono);}
+.study-submit {text-align: left;}
+.study-active, .study-evidence-slot {min-width: 0;}
+.study-case-heading {padding: 0 0 13px; overflow-wrap: anywhere;}
+.study-case-heading h2, .study-drilldown h3 {font-size: 21px;}
+.study-evidence .investigation-snapshots h4 {font-size: 14px; margin: 0 0 5px;}
+.study-evidence .investigation-summary {margin-bottom: 12px;}
+.study-call-panel, .study-result-cases, .study-drilldown {margin-top: 16px;}
+.study-call-panel h3 {margin-bottom: 12px;}
+.study-call-panel fieldset {min-width: 0; padding: 0; margin: 0 0 16px; border: 0;}
+.study-call-panel legend, .study-call-panel > label {font-size: 13px;}
+.study-options {display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px;}
+.study-options label {display: inline-flex; min-height: 42px; align-items: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-2); font-size: 14px; cursor: pointer;}
+.study-options label:has(input:checked) {border-color: var(--amber); color: var(--amber);}
+.study-options input {accent-color: var(--amber); margin: 0;}
+.study-options input:focus-visible {outline: 2px solid var(--cyan); outline-offset: 3px;}
+.study-call-panel .blind-read {display: block; min-height: 75px; margin: 7px 0 12px;}
+.study-scorecards {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;}
+.study-score:first-child {border-top: 2px solid var(--cyan);}
+.study-score:nth-child(2) {border-top: 2px solid var(--amber);}
+.study-score strong {display: block; margin: 8px 0 3px; font: 700 clamp(23px, 4vw, 41px)/1 var(--mono);}
+.study-score strong + span {color: var(--muted); font-size: 12px;}
+.study-result-cases table {min-width: 455px; text-align: left;}
+.study-result-cases tbody th {background: transparent; white-space: normal; width: 34%; overflow-wrap: anywhere;}
+.study-result-cases td button {padding: 6px 8px; font: 12px var(--sans);}
+.study-result-cases .study-missed {color: var(--danger);}
+.study-result-cases .study-correct {color: var(--cyan);}
+.study-drilldown .blind-committed-read {margin-top: 7px;}
+.study-drilldown .blind-outcome h4 {font-size: 16px; margin-bottom: 0;}
+#study-save-dialog {max-width: 500px;}
+@media(max-width:900px) {.study-panes.side-by-side {grid-template-columns: minmax(0, 1fr);}}
+@media(max-width:740px) {
+  .study-workspace {grid-template-columns: minmax(0, 1fr);}
+  .study-queue {position: static;}
+  .study-multiple [tabindex="-1"] {scroll-margin-top: 110px;}
+  .study-cases {max-height: 185px; grid-template-columns: repeat(2, minmax(0, 1fr));}
+  .study-workspace .investigation-snapshots, .study-drilldown .investigation-snapshots {grid-template-columns: repeat(2, minmax(0, 1fr));}
+  .blind-study-page th, .blind-study-page td {padding-inline: 8px;}
+}

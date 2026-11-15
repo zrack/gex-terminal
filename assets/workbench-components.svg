@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1080" viewBox="0 0 1200 1080" role="img" aria-labelledby="title description">
 <title id="title">GEX Starter, Terminal and Market Wind Tunnel</title>
-<desc id="description">Current local product boundaries, derived from docs/architecture.md. One starter opens Terminal, Market Wind Tunnel, Both, or registered Saved data — Both for ES or NQ. Saved startup verifies a complete local capture and prepares its final immutable checkpoint. Terminal loads the whole session; the Wind Tunnel local service opens the frozen final state in a browser. At load completion the source inputs match, but the processes and later selections stay independent. The browser compares exposure proxies and scenarios, investigates saved flips and compares blind reviews with independent commit gates. Health, pricing coverage and accepted-IV age are distinct. Explicit Terminal w handoff freezes another eligible demo/replay checkpoint into a Terminal-owned local service; it does not stream later state. Scenario receipts embed the frozen checkpoint. Saved flip and blind review receipts bind the original capture checksums and require the matching files to reproduce. No provider connection is needed for these saved-data paths. This is an architecture diagram, not a product screenshot.</desc>
+<desc id="description">Current local product boundaries, derived from docs/architecture.md. One starter opens Terminal, Market Wind Tunnel, Both, or registered Saved data — Both for ES or NQ. Saved startup verifies a complete local capture and prepares its final immutable checkpoint. Terminal loads the whole session. The Wind Tunnel local service opens the frozen final state in a browser. At load completion the source inputs match, and the processes and later selections stay independent. The browser compares exposure proxies and scenarios, investigates saved flips and compares blind reviews with independent commit gates. Blind Replay Study scores a complete set of calls against an always-holds baseline, with separate submissions and scores for two saved studies. Health, pricing coverage and accepted-IV age are distinct. Explicit Terminal w handoff freezes another eligible demo/replay checkpoint into a Terminal-owned local service. Scenario receipts embed the frozen checkpoint. Saved flip, blind review and saved study receipts bind the original capture checksums and require the matching files to reproduce. No provider connection is needed for these saved-data paths.</desc>
 <defs>
 <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#91a5b9"/></marker>
 <style>text{font-family:Arial,Helvetica,sans-serif}.eyebrow{font-size:16px;letter-spacing:2px;font-weight:700;fill:#91a5b9}.title{font-size:36px;font-weight:700;fill:#f5f8fc}.name{font-size:28px;font-weight:700;fill:#f5f8fc}.body{font-size:23px;fill:#cbd7e3}.small{font-size:20px;fill:#a6b9cc}.line{stroke:#91a5b9;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.dash{stroke-dasharray:7 6}.cyan{fill:#72dce9}.gold{fill:#f4c869}.purple{fill:#c1b0ff}</style>
@@ -26,7 +26,7 @@
 <text x="644" y="438" class="body">Open the verified final checkpoint</text>
 <text x="644" y="475" class="body">Compare exposure proxies and scenarios</text>
 <text x="644" y="512" class="body">Investigate flips and review them blind</text>
-<text x="644" y="552" class="small">Browser ↔ local Python service</text>
+<text x="644" y="552" class="small">Score blind study calls against always holds</text>
 <rect x="48" y="616" width="1104" height="132" rx="14" fill="#14263a" stroke="#526d86"/>
 <text x="76" y="656" class="name">Same saved source. Independent state.</text>
 <text x="76" y="694" class="body">Starter verifies capture + checkpoint identities; Terminal loads all events.</text>
@@ -41,7 +41,7 @@
 <rect x="616" y="781" width="536" height="167" rx="14" fill="#14263a" stroke="#f4c869"/>
 <text x="644" y="821" class="name">Save a reproducible explanation</text>
 <text x="644" y="861" class="body">Scenario binds frozen input and calculation ID</text>
-<text x="644" y="902" class="small">Flip and blind receipts bind capture checksums</text>
+<text x="644" y="902" class="small">Flip, blind review and study receipts bind captures</text>
 <text x="644" y="931" class="small">Reproduce with the matching local captures</text>
 <text x="600" y="1000" text-anchor="middle" class="body">Shared package and pricing code · local files · no provider requests</text>
 <text x="600" y="1041" text-anchor="middle" class="small">Saved-data workflow only. Live access and predictive validity require separate evidence.</text>

@@ -28,6 +28,9 @@ separate from journal entries when retaining or sharing evidence.
 committed read at a saved flip and retains its later modeled outcome in a
 review receipt. A side-by-side review binds two independent reads and outcomes
 in one receipt. Reproduction uses the original capture for each saved read.
+[Blind Replay Study](wind-tunnel.md#blind-replay-study) locks calls across a
+set of captures, scores them against Always holds and saves the outcome evidence
+in a separate Wind Tunnel receipt.
 
 ## Add Entries
 

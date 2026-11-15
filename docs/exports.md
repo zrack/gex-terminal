@@ -309,6 +309,26 @@ capture, and a paired receipt with both originals. See
 [saved flip investigations](wind-tunnel.md#investigate-saved-session-flips) and
 [blind review](wind-tunnel.md#review-a-saved-flip-blind) for the matching CLI flags.
 
+### Blind Replay Study Receipts
+
+A study receipt records the protocol, ordered capture checksums and flip
+sequences, complete set of locked calls and optional notes, and the submission
+time. Results retain the available 30-minute signs and observed paths, starting
+flip evidence, scores, and reasons for excluded cases. A comparison receipt
+contains both complete studies with their own capture bindings and scores.
+
+| Receipt | Reproduction inputs |
+| --- | --- |
+| Built-in synthetic study (`blind-study`) | The installed synthetic cases |
+| Single saved study (`blind-saved-study`) | Every original capture, with the study's `--saved-es-capture` or `--saved-nq-capture` flag |
+| Comparison from the saved ES/NQ switcher (`blind-study-comparison`) | Every original file for both studies, with its market's flag |
+| Study A/B comparison (`blind-saved-study-comparison`) | Every original file, using `--study-a-capture` for A and `--study-b-capture` for B |
+
+Saved-study receipts carry capture identities and derived results. Keep the
+original files separately. The flags may be reordered within a study because
+reproduction matches checksums and restores the receipt's case order.
+[Blind Replay Study](wind-tunnel.md#blind-replay-study) shows the complete commands.
+
 ## Tradovate Certification Reports
 
 The explicit read-only probe writes redacted JSON or Markdown:

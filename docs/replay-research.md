@@ -72,6 +72,7 @@ test behavior, not observed market regimes or predictive results.
 | Compare two frozen quantity proxies with price, IV and time changes | [Wind Tunnel](wind-tunnel.md#compare-default-and-directionalized-models) and [Model Comparison](model-comparison.md) |
 | Trace a saved net-GEX flip or compare two saved flips | [Saved Session Flips](wind-tunnel.md#investigate-saved-session-flips) |
 | Commit a read before revealing later evidence | [Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind) |
+| Score blind calls against Always holds, inspect misses or compare two studies | [Blind Replay Study](wind-tunnel.md#blind-replay-study) |
 | Register a corpus or reproduce a versioned experiment | [Research Governance](research-governance.md) |
 | Inspect output schemas | [Export Formats](exports.md) |
 
