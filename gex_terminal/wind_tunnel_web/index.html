@@ -30,6 +30,75 @@
     <div class="source-control"><label for="source">Research source</label><select id="source" disabled><option>Loading sources…</option></select><button type="button" class="text-button" id="source-details">Source &amp; assumptions</button></div>
   </div>
   <p class="inline-notice" id="source-context" role="status">Loading source identity…</p>
+  <div class="investigation-entry" id="flip-comparison-entry" hidden>
+    <button type="button" class="secondary-button" id="open-flip-comparison" aria-expanded="false" aria-controls="flip-comparison">Compare saved flips</button>
+    <section class="flip-comparison" id="flip-comparison" aria-labelledby="flip-comparison-heading" hidden>
+      <h2 id="flip-comparison-heading" tabindex="-1">Saved flip comparison</h2>
+      <div class="flip-comparison-grid flip-comparison-inputs">
+        <div>
+          <label for="compare-a-capture">Session A</label>
+          <select id="compare-a-capture" disabled></select>
+          <label for="compare-a-flip">Session A flip</label>
+          <select id="compare-a-flip" disabled><option value="">Choose a flip</option></select>
+          <p id="compare-a-timeline-status" class="investigation-status" role="status"></p>
+          <button type="button" id="retry-a-flips" class="text-button" hidden>Scan Session A timeline</button>
+        </div>
+        <div>
+          <label for="compare-b-capture">Session B</label>
+          <select id="compare-b-capture" disabled></select>
+          <label for="compare-b-flip">Session B flip</label>
+          <select id="compare-b-flip" disabled><option value="">Choose a flip</option></select>
+          <p id="compare-b-timeline-status" class="investigation-status" role="status"></p>
+          <button type="button" id="retry-b-flips" class="text-button" hidden>Scan Session B timeline</button>
+        </div>
+      </div>
+      <div class="flip-comparison-actions">
+        <button type="button" class="secondary-button" id="run-flip-comparison" disabled>Compare flips</button>
+        <button type="button" class="secondary-button" id="save-flip-comparison" disabled><img src="/static/icons/floppy-disk.svg" alt="">Save comparison</button>
+        <p id="flip-comparison-status" class="investigation-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="flip-comparison-grid" id="flip-comparison-results" hidden>
+        <article id="a-flip-comparison-result" class="flip-comparison-result" aria-label="Session A flip result"></article>
+        <article id="b-flip-comparison-result" class="flip-comparison-result" aria-label="Session B flip result"></article>
+      </div>
+    </section>
+  </div>
+  <div class="investigation-entry" id="investigation-entry" hidden>
+    <button type="button" class="secondary-button investigation-marker" id="investigate-flip" aria-expanded="false" aria-controls="flip-investigation">
+      <span class="investigation-marker-time">16:00:04 UTC</span><span>Investigate net-GEX flip</span><img src="/static/icons/arrow-right.svg" alt="">
+    </button>
+    <section class="saved-flip-timeline" id="saved-flip-timeline" aria-labelledby="saved-flip-heading" hidden>
+      <div class="saved-flip-heading">
+        <h2 id="saved-flip-heading">Saved replay timeline</h2>
+        <button type="button" id="scan-saved-flips" class="secondary-button">Find net-GEX flips</button>
+      </div>
+      <p id="saved-flip-status" role="status" aria-live="polite"></p>
+      <div id="saved-flip-track" class="saved-flip-track" aria-hidden="true" hidden></div>
+      <div id="saved-flip-bounds" class="saved-flip-bounds" hidden></div>
+      <div id="saved-flip-markers" class="saved-flip-markers" role="group" aria-label="Investigate a net-GEX flip" hidden></div>
+    </section>
+    <section class="flip-investigation" id="flip-investigation" aria-labelledby="investigation-heading" hidden>
+      <div class="investigation-heading">
+        <div><h2 id="investigation-heading" tabindex="-1">Net-GEX flip</h2><p id="investigation-context"></p></div>
+        <button type="button" class="secondary-button" id="save-investigation" disabled><img src="/static/icons/floppy-disk.svg" alt="">Save investigation</button>
+      </div>
+      <p id="investigation-status" class="investigation-status" role="status" aria-live="polite"></p>
+      <div id="investigation-results" hidden>
+        <p id="investigation-summary" class="investigation-summary"></p>
+        <div id="investigation-snapshots" class="investigation-snapshots"></div>
+        <label class="checkbox-control investigation-toggle"><input type="checkbox" id="remove-call-update" aria-labelledby="remove-update-label" aria-describedby="remove-update-help"><span><span id="remove-update-label">Remove call-volume update</span><small id="remove-update-help">Recalculate the after cutoff without this one replay update.</small></span></label>
+        <h3 id="investigation-contributions-heading">Strike and side contributions</h3>
+        <p class="chart-caption" id="investigation-reconciliation"></p>
+        <div class="table-scroll">
+          <table id="investigation-contracts">
+            <caption>Changed rows ranked by absolute GEX change · USD per 1% underlying move</caption>
+            <thead><tr><th scope="col" id="investigation-contract-heading">Strike and side</th><th scope="col" id="investigation-before-quantity">Volume before</th><th scope="col" id="investigation-after-quantity">Volume after</th><th scope="col">GEX before</th><th scope="col">GEX after</th><th scope="col">GEX change</th><th scope="col" id="investigation-removed-volume" hidden>Volume without update</th><th scope="col" id="investigation-removed-gex" hidden>GEX without update</th></tr></thead>
+            <tbody id="investigation-contract-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
   <p class="inline-notice" id="pricing-model-context" role="status">Pricing assumptions will appear after calculation.</p>
   <section class="pricing-coverage" aria-labelledby="pricing-coverage-heading">
     <h2 id="pricing-coverage-heading">Pricing coverage</h2>
@@ -134,8 +203,8 @@
   </section>
 </div></dialog>
 <dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-header"><h2 id="info-title">Research help</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div id="info-content" class="dialog-body"></div></dialog>
-<dialog id="save-dialog" aria-labelledby="save-title"><form id="save-form"><div class="dialog-header"><h2 id="save-title">Save this scenario</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body"><p>Keep the exact source, model inputs, and calculated result in a local receipt.</p><label for="scenario-name">Scenario name</label><input id="scenario-name" type="text" maxlength="80" required autocomplete="off"><p id="save-error" class="validation-message" role="alert" hidden></p><button class="primary-button" id="confirm-save" type="submit">Save scenario</button></div></form></dialog>
-<dialog id="receipts-dialog" aria-labelledby="receipts-title"><div class="dialog-header"><h2 id="receipts-title">Saved scenarios</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body"><p>Local receipts preserve inputs and results. Reopening recalculates the saved scenario.</p><div class="receipt-import"><label class="secondary-button" for="receipt-file">Import &amp; verify a receipt</label><input id="receipt-file" type="file" accept=".json,application/json"><p id="import-status" role="status"></p></div><div id="receipts-list" aria-live="polite"></div></div></dialog>
+<dialog id="save-dialog" aria-labelledby="save-title"><form id="save-form"><div class="dialog-header"><h2 id="save-title">Save this scenario</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body"><p>Keep the exact source, model inputs, and calculated result in a local receipt.</p><label for="scenario-name" id="save-name-label">Scenario name</label><input id="scenario-name" type="text" maxlength="80" required autocomplete="off"><p id="save-error" class="validation-message" role="alert" hidden></p><button class="primary-button" id="confirm-save" type="submit">Save scenario</button></div></form></dialog>
+<dialog id="receipts-dialog" aria-labelledby="receipts-title"><div class="dialog-header"><h2 id="receipts-title">Saved scenarios</h2><button type="button" class="icon-button" data-close aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div><div class="dialog-body"><p>Reopening recalculates the saved scenario or investigation. Saved replay investigation receipts use the matching capture for reproduction.</p><div class="receipt-import"><label class="secondary-button" for="receipt-file">Import &amp; verify a receipt</label><input id="receipt-file" type="file" accept=".json,application/json"><p id="import-status" role="status"></p></div><div id="receipts-list" aria-live="polite"></div></div></dialog>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

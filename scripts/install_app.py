@@ -461,9 +461,9 @@ def remember_saved_data(research: Path, plan: dict) -> None:
     (research / SAVED_DATA).chmod(0o600)
 
 
-def saved_comparison_checkpoint(environment: Path, research: Path, symbol: str,
-                                scratch: Path) -> Path | None:
-    """Return only the other explicitly registered, still-verified checkpoint."""
+def saved_comparison_source(environment: Path, research: Path, symbol: str,
+                            scratch: Path) -> dict[str, str] | None:
+    """Return the other explicitly registered source once its binding is verified."""
     other = "NQ" if symbol == "ES" else "ES"
     item = saved_sources(research)["sessions"].get(other)
     if item is None:
@@ -488,7 +488,8 @@ def saved_comparison_checkpoint(environment: Path, research: Path, symbol: str,
         return None
     print(f"Verified saved {other} checkpoint is also available in the Wind Tunnel source picker. "
           "No replay or provider requests were needed for that additional source.", flush=True)
-    return Path(path)
+    return {"symbol": other, "checkpoint_path": path,
+            "capture_path": item["capture_path"], "capture_sha256": item["capture_sha256"]}
 
 
 def saved_source_note(plan: dict) -> str:
@@ -728,13 +729,27 @@ def launch(target: Path, *, doctor: bool = False, list_replays: bool = False,
                 return 0
             command = [str(environment / "bin" / "python"), "-I", "-c", SAVED_BOOTSTRAP,
                        str(plan["risk_free_rate"]), str(plan["fallback_dte"]), str(research)]
+            payload = receipt["active"]["payload_sha256"]
+            has_saved_switching = "gex_terminal/wind_tunnel_saved_switching.py" in payload
+            timeline_module = ("wind_tunnel_saved_receipt_compat.py" if symbol == "NQ" else "wind_tunnel_saved_replay.py")
+            has_saved_timeline = has_saved_switching or f"gex_terminal/{timeline_module}" in payload
+            wind_workspace = (research / f"wind-tunnel-saved-{symbol.lower()}" if has_saved_timeline else
+                              Path(plan["checkpoint_path"]).parent / "wind-tunnel")
             saved_wind = ["wind-tunnel", "serve", "--checkpoint", plan["checkpoint_path"],
-                          "--port", "0", "--workspace", str(Path(plan["checkpoint_path"]).parent / "wind-tunnel"),
-                          "--no-browser"]
-            if "gex_terminal/wind_tunnel_sources.py" in receipt["active"]["payload_sha256"]:
-                comparison = saved_comparison_checkpoint(environment, research, symbol, scratch)
+                          "--port", "0", "--workspace", str(wind_workspace), "--no-browser"]
+            if has_saved_timeline:
+                saved_wind.extend([f"--saved-{symbol.lower()}-capture", plan["capture_path"],
+                                   "--saved-capture-sha256", plan["capture_sha256"]])
+            if "gex_terminal/wind_tunnel_sources.py" in payload:
+                comparison = saved_comparison_source(environment, research, symbol, scratch)
                 if comparison is not None:
-                    saved_wind.extend(["--comparison-checkpoint", str(comparison)])
+                    saved_wind.extend(["--comparison-checkpoint", comparison["checkpoint_path"]])
+                    if has_saved_switching:
+                        alternate = comparison["symbol"].lower()
+                        saved_wind.extend([f"--saved-{alternate}-capture", comparison["capture_path"],
+                                           "--comparison-capture-sha256", comparison["capture_sha256"],
+                                           "--comparison-workspace", str(research / f"wind-tunnel-saved-{alternate}")])
+                        source_note += " Both saved captures have flip timelines in the Wind Tunnel source picker."
             return run_both([*command, *plan["terminal_args"]], [*command, *saved_wind],
                             cwd=scratch, no_browser=no_browser,
                             source_note=source_note)
