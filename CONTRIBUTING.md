@@ -137,6 +137,18 @@ signed numeric fields.
 python -m unittest -v tests.test_wind_tunnel_checkpoint tests.test_wind_tunnel_handoff tests.test_wind_tunnel_assets tests.test_wind_tunnel_cli
 ```
 
+For saved flip investigations, session comparisons, or blind review, run the
+focused replay and browser tests. Use synthetic captured sessions to check the
+commit and reveal boundary, capture selection, and receipt reproduction.
+
+```bash
+python -m unittest -v \
+  tests.test_wind_tunnel_investigation \
+  tests.test_wind_tunnel_saved_investigation \
+  tests.test_wind_tunnel_saved_comparison \
+  tests.test_wind_tunnel_blind_review
+```
+
 For research-contract, provider-normalization, or performance changes, run the
 applicable offline certification gates:
 

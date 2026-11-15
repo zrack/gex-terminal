@@ -32,6 +32,7 @@ logs/
 /research_journal/
 /historical_sessions/
 /wind_tunnel_research/
+/wind_tunnel_reviews/
 /wind_tunnel_handoffs/
 *.gex-session.jsonl
 *.gex-session.jsonl.partial

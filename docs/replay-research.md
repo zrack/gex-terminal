@@ -49,7 +49,7 @@ accepted-IV age alongside source health. See [Wind Tunnel](wind-tunnel.md).
 | `volatility-spike` | Downside move with higher IV and put-heavy activity |
 | `gap-fade` | Gap-up rejection and rotation toward lower levels |
 | `call-wall-breakout` | Upside path that moves the modeled call wall higher |
-| `zero-gamma-flip` | Position-proxy rotation across the compatibility level |
+| `zero-gamma-flip` | Net-GEX sign change after an incoming call-volume update |
 | `expiration-compression` | Late 0DTE concentration around the modeled wall |
 | `quality-stress` | Off-symbol drops and partial-chain feed-health states |
 | `nq-research-loop` | Schema-v2 NQ with separate OI, raw trade volume and aggressor-direction evidence, multiplier 20 |
@@ -70,6 +70,8 @@ test behavior, not observed market regimes or predictive results.
 | Validate time, adversarial cases, later prices, or position models | [Offline Validation](offline-validation.md) |
 | Run sensitivity or numerical evidence | [Model Validation](model-validation.md) and [Model Assumptions](model-assumptions.md) |
 | Compare two frozen quantity proxies with price, IV and time changes | [Wind Tunnel](wind-tunnel.md#compare-default-and-directionalized-models) and [Model Comparison](model-comparison.md) |
+| Trace a saved net-GEX flip or compare two saved flips | [Saved Session Flips](wind-tunnel.md#investigate-saved-session-flips) |
+| Commit a read before revealing later evidence | [Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind) |
 | Register a corpus or reproduce a versioned experiment | [Research Governance](research-governance.md) |
 | Inspect output schemas | [Export Formats](exports.md) |
 

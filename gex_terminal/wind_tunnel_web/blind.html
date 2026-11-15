@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>GEX / Blind Replay Review</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script defer src="/static/vendor/plotly.min.js"></script>
+  <script defer src="/static/blind.js"></script>
+</head>
+<body class="blind-review-page">
+<a class="skip-link" href="#blind-main">Skip to blind replay review</a>
+<header class="app-header">
+  <div class="brand"><strong>GEX</strong><span>/</span> WIND TUNNEL</div>
+  <div class="header-actions"><button type="button" id="blind-open-receipts" class="quiet" disabled><img src="/static/icons/folder-open.svg" alt=""><span>Saved reviews</span></button></div>
+</header>
+<main id="blind-main" tabindex="-1">
+  <div class="blind-review-top">
+    <h1>Blind replay review</h1>
+    <div class="blind-review-controls">
+      <div id="blind-source-picker" class="blind-source-picker" hidden>
+        <label for="blind-source-select">Saved session</label>
+        <select id="blind-source-select" disabled></select>
+      </div>
+      <button type="button" id="blind-compare-toggle" class="secondary-button" hidden>Compare ES and NQ</button>
+    </div>
+  </div>
+  <p id="blind-launch-status" class="blind-notice" role="status">Opening saved reviews…</p>
+  <div id="blind-comparison-actions" hidden>
+    <button type="button" id="blind-save-comparison" class="secondary-button" disabled hidden><img src="/static/icons/floppy-disk.svg" alt=""><span>Save comparison</span></button>
+    <p id="blind-comparison-status" class="investigation-status" role="status" tabindex="-1"></p>
+  </div>
+  <div id="blind-markets" class="blind-markets"></div>
+</main>
+<template id="blind-market-template">
+  <article class="blind-market">
+    <div class="blind-market-heading">
+      <p id="blind-source" class="blind-context">Saved flip</p>
+      <span id="blind-stage" class="blind-stage">Before reveal</span>
+    </div>
+    <p id="blind-load-status" class="blind-notice" role="status">Opening the selected flip…</p>
+    <div id="blind-review-grid" class="blind-review-grid" hidden>
+      <section class="blind-panel blind-flip" aria-labelledby="blind-flip-heading">
+        <h2 id="blind-flip-heading">Starting flip</h2>
+        <p id="blind-event" class="investigation-summary"></p>
+        <div id="blind-snapshots" class="investigation-snapshots"></div>
+        <details class="data-details blind-contracts" open>
+          <summary>Contract drivers</summary>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="Contract drivers at the flip">
+            <table>
+              <caption>Changed contributions in USD per 1% underlying move</caption>
+              <thead><tr><th scope="col">Contract</th><th scope="col">Quantity before → after</th><th scope="col">GEX change</th><th scope="col">GEX without update</th></tr></thead>
+              <tbody id="blind-contract-rows"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+      <section class="blind-panel blind-read-panel" aria-labelledby="blind-read-heading">
+        <h2 id="blind-read-heading">Your read</h2>
+        <form id="blind-commit-form">
+          <p id="blind-read-help" class="blind-read-help">Will the modeled net-GEX sign hold 30 minutes after the flip? Commit your interpretation to reveal the outcome.</p>
+          <label for="blind-read" class="sr-only">Your read</label>
+          <textarea id="blind-read" class="blind-read" required maxlength="4000" rows="7" aria-describedby="blind-read-help" autocomplete="off" placeholder="Record what you expect and why"></textarea>
+          <button type="submit" id="blind-commit" class="primary-button" disabled>Commit read and reveal<img src="/static/icons/arrow-right.svg" alt=""></button>
+        </form>
+        <div id="blind-committed" hidden>
+          <p id="blind-commit-time" class="blind-context"></p>
+          <p id="blind-committed-read" class="blind-committed-read"></p>
+          <button type="button" id="blind-reveal" class="secondary-button blind-reveal" hidden>Reveal outcome</button>
+        </div>
+        <p id="blind-action-status" class="investigation-status" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+    <section class="blind-panel blind-outcome" id="blind-outcome" aria-labelledby="blind-outcome-heading" hidden>
+      <div class="blind-outcome-heading">
+        <div>
+          <h2 id="blind-outcome-heading" tabindex="-1">30-minute outcome</h2>
+          <p id="blind-horizon" class="blind-context"></p>
+        </div>
+        <button type="button" id="blind-save" class="secondary-button blind-single-receipt" disabled><img src="/static/icons/floppy-disk.svg" alt=""><span>Save review</span></button>
+      </div>
+      <div class="blind-outcome-metrics">
+        <div><span class="metric-label">NET-GEX SIGN AT FLIP</span><strong id="blind-start-sign" class="investigation-net"></strong></div>
+        <div><span class="metric-label">NET-GEX SIGN AT 30 MIN</span><strong id="blind-later-sign" class="investigation-net"></strong></div>
+        <div><span class="metric-label">SIGN COMPARISON</span><strong id="blind-sign-result" class="investigation-net"></strong></div>
+      </div>
+      <p id="blind-horizon-note" class="chart-caption" hidden></p>
+      <h3 class="blind-chart-heading">Futures price path</h3>
+      <p id="blind-price-caption" class="chart-caption"></p>
+      <div id="blind-price-plot" class="plot blind-price-plot" role="img" hidden></div>
+      <details id="blind-price-details" class="data-details" hidden>
+        <summary>Inspect price values</summary>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Futures price values">
+          <table>
+            <thead><tr><th scope="col">Time (UTC)</th><th scope="col">Futures price</th><th scope="col">Observation</th></tr></thead>
+            <tbody id="blind-price-rows"></tbody>
+          </table>
+        </div>
+      </details>
+      <p id="blind-save-status" class="investigation-status blind-single-receipt" role="status" aria-live="polite"></p>
+    </section>
+  </article>
+</template>
+<dialog id="blind-save-dialog" aria-labelledby="blind-save-title">
+  <form id="blind-save-form">
+    <div class="dialog-header"><h2 id="blind-save-title">Save review</h2><button type="button" data-close class="icon-button" aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div>
+    <div class="dialog-body">
+      <label for="blind-review-name" id="blind-save-label">Review name</label>
+      <input id="blind-review-name" type="text" maxlength="80" required autocomplete="off">
+      <p id="blind-save-error" class="validation-message" role="alert" hidden></p>
+      <button type="submit" id="blind-confirm-save" class="primary-button">Save review</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="blind-receipts-dialog" aria-labelledby="blind-receipts-title">
+  <div class="dialog-header"><h2 id="blind-receipts-title">Saved reviews</h2><button type="button" data-close class="icon-button" aria-label="Close dialog"><img src="/static/icons/x.svg" alt=""></button></div>
+  <div class="dialog-body"><p id="blind-receipts-status" role="status" aria-live="polite"></p><div id="blind-receipts-list"></div></div>
+</dialog>
+</body>
+</html>

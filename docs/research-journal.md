@@ -24,6 +24,11 @@ receipts. A completed capture can be opened through the
 more provider data. Keep its private capture, registry and scenario receipts
 separate from journal entries when retaining or sharing evidence.
 
+[Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind) records a
+committed read at a saved flip and retains its later modeled outcome in a
+review receipt. A side-by-side review binds two independent reads and outcomes
+in one receipt. Reproduction uses the original capture for each saved read.
+
 ## Add Entries
 
 Save a replay session into the local journal:

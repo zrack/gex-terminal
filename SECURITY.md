@@ -71,8 +71,8 @@ Include:
   capture upload. It cannot request arbitrary server filesystem paths. Large
   saved sessions use operator-configured paths through the saved-data starter;
   this does not enable provider access or downloads.
-- Checkpoints and full saved receipts embed calculation inputs, contract rows,
-  source times, and assumptions. A compact comparison response is only a
+- Frozen checkpoints and full scenario receipts embed calculation inputs,
+  contract rows, source times, and assumptions. A compact comparison response is only a
   display projection; saving still creates a full portable receipt. Treat both
   checkpoints and receipts as potentially licensed private market data, even
   when an integrity or reproduction check passes.
@@ -80,6 +80,11 @@ Include:
   Keep the adjacent research folder, receipt workspace, installation records,
   exported results, and backups out of public commits and support attachments
   unless their contents and sharing rights have been reviewed.
+- Saved flip and blind review receipts reference the original capture by
+  checksum and contain derived market data. Blind review receipts also store
+  the committed read in local JSON. Review both before sharing. The reveal
+  gate controls what the app returns during a review. A person with access to
+  the original capture or a previously saved receipt can inspect it separately.
 - Receipt storage rejects symlinks, unrecognized files, replacement writes,
   and exhausted quotas. These checks preserve existing research; they do not
   encrypt it, grant redistribution rights, or enforce a retention/deletion

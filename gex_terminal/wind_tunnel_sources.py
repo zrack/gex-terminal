@@ -69,6 +69,24 @@ def checkpoint_core(primary_path: Path | None, comparison_paths=()) -> SavedChec
     return SavedCheckpointCore(primary, comparisons)
 
 
+def saved_capture_digest(capture_path: Path) -> str:
+    """Hash an explicit, bounded local capture without following symlinks."""
+    descriptor = os.open(capture_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, "rb") as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_REGISTERED_CAPTURE_BYTES:
+            raise ValueError("Saved comparison capture must be a bounded regular file")
+        checksum, size = hashlib.sha256(), 0
+        while block := stream.read(1024 * 1024):
+            size += len(block)
+            if size > MAX_REGISTERED_CAPTURE_BYTES:
+                raise ValueError("Saved comparison capture exceeds its local bound")
+            checksum.update(block)
+        if size != info.st_size:
+            raise ValueError("Saved comparison capture changed while hashing")
+        return checksum.hexdigest()
+
+
 def validate_registered_checkpoint(checkpoint_path: Path, capture_path: Path, symbol: str,
                                    checkpoint_sha256: str, capture_sha256: str) -> dict:
     """Check a prior registration without replaying or importing any provider.
@@ -86,17 +104,6 @@ def validate_registered_checkpoint(checkpoint_path: Path, capture_path: Path, sy
     if (checkpoint["source"]["symbol"] != symbol or checkpoint["sha256"] != checkpoint_sha256
             or checkpoint["source"]["data_mode"] != "REPLAY"):
         raise ValueError("Saved comparison checkpoint changed or has another symbol")
-    descriptor = os.open(capture_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    with os.fdopen(descriptor, "rb") as stream:
-        info = os.fstat(stream.fileno())
-        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_REGISTERED_CAPTURE_BYTES:
-            raise ValueError("Saved comparison capture must be a bounded regular file")
-        checksum, size = hashlib.sha256(), 0
-        while block := stream.read(1024 * 1024):
-            size += len(block)
-            if size > MAX_REGISTERED_CAPTURE_BYTES:
-                raise ValueError("Saved comparison capture exceeds its local bound")
-            checksum.update(block)
-        if checksum.hexdigest() != capture_sha256:
-            raise ValueError("Saved comparison capture changed")
+    if saved_capture_digest(capture_path) != capture_sha256:
+        raise ValueError("Saved comparison capture changed")
     return {"symbol": symbol, "checkpoint_sha256": checkpoint["sha256"]}

@@ -4,6 +4,7 @@
   const $$ = (selector) => [...document.querySelectorAll(selector)];
   const colors = {cyan: '#37cee9', amber: '#ffbd35', text: '#bfd0e5', grid: '#20303f', muted: '#778ea8'};
   const terminalSession = 'terminal-checkpoint';
+  const flipSession = 'zero-gamma-flip';
   const modelNames = {terminal_selected: 'Terminal selected proxy', raw_trade_volume: 'Volume proxy', open_interest: 'Open interest', directionalized_trade_volume: 'Directionalized volume'};
   const capabilityStorageKey = `gex.wind-tunnel.capability:${location.origin}`;
   const launchCapability = new URLSearchParams(location.hash.slice(1)).get('cap');
@@ -11,6 +12,14 @@
   try {if (launchCapability) sessionStorage.setItem(capabilityStorageKey, launchCapability); else tabCapability = sessionStorage.getItem(capabilityStorageKey);} catch (_) { /* A blocked store still permits the current launch link. */ }
   const state = {capability: tabCapability, sources: [], checkpoints: [], source: null, checkpoint: null, terminalCheckpoint: null, bundledDefaults: null, view: 'landscape', calculation: null, surface: null, search: null, revision: 0, controller: null, surfaceController: null, surfaceBusy: false, largeCheckpoint: false, landscapeRequested: false, searchController: null, sourceRevision: 0, playback: null, saving: false, valid: true, busy: false, searchBusy: false, webgl: null, surfaceRequest: null, loadedSearchGrid: null, models: null, modelsRequest: null, modelsController: null, modelsBusy: false, strikeRange: 'focused'};
   const intake = {revision: 0, controller: null, verified: null, busy: false};
+  const investigation = {controller: null, report: null, selection: null};
+  const savedTimeline = {capture: null, controller: null, markers: [], cache: new Map()};
+  const savedInvestigationKinds = {ES: 'investigate-saved', NQ: 'investigate-saved-nq'};
+  const comparisonKind = 'compare-saved-sessions';
+  const legacyComparisonKind = 'compare-saved-flips';
+  const comparisonSides = ['a', 'b'];
+  const flipComparison = {scans: new Map(), controller: null, report: null};
+  let reportToSave = null;
   const maxSessionBytes = 4 * 1024 * 1024;
   const maxReceiptBytes = 32 * 1024 * 1024;
   if (launchCapability) history.replaceState(null, '', location.pathname + location.search);
@@ -35,7 +44,8 @@
   }
   const post = (path, body, signal) => api(path, {method: 'POST', body, signal});
   function node(tag, content, className) {const element = document.createElement(tag); if (content !== undefined) element.textContent = content; if (className) element.className = className; return element;}
-  function toggleBusy() {const pending = state.busy || state.surfaceBusy || state.searchBusy || state.modelsBusy; $('#run-search').disabled = !state.source || !state.valid || pending; $('#run-model-grid').disabled = !state.source || !state.valid || pending; $('#save-scenario').disabled = !(state.view === 'models' ? state.models : state.calculation) || !state.valid || pending; $('#confirm-save').disabled = state.saving; text('#run-search-label', state.searchBusy ? 'Searching tested cases…' : 'Find breaking point'); text('#run-model-grid', state.modelsBusy ? 'Calculating both models…' : 'Run 54-case grid');}
+  function scenarioPending() {return state.busy || state.surfaceBusy || state.searchBusy || state.modelsBusy;}
+  function toggleBusy() {const pending = scenarioPending() || Boolean(investigation.controller) || Boolean(savedTimeline.controller); $('#run-search').disabled = !state.source || !state.valid || pending; $('#run-model-grid').disabled = !state.source || !state.valid || pending; $('#save-scenario').disabled = !(state.view === 'models' ? state.models : state.calculation) || !state.valid || pending; $('#confirm-save').disabled = state.saving; text('#run-search-label', state.searchBusy ? 'Searching tested cases…' : 'Find breaking point'); text('#run-model-grid', state.modelsBusy ? 'Calculating both models…' : 'Run 54-case grid'); updateInvestigationControls(); updateFlipComparisonControls();}
   function requestFromControls() {
     const request = {session: isTerminalSource() ? terminalSession : state.source, checkpoint: state.checkpoint, ...retainedAssumptions, model: $('#position-model').value, spot_shift: Number($('#spot-number').value), iv_shift: Number($('#iv-number').value), time_advance: Number($('#time-number').value), exclude_nearest_expiry: $('#remove-expiry').checked};
     if (isTerminalSource() && state.terminalCheckpoint) request.terminal_checkpoint = state.terminalCheckpoint;
@@ -354,11 +364,32 @@
   function frozenSourceLabel(source = currentSource()) {return isCapturedSource(source) ? 'Frozen captured checkpoint' : 'Frozen Terminal checkpoint';}
   function sourceName(source) {return source.name || source.id || source.session;}
   function currentSource() {return state.sources.find(item => sourceName(item) === state.source);}
+  function savedReplayLabel(symbol) {return symbol ? `Saved ${symbol} replay` : 'Saved replay';}
+  function savedCaptureLabel(source) {
+    const at = source.as_of || source.last_as_of;
+    const checksum = source.investigation_capture.sha256;
+    const parts = [savedReplayLabel(source.symbol), checksum.slice(0, 12)];
+    if (at) parts.push(`through ${replayTime(at)}`);
+    return parts.join(' · ');
+  }
+  function sourceOptionLabel(source) {
+    if (source.investigation_capture) {
+      const sharesSymbol = state.sources.some(other => other.symbol === source.symbol && other.investigation_capture
+        && other.investigation_capture.sha256 !== source.investigation_capture.sha256);
+      return sharesSymbol ? savedCaptureLabel(source) : savedReplayLabel(source.symbol);
+    }
+    return source.title || source.label || sourceName(source);
+  }
   function isTerminalSource(source = currentSource()) {return source?.source_kind === 'terminal_checkpoint' || state.source === terminalSession;}
   function checkpointTime(checkpoint) {return checkpoint?.event_time || checkpoint?.as_of || checkpoint?.timestamp;}
   function fullTimeLabel(value) {if (!value) return 'Time unavailable'; const date = new Date(value); return Number.isNaN(date.valueOf()) ? String(value) : date.toISOString().replace('T', ' ').replace('.000Z', ' UTC');}
   function updateSourceContext(source) {
     const frozen = isTerminalSource(source), captured = checkpointMetadata(source?.terminal_checkpoint).source || {}, asOf = source?.as_of || source?.last_as_of;
+    const syntheticFlip = source?.name === flipSession && !frozen;
+    $('#investigation-entry').hidden = !syntheticFlip && !source?.investigation_capture;
+    $('#investigate-flip').hidden = !syntheticFlip;
+    text('#saved-flip-heading', `${source?.investigation_capture ? sourceOptionLabel(source) : savedReplayLabel(source?.symbol)} timeline`);
+    selectSavedTimeline(source?.investigation_capture?.sha256 || null);
     text('#header-source', `${source?.symbol || 'Research'} · ${frozen ? frozenSourceLabel(source) : 'Synthetic replay'}${asOf ? ` · ${timeLabel(asOf)}` : ''}`);
     text('#checkpoint-heading', frozen ? frozenSourceLabel(source) : 'Replay checkpoint');
     text('#baseline-heading', frozen ? (isCapturedSource(source) ? 'Original captured state' : 'Original Terminal state') : 'Original replay state');
@@ -379,7 +410,21 @@
   }
   function registerTerminalSource(artifact) {
     // The artifact was checked by /api/reproduce or /api/intake/checkpoint. Keep its bytes opaque.
+    const registered = state.sources.find(item => item.investigation_capture && item.terminal_checkpoint === artifact);
+    if (registered) return registered;
     const source = terminalSourceFromArtifact(artifact);
+    const previous = state.sources.find(item => sourceName(item) === terminalSession);
+    if (previous?.investigation_capture) {
+      const market = previous.symbol?.toLowerCase();
+      const alias = `saved-${market ? `${market}-` : ''}replay-${previous.investigation_capture.sha256}`;
+      if (!state.sources.some(item => sourceName(item) === alias)) {
+        const saved = {...previous, name: alias};
+        state.sources.push(saved);
+        const savedOption = node('option', sourceOptionLabel(saved));
+        savedOption.value = alias;
+        $('#source').append(savedOption);
+      }
+    }
     state.sources = [source, ...state.sources.filter(item => sourceName(item) !== terminalSession)];
     const select = $('#source'); let option = [...select.options].find(item => item.value === terminalSession);
     if (!option) {option = node('option'); option.value = terminalSession; select.append(option);}
@@ -397,6 +442,7 @@
   }
   function setCheckpoint(position) {const checkpoint = state.checkpoints[position]; if (!checkpoint) return; state.checkpoint = checkpoint.index ?? checkpoint.event_index ?? checkpoint.checkpoint ?? position; $('#checkpoint').value = position; text('#checkpoint-label', timeLabel(checkpointTime(checkpoint))); text('#checkpoint-count', isTerminalSource() ? '1 frozen checkpoint · playback unavailable' : `${position + 1} of ${state.checkpoints.length} checkpoints`);}
   async function loadSource(session, desiredCheckpoint = undefined, preserveScenario = false, skipCalculation = false) {
+    closeInvestigation();
     stopPlayback(); clearTimeout(calculateTimer); state.controller?.abort(); state.revision++; const revision = ++state.sourceRevision; state.source = session; text('#spot-effective', 'Original price pending'); state.calculation = null; clearLandscape(); clearModels(); state.largeCheckpoint = false; state.landscapeRequested = false; renderPricingAssumptions(null); clearSearch(); state.busy = true; toggleBusy(); $('#source').value = session; status('Loading source checkpoint…');
     const source = currentSource();
     state.terminalCheckpoint = isTerminalSource(source) ? source?.terminal_checkpoint || state.terminalCheckpoint : null;
@@ -431,6 +477,575 @@
     draw('#fragility-plot', traces, chartLayout({xaxis: {...chartLayout().xaxis, title: {text: 'Underlying price shift (points)'}, zeroline: true}, yaxis: {...chartLayout().yaxis, title: {text: 'IV shift (volatility points)'}, zeroline: true}})).catch(chartError);
   }
   function showDialog(selector) {stopPlayback(); $(selector).showModal();}
+  function savedTimelineStatus(message, error = false) {
+    text('#saved-flip-status', message);
+    $('#saved-flip-status').classList.toggle('error', error);
+  }
+  function selectSavedTimeline(capture) {
+    $('#saved-flip-timeline').hidden = !capture;
+    const cached = savedTimeline.cache.get(capture);
+    if (savedTimeline.capture !== capture) {
+      savedTimeline.controller?.abort();
+      savedTimeline.capture = capture;
+      savedTimeline.controller = null;
+      savedTimeline.markers = [];
+      $('#scan-saved-flips').hidden = false;
+      for (const selector of ['#saved-flip-track', '#saved-flip-bounds', '#saved-flip-markers']) {
+        $(selector).replaceChildren();
+        $(selector).hidden = true;
+      }
+      savedTimelineStatus(capture ? 'Scan the saved capture to mark modeled net-GEX sign changes.' : '');
+      if (cached?.timeline) renderSavedTimeline(cached.timeline);
+    }
+    if (cached?.report) showSavedInvestigation(cached.report);
+    toggleBusy();
+  }
+  function replayTime(value) {
+    if (typeof value === 'string' && value.endsWith('Z')) return value.slice(0, -1).replace('T', ' ') + ' UTC';
+    return fullTimeLabel(value);
+  }
+  function gexSign(sign) {return ({'-1': 'Negative', 0: 'Zero', 1: 'Positive'})[sign] || 'Unavailable';}
+  function renderSavedTimeline(timeline) {
+    const start = Date.parse(timeline.first_as_of), end = Date.parse(timeline.last_as_of);
+    const track = $('#saved-flip-track'), bounds = $('#saved-flip-bounds'), markers = $('#saved-flip-markers');
+    track.replaceChildren();
+    markers.replaceChildren();
+    bounds.replaceChildren(node('span', replayTime(timeline.first_as_of)), node('span', replayTime(timeline.last_as_of)));
+    savedTimeline.markers = timeline.markers.map(marker => {
+      const position = end > start ? (Date.parse(marker.as_of) - start) / (end - start) : 0;
+      const tick = node('span', undefined, 'saved-flip-tick');
+      if (Number.isFinite(position)) tick.setAttribute('style', `left: ${Math.max(0, Math.min(1, position)) * 100}%`);
+      const label = node('time', replayTime(marker.as_of));
+      label.dateTime = marker.as_of;
+      const direction = `${gexSign(marker.before_sign)} → ${gexSign(marker.after_sign)}`;
+      const button = node('button', undefined, 'saved-flip-marker');
+      button.type = 'button';
+      button.title = `Event ${marker.sequence} · ${direction}`;
+      button.setAttribute('aria-controls', 'flip-investigation');
+      button.append(label, node('span', direction), node('span', `Event ${marker.sequence}`, 'sr-only'));
+      async function openMarker() {
+        const capture = timeline.capture_sha256;
+        if (button.disabled || capture !== savedTimeline.capture) return;
+        const wasOpen = isSelectedFlip(marker.sequence);
+        savedTimeline.cache.get(capture).report = null;
+        closeInvestigation();
+        if (wasOpen) {button.focus(); return;}
+        investigation.selection = {capture_sha256: capture, sequence: marker.sequence};
+        const pending = calculateInvestigation();
+        if (!$('#flip-investigation').hidden) $('#investigation-heading').focus();
+        await pending;
+      }
+      button.addEventListener('click', openMarker);
+      tick.addEventListener('click', openMarker);
+      tick.title = `${replayTime(marker.as_of)} · ${button.title}`;
+      track.append(tick);
+      markers.append(button);
+      return {sequence: marker.sequence, button};
+    });
+    track.hidden = bounds.hidden = false;
+    markers.hidden = !savedTimeline.markers.length;
+    $('#scan-saved-flips').hidden = true;
+    const count = timeline.markers.length;
+    const result = count ? `${formatNumber(count, 0)} net-GEX ${count === 1 ? 'flip' : 'flips'} found` : 'No net-GEX flips found';
+    const note = timeline.method === 'sampled_then_localized' ? ` Sampled every ${formatNumber(timeline.sample_stride_events, 0)} events. Brief flips between samples may be missed.` : '';
+    const unresolved = timeline.unresolved_brackets > 0 ? ` ${formatNumber(timeline.unresolved_brackets, 0)} sampled intervals could not be resolved to a flip checkpoint.` : '';
+    savedTimelineStatus(`${result} in ${formatNumber(timeline.event_count, 0)} saved replay events.${note}${unresolved}`);
+  }
+  async function scanSavedFlips() {
+    const capture = savedTimeline.capture;
+    if (!capture || scenarioPending() || state.saving || investigation.controller || savedTimeline.controller || flipComparisonPending()) return;
+    stopPlayback();
+    const controller = new AbortController();
+    savedTimeline.controller = controller;
+    savedTimelineStatus(`Scanning ${currentSource()?.symbol || 'the saved'} replay for net-GEX flips…`);
+    toggleBusy();
+    try {
+      const timeline = await post('investigation-timeline', {capture_sha256: capture}, controller.signal);
+      if (savedTimeline.controller !== controller) return;
+      if (timeline.capture_sha256 !== capture) throw new Error('The timeline did not match the selected saved capture.');
+      savedTimeline.cache.set(capture, {...savedTimeline.cache.get(capture), timeline});
+      renderSavedTimeline(timeline);
+    } catch (error) {
+      if (savedTimeline.controller === controller && error.name !== 'AbortError') savedTimelineStatus(error.message, true);
+    } finally {
+      if (savedTimeline.controller === controller) {
+        savedTimeline.controller = null;
+        toggleBusy();
+      }
+    }
+  }
+  function isSelectedFlip(sequence) {
+    return investigation.selection?.capture_sha256 === savedTimeline.capture
+      && investigation.selection?.sequence === sequence && !$('#flip-investigation').hidden;
+  }
+  function updateInvestigationControls() {
+    const pending = state.saving || scenarioPending() || Boolean(savedTimeline.controller);
+    const savedPending = pending || flipComparisonPending();
+    const savedReplayBusy = Boolean(savedTimeline.controller || (investigation.selection && investigation.controller));
+    $('#scenario-form').inert = savedReplayBusy;
+    for (const selector of ['#reset-scenario', '#open-session', '#open-examples']) $(selector).disabled = savedReplayBusy;
+    $('#open-receipts').disabled = savedReplayBusy || flipComparisonPending();
+    for (const tab of $$('.tabs button')) tab.disabled = savedReplayBusy;
+    $('#scan-saved-flips').disabled = savedPending || Boolean(investigation.controller);
+    for (const {sequence, button} of savedTimeline.markers) {
+      button.disabled = savedPending || Boolean(investigation.controller);
+      button.setAttribute('aria-expanded', String(isSelectedFlip(sequence)));
+    }
+    $('#investigate-flip').disabled = pending;
+    const investigationBusy = (investigation.selection ? savedPending : pending) || Boolean(investigation.controller);
+    $('#remove-call-update').disabled = investigationBusy;
+    $('#save-investigation').disabled = investigationBusy || !investigation.report;
+  }
+  function investigationStatus(message, error = false) {
+    text('#investigation-status', message);
+    $('#investigation-status').classList.toggle('error', error);
+  }
+  function closeInvestigation() {
+    investigation.controller?.abort();
+    investigation.controller = null;
+    investigation.report = null;
+    investigation.selection = null;
+    $('#flip-investigation').hidden = true;
+    $('#investigation-results').hidden = true;
+    text('#investigation-heading', 'Net-GEX flip');
+    text('#investigation-context', '');
+    $('#investigate-flip').setAttribute('aria-expanded', 'false');
+    $('#remove-call-update').checked = false;
+    investigationStatus('');
+    toggleBusy();
+  }
+  function revealInvestigation() {
+    stopPlayback();
+    $('#flip-investigation').hidden = false;
+    $('#investigate-flip').setAttribute('aria-expanded', String(!investigation.selection));
+  }
+  function optionSide(optionType) {return ({C: 'call', P: 'put'})[optionType] || optionType;}
+  function investigationSnapshot(label, snapshot) {
+    const {summary, spot, as_of: timestamp, source} = snapshot;
+    const card = node('div', undefined, 'investigation-snapshot');
+    const time = node('time', replayTime(timestamp));
+    time.dateTime = timestamp;
+    const sign = gexSign(summary.net_sign);
+    card.append(node('h3', label), time);
+    if (Number.isInteger(source?.sequence)) {
+      const sequence = source.omitted_sequence;
+      card.append(node('p', Number.isInteger(sequence) ? `Event ${formatNumber(sequence, 0)} omitted` : `Event ${formatNumber(source.sequence, 0)}`));
+    }
+    card.append(node('span', 'Net GEX', 'metric-label'),
+      node('strong', `${sign} · ${money(summary.total_net_gex)}`, 'investigation-net'),
+      node('p', `Futures price ${formatNumber(spot)}`),
+      node('p', `Dominant wall ${formatNumber(summary.gamma_wall)}`));
+    if (snapshot.pricing_coverage) card.append(node('p', coverageSummary(snapshot.pricing_coverage)));
+    return card;
+  }
+  function investigationEventText(event, saved) {
+    const moment = replayTime(event.event_time || event.as_of);
+    const contract = `${formatNumber(event.strike)} ${optionSide(event.option_type)}`;
+    if (!saved) return `The replay adds ${formatNumber(event.volume)} contracts of ${contract} volume at ${moment}.`;
+    const prefix = `Event ${formatNumber(event.sequence, 0)} · ${moment}`;
+    if (event.type === 'underlying_tick') return `${prefix} · Futures price updates to ${formatNumber(event.price)}.`;
+    if (Number.isFinite(event.strike) && event.option_type) {
+      const expiry = event.expiry ? ` · ${event.expiry}` : '';
+      return `${prefix} · ${contract}${expiry} option update.`;
+    }
+    return `${prefix} · ${event.type.replaceAll('_', ' ')}.`;
+  }
+  function investigationGex(value, coverage) {
+    if (coverage === 'unpriced') return 'Unpriced';
+    if (coverage === 'not_selected') return '—';
+    return formatNumber(value);
+  }
+  function investigationDriverHeader(contribution, event, saved) {
+    const trigger = saved ? contribution.contract_id === event.contract_id && (!event.provider || contribution.provider === event.provider) : contribution.strike === event.strike && contribution.option_type === event.option_type;
+    const header = node('th', `${formatNumber(contribution.strike)} ${optionSide(contribution.option_type)}`, trigger ? 'investigation-trigger' : undefined);
+    header.scope = 'row';
+    if (trigger) header.append(node('span', saved ? ' · updated' : ' · call-volume update'));
+    if (saved) {
+      const from = contribution.before_position_source, to = contribution.after_position_source;
+      const source = from && to && from !== to ? `${from} → ${to}` : contribution.position_source;
+      const expiry = contribution.expiry_timestamp ? replayTime(contribution.expiry_timestamp) : contribution.expiry;
+      const identity = [expiry, contribution.provider, contribution.contract_id, source?.replaceAll('_', ' ')].filter(Boolean).join(' · ');
+      if (identity) header.append(node('small', identity, 'investigation-contract-identity'));
+    }
+    return header;
+  }
+  function investigationTitle(report) {
+    const symbol = report.source?.symbol || (report.request.capture_sha256 ? currentSource()?.symbol : 'ES');
+    return symbol ? `${symbol} net-GEX flip` : 'Net-GEX flip';
+  }
+  function renderInvestigation(report) {
+    investigation.report = report;
+    const {event, before, after, counterfactual} = report;
+    const saved = Boolean(investigation.selection);
+    text('#investigation-heading', investigationTitle(report));
+    const active = currentSource();
+    const replayLabel = active?.investigation_capture ? sourceOptionLabel(active) : savedReplayLabel(report.source?.symbol || active?.symbol);
+    text('#investigation-context', saved ? `${replayLabel} · ${report.model?.label || 'Terminal selected proxy'}` : 'Synthetic replay · 0DTE · volume proxy');
+    text('#investigation-summary', investigationEventText(event, saved));
+    text('#remove-update-label', saved ? 'Remove driving update' : 'Remove call-volume update');
+    text('#remove-update-help', 'Recalculate the after cutoff without this one replay update.');
+    text('#investigation-contributions-heading', saved ? 'Contract contributions' : 'Strike and side contributions');
+    text('#investigation-contract-heading', saved ? 'Contract' : 'Strike and side');
+    text('#investigation-before-quantity', saved ? 'Quantity before' : 'Volume before');
+    text('#investigation-after-quantity', saved ? 'Quantity after' : 'Volume after');
+    text('#investigation-removed-volume', saved ? 'Quantity without update' : 'Volume without update');
+    const snapshots = $('#investigation-snapshots');
+    snapshots.replaceChildren(investigationSnapshot('Before update', before), investigationSnapshot('After update', after));
+    if (counterfactual) snapshots.append(investigationSnapshot('After · update removed', counterfactual));
+    $('#remove-call-update').checked = Boolean(report.request.remove_update ?? report.request.remove_call_update);
+    $('#investigation-removed-volume').hidden = !counterfactual;
+    $('#investigation-removed-gex').hidden = !counterfactual;
+
+    const rows = report.contributions.map(contribution => {
+      const row = node('tr');
+      row.append(investigationDriverHeader(contribution, event, saved));
+      const values = [formatNumber(contribution.before_quantity), formatNumber(contribution.after_quantity),
+        investigationGex(contribution.before_gex, contribution.before_status),
+        investigationGex(contribution.after_gex, contribution.after_status), formatNumber(contribution.delta_gex)];
+      if (counterfactual) values.push(formatNumber(contribution.counterfactual_quantity),
+        investigationGex(contribution.counterfactual_gex, contribution.counterfactual_status));
+      for (const value of values) {
+        row.append(node('td', value));
+      }
+      return row;
+    });
+    $('#investigation-contract-rows').replaceChildren(...rows);
+    text('#investigation-reconciliation', `Net GEX change ${formatNumber(report.net_gex_delta)} · sum of contributions ${formatNumber(report.attributed_gex_delta)}.`);
+    $('#investigation-results').hidden = false;
+    updateInvestigationControls();
+  }
+  function showSavedInvestigation(report, verified = false) {
+    const {capture_sha256, sequence, remove_update} = report.request;
+    investigation.selection = {capture_sha256, sequence};
+    revealInvestigation();
+    renderInvestigation(report);
+    savedTimeline.cache.set(capture_sha256, {...savedTimeline.cache.get(capture_sha256), report});
+    const reason = report.counterfactual_status === 'unavailable' ? report.counterfactual_reason || 'Counterfactual unavailable at this cutoff.' : '';
+    if (verified) investigationStatus(`Saved investigation verified.${reason ? ` ${reason}` : ''}`);
+    else investigationStatus(reason || (remove_update ? 'Counterfactual calculated at the same cutoff.' : 'Before and after cutoffs calculated.'));
+  }
+  async function calculateInvestigation(removeUpdate = false) {
+    const selection = investigation.selection;
+    if (selection ? selection.capture_sha256 !== savedTimeline.capture : state.source !== flipSession) return;
+    if (scenarioPending() || state.saving || savedTimeline.controller || (selection && flipComparisonPending())) return;
+    investigation.controller?.abort();
+    const controller = new AbortController();
+    investigation.controller = controller;
+    revealInvestigation();
+    toggleBusy();
+    investigationStatus(removeUpdate ? 'Replaying the after cutoff without the driving update…' : 'Replaying both cutoffs…');
+    try {
+      const symbol = currentSource()?.symbol;
+      const kind = selection ? savedInvestigationKinds[symbol] : 'investigate';
+      const request = selection ? {...selection, remove_update: removeUpdate} : {session: flipSession, remove_call_update: removeUpdate};
+      const report = await post(kind, request, controller.signal);
+      if (investigation.controller !== controller) return;
+      if (selection) {
+        if (report.source?.symbol !== symbol || report.source?.capture_sha256 !== request.capture_sha256
+            || report.request?.capture_sha256 !== request.capture_sha256 || report.request?.sequence !== request.sequence
+            || report.event?.sequence !== request.sequence || report.request?.remove_update !== removeUpdate) {
+          throw new Error('The investigation did not match the selected saved capture and update.');
+        }
+        showSavedInvestigation(report);
+      } else {
+        renderInvestigation(report);
+        investigationStatus(removeUpdate ? 'Counterfactual calculated at the same cutoff.' : 'Before and after cutoffs calculated.');
+      }
+      return report;
+    } catch (error) {
+      if (investigation.controller === controller && error.name !== 'AbortError') {
+        const restored = investigation.report?.request;
+        $('#remove-call-update').checked = Boolean(restored?.remove_update ?? restored?.remove_call_update);
+        investigationStatus(error.message, true);
+      }
+    } finally {
+      if (investigation.controller === controller) {
+        investigation.controller = null;
+        toggleBusy();
+      }
+    }
+  }
+  function comparisonSources() {
+    const sources = new Map();
+    for (const source of state.sources) {
+      const capture = source.investigation_capture?.sha256;
+      if (capture && source.status === 'available') sources.set(capture, source);
+    }
+    return sources;
+  }
+  function comparisonSource(side) {
+    return comparisonSources().get($(`#compare-${side}-capture`).value);
+  }
+  function comparisonKey(side, operation = comparisonKind) {
+    if (operation === legacyComparisonKind) return side === 'a' ? 'es' : 'nq';
+    return side === 'a' ? 'left' : 'right';
+  }
+  function comparisonReportSide(report, side) {
+    return report?.[comparisonKey(side, report.request?.operation)];
+  }
+  function renderComparisonCaptures(selected) {
+    const sources = comparisonSources();
+    const available = [...sources.keys()];
+    const first = $('#compare-a-capture').value;
+    const second = $('#compare-b-capture').value;
+    const active = currentSource()?.investigation_capture?.sha256;
+    const a = selected?.a ?? (sources.has(first) ? first : (sources.has(active) ? active : available[0]));
+    const b = selected?.b ?? (sources.has(second) ? second : available.find(capture => capture !== a));
+    for (const [side, value] of [['a', a], ['b', b]]) {
+      const select = $(`#compare-${side}-capture`);
+      select.replaceChildren();
+      for (const [capture, source] of sources) {
+        const option = node('option', savedCaptureLabel(source));
+        option.value = capture;
+        select.append(option);
+      }
+      select.value = value || '';
+    }
+  }
+  function flipComparisonPending() {
+    return Boolean(flipComparison.controller || flipComparison.scans.size);
+  }
+  function comparisonSelection(side) {
+    const source = comparisonSource(side);
+    const select = $(`#compare-${side}-flip`);
+    if (!source || !select.value || ![...select.options].some(option => option.value === select.value)) return null;
+    return {symbol: source.symbol, capture_sha256: source.investigation_capture.sha256, sequence: Number(select.value)};
+  }
+  function distinctComparisonCaptures() {
+    const a = $('#compare-a-capture').value, b = $('#compare-b-capture').value;
+    return Boolean(a && b && a !== b);
+  }
+  function updateFlipComparisonControls() {
+    const available = comparisonSources().size >= 2;
+    const distinct = distinctComparisonCaptures();
+    const busy = flipComparisonPending() || state.saving || Boolean(savedTimeline.controller || investigation.controller);
+    $('#flip-comparison-entry').hidden = !available;
+    $('#open-flip-comparison').disabled = !available || ($('#flip-comparison').hidden && busy);
+    $('#run-flip-comparison').disabled = busy || !distinct || !comparisonSides.every(side => comparisonSelection(side));
+    $('#save-flip-comparison').disabled = busy || !flipComparison.report;
+    for (const side of comparisonSides) {
+      $(`#compare-${side}-capture`).disabled = busy || !available;
+      const select = $(`#compare-${side}-flip`);
+      select.disabled = busy || !distinct || select.options.length <= 1;
+      $(`#retry-${side}-flips`).disabled = busy || !distinct;
+    }
+  }
+  function comparisonStatus(message, error = false) {
+    text('#flip-comparison-status', message);
+    $('#flip-comparison-status').classList.toggle('error', error);
+  }
+  function renderComparisonPicker(side, requested) {
+    const source = comparisonSource(side);
+    if (!source) return;
+    const capture = source.investigation_capture.sha256;
+    const cached = savedTimeline.cache.get(capture);
+    const loaded = comparisonReportSide(flipComparison.report, side);
+    const saved = loaded?.request?.capture_sha256 === capture ? loaded : null;
+    const select = $(`#compare-${side}-flip`);
+    const selected = String(requested ?? (select.value || (cached?.report?.request?.sequence ?? '')));
+    const markers = [...(cached?.timeline?.markers || [])];
+    if (saved && !markers.some(marker => marker.sequence === saved.request.sequence)) {
+      markers.push({sequence: saved.request.sequence, as_of: saved.after.as_of,
+        before_sign: saved.before.summary.net_sign, after_sign: saved.after.summary.net_sign});
+      markers.sort((a, b) => a.sequence - b.sequence);
+    }
+    const empty = node('option', 'Choose a flip');
+    empty.value = '';
+    select.replaceChildren(empty);
+    for (const marker of markers) {
+      const option = node('option', `${replayTime(marker.as_of)} · ${gexSign(marker.before_sign)} → ${gexSign(marker.after_sign)} · event ${formatNumber(marker.sequence, 0)}`);
+      option.value = String(marker.sequence);
+      select.append(option);
+    }
+    select.value = markers.some(marker => String(marker.sequence) === selected) ? selected : '';
+    const timeline = cached?.timeline;
+    const status = $(`#compare-${side}-timeline-status`);
+    status.classList.remove('error');
+    if (timeline) {
+      const count = timeline.markers.length;
+      const note = timeline.method === 'sampled_then_localized' ? ' Brief flips between samples may be missed.' : '';
+      status.textContent = `${count ? `${formatNumber(count, 0)} ${count === 1 ? 'flip' : 'flips'} found` : 'No flips found'}.${note}`;
+    } else status.textContent = saved ? 'Selected flip restored from the receipt.' : '';
+    const retry = $(`#retry-${side}-flips`);
+    retry.hidden = Boolean(timeline);
+    retry.textContent = `Scan Session ${side.toUpperCase()} timeline`;
+  }
+  async function scanComparisonSide(side) {
+    const source = comparisonSource(side);
+    if (!source || flipComparison.scans.has(side)) return;
+    const capture = source.investigation_capture.sha256;
+    if (savedTimeline.cache.get(capture)?.timeline) {
+      renderComparisonPicker(side);
+      return;
+    }
+    const controller = new AbortController();
+    const status = $(`#compare-${side}-timeline-status`);
+    const retry = $(`#retry-${side}-flips`);
+    flipComparison.scans.set(side, controller);
+    status.classList.remove('error');
+    status.textContent = `Scanning Session ${side.toUpperCase()}…`;
+    retry.hidden = true;
+    toggleBusy();
+    try {
+      const timeline = await post('investigation-timeline', {capture_sha256: capture}, controller.signal);
+      if (flipComparison.scans.get(side) !== controller || comparisonSource(side)?.investigation_capture.sha256 !== capture) return;
+      if (timeline.capture_sha256 !== capture) throw new Error('The timeline did not match this saved capture.');
+      savedTimeline.cache.set(capture, {...savedTimeline.cache.get(capture), timeline});
+      if (capture === savedTimeline.capture) renderSavedTimeline(timeline);
+      renderComparisonPicker(side);
+    } catch (error) {
+      if (flipComparison.scans.get(side) !== controller || error.name === 'AbortError') return;
+      status.textContent = error.message;
+      status.classList.add('error');
+      retry.hidden = false;
+      retry.textContent = `Retry Session ${side.toUpperCase()} scan`;
+    } finally {
+      if (flipComparison.scans.get(side) === controller) {
+        flipComparison.scans.delete(side);
+        toggleBusy();
+      }
+    }
+  }
+  function revealFlipComparison() {
+    stopPlayback();
+    $('#flip-comparison').hidden = false;
+    $('#open-flip-comparison').setAttribute('aria-expanded', 'true');
+  }
+  function cancelFlipComparisonWork() {
+    flipComparison.controller?.abort();
+    flipComparison.controller = null;
+    for (const controller of flipComparison.scans.values()) controller.abort();
+    flipComparison.scans.clear();
+  }
+  async function toggleFlipComparison() {
+    if (!$('#flip-comparison').hidden) {
+      cancelFlipComparisonWork();
+      $('#flip-comparison').hidden = true;
+      $('#open-flip-comparison').setAttribute('aria-expanded', 'false');
+      if (!flipComparison.report) comparisonStatus('');
+      toggleBusy();
+      return;
+    }
+    revealFlipComparison();
+    renderComparisonCaptures();
+    $('#flip-comparison-heading').focus();
+    for (const side of comparisonSides) renderComparisonPicker(side, comparisonReportSide(flipComparison.report, side)?.request.sequence);
+    if (!flipComparison.report && distinctComparisonCaptures()) await Promise.all(comparisonSides.map(scanComparisonSide));
+    toggleBusy();
+  }
+  function clearFlipComparisonResult() {
+    flipComparison.controller?.abort();
+    flipComparison.controller = null;
+    flipComparison.report = null;
+    $('#flip-comparison-results').hidden = true;
+    comparisonStatus('');
+    toggleBusy();
+  }
+  async function changeComparisonCapture(side) {
+    clearFlipComparisonResult();
+    $(`#compare-${side}-flip`).value = '';
+    renderComparisonPicker(side);
+    if (distinctComparisonCaptures()) await scanComparisonSide(side);
+    else comparisonStatus('Choose two different saved sessions.', true);
+    toggleBusy();
+  }
+  function renderComparisonSide(side, source, report) {
+    const session = `Session ${side.toUpperCase()}`;
+    const {event, before, after, counterfactual, contributions} = report;
+    const pane = $(`#${side}-flip-comparison-result`);
+    const snapshots = node('div', undefined, 'investigation-snapshots');
+    snapshots.append(investigationSnapshot('Before update', before), investigationSnapshot('After update', after));
+    if (counterfactual) {
+      snapshots.append(investigationSnapshot('Without driving update', counterfactual));
+    } else {
+      const unavailable = node('div', undefined, 'investigation-snapshot');
+      unavailable.append(node('h3', 'Without driving update'), node('strong', 'Unavailable', 'investigation-net'),
+        node('p', report.counterfactual_reason || 'The counterfactual could not be evaluated.'));
+      snapshots.append(unavailable);
+    }
+    const scroll = node('div', undefined, 'table-scroll');
+    scroll.tabIndex = 0;
+    scroll.setAttribute('role', 'region');
+    scroll.setAttribute('aria-label', `${session} contract drivers`);
+    const table = node('table');
+    const heading = node('thead');
+    const columns = node('tr');
+    for (const label of ['Contract', 'Quantity before → after', 'GEX change', 'GEX without update']) {
+      const cell = node('th', label);
+      cell.scope = 'col';
+      columns.append(cell);
+    }
+    heading.append(columns);
+    const body = node('tbody');
+    for (const contribution of contributions) {
+      const row = node('tr');
+      row.append(investigationDriverHeader(contribution, event, true),
+        node('td', `${formatNumber(contribution.before_quantity)} → ${formatNumber(contribution.after_quantity)}`),
+        node('td', formatNumber(contribution.delta_gex)),
+        node('td', investigationGex(contribution.counterfactual_gex, contribution.counterfactual_status)));
+      body.append(row);
+    }
+    table.append(node('caption', 'Contract contributions · USD per 1% underlying move'), heading, body);
+    scroll.append(table);
+    pane.replaceChildren(node('h3', `${session} · ${source.symbol} flip`), node('p', savedCaptureLabel(source), 'chart-caption'),
+      node('p', investigationEventText(event, true), 'investigation-summary'),
+      snapshots, node('p', `Net GEX change ${formatNumber(report.net_gex_delta)} · sum of contributions ${formatNumber(report.attributed_gex_delta)}.`, 'chart-caption'), scroll);
+  }
+  function showFlipComparison(request, report, verified = false) {
+    const operation = report?.request?.operation;
+    if (!isFlipComparisonKind(operation)) throw new Error('Could not open this flip comparison.');
+    const sources = comparisonSources();
+    const chosen = {};
+    for (const side of comparisonSides) {
+      const key = comparisonKey(side, operation);
+      const selection = request[key];
+      const result = report[key];
+      const reported = report.request[key];
+      const source = sources.get(selection?.capture_sha256);
+      const symbol = operation === legacyComparisonKind ? key.toUpperCase() : selection?.symbol;
+      if (!source || source.symbol !== symbol || (operation === comparisonKind && reported?.symbol !== symbol)
+          || reported?.capture_sha256 !== selection.capture_sha256 || reported?.sequence !== selection.sequence
+          || result?.source?.capture_sha256 !== selection.capture_sha256 || result.source.symbol !== symbol
+          || result?.request?.capture_sha256 !== selection.capture_sha256 || result.request.sequence !== selection.sequence
+          || result.event?.sequence !== selection.sequence || result.request.remove_update !== true) {
+        throw new Error('The comparison did not match both selected captures and flip updates.');
+      }
+      chosen[side] = {source, result, selection};
+    }
+    if (chosen.a.selection.capture_sha256 === chosen.b.selection.capture_sha256) throw new Error('Choose two different saved sessions.');
+    if (verified) cancelFlipComparisonWork();
+    revealFlipComparison();
+    flipComparison.report = report;
+    renderComparisonCaptures({a: chosen.a.selection.capture_sha256, b: chosen.b.selection.capture_sha256});
+    for (const side of comparisonSides) {
+      const {source, result, selection} = chosen[side];
+      renderComparisonPicker(side, selection.sequence);
+      renderComparisonSide(side, source, result);
+    }
+    $('#flip-comparison-results').hidden = false;
+    comparisonStatus(verified ? 'Saved comparison verified.' : 'Both removal results calculated at their original cutoffs.');
+    updateFlipComparisonControls();
+  }
+  async function calculateFlipComparison() {
+    if ($('#run-flip-comparison').disabled) return;
+    const request = {left: comparisonSelection('a'), right: comparisonSelection('b')};
+    clearFlipComparisonResult();
+    const controller = new AbortController();
+    flipComparison.controller = controller;
+    comparisonStatus('Replaying both flips and their driving-update removals…');
+    toggleBusy();
+    try {
+      const report = await post(comparisonKind, request, controller.signal);
+      if (flipComparison.controller === controller) showFlipComparison(request, report);
+    } catch (error) {
+      if (flipComparison.controller === controller && error.name !== 'AbortError') comparisonStatus(error.message, true);
+    } finally {
+      if (flipComparison.controller === controller) {
+        flipComparison.controller = null;
+        toggleBusy();
+      }
+    }
+  }
   function discardIntake() {
     intake.revision++; intake.controller?.abort(); intake.controller = null; intake.busy = false;
     const id = intake.verified?.intake_id; intake.verified = null;
@@ -480,7 +1095,8 @@
       const result = await post('intake/checkpoint', {intake_id: intakeId, sequence}, controller.signal);
       if (revision !== intake.revision || controller.signal.aborted) return;
       if (typeof result.terminal_checkpoint !== 'string') throw new Error('The local service did not return a portable checkpoint.');
-      registerTerminalSource(result.terminal_checkpoint); $('#intake-dialog').close(); discardIntake(); await loadSource(terminalSession, 0); toast('Captured checkpoint opened. Save a scenario to keep its portable research receipt.');
+      const source = registerTerminalSource(result.terminal_checkpoint);
+      $('#intake-dialog').close(); discardIntake(); await loadSource(sourceName(source), 0); toast('Captured checkpoint opened. Save a scenario to keep its portable research receipt.');
     } catch (error) {if (revision === intake.revision && error.name !== 'AbortError') {text('#intake-status', error.message); $('#intake-status').classList.add('error');}}
     finally {if (revision === intake.revision) {intake.busy = false; intake.controller = null; toggleIntake();}}
   }
@@ -497,13 +1113,60 @@
       }
       appendPricingCoverageDetails(body, r);
       body.append(node('h3', 'Calculation provenance'), node('pre', JSON.stringify({source: r.source, terminal_provenance: checkpointMetadata(state.terminalCheckpoint).source || source?.provenance, checkpoint: r.checkpoint, counts: r.scenario?.counts, reasons: r.scenario?.reason, calculation_fingerprint: r.calculation_fingerprint}, null, 2))); if (r.scenario?.contracts) {const details = node('details'); details.append(node('summary', 'Inspect contributing contract records'), node('pre', JSON.stringify(r.scenario.contracts, null, 2))); body.append(details);}} showDialog('#info-dialog');}
-  async function listReceipts() {showDialog('#receipts-dialog'); const list = $('#receipts-list'); list.replaceChildren(node('p', 'Loading local receipts…')); try {const result = await api('receipts'); list.replaceChildren(); if (!result.receipts?.length) {list.append(node('p', 'No saved scenarios yet. Recalculate a scenario, then choose Save scenario.')); return;} for (const receipt of result.receipts) {const row = node('div', undefined, 'receipt-item'); const meta = node('div'); meta.append(node('h3', receipt.name), node('p', `${receipt.kind} · ${receipt.created_at}`)); const actions = node('div', undefined, 'receipt-actions'); const reopen = node('button', 'Reopen'); reopen.type = 'button'; reopen.addEventListener('click', () => reopenReceipt(receipt.id, reopen)); const download = node('button', 'Export JSON'); download.type = 'button'; download.addEventListener('click', () => exportReceipt(receipt.id, download)); actions.append(reopen, download); row.append(meta, actions); list.append(row);}} catch (error) {list.replaceChildren(node('p', error.message, 'validation-message'));}}
+  function isSavedInvestigationKind(kind) {return kind === savedInvestigationKinds.ES || kind === savedInvestigationKinds.NQ;}
+  function isInvestigationKind(kind) {return kind === 'investigate' || isSavedInvestigationKind(kind);}
+  function isFlipComparisonKind(kind) {return kind === comparisonKind || kind === legacyComparisonKind;}
+  function receiptKindLabel(kind) {
+    const market = Object.keys(savedInvestigationKinds).find(symbol => savedInvestigationKinds[symbol] === kind);
+    if (market) return `${market} investigation`;
+    if (isFlipComparisonKind(kind)) return 'Saved flip comparison';
+    return kind === 'investigate' ? 'Investigation' : kind;
+  }
+  function receiptType(kind) {
+    return isFlipComparisonKind(kind) ? 'comparison' : isInvestigationKind(kind) ? 'investigation' : 'scenario';
+  }
+  function focusReopenedReceipt(kind) {
+    if (isFlipComparisonKind(kind)) $('#flip-comparison-heading').focus();
+    else if (isInvestigationKind(kind)) $('#investigation-heading').focus();
+  }
+  async function listReceipts() {showDialog('#receipts-dialog'); const list = $('#receipts-list'); list.replaceChildren(node('p', 'Loading local receipts…')); try {const result = await api('receipts'); list.replaceChildren(); if (!result.receipts?.length) {list.append(node('p', 'No receipts yet. Save a scenario or investigation to keep its results.')); return;} for (const receipt of result.receipts) {const row = node('div', undefined, 'receipt-item'); const meta = node('div'); meta.append(node('h3', receipt.name), node('p', `${receiptKindLabel(receipt.kind)} · ${receipt.created_at}`)); const actions = node('div', undefined, 'receipt-actions'); const reopen = node('button', 'Reopen'); reopen.type = 'button'; reopen.addEventListener('click', () => reopenReceipt(receipt.id, reopen)); const download = node('button', 'Export JSON'); download.type = 'button'; download.addEventListener('click', () => exportReceipt(receipt.id, download)); actions.append(reopen, download); row.append(meta, actions); list.append(row);}} catch (error) {list.replaceChildren(node('p', error.message, 'validation-message'));}}
   async function exportReceipt(id, button) {button.disabled = true; try {const blob = await api(`receipts/${encodeURIComponent(id)}/export`, {blob: true}); const url = URL.createObjectURL(blob); const link = node('a'); link.href = url; link.download = `gex-wind-tunnel-${id.slice(0, 12)}.json`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); toast('Portable receipt exported.');} catch (error) {toast(error.message);} finally {button.disabled = false;}}
   async function reopenRequest(kind, request, reproduced = null) {
+    if (isFlipComparisonKind(kind)) {
+      if (reproduced?.request?.operation !== kind) throw new Error('Could not open this flip comparison.');
+      showFlipComparison(request, reproduced, true);
+      return;
+    }
+    if (isSavedInvestigationKind(kind)) {
+      const source = state.sources.find(candidate => candidate.investigation_capture?.sha256 === request.capture_sha256
+        && savedInvestigationKinds[candidate.symbol] === kind);
+      if (!source) throw new Error('Open the matching saved capture to reopen this investigation.');
+      if (currentSource() !== source) await loadSource(sourceName(source));
+      if (currentSource() !== source || reproduced?.source?.symbol !== source.symbol
+          || reproduced.source.capture_sha256 !== request.capture_sha256
+          || reproduced.request?.capture_sha256 !== request.capture_sha256
+          || reproduced.request?.sequence !== request.sequence) throw new Error('Could not reopen the saved investigation.');
+      closeInvestigation();
+      showSavedInvestigation(reproduced, true);
+      return;
+    }
+    if (kind === 'investigate') {
+      const opened = await loadSource(request.session, reproduced?.event.index);
+      if (!opened || opened.sourceRevision !== state.sourceRevision || state.source !== flipSession) throw new Error('Could not open the synthetic ES replay for this investigation.');
+      if (reproduced) {
+        revealInvestigation();
+        renderInvestigation(reproduced);
+        investigationStatus('Saved investigation verified.');
+      } else if (!await calculateInvestigation(request.remove_call_update)) {
+        throw new Error($('#investigation-status').textContent || 'The investigation could not be calculated.');
+      }
+      return;
+    }
     if (kind === 'search' && (request.x_axis !== 'spot_shift' || request.y_axis !== 'iv_shift')) throw new Error('This receipt is valid, but its axes are not the price/IV map supported by this view. Use the CLI to inspect that search.');
-    if (request.session === terminalSession && request.terminal_checkpoint) registerTerminalSource(request.terminal_checkpoint);
-    populateScenario(request); const opened = await loadSource(request.session, request.checkpoint, true, kind === 'models');
-    if (!opened || opened.sourceRevision !== state.sourceRevision || opened.calculationRevision !== state.revision || state.source !== request.session) throw new Error('Source or assumptions changed while opening the receipt. Its saved result was not applied.');
+    const session = request.session === terminalSession && request.terminal_checkpoint
+      ? sourceName(registerTerminalSource(request.terminal_checkpoint)) : request.session;
+    populateScenario(request); const opened = await loadSource(session, request.checkpoint, true, kind === 'models');
+    if (!opened || opened.sourceRevision !== state.sourceRevision || opened.calculationRevision !== state.revision || state.source !== session) throw new Error('Source or assumptions changed while opening the receipt. Its saved result was not applied.');
     if (kind !== 'models' && !state.calculation) throw new Error('The saved calculation could not be opened. Its receipt is unchanged.');
     if (kind === 'search') {
       $('#claim').value = request.claim; $('#comparison-model').value = request.comparison_model || 'open_interest'; $('#comparison-model-control').hidden = $('#claim').value !== 'model_disagreement';
@@ -519,7 +1182,7 @@
       setView(kind === 'surface' ? 'landscape' : 'compare');
     }
   }
-  async function reopenReceipt(id, button) {button.disabled = true; try {const rawReceipt = await api(`receipts/${encodeURIComponent(id)}`, {text: true}); const receipt = JSON.parse(rawReceipt); const verified = await api('reproduce', {method: 'POST', rawBody: rawReceipt}); if (verified.status !== 'verified') throw new Error('Saved receipt did not reproduce exactly. Its original record is preserved.'); await reopenRequest(receipt.kind, verified.result?.request || receipt.request, verified.result); $('#receipts-dialog').close(); toast('Saved scenario verified and reopened.');} catch (error) {toast(error.message);} finally {button.disabled = false;}}
+  async function reopenReceipt(id, button) {button.disabled = true; try {const rawReceipt = await api(`receipts/${encodeURIComponent(id)}`, {text: true}); const receipt = JSON.parse(rawReceipt); const verified = await api('reproduce', {method: 'POST', rawBody: rawReceipt}); if (verified.status !== 'verified') throw new Error('Saved receipt did not reproduce exactly. Its original record is preserved.'); await reopenRequest(receipt.kind, verified.result?.request || receipt.request, verified.result); $('#receipts-dialog').close(); focusReopenedReceipt(receipt.kind); toast(`Saved ${receiptType(receipt.kind)} verified and reopened.`);} catch (error) {toast(error.message);} finally {button.disabled = false;}}
   async function importReceipt(event) {
     const file = event.target.files[0]; if (!file) return;
     text('#import-status', 'Verifying the receipt and reproducing its calculation…'); event.target.disabled = true;
@@ -527,18 +1190,96 @@
       if (file.size > maxReceiptBytes) throw new Error('Receipt must be a JSON file no larger than 32 MiB.');
       const rawReceipt = await file.text(); let receipt; try {receipt = JSON.parse(rawReceipt);} catch (_) {throw new Error('This file is not a valid JSON receipt.');}
       const result = await api('reproduce', {method: 'POST', rawBody: rawReceipt}); if (result.status !== 'verified') throw new Error('Receipt did not reproduce exactly. The original file was not changed.');
-      await reopenRequest(receipt.kind, result.result?.request || receipt.request, result.result); $('#receipts-dialog').close(); toast('Imported receipt verified and reopened. Save scenario to keep a local copy.'); text('#import-status', 'Verified and reopened.');
+      await reopenRequest(receipt.kind, result.result?.request || receipt.request, result.result); $('#receipts-dialog').close();
+      focusReopenedReceipt(receipt.kind);
+      toast(`Imported receipt verified and reopened. Save ${receiptType(receipt.kind)} to keep a local copy.`); text('#import-status', 'Verified and reopened.');
     } catch (error) {text('#import-status', error.message);}
     finally {event.target.disabled = false; event.target.value = '';}
   }
   async function showExamples() {
-    text('#info-title', 'Try a synthetic research example'); const body = $('#info-content'); body.replaceChildren(node('p', 'Each example uses bundled inputs and real calculations. Outcomes describe only its tested grid.')); showDialog('#info-dialog');
-    try {const response = await api('examples'); for (const example of response.examples || []) {const section = node('section', undefined, 'example-item'); section.append(node('h3', example.title), node('p', example.description)); const button = node('button', 'Open example', 'secondary-button'); button.type = 'button'; button.addEventListener('click', async () => {button.disabled = true; try {await reopenRequest(example.operation, example.request); $('#info-dialog').close(); toast(`${example.title} loaded.`);} catch (error) {toast(error.message);} finally {button.disabled = false;}}); section.append(button); body.append(section);}} catch (error) {body.append(node('p', error.message, 'validation-message'));}
+    text('#info-title', 'Try a synthetic research example');
+    const body = $('#info-content');
+    body.replaceChildren(node('p', 'Each example uses bundled synthetic inputs and local calculations.'));
+    showDialog('#info-dialog');
+    function appendExample({title, description, request, operation}) {
+      const section = node('section', undefined, 'example-item');
+      const button = node('button', 'Open example', 'secondary-button');
+      button.type = 'button';
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+          await reopenRequest(operation, request);
+          $('#info-dialog').close();
+          if (operation === 'investigate') $('#investigation-heading').focus();
+          toast(`${title} loaded.`);
+        } catch (error) {toast(error.message);}
+        finally {button.disabled = false;}
+      });
+      section.append(node('h3', title), node('p', description), button);
+      body.append(section);
+    }
+    if (state.sources.some(source => source.name === flipSession && source.status === 'available')) {
+      appendExample({title: 'Investigate the ES net-GEX flip', description: 'Compare both cutoffs, inspect the strike that drove the change, and replay the cutoff without the call-volume update.', operation: 'investigate', request: {session: flipSession, remove_call_update: false}});
+    }
+    try {const response = await api('examples'); (response.examples || []).forEach(appendExample);}
+    catch (error) {body.append(node('p', error.message, 'validation-message'));}
   }
-  async function saveReceipt(event) {event.preventDefault(); const name = $('#scenario-name').value.trim(); if (!name) return; const kind = state.view === 'models' && state.models ? 'models' : state.view === 'fragility' && state.search ? 'search' : state.view === 'landscape' && state.surface ? 'surface' : 'calculate'; const request = kind === 'models' ? state.modelsRequest || state.models.request : kind === 'search' ? state.search.request : kind === 'surface' ? state.surface.request || state.surfaceRequest : state.calculation.request; state.saving = true; toggleBusy(); $('#save-error').hidden = true; try {await post('receipts', {name, kind, request}); $('#save-dialog').close(); toast('Scenario saved locally. Open Saved scenarios to reopen or export it.');} catch (error) {text('#save-error', error.message); $('#save-error').hidden = false;} finally {state.saving = false; toggleBusy();}}
+  function openSaveDialog(report = null) {
+    reportToSave = report;
+    const type = report ? receiptType(report.request.operation || 'investigate') : 'scenario';
+    text('#save-title', `Save this ${type}`);
+    text('#save-name-label', `${type[0].toUpperCase()}${type.slice(1)} name`);
+    text('#confirm-save', `Save ${type}`);
+    const removed = report?.request.remove_update ?? report?.request.remove_call_update;
+    const pairSymbols = type === 'comparison' ? [...new Set(comparisonSides.map(side => comparisonReportSide(report, side).source.symbol))] : [];
+    const name = type === 'comparison' ? `${pairSymbols.join(' and ')} saved flip comparison` : report
+      ? `${investigationTitle(report)}${removed ? ' · update removed' : ''}` : `${state.source} · ${state.view}`;
+    $('#scenario-name').value = name;
+    $('#save-error').hidden = true;
+    showDialog('#save-dialog');
+    $('#scenario-name').focus();
+    $('#scenario-name').select();
+  }
+  async function saveReceipt(event) {
+    event.preventDefault();
+    const name = $('#scenario-name').value.trim();
+    if (!name || state.saving) return;
+    const report = reportToSave;
+    const scenarioKind = state.view === 'models' && state.models ? 'models' : state.view === 'fragility' && state.search ? 'search' : state.view === 'landscape' && state.surface ? 'surface' : 'calculate';
+    const kind = report ? (report.request.operation || 'investigate') : scenarioKind;
+    const request = report ? report.request : kind === 'models' ? state.modelsRequest || state.models.request : kind === 'search' ? state.search.request : kind === 'surface' ? state.surface.request || state.surfaceRequest : state.calculation.request;
+    state.saving = true;
+    toggleBusy();
+    $('#save-error').hidden = true;
+    try {
+      await post('receipts', {name, kind, request});
+      $('#save-dialog').close();
+      const type = receiptType(kind);
+      toast(`${type[0].toUpperCase()}${type.slice(1)} saved locally. Open Saved scenarios to reopen or export it.`);
+    } catch (error) {
+      text('#save-error', error.message);
+      $('#save-error').hidden = false;
+    } finally {
+      state.saving = false;
+      toggleBusy();
+    }
+  }
   function bindEvents() {
     $('#open-session').addEventListener('click', showIntake); $('#session-file').addEventListener('change', changeIntakeFile); $('#intake-rights').addEventListener('change', () => {if (!$('#intake-rights').checked) {discardIntake(); text('#intake-status', 'Permission check cleared. Verify again before opening this file.');} toggleIntake();}); $('#verify-session').addEventListener('click', verifySession); $('#open-intake-checkpoint').addEventListener('click', openIntakeCheckpoint); $('#cancel-intake').addEventListener('click', () => {discardIntake(); $('#intake-dialog').close();}); $('#intake-dialog').addEventListener('cancel', discardIntake); $('#intake-dialog').addEventListener('close', discardIntake);
     $('#source').addEventListener('change', event => loadSource(event.target.value));
+    $('#scan-saved-flips').addEventListener('click', scanSavedFlips);
+    $('#investigate-flip').addEventListener('click', () => $('#flip-investigation').hidden ? calculateInvestigation() : closeInvestigation());
+    $('#remove-call-update').addEventListener('change', event => calculateInvestigation(event.target.checked));
+    $('#save-investigation').addEventListener('click', () => {if (investigation.report) openSaveDialog(investigation.report);});
+    $('#flip-comparison').hidden = true;
+    $('#open-flip-comparison').addEventListener('click', toggleFlipComparison);
+    $('#run-flip-comparison').addEventListener('click', calculateFlipComparison);
+    $('#save-flip-comparison').addEventListener('click', () => {if (flipComparison.report) openSaveDialog(flipComparison.report);});
+    for (const side of comparisonSides) {
+      $(`#compare-${side}-capture`).addEventListener('change', () => changeComparisonCapture(side));
+      $(`#compare-${side}-flip`).addEventListener('change', clearFlipComparisonResult);
+      $(`#retry-${side}-flips`).addEventListener('click', () => scanComparisonSide(side));
+    }
     for (const [range, number] of [['#spot-shift', '#spot-number'], ['#iv-shift', '#iv-number'], ['#time-advance', '#time-number']]) {$(range).addEventListener('input', () => {$(number).value = $(range).value; scheduleCalculation();}); $(number).addEventListener('input', () => {if ($(number).checkValidity() && $(number).value !== '') $(range).value = $(number).value; scheduleCalculation();});}
     $('#position-model').addEventListener('change', scheduleCalculation); $('#remove-expiry').addEventListener('change', scheduleCalculation); $('#scenario-form').addEventListener('submit', event => event.preventDefault());
     $('#reset-scenario').addEventListener('click', () => {populateScenario({...emptyScenario, ...(isTerminalSource() ? currentSource()?.defaults : state.bundledDefaults), session: state.source}); scheduleCalculation();});
@@ -551,13 +1292,41 @@
     ['#search-price', '#search-iv', '#search-samples'].forEach(selector => $(selector).addEventListener('change', () => {if ($('#search-samples').value === 'loaded') $('#search-samples').value = '11'; state.loadedSearchGrid = null; $('#search-samples option[value=loaded]')?.remove(); $('#loaded-grid-note').hidden = true; text('#bounds-summary', `±${$('#search-price').value} pts · ±${$('#search-iv').value} vol pts`); clearSearch();}));
     $('#run-search').addEventListener('click', () => runSearch()); $('#apply-breaking-case').addEventListener('click', () => {const request = smallestRequest(); if (!request) return; populateScenario(request); clearSearch(); setView('compare'); calculate();});
     $('#open-help').addEventListener('click', showHelp); $('#open-examples').addEventListener('click', showExamples); $('#receipt-file').addEventListener('change', importReceipt); $('#source-details').addEventListener('click', showSource); $('#open-receipts').addEventListener('click', listReceipts);
-    $('#save-scenario').addEventListener('click', () => {$('#scenario-name').value = `${state.source} · ${state.view}`; $('#save-error').hidden = true; showDialog('#save-dialog'); $('#scenario-name').focus(); $('#scenario-name').select();}); $('#save-form').addEventListener('submit', saveReceipt);
+    $('#save-scenario').addEventListener('click', () => openSaveDialog()); $('#save-form').addEventListener('submit', saveReceipt);
+    $('#save-dialog').addEventListener('close', () => {reportToSave = null;});
     $$('[data-close]').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
     document.addEventListener('keydown', event => {if (event.key === '?' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName) && !$('dialog[open]')) {event.preventDefault(); showHelp();}});
     let resizeTimer; window.addEventListener('resize', () => {clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {if (window.Plotly) $$('.plot').filter(element => element.data && element.offsetParent).forEach(element => Plotly.Plots.resize(element));}, 150);});
   }
   async function initialize() {bindEvents(); emptyPlot('#landscape-plot', 'Preparing the research workspace…', 'Loading local research inputs.'); if (!state.capability) {const message = 'This window needs its local launch link. Start Wind Tunnel again to open a fresh session; no data has been sent.'; text('#connection-error', message); $('#connection-error').hidden = false; status('Launch link required', true); emptyPlot('#landscape-plot', 'Open from your local Wind Tunnel launcher.', 'The local session key is kept only in this browser tab. Open a fresh launch link if the tab or server session has ended.'); return;}
-    try {const catalog = await api('catalog'); state.sources = catalog.sessions || catalog.sources || []; for (const saved of catalog.saved_checkpoints || []) {if (!saved.artifact || state.sources.some(source => source.terminal_checkpoint === saved.artifact)) continue; const source = terminalSourceFromArtifact(saved.artifact); source.name = `saved-checkpoint-${saved.checkpoint_sha256}`; source.label = saved.label || `Saved ${saved.symbol || 'market'} checkpoint`; state.sources.push(source);} state.bundledDefaults = catalog.bundled_defaults || catalog.defaults || emptyScenario; const select = $('#source'); select.replaceChildren(); for (const source of state.sources) {const option = node('option', source.title || source.label || source.name); option.value = source.name || source.id || source.session; option.disabled = source.status !== 'available'; if (option.disabled) option.textContent += ' · unavailable'; select.append(option);} const preferred = state.sources.find(item => sourceName(item) === catalog.defaults?.session && item.status === 'available') || state.sources.find(item => (item.name || item.id) === 'wind-tunnel-lab' && item.status === 'available') || state.sources.find(item => item.status === 'available'); if (!preferred) throw new Error('No supported local research sources are installed.'); select.disabled = false; await loadSource(sourceName(preferred), catalog.defaults?.checkpoint);}
+    try {
+      const catalog = await api('catalog');
+      state.sources = catalog.sessions || catalog.sources || [];
+      for (const saved of catalog.saved_checkpoints || []) {
+        if (!saved.artifact || state.sources.some(source => source.terminal_checkpoint === saved.artifact)) continue;
+        const source = terminalSourceFromArtifact(saved.artifact);
+        source.name = `saved-checkpoint-${saved.checkpoint_sha256}`;
+        source.label = saved.label || `Saved ${saved.symbol || 'market'} checkpoint`;
+        if (saved.investigation_capture) source.investigation_capture = saved.investigation_capture;
+        state.sources.push(source);
+      }
+      state.bundledDefaults = catalog.bundled_defaults || catalog.defaults || emptyScenario;
+      const select = $('#source');
+      select.replaceChildren();
+      for (const source of state.sources) {
+        const option = node('option', sourceOptionLabel(source));
+        option.value = sourceName(source);
+        option.disabled = source.status !== 'available';
+        if (option.disabled) option.textContent += ' · unavailable';
+        select.append(option);
+      }
+      const available = state.sources.filter(source => source.status === 'available');
+      const preferred = available.find(source => sourceName(source) === catalog.defaults?.session)
+        || available.find(source => sourceName(source) === 'wind-tunnel-lab') || available[0];
+      if (!preferred) throw new Error('No supported local research sources are installed.');
+      select.disabled = false;
+      await loadSource(sourceName(preferred), catalog.defaults?.checkpoint);
+    }
     catch (error) {text('#connection-error', error.message); $('#connection-error').hidden = false; status('Local service unavailable', true); emptyPlot('#landscape-plot', 'Could not load the research workspace.', error.message);}
   }
   initialize();

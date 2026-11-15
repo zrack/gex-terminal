@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1230" viewBox="0 0 1400 1230" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1432" viewBox="0 0 1400 1432" role="img" aria-labelledby="title description">
 <title id="title">GEX offline inputs, calculation identity and reproducible evidence</title>
-<desc id="description">Technical architecture derived from docs/architecture.md, docs/model-assumptions.md and docs/research-governance.md. Authorized existing full-session captures enter a separate saved-data path, bounded at 1 GiB and two million events, which verifies a private disk copy, replays one consumer and freezes the final checkpoint. Smaller browser-selected guided intake remains bounded at 4 MiB and five thousand events and freezes a chosen prefix. Terminal explicit handoff freezes an eligible demo/replay state. The same immutable checkpoint model feeds request-local original/scenario calculations through shared engine code. Default and directionalized quantities are evaluated independently. A gamma-vector cache is request-local, bounded at 32 vectors and 2 MiB; the existing American lattice scalar cache is a distinct 4096-entry cross-call LRU. Compact browser results omit repeated contributions and source echoes but retain summaries, matrices, exclusions, pricing coverage, freshness and identities. Full portable receipts are recalculated with embedded source and complete detail and compared by semantic result identity. Experiments and corpus verification are separate research authorities, not automatic prerequisites for all scenarios. Readiness, runtime mode, captured health, pricing coverage, IV age and predictive validity remain distinct. No provider access is part of these saved-data paths.</desc>
+<desc id="description">Technical architecture derived from docs/architecture.md, docs/model-assumptions.md and docs/research-governance.md. Authorized existing full-session captures enter a separate saved-data path, bounded at 1 GiB and two million events, which verifies a private disk copy, replays one consumer and freezes the final checkpoint. Smaller browser-selected guided intake remains bounded at 4 MiB and five thousand events and freezes a chosen prefix. Terminal explicit handoff freezes an eligible demo/replay state. The same immutable checkpoint model feeds request-local original/scenario calculations through shared engine code. Default and directionalized quantities are evaluated independently. A gamma-vector cache is request-local, bounded at 32 vectors and 2 MiB; the existing American lattice scalar cache is a distinct 4096-entry cross-call LRU. Compact browser results omit repeated contributions and source echoes but retain summaries, matrices, exclusions, pricing coverage, freshness and identities. Portable scenario receipts are recalculated with their embedded frozen source. Saved flip investigations reconstruct event cutoffs and driving-update removal from the matching capture. Each blind review locks its read at the flip before the 30-minute outcome is evaluated. Saved replay receipts bind original capture checksums and require the matching files to reproduce. Experiments and corpus verification are separate research authorities, not automatic prerequisites for all scenarios. Readiness, runtime mode, captured health, pricing coverage, IV age and predictive validity remain distinct. No provider access is part of these saved-data paths.</desc>
 <defs>
 <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#91a5b9"/></marker>
 <style>text{font-family:Arial,Helvetica,sans-serif}.eyebrow{font-size:16px;letter-spacing:2px;font-weight:700;fill:#91a5b9}.title{font-size:36px;font-weight:700;fill:#f5f8fc}.name{font-size:28px;font-weight:700;fill:#f5f8fc}.body{font-size:23px;fill:#cbd7e3}.small{font-size:20px;fill:#a6b9cc}.line{stroke:#91a5b9;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.dash{stroke-dasharray:7 6}.cyan{fill:#72dce9}.gold{fill:#f4c869}.purple{fill:#c1b0ff}</style>
 </defs>
-<rect width="1400" height="1230" rx="22" fill="#0a1420"/>
+<rect width="1400" height="1432" rx="22" fill="#0a1420"/>
 <text x="48" y="51" class="eyebrow">GEX / OFFLINE RESEARCH ARCHITECTURE</text>
 <text x="48" y="103" class="title">Frozen input → controlled calculation → reproducible evidence</text>
 <text x="48" y="146" class="body">Local browser ↔ capability-protected 127.0.0.1 service · packaged charts, no CDN</text>
@@ -50,20 +50,25 @@
 <text x="980" y="387" class="small">No repeated contribution/source echo</text>
 <text x="980" y="417" class="small">Focus changes view, never totals</text>
 <rect x="954" y="470" width="398" height="245" rx="14" fill="#133126" stroke="#79dbab" stroke-width="2"/>
-<text x="980" y="511" class="name">Full portable receipt</text>
+<text x="980" y="511" class="name">Full scenario receipt</text>
 <text x="980" y="553" class="body">Embedded allowlisted input</text>
 <text x="980" y="590" class="body">Full request + contributions</text>
 <text x="980" y="627" class="body">Exact calculation identity</text>
 <text x="980" y="667" class="small">Recalculate + compare result digests</text>
 <text x="980" y="697" class="small">Compact projection cannot be a receipt</text>
-<rect x="48" y="765" width="1304" height="177" rx="14" fill="#14263a" stroke="#526d86"/>
-<text x="74" y="809" class="name">Separate research authority: experiments and corpus</text>
-<text x="74" y="853" class="body">Profiles + input/build identity → deterministic experiments → semantic results</text>
-<text x="74" y="893" class="body">Corpus membership and hash-chain verification remain independent checks.</text>
-<text x="74" y="926" class="small">No automatic corpus prerequisite; integrity does not establish rights or historical authenticity.</text>
-<rect x="48" y="978" width="1304" height="162" rx="14" fill="#2c241b" stroke="#f4c869"/>
-<text x="74" y="1021" class="name">Evidence ceiling</text>
-<text x="74" y="1064" class="body">Readiness ≠ runtime mode ≠ captured health ≠ pricing coverage ≠ IV observation age</text>
-<text x="74" y="1106" class="body">Numerical parity and replay do not establish live readiness or predictive validity.</text>
-<text x="48" y="1187" class="small">Derived from architecture, model assumptions and research governance · no provider I/O on these paths</text>
+<rect x="48" y="765" width="1304" height="165" rx="14" fill="#102936" stroke="#72dce9"/>
+<text x="74" y="808" class="name">Saved flip investigation and blind replay review</text>
+<text x="74" y="849" class="body">Verified capture → flip cutoff, contract drivers and replay without the driving update</text>
+<text x="74" y="887" class="body">Blind review locks each read before the corresponding 30-minute outcome is evaluated.</text>
+<text x="74" y="915" class="small">Saved replay receipts bind original capture checksums. Use the matching files to reproduce a single review or pair.</text>
+<rect x="48" y="967" width="1304" height="177" rx="14" fill="#14263a" stroke="#526d86"/>
+<text x="74" y="1011" class="name">Separate research authority: experiments and corpus</text>
+<text x="74" y="1055" class="body">Profiles + input/build identity → deterministic experiments → semantic results</text>
+<text x="74" y="1095" class="body">Corpus membership and hash-chain verification remain independent checks.</text>
+<text x="74" y="1128" class="small">No automatic corpus prerequisite; integrity does not establish rights or historical authenticity.</text>
+<rect x="48" y="1180" width="1304" height="162" rx="14" fill="#2c241b" stroke="#f4c869"/>
+<text x="74" y="1223" class="name">Evidence ceiling</text>
+<text x="74" y="1266" class="body">Readiness ≠ runtime mode ≠ captured health ≠ pricing coverage ≠ IV observation age</text>
+<text x="74" y="1308" class="body">Numerical parity and replay do not establish live readiness or predictive validity.</text>
+<text x="48" y="1389" class="small">Derived from architecture, model assumptions and research governance · no provider I/O on these paths</text>
 </svg>

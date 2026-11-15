@@ -1,8 +1,9 @@
 # Application State And Health Review
 
-Updated October 19, 2026 against the current `0.6.0` source, including Market
-Wind Tunnel, the saved-data starter, full-session ES/NQ replay, paired-model
-comparisons, explicit pricing/IV-age displays and comparison optimizations.
+The October 19, 2026 baseline covers the `0.6.0` Market Wind Tunnel workbench,
+saved-data starter, full-session ES/NQ replay, paired-model comparisons,
+explicit pricing/IV-age displays and comparison optimizations. The saved-session
+workflow update below describes the subsequent implementation.
 Earlier provider, checkpoint-handoff and guided-intake assessments are preserved. This document
 owns the dated state assessment and verification limits; earlier release
 evidence is retained below rather than presented as verification of later changes.
@@ -13,6 +14,29 @@ October 19 provider-status amendment: [PR #10](https://github.com/zrack/gex-term
 and the raw collector in [PR #43](https://github.com/zrack/gex-terminal/pull/43)
 are merged. Their acceptance and remaining actual-payload gate are reconciled
 below; the dated assessment and earlier verification scopes remain explicit.
+
+## Saved-Session Workflow Update
+
+The browser can inspect a fixed synthetic ES sign flip or locate modeled
+net-GEX sign changes in a verified saved ES or NQ capture. A selected flip
+shows its before and after states, contract contributions and the effect of
+omitting the driving update at the same cutoff. Large capture scans may sample
+before localizing a candidate, so short-lived flips can be missed. Paired saved
+investigations reproduce against their original captures.
+
+The dedicated **Blind Replay Review** launch opens one or two completed
+captures. Each capture has separate read and reveal stages. Committing a read
+reveals the modeled sign at 30 minutes and the observed path of the matching
+futures contract. A missing or incomplete outcome remains visible. A paired
+review can combine two sessions from one market or one from each market. Saving
+the comparison binds both committed reads, revealed results and capture
+identities. [Wind Tunnel](wind-tunnel.md#review-a-saved-flip-blind) owns the
+operator workflow and receipt commands.
+
+This scope exercises offline calculations and application-level reveal gating.
+The October cohort covers the build identified in its study record. Participant
+observation of the newer workflow, repeat use, a recurring live operating
+envelope and predictive evidence remain open.
 
 ## Assessment
 
@@ -159,6 +183,8 @@ frozen study; participant acceptance remains unmeasured.
 | Replay and identity | Eleven bundled scenarios including NQ ×20 schema-v2; catalog identity, actual/fallback multipliers and accepted-event chronology are explicit | Synthetic fixtures do not establish provider support for ES or NQ |
 | Research loop | Demo Lab, captured sessions, journals, experiments, model profiles, corpus registration, batch comparison and portable receipts | Strict identity/runtime compatibility and source-specific point-in-time gates; unkeyed hashes are not signatures |
 | Wind Tunnel | Browser scenarios, paired default/directionalized models, 54-case price/IV/time grid and fragility; saved ES/NQ source picker; health/IV age and unpriced detail; exact price markers, focused/full strike ranges and full portable receipts | Guided upload and full-session saved startup have distinct bounds; older accepted IV stays older; ranges do not filter totals; no general CSV/provider importer, live capture or synchronization; shocks freeze quantities |
+| Saved flip investigations | Synthetic and saved ES/NQ flip attribution, same-cutoff removal and paired comparisons | Sampled scans can miss brief transitions. Saved receipts require the original captures |
+| Blind Replay Review | Independent committed reads and 30-minute reveals, individual and side-by-side comparisons, reproducible local receipts | Outcome availability depends on the saved input and matched futures observations. The app controls when the outcome is visible |
 | Terminal | Essential columns at 100×32+, full-table view at 140×42; focused picker/help/details and strike selection retained across refresh | Not a mobile interface, screen-reader certification or unaided usability study |
 | Preflight | Offline doctor checks package, resources, config, provider structure and temporary storage with text/JSON exit status | No live authentication, entitlements, SDK behavior or market-quality check |
 | Distribution | Reviewed wheel, local setup handoff, optional platform-specific wheelhouse and disposable lifecycle checks | Python remains required; no signed native installer or customer-selected channel |

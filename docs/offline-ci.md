@@ -15,10 +15,11 @@ no provider client, credentials or market-data connection.
 The source suite also covers synthetic full-session saved-data transport,
 default/directionalized Wind Tunnel comparisons, independent health and replay
 mode, accepted-IV age, price markers, focused strike ranges, and compact versus
-full receipt behavior. Those regressions use local fixtures; private downloaded
-ES/NQ captures and local performance measurements are not uploaded or implied
-by a green synthetic job. A local working-tree pass is distinct from hosted
-checks on an exact pushed commit.
+full receipt behavior. Saved flip investigations and blind review tests exercise
+before/after reconstruction, update removal, independent reveals, and receipt
+reproduction. Those regressions use local fixtures. Results from private
+captures and local performance measurements remain scoped to their recorded
+runs. Hosted checks identify the exact pushed commit.
 
 Installed-wheel verification also runs the 18-case Databento CLI/binary/terminal
 functional harness outside the checkout and verifies installed bytes against

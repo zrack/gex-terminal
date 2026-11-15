@@ -2,8 +2,8 @@
 
 `gex-terminal` has two user-facing components: **Terminal**, a Textual dashboard
 for replay and research workflows, and **Market Wind Tunnel**, a browser
-workbench for exploring bundled scenarios, frozen Terminal checkpoints, or
-checkpoints selected from a verified local captured session.
+workbench for exploring bundled scenarios and frozen checkpoints, investigating
+net-GEX sign changes in saved captures, and reviewing later replay evidence.
 They use one installed Python package and the same calculation code. Standalone
 and Both launches run separate processes with separate state. Terminal's explicit
 `w` handoff instead owns an additional loopback service inside its process,
@@ -23,6 +23,10 @@ source picker, with separate original/scenario default and directionalized
 results. Shared inputs at the closing cutoff do not create ongoing state
 synchronization.
 
+An explicit saved capture also provides a local replay source for flip
+investigation. The dedicated `--blind-review` launch opens one or two saved
+captures in a separate browser view with its own read, reveal and receipt state.
+
 ![Starter, Terminal and Wind Tunnel boundaries](../assets/workbench-components.svg)
 
 This document owns the current architecture, including the C4 views below.
@@ -36,11 +40,13 @@ the source and purpose of the derived SVGs.
 
 The researcher operates one local workbench through two interfaces. Terminal
 provides a replay dashboard and access to research workflows; Market Wind Tunnel
-provides scenario controls, exposure plots and saved experiments. Synthetic
-replay, calculation, comparison, export, and reproduction require no provider
-connection. Optional provider connections belong to separately configured
-terminal/CLI paths; Wind Tunnel accepts bundled sources, a validated frozen
-Terminal demo/replay artifact, or bytes from a browser-selected complete capture.
+provides scenario controls, exposure plots, saved flip investigations and blind
+replay reviews. Synthetic replay, calculation, comparison, export, and
+reproduction require no provider connection. Optional provider connections
+belong to separately configured terminal/CLI paths. Wind Tunnel accepts bundled
+sources, a validated frozen Terminal demo/replay artifact, bytes from a
+browser-selected complete capture, or saved captures supplied through the local
+starter or CLI.
 Guided intake verifies the capture in memory and freezes a chosen event prefix;
 it never opens a provider connection. Live checkpoint capture remains separately
 gated, and capture integrity does not establish authenticity or data rights.
@@ -53,17 +59,18 @@ flowchart LR
     researcher["Researcher / study participant"]
     subgraph workbench["gex-terminal — local research workbench"]
         terminal["Terminal<br/>Replay dashboard and research workflows"]
-        wind["Market Wind Tunnel<br/>Browser scenario workbench"]
+        wind["Market Wind Tunnel<br/>Scenario, investigation and review workbench"]
         raw["Read-only Tradovate collector<br/>Explicit CLI observation"]
     end
     providers["External market-data providers<br/>Optional configured connection"]
     capture[("Local complete captured session<br/>Operator-authorized offline input")]
     evidence[("Private raw provider evidence<br/>Review before sharing or mapping")]
     researcher <-->|Keyboard controls, metrics and exports| terminal
-    researcher <-->|Scenario controls, plots and receipts| wind
+    researcher <-->|Scenario controls, plots, investigations and reviews| wind
     terminal -.->|Explicit immutable checkpoint handoff| wind
     researcher -->|Select local file and review verified checkpoint| capture
     capture -->|Selected bytes; no server file path| wind
+    capture -->|Explicit saved capture supplied by the operator| wind
     providers -.->|Separately configured terminal / CLI intake| terminal
     researcher -->|Policy and explicit network acknowledgement| raw
     providers -.->|Allowlisted contract responses and market data| raw
@@ -90,7 +97,10 @@ the starter requests that it open the local launch URL. Installed resources and
 research files are storage boundaries, not running services. There is no hosted
 API, external chart service or database in this architecture. Guided intake sends
 the browser-selected capture bytes to the local service; it does not expose the
-filesystem to the browser or copy raw captures into the receipt workspace.
+filesystem to the browser or copy raw captures into the receipt workspace. For
+full-session investigations and blind review, the local launch binds the saved
+capture paths before accepting browser requests. Browser requests identify a
+configured source or review, while the service retains ownership of file access.
 
 ```mermaid
 flowchart LR
@@ -105,7 +115,7 @@ flowchart LR
         files[("Terminal / CLI research files<br/>Inputs, packs, journals and exports")]
         capture[("Selected complete capture<br/>Existing local input file")]
         saved[("Explicitly registered ES / NQ session<br/>Verified private copy + final frozen checkpoint")]
-        receipts[("Wind Tunnel receipts<br/>Separate wind-tunnel research subfolder")]
+        receipts[("Wind Tunnel receipts<br/>Scenario, investigation or review workspace")]
         raw[("Private raw Tradovate evidence<br/>Separate operator-owned directory")]
     end
     researcher -->|Choose Terminal, Wind Tunnel, Both or Saved data — Both| starter
@@ -115,8 +125,9 @@ flowchart LR
     starter -.->|Start and supervise owned child| wind
     browser <-->|Capability-protected loopback HTTP| wind
     saved -->|Starter verifies binding; Terminal loads full capture| terminal
-    saved -->|Final checkpoint; optional other registered market| wind
+    saved -->|Bound capture and final checkpoint| wind
     capture -->|File chooser reads selected bytes| browser
+    capture -->|Explicit CLI input for saved replay or blind review| wind
     browser -->|Bounded capture bytes; no input path| wind
     package -->|Load code and resources| terminal
     package -->|Load code, synthetic input and web assets| wind
@@ -245,11 +256,14 @@ flowchart TB
         core["wind_tunnel.py<br/>Scenarios, paired models, grids and sampled searches"]
         checkpoint["Fresh StatefulGexConsumer<br/>Reconstruct bundled or selected capture prefix"]
         frozen["wind_tunnel_checkpoint.py<br/>Validated opaque immutable checkpoint"]
+        savedreplay["SavedReplay<br/>Verified spool, flip index and cutoff reconstruction"]
         pricing["Request-local IntradayGexEngine<br/>Price copied baseline / scenario rows"]
         age["iv_freshness.py<br/>Accepted observations at capture / model clock"]
         receipts["Receipt identity and ReceiptStore<br/>Save, load and reproduce"]
         windcli -->|Standalone / Both startup| server
         server -->|Validated operation request| core
+        server -->|Saved source and selected flip| savedreplay
+        savedreplay -->|Replayed event prefix| checkpoint
         server -->|Inspect selected bytes; retain safe fields only| intake
         intake -->|Chosen verified event prefix| checkpoint
         checkpoint -->|Freeze chosen capture state| frozen
@@ -283,6 +297,16 @@ The Wind Tunnel service component view applies to both launch layouts. A
 standalone/Both service starts through `wind_tunnel_cli.py`; Terminal's `w`
 action starts the same server through `TerminalHandoff` inside its own process.
 The listener's owner, rather than the browser tab, coordinates shutdown.
+
+**Blind Replay Review** has a dedicated app factory and browser entry point.
+Each capture gets a server-owned `BlindReview` and `SavedReplay`. The status
+view exposes the selected flip, its contributions and the update-removal
+calculation. The server accepts a read before exposing the later result. It
+evaluates the 30-minute modeled sign and observed futures path from that
+capture. The two-capture view uses independent review states, and saving the
+paired receipt requires both revealed results. Reopening verifies them against
+the original capture checksums and reconstructs both committed reviews. See
+[Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind).
 
 **Read-only raw collector components**
 
@@ -397,7 +421,9 @@ is in [CHANGELOG.md](../CHANGELOG.md), and future sequencing is in
 | Terminal UI | `gex_terminal/tui.py`, `gex_terminal/tui_views.py`, `gex_terminal/gex_terminal.tcss` | Render metrics, matrix rows and responsive layout; present focused replay/help views, model controls, source and quality context, event history and exports. |
 | Wind Tunnel calculations | `gex_terminal/wind_tunnel.py` | Reconstruct a bundled replay cutoff or validate a frozen Terminal artifact, copy checkpoint rows, and use engine code for comparisons, surfaces and bounded searches. Model comparison evaluates the default and directionalized proxies separately against the same checkpoint; its optional 54-case grid uses fixed price/IV/time coordinates. |
 | IV observation age | `gex_terminal/iv_freshness.py` | Describe accepted-IV ages for an already selected active cohort at captured or scenario model time. Preserve original retained-IV clocks and unknown timing/precision without filtering or repricing contracts. |
-| Saved comparison sources | `gex_terminal/wind_tunnel_sources.py` | Validate explicitly supplied frozen checkpoints for one local source catalog; the browser selects catalog sources and never filesystem paths. Each request retains its own checkpoint, assumptions and identity. |
+| Saved comparison sources | `gex_terminal/wind_tunnel_sources.py`, `gex_terminal/wind_tunnel_saved_switching.py` | Validate explicit frozen checkpoints and bind configured capture sources to the browser catalog. Route receipts by capture identity and the owning workspace. |
+| Saved flip investigation and comparison | `gex_terminal/wind_tunnel_saved_replay.py`, `gex_terminal/wind_tunnel_saved_investigation.py`, `gex_terminal/wind_tunnel_flip_comparison.py`, `gex_terminal/wind_tunnel_session_comparison.py` | Scan verified saved ES/NQ prefixes, reconstruct before and after states, reconcile contract contributions and rerun with the driving update omitted. Paired receipts bind both capture digests and flip sequences. |
+| Blind Replay Review | `gex_terminal/wind_tunnel_blind_server.py`, `gex_terminal/wind_tunnel_blind_review.py`, `gex_terminal/wind_tunnel_blind_replay.py` | Enforce the commit and reveal stages for each capture in a dedicated loopback app. Evaluate later outcomes and save or reproduce individual and paired reviews. |
 | Terminal checkpoint transport and lifecycle | `gex_terminal/wind_tunnel_checkpoint.py`, `gex_terminal/wind_tunnel_handoff.py` | Validate allowlisted offline state, preserve no-overwrite local inputs, embed portable source data and own loopback service cleanup. The consumer remains the sole mutable market-state owner. |
 | Guided captured-session intake | `gex_terminal/session_intake.py`, `gex_terminal/session_capture.py` | Verify bounded selected bytes in memory, discard private extensions, retain a bounded allowlisted registry and freeze a selected prefix through the production consumer. |
 | Wind Tunnel service and CLI | `gex_terminal/wind_tunnel_server.py`, `gex_terminal/wind_tunnel_cli.py` | Serve packaged assets and bounded loopback API operations, protect requests with a per-run capability, and save/verify/reproduce receipts. CLI example and reproduction commands also run without the browser server. |
@@ -465,7 +491,7 @@ Install.command -> verified application environment -> Start GEX.command chooser
         +-> Saved data — Both -> choose registered ES or NQ
                        -> verify complete capture and final checkpoint
                        -> Wind Tunnel opens closing state; Terminal loads all events
-                       -> optional other registered market in browser source picker
+                       -> bound captures supply flip investigations in the browser
 ```
 
 The setup launcher's Terminal path selects `zero-gamma-flip`; the direct
@@ -476,6 +502,12 @@ quality and model assumptions, choose an event prefix, then open the resulting
 frozen checkpoint. Saving and exporting a scenario receipt makes that selected
 input reproducible after the original file and service are gone. The detailed
 workflow belongs in [Wind Tunnel](wind-tunnel.md).
+
+For saved flip searches and blind review, the service replays an explicit local
+capture and binds its checksum into the result. The operator retains each
+original capture to reproduce an investigation or review receipt. A direct
+`wind-tunnel serve --blind-review` invocation chooses one or two captures and
+starts the dedicated review app.
 
 Both changes launch and shutdown coordination, not either component's source or
 model state. Terminal's explicit `w` action opens a separate frozen-checkpoint
@@ -679,7 +711,7 @@ summed with trade volume. Detailed mapping and policy values live in
 ## Offline Research Flow
 
 Offline tools reuse the same adapter, consumer, and engine code boundaries
-through eight paths, with consumer instances owned by the invoking workflow:
+through the following paths. Each invoking workflow owns its consumer instances.
 
 - **Normalized replay and capture:** packaged/local normalized events and
   integrity-checked captures enter through replay adapters and event-time
@@ -711,6 +743,11 @@ through eight paths, with consumer instances owned by the invoking workflow:
   Terminal's active replay nor fabricate a future market path. Saved receipts
   embed a selected frozen source when needed and retain the normalized request
   and exact source, calculation and result identities for reproduction.
+- **Saved flip investigations:** the replay service owns a detached, verified
+  copy of the capture and a bounded flip index. It locates eligible sign changes
+  at accepted event sequences and replays the driving event against the prior
+  priced state. Larger captures can use sampled screening. When omitted, the
+  update's counterfactual uses the same cutoff and unchanged pricing assumptions.
 - **Wind Tunnel numerical reuse:** an evaluation-local gamma cache holds at
   most 32 vectors and 2 MiB of vector/key data. Exact ordered strikes, remaining
   times, IVs, pricing models, option sides, spot, rate and carry bind each key.
@@ -870,6 +907,7 @@ and provides no shared-memory or replay-synchronization channel.
 | Guided local capture intake | `tests/test_session_intake.py`, `tests/test_session_intake_server.py`, `tests/test_wind_tunnel_intake_assets.py`; inspect selected-byte upload, source review, chosen prefix, cancellation and portable receipt reproduction |
 | Full-session saved startup and transport | `tests/test_full_session_saved.py`, `tests/test_full_session_transport.py`, `tests/test_full_session_browser.py`, `tests/test_full_session_validation.py`; compare final capture state with the bound checkpoint and retain guided-intake limits |
 | Paired models, compact transport and IV-age display | `tests/test_wind_tunnel_models.py`, `tests/test_iv_freshness.py`, `tests/test_wind_tunnel_assets.py`, `tests/test_wind_tunnel_intake_assets.py`; check exact numerical parity, independent denominators, source/receipt switching and view-only strike ranges |
+| Flip investigations, comparisons and blind review | `tests/test_wind_tunnel_investigation.py`, `tests/test_wind_tunnel_saved_investigation.py`, `tests/test_wind_tunnel_saved_comparison.py`, `tests/test_wind_tunnel_blind_review.py`. Check cutoff selection, update omission, independent reveal gates and original-capture receipt reproduction |
 | Replay/lab/report behavior | `tests/test_replay_lab.py`, `tests/test_demo_lab.py`, `tests/test_research_journal.py`, `tests/test_session_store.py` |
 | Capture integrity, policy, or event clocks | `tests/test_session_capture.py`, `tests/test_capture_governance.py`, `tests/test_replay_adapter.py` |
 | Provider mapping | `tests/test_provider_injector.py`, `tests/test_provider_fixture_lab.py`, provider-specific adapter tests |

@@ -99,12 +99,23 @@ Then run `"./GEX App/run-gex" --saved-data NQ` in an interactive terminal.
 Add `--no-browser` to a launch command to print the local Wind Tunnel URL;
 the paired launch still needs an interactive terminal.
 
-With a current starter, register both ES and NQ to switch between their saved
-checkpoints in one Wind Tunnel. Startup verifies the other symbol's registered
-checkpoint and capture hashes without replaying that additional source. Older
-registrations gain the checkpoint binding after a successful saved-data launch;
-an unavailable or changed other source is skipped with a note. Terminal continues
-to use the symbol selected at launch.
+With a current starter, register both ES and NQ, then start either symbol.
+Switch markets in **Research source** in the same Wind Tunnel window. Each
+capture has its own [flip timeline and investigations](wind-tunnel.md#investigate-saved-session-flips).
+With both captures open, [compare one flip from each capture](wind-tunnel.md#compare-flips-across-saved-sessions).
+The same guide shows how to launch two captures of the same market directly.
+Startup verifies the other symbol's registered checkpoint and capture hashes.
+Older registrations gain the checkpoint binding after a successful saved-data
+launch. The starter skips an unavailable or changed source and reports it.
+Terminal continues to use the symbol selected at launch.
+
+From the command line, [open a blind review](wind-tunnel.md#review-a-saved-flip-blind)
+with one or two distinct saved ES or NQ captures. Commit your read of each flip
+before revealing its 30-minute outcome. With two captures open, use **Saved
+session** to switch between reviews. Select **Compare ES and NQ** for a mixed
+pair or **Compare saved sessions** for two captures from the same market to
+[review both side by side](wind-tunnel.md#compare-two-blind-reviews) and save both
+revealed outcomes in one receipt.
 
 In Wind Tunnel, choose a saved symbol and open **Model comparison** for default and
 directionalized results side by side. Apply price, IV and elapsed-time changes

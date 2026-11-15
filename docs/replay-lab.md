@@ -11,6 +11,10 @@ For private downloaded ES/NQ captures, use
 catalog leaderboard is a descriptive comparison of its synthetic sessions, not
 the Wind Tunnel's paired model or 54-case scenario grid. Those conditional
 comparisons are documented in [Model Comparison](model-comparison.md).
+To open a modeled sign change, inspect its contract contributions and test the
+driving update interactively, use [Saved Session Flips](wind-tunnel.md#investigate-saved-session-flips).
+To record a read before viewing the later 30-minute result, use
+[Blind Replay Review](wind-tunnel.md#review-a-saved-flip-blind).
 
 ## Run The Lab
 

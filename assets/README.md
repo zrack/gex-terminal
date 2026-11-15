@@ -1,8 +1,8 @@
 # Visual Assets
 
 Current visuals describe the two-component local product: Terminal and Market
-Wind Tunnel. Screenshots use bundled synthetic inputs. Architecture and social
-artwork explain the product; they are not screenshots or measured results.
+Wind Tunnel. Screenshots use bundled or script-generated synthetic inputs.
+Architecture and social artwork illustrate the product.
 
 ## Current Assets
 
@@ -12,18 +12,21 @@ artwork explain the product; they are not screenshots or measured results.
 | [Wind Tunnel landscape](market-wind-tunnel.png) | Actual browser; ES Wind Tunnel Lab, checkpoint 33, Volume proxy, IV +2, price/time unchanged | Original and recalculated synthetic exposure surfaces, coverage and accepted-IV age |
 | [Model comparison](wind-tunnel-model-comparison.png) | Actual browser; Terminal-exported `nq-research-loop` checkpoint, +100 price, +1 IV point, +30 model minutes | Separate default/directionalized cards, net signs, walls and observation ages |
 | [Focused strikes](wind-tunnel-focused-strikes.png) | Same NQ checkpoint and scenario | Matched chart axes, original/scenario futures-price markers, Focused selector and exact-value access |
+| [Saved flip investigation](wind-tunnel-saved-flip.png) | Actual browser with deterministic synthetic ES Session A | Clickable saved timeline marker, contract contributions, and the negative sign when the driving update is removed |
+| [Blind review with one outcome gated](wind-tunnel-blind-session-gate.png) | Actual browser with two synthetic ES captures | A's locked read, 30-minute sign and observed prices beside B's editable read before commitment |
+| [Revealed blind comparison](wind-tunnel-blind-session-comparison.png) | Same two synthetic ES captures after both read commitments | Both drivers and removal results, each 30-minute net-GEX sign and price path, and the combined Save comparison action |
 | [Demo pack](gex-terminal-demo-lab.svg), [replay picker](gex-terminal-onboarding.svg) | Maintained synthetic preview command; bundled `zero-gamma-flip`; [Demo Lab](../docs/demo-lab.md#contributor-preview) | Generated research graphic and actual replay-picker capture |
-| [Product architecture](workbench-components.svg) | Derived from [Architecture](../docs/architecture.md#c4-views) | Starter, saved sessions, independent Terminal/Wind Tunnel state and frozen checkpoint handoff |
-| [Research architecture](offline-research-architecture.svg) | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md) | Input bounds, local calculation/cache boundaries, compact views, full receipts and separate research authority |
+| [Product architecture](workbench-components.svg) | Derived from [Architecture](../docs/architecture.md#c4-views) | Starter, saved sessions, independent Terminal/Wind Tunnel state, checkpoint handoff and capture-bound receipts |
+| [Research architecture](offline-research-architecture.svg) | [Architecture](../docs/architecture.md#offline-research-flow) and [Research Governance](../docs/research-governance.md) | Input bounds, calculation/cache boundaries, saved flip replays, blind commit gates and receipt inputs |
 | [Social preview SVG](github-social-preview.svg), [PNG](github-social-preview.png) | Product presentation artwork, 1280×640 | Illustrative two-component product overview; no runtime or provider claim |
 
-The screenshot runtime is source commit
-`2d6a239edd509a5dde8eb5019d0b634311c1784b`, application version `0.6.0`, with
-Python 3.12.13. Documentation-only changes do not restate these as captures from
-a later runtime. [Visual provenance](visual-provenance.json) records current
-file hashes, dimensions, source inputs and reproduction settings. The local
-execution manifests remain under ignored `dist/documentation-refresh-20261019/`.
-No capability-bearing launch URL is included in public provenance.
+The Terminal, scenario and model images retain their October 19 runtime at
+`2d6a239edd509a5dde8eb5019d0b634311c1784b` with Python 3.12.13. The saved flip
+and blind review captures use November 14 runtime
+`b3f155169bd2d669ecaae3cf4e1e776e7c7e87e1` with Python 3.12.16. Both runtimes
+report application version `0.6.0`. Visual provenance records file hashes,
+dimensions, synthetic inputs and reproduction settings by capture batch.
+[Visual provenance](visual-provenance.json).
 
 The Terminal seeded demo and the NQ comparison fixture retain legacy coverage
 metadata. Their explicit “not reported” or “unavailable” coverage labels are
@@ -75,6 +78,23 @@ The two comparison images are 1280×720 viewport captures. The Terminal PNG is
 resize, chart repaint or numerical editing is applied. Fonts, SVG identifiers,
 report clocks and UI timing can change on a later regeneration; these hashes
 identify the reviewed files, not a promise of universal pixel identity.
+
+The saved flip and blind review images use the local Chromium browser and
+Playwright CLI. With those installed, run the source checkout's capture helper.
+
+```bash
+python scripts/refresh_wind_tunnel_review_previews.py dist/wind-tunnel-review-previews
+```
+
+The output directory must be new. Pass `--playwright-cli` with the executable or
+wrapper path when it is outside `PATH`. The helper creates two complete synthetic
+ES captures in a scratch directory with fixed event, receipt and monotonic
+clocks. Session A flips on the 5,000 call on October 18 and remains positive at
+the horizon. Session B flips on the 5,025 call on October 19 and turns negative
+by the horizon. The helper launches the source app locally, clicks through each
+flow and writes three PNGs plus the capture and image hashes. Its browser
+viewports include the complete contract table, read gates and price charts.
+Commitment times reflect capture execution, so image hashes can vary on a rerun.
 
 Update architecture prose and C4 views before reconciling derived SVGs.
 Inspect a rendered version of each diagram; XML parsing alone cannot detect

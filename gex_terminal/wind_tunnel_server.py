@@ -7,6 +7,7 @@ The workspace is an explicitly owned directory of immutable, bounded JSON files.
 from __future__ import annotations
 
 import asyncio
+from contextlib import AsyncExitStack
 from datetime import datetime, timezone
 import hashlib
 from importlib import resources
@@ -32,7 +33,18 @@ MAX_WORKSPACE_BYTES = 64 * 1024 * 1024
 MAX_RECEIPTS = 100
 CALCULATION_TIMEOUT_SECONDS = 60
 MODELS_TIMEOUT_SECONDS = 300
-OPERATIONS = ("calculate", "surface", "search", "models")
+SAVED_REPLAY_TIMEOUT_SECONDS = 300
+SAVED_INVESTIGATION_MARKETS = {"investigate-saved": "ES", "investigate-saved-nq": "NQ"}
+SAVED_FLIP_COMPARISON = "compare-saved-flips"
+SAVED_SESSION_COMPARISON = "compare-saved-sessions"
+BLIND_REVIEW = "blind-review"
+BLIND_COMPARISON = "blind-comparison"
+BLIND_SESSION_COMPARISON = "blind-session-comparison"
+BLIND_OPERATIONS = (BLIND_REVIEW, BLIND_COMPARISON, BLIND_SESSION_COMPARISON)
+COMPARISONS = (SAVED_FLIP_COMPARISON, SAVED_SESSION_COMPARISON)
+OPERATIONS = ("calculate", "surface", "search", "models", "investigate", *SAVED_INVESTIGATION_MARKETS,
+              *COMPARISONS)
+RECEIPT_OPERATIONS = (*OPERATIONS, *BLIND_OPERATIONS)
 ID_PATTERN = re.compile(r"[0-9a-f]{64}")
 OWNER_FILE = ".wind-tunnel-workspace.json"
 CORE_KEY = web.AppKey("core", object)
@@ -89,6 +101,68 @@ def core_module():
     return wind_tunnel
 
 
+def operation_core(kind: str, core=None):
+    if kind == "investigate":
+        # This operation always uses the bundled replay, even when the server
+        # started from a saved Terminal checkpoint.
+        from . import wind_tunnel_investigation
+        return wind_tunnel_investigation
+    if kind in SAVED_INVESTIGATION_MARKETS:
+        from . import wind_tunnel_saved_investigation
+        return wind_tunnel_saved_investigation
+    if kind == SAVED_FLIP_COMPARISON:
+        from . import wind_tunnel_flip_comparison
+        return wind_tunnel_flip_comparison
+    if kind == SAVED_SESSION_COMPARISON:
+        from . import wind_tunnel_session_comparison
+        return wind_tunnel_session_comparison
+    if kind == BLIND_REVIEW:
+        from . import wind_tunnel_blind_review
+        return wind_tunnel_blind_review
+    if kind == BLIND_COMPARISON:
+        from . import wind_tunnel_blind_comparison
+        return wind_tunnel_blind_comparison
+    if kind == BLIND_SESSION_COMPARISON:
+        from . import wind_tunnel_blind_session_comparison
+        return wind_tunnel_blind_session_comparison
+    return core or core_module()
+
+
+async def calculate_operation(kind: str, request: dict, *, core=None, saved_replay=None,
+                              comparison_replays=None, session_replays=None) -> dict:
+    producer = operation_core(kind, core)
+    if kind in BLIND_OPERATIONS:
+        from .wind_tunnel_blind_review import BlindReviewError
+
+        try:
+            if kind == BLIND_COMPARISON:
+                return await producer.blind_comparison(request, comparison_replays)
+            if kind == BLIND_SESSION_COMPARISON:
+                return await producer.blind_session_comparison(request, session_replays)
+            return await producer.blind_review(request, saved_replay)
+        except BlindReviewError as exc:
+            raise ReceiptError(str(exc)) from exc
+    if kind in COMPARISONS:
+        compare = getattr(producer, kind.replace("-", "_"))
+        replays = session_replays if kind == SAVED_SESSION_COMPARISON else comparison_replays
+        try:
+            return await compare(request, replays)
+        except producer.FlipComparisonError as exc:
+            raise ReceiptError(str(exc)) from exc
+    market = SAVED_INVESTIGATION_MARKETS.get(kind)
+    if market is not None:
+        if (saved_replay is None or saved_replay.symbol != market
+                or (saved_replay.capture_sha256 is not None
+                    and saved_replay.capture_sha256 != request.get("capture_sha256"))):
+            raise ReceiptError(f"Open the original saved {market} capture to run or reproduce this investigation.")
+        try:
+            await saved_replay.verify_capture(request.get("capture_sha256"))
+        except (ValueError, OSError) as exc:
+            raise ReceiptError(f"The saved {market} capture could not be verified. Select the original completed capture.") from exc
+        return await producer.investigate_saved(request, saved_replay)
+    return await getattr(producer, kind)(request)
+
+
 def validate_name(name: Any) -> str:
     if not isinstance(name, str) or not 1 <= len(name.strip()) <= 80:
         raise ReceiptError("Use a scenario name of 1 to 80 characters.")
@@ -97,19 +171,26 @@ def validate_name(name: Any) -> str:
     return name.strip()
 
 
-async def make_receipt(name: str, kind: str, request: dict, *, core=None) -> dict:
+async def make_receipt(name: str, kind: str, request: dict, *, core=None, saved_replay=None,
+                       comparison_replays=None, session_replays=None) -> dict:
     name = validate_name(name)
-    if kind not in OPERATIONS or not isinstance(request, dict):
+    if kind not in RECEIPT_OPERATIONS or not isinstance(request, dict):
         raise ReceiptError("Unknown calculation kind or invalid request.")
     if kind == "models" and request.get("detail_level") == "compact":
         # Compact display payloads omit contract contributions and the embedded
         # checkpoint echo. Receipts always recompute complete portable evidence
         # from the original request, rather than storing that display projection.
         request = {**request, "detail_level": "full"}
-    result = await getattr(core or core_module(), kind)(request)
+    result = await calculate_operation(kind, request, core=core, saved_replay=saved_replay,
+                                       comparison_replays=comparison_replays, session_replays=session_replays)
+    return assemble_receipt(name, kind, result)
+
+
+def assemble_receipt(name: str, kind: str, result: dict) -> dict:
+    """Wrap an authoritative calculated result in the standard receipt envelope."""
     receipt = {
         "schema": RECEIPT_SCHEMA,
-        "name": name,
+        "name": validate_name(name),
         "kind": kind,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "application_version": __version__,
@@ -126,7 +207,7 @@ def validate_receipt(receipt: Any) -> dict:
               "request", "result", "receipt_sha256"}
     if not isinstance(receipt, dict) or set(receipt) != fields:
         raise ReceiptError("Unknown receipt fields.")
-    if receipt["schema"] != RECEIPT_SCHEMA or receipt["kind"] not in OPERATIONS:
+    if receipt["schema"] != RECEIPT_SCHEMA or receipt["kind"] not in RECEIPT_OPERATIONS:
         raise ReceiptError("Unsupported receipt schema or calculation kind.")
     validate_name(receipt["name"])
     if not isinstance(receipt["application_version"], str) or not 1 <= len(receipt["application_version"]) <= 80:
@@ -158,16 +239,29 @@ def validate_receipt(receipt: Any) -> dict:
     return receipt
 
 
-async def reproduce_receipt(receipt: dict, *, core=None) -> dict:
+async def reproduce_receipt(receipt: dict, *, core=None, saved_replay=None, comparison_replays=None,
+                            session_replays=None) -> dict:
     validate_receipt(receipt)
-    producer = core or core_module()
+    kind = receipt["kind"]
+    producer = operation_core(kind, core)
     identity = producer.calculation_identity()
     expected = receipt["result"]
+    recorded = expected.get("calculation")
+    identity_error = "Receipt calculation identity differs; use its original reviewed build, Python and NumPy versions."
     if (receipt["application_version"] != __version__
-            or expected.get("calculation") != identity
-            or expected.get("calculation_fingerprint") != digest(identity)):
-        raise ReceiptError("Receipt calculation identity differs; use its original reviewed build, Python and NumPy versions.")
-    result = await getattr(producer, receipt["kind"])(receipt["request"])
+            or not isinstance(recorded, dict)
+            or expected.get("calculation_fingerprint") != digest(recorded)):
+        raise ReceiptError(identity_error)
+    es_only_build = recorded != identity
+    if es_only_build:
+        from .wind_tunnel_saved_receipt_compat import matches_es_only_build, with_recorded_identity
+        if (not matches_es_only_build(kind, recorded, identity)
+                or (saved_replay is not None and saved_replay.symbol != "ES")):
+            raise ReceiptError(identity_error)
+    result = await calculate_operation(kind, receipt["request"], core=core, saved_replay=saved_replay,
+                                       comparison_replays=comparison_replays, session_replays=session_replays)
+    if es_only_build:
+        result = with_recorded_identity(result, recorded)
     exact = (canonical_bytes(result) == canonical_bytes(receipt["result"])
              and receipt["application_version"] == __version__)
     return {
@@ -269,11 +363,13 @@ class ReceiptStore:
             raise ReceiptError("Saved scenario identity differs from its filename.")
         return receipt
 
-    def list(self) -> list[dict]:
+    def list(self, *, matches=None) -> list[dict]:
         names, _ = self._inventory()
         result = []
         for filename in names:
             receipt = self.load(filename[:-5])
+            if matches is not None and not matches(receipt):
+                continue
             result.append({"id": receipt["receipt_sha256"], "name": receipt["name"],
                            "kind": receipt["kind"], "created_at": receipt["created_at"],
                            "result_sha256": receipt["result"].get("result_sha256")})
@@ -376,22 +472,32 @@ async def read_intake_body(request) -> bytes:
     return bytes(data)
 
 
-async def run_bounded(request, operation, *, kind=None):
-    lock = request.app[LOCK_KEY]
-    if lock.locked():
+async def run_bounded(request, operation, *, kind=None, locks=()):
+    locks = locks or (request.app[LOCK_KEY],)
+    if any(lock.locked() for lock in locks):
         return error_response(429, "busy", "A calculation is running; wait for it to finish.")
-    async with lock:
+    async with AsyncExitStack() as held:
+        for lock in locks:
+            await held.enter_async_context(lock)
         # The explicitly requested two-model 54-cell grid can include thousands
         # of American-option lattice rows. Keep it bounded and cancellable while
         # allowing the same operation to finish when saved or reproduced.
-        deadline = MODELS_TIMEOUT_SECONDS if kind == "models" else CALCULATION_TIMEOUT_SECONDS
+        if kind in (*COMPARISONS, BLIND_COMPARISON, BLIND_SESSION_COMPARISON):
+            deadline = 2 * SAVED_REPLAY_TIMEOUT_SECONDS
+        elif kind in ("investigation-timeline", BLIND_REVIEW, *SAVED_INVESTIGATION_MARKETS):
+            deadline = SAVED_REPLAY_TIMEOUT_SECONDS
+        else:
+            deadline = MODELS_TIMEOUT_SECONDS if kind == "models" else CALCULATION_TIMEOUT_SECONDS
         async with asyncio.timeout(deadline):
             return web.json_response(await operation(), dumps=lambda value: canonical_bytes(value).decode())
 
 
 def create_app(workspace: Path | str, *, token: str | None = None,
                origin: str = "http://127.0.0.1:8765", core=None,
-               assets: dict | None = None) -> web.Application:
+               assets: dict | None = None, saved_replay=None, saved_replays=None,
+               comparison_workspace: Path | str | None = None) -> web.Application:
+    from .wind_tunnel_saved_switching import SavedReplayRegistry
+
     if not re.fullmatch(r"http://127\.0\.0\.1:[0-9]{1,5}", origin):
         raise ValueError("Wind Tunnel only serves a loopback origin.")
     app = web.Application(middlewares=[security_boundary], client_max_size=MAX_JSON_BYTES)
@@ -401,13 +507,42 @@ def create_app(workspace: Path | str, *, token: str | None = None,
     app[LOCK_KEY] = asyncio.Lock()
     app[ASSETS_KEY] = packaged_assets() if assets is None else assets
     app[INTAKE_KEY] = SessionIntake()
+    replays = SavedReplayRegistry(app[CORE_KEY], saved_replays, single=saved_replay)
+    if comparison_workspace is not None and replays.comparison_symbol is None:
+        raise ValueError("A comparison receipt workspace requires both saved capture bindings.")
+
+    def calculation_sources(kind, selection):
+        if kind == SAVED_FLIP_COMPARISON and isinstance(selection, dict):
+            pair = {}
+            for market in ("ES", "NQ"):
+                replay = replays.select(selection.get(market.lower()))
+                if replay is not None and replay.symbol == market:
+                    pair[market] = replay
+            locks = tuple(replays.lock(replay) for replay in pair.values()) if len(pair) == 2 else ()
+            return {"comparison_replays": pair}, locks
+        if kind == SAVED_SESSION_COMPARISON and isinstance(selection, dict):
+            pair = {}
+            for side in ("left", "right"):
+                choice = selection.get(side)
+                replay = replays.select(choice)
+                if replay is not None and replay.symbol == choice.get("symbol"):
+                    pair[side] = replay
+            # A repeated digest is invalid. Do not try to acquire its lock twice.
+            locks = tuple(replays.lock(replay) for replay in pair.values()) if len(set(pair.values())) == 2 else ()
+            return {"session_replays": pair}, locks
+        replay = replays.select(selection) if kind in tuple(SAVED_INVESTIGATION_MARKETS) else None
+        return {"saved_replay": replay}, (replays.lock(replay),) if replay is not None else ()
 
     async def static_asset(request):
         data, mime = app[ASSETS_KEY][request.path]
         return web.Response(body=data, content_type=mime)
 
     async def catalog(request):
-        return web.json_response(app[CORE_KEY].catalog())
+        result = app[CORE_KEY].catalog()
+        if replays.decorate_catalog(result):
+            result.pop("result_sha256", None)
+            result["result_sha256"] = digest(result)
+        return web.json_response(result)
 
     async def checkpoints(request):
         if set(request.query) != {"session"} or len(request.query.getall("session")) != 1:
@@ -420,23 +555,61 @@ def create_app(workspace: Path | str, *, token: str | None = None,
     async def calculate(request):
         body = await read_body(request)
         kind = request.match_info["kind"]
-        return await run_bounded(request, lambda: getattr(app[CORE_KEY], kind)(body), kind=kind)
+        sources, locks = calculation_sources(kind, body)
+        return await run_bounded(request, lambda: calculate_operation(
+            kind, body, core=app[CORE_KEY], **sources), kind=kind, locks=locks)
+
+    async def investigation_timeline(request):
+        body = await read_body(request)
+        checksum = body.get("capture_sha256")
+        if set(body) != {"capture_sha256"} or not isinstance(checksum, str) or not ID_PATTERN.fullmatch(checksum):
+            raise ReceiptError("Choose a verified saved capture for the replay timeline.")
+        replay = replays.select(body)
+        if replay is None:
+            raise ReceiptError("Open the matching saved capture to scan its replay timeline.")
+
+        async def scan():
+            try:
+                await replay.verify_capture(checksum)
+            except (ValueError, OSError) as exc:
+                raise ReceiptError("The saved capture could not be verified for the replay timeline.") from exc
+            timeline = await replay.timeline()
+            return timeline
+
+        return await run_bounded(request, scan, kind="investigation-timeline", locks=(replays.lock(replay),))
 
     async def receipts(request):
         if request.method == "GET":
-            return web.json_response({"receipts": app[STORE_KEY].list()})
+            entries = app[STORE_KEY].list()
+            if comparison_store is not None:
+                by_id = {entry["id"]: entry for entry in [*entries, *comparison_store.list()]}
+                entries = sorted(by_id.values(), key=lambda entry: (entry["created_at"], entry["id"]), reverse=True)
+            return web.json_response({"receipts": entries})
         body = await read_body(request)
         if set(body) != {"name", "kind", "request"}:
             raise ReceiptError("Saving requires a name, kind and request.")
+        kind = body["kind"]
+        if kind in BLIND_OPERATIONS:
+            raise ReceiptError("Save this kind of receipt from a blind review window.")
+        sources, locks = calculation_sources(kind, body["request"])
 
         async def calculate_and_save():
-            receipt = await make_receipt(body["name"], body["kind"], body["request"], core=app[CORE_KEY])
-            return app[STORE_KEY].save(receipt)
+            receipt = await make_receipt(body["name"], kind, body["request"],
+                                         core=app[CORE_KEY], **sources)
+            market = SAVED_INVESTIGATION_MARKETS.get(receipt["kind"])
+            store = comparison_store if comparison_store is not None and market == replays.comparison_symbol else app[STORE_KEY]
+            return store.save(receipt)
 
-        return await run_bounded(request, calculate_and_save, kind=body["kind"])
+        return await run_bounded(request, calculate_and_save, kind=kind, locks=locks)
 
     async def receipt(request):
-        value = app[STORE_KEY].load(request.match_info["id"])
+        receipt_id = request.match_info["id"]
+        try:
+            value = app[STORE_KEY].load(receipt_id)
+        except FileNotFoundError:
+            if comparison_store is None:
+                raise
+            value = comparison_store.load(receipt_id)
         response = web.json_response(value, dumps=lambda item: canonical_bytes(item).decode())
         if request.path.endswith("/export"):
             response.headers["Content-Disposition"] = 'attachment; filename="wind-tunnel-' + value["receipt_sha256"][:12] + '.json"'
@@ -444,7 +617,12 @@ def create_app(workspace: Path | str, *, token: str | None = None,
 
     async def reproduce(request):
         body = await read_body(request)
-        return await run_bounded(request, lambda: reproduce_receipt(body, core=app[CORE_KEY]), kind=body.get("kind"))
+        kind = body.get("kind")
+        if kind in BLIND_OPERATIONS:
+            raise ReceiptError("Open blind review mode to reopen this receipt in Wind Tunnel.")
+        sources, locks = calculation_sources(kind, body.get("request"))
+        return await run_bounded(request, lambda: reproduce_receipt(
+            body, core=app[CORE_KEY], **sources), kind=kind, locks=locks)
 
     async def inspect_intake(request):
         if request.content_type != "application/octet-stream":
@@ -474,13 +652,17 @@ def create_app(workspace: Path | str, *, token: str | None = None,
     async def cleanup(_):
         app[INTAKE_KEY].clear()
         app[STORE_KEY].close()
+        if comparison_store is not None:
+            comparison_store.close()
+        replays.close()
 
     for path in app[ASSETS_KEY]:
         app.router.add_get(path, static_asset)
     app.router.add_get("/api/catalog", catalog)
     app.router.add_get("/api/checkpoints", checkpoints)
     app.router.add_get("/api/examples", examples)
-    app.router.add_post("/api/{kind:calculate|surface|search|models}", calculate)
+    app.router.add_post("/api/investigation-timeline", investigation_timeline)
+    app.router.add_post(f"/api/{{kind:{'|'.join(OPERATIONS)}}}", calculate)
     app.router.add_get("/api/receipts", receipts)
     app.router.add_post("/api/receipts", receipts)
     app.router.add_get("/api/receipts/{id}", receipt)
@@ -492,10 +674,17 @@ def create_app(workspace: Path | str, *, token: str | None = None,
     app.on_cleanup.append(cleanup)
     # Initialize storage last so asset/route construction cannot leak its descriptor.
     app[STORE_KEY] = ReceiptStore(workspace)
+    try:
+        comparison_store = ReceiptStore(comparison_workspace) if comparison_workspace is not None else None
+    except BaseException:
+        app[STORE_KEY].close()
+        raise
     return app
 
 
-async def start_server(workspace: Path | str, *, port: int = 8765, core=None):
+async def start_server(workspace: Path | str, *, port: int = 8765, core=None, saved_replay=None,
+                       saved_replays=None, comparison_workspace: Path | str | None = None,
+                       blind_review=None, blind_reviews=None):
     """Return (runner, launch_url); the caller must await runner.cleanup()."""
     if isinstance(port, bool) or not 0 <= port <= 65535:
         raise ValueError("Port must be between 0 and 65535.")
@@ -506,7 +695,12 @@ async def start_server(workspace: Path | str, *, port: int = 8765, core=None):
         listener.setblocking(False)
         actual_port = listener.getsockname()[1]
         origin = f"http://127.0.0.1:{actual_port}"
-        app = create_app(workspace, origin=origin, core=core)
+        if blind_review is None and blind_reviews is None:
+            app = create_app(workspace, origin=origin, core=core, saved_replay=saved_replay,
+                             saved_replays=saved_replays, comparison_workspace=comparison_workspace)
+        else:
+            from .wind_tunnel_blind_server import create_blind_app
+            app = create_blind_app(workspace, origin=origin, review=blind_review, reviews=blind_reviews)
         runner = web.AppRunner(app, access_log=None, shutdown_timeout=5, handler_cancellation=True)
         await runner.setup()
         site = web.SockSite(runner, listener)

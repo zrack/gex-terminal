@@ -115,8 +115,49 @@ class StarterSavedDataTests(unittest.TestCase):
         self.assertEqual(terminal[4:7], ["0.035", "0.5", str(self.research)])
         self.assertEqual(terminal[-len(self.plan["terminal_args"]):], self.plan["terminal_args"])
         self.assertEqual(wind[wind.index("--checkpoint") + 1], self.plan["checkpoint_path"])
+        self.assertNotIn("--saved-es-capture", wind)
         self.assertTrue(both.call_args.kwargs["no_browser"])
         self.assertIn("final frozen", both.call_args.kwargs["source_note"])
+
+    def test_es_launch_passes_frozen_capture_only_to_investigation_capable_wind_tunnel(self):
+        frozen = self.root / "frozen ES.gex-session.jsonl"
+        frozen.write_bytes(self.capture.read_bytes())
+        terminal_args = ["--mode", "replay", "--captured-session", str(frozen), "--symbol", "ES"]
+        plan = {**self.plan, "symbol": "ES", "contract_multiplier": 50,
+                "capture_path": str(frozen), "terminal_args": terminal_args}
+        with patch.object(install_app, "prepare_saved_data", return_value=plan), \
+                patch.object(install_app, "run_both", return_value=0) as both:
+            self.assertEqual(self.launch(saved_data="ES", captured_session=self.capture), 0)
+            self.assertNotIn("--saved-es-capture", both.call_args.args[1])
+
+            self.receipt["active"]["payload_sha256"]["gex_terminal/wind_tunnel_saved_replay.py"] = "3" * 64
+            self.assertEqual(self.launch(saved_data="ES", captured_session=self.capture), 0)
+        terminal, wind = both.call_args.args
+        self.assertEqual(terminal[-len(terminal_args):], terminal_args)
+        self.assertEqual(wind[wind.index("--saved-es-capture") + 1], str(frozen))
+        self.assertEqual(wind[wind.index("--saved-capture-sha256") + 1], plan["capture_sha256"])
+        self.assertEqual(wind[wind.index("--workspace") + 1], str(self.research / "wind-tunnel-saved-es"))
+
+    def test_nq_launch_passes_frozen_capture_only_to_nq_investigation_capable_wind_tunnel(self):
+        frozen = self.root / "frozen NQ.gex-session.jsonl"
+        frozen.write_bytes(self.capture.read_bytes())
+        terminal_args = [*self.plan["terminal_args"]]
+        terminal_args[terminal_args.index("--captured-session") + 1] = str(frozen)
+        plan = {**self.plan, "capture_path": str(frozen), "terminal_args": terminal_args}
+        payload = self.receipt["active"]["payload_sha256"]
+        payload["gex_terminal/wind_tunnel_saved_replay.py"] = "3" * 64
+        with patch.object(install_app, "prepare_saved_data", return_value=plan), \
+                patch.object(install_app, "run_both", return_value=0) as both:
+            self.assertEqual(self.launch(saved_data="NQ", captured_session=self.capture), 0)
+            self.assertNotIn("--saved-nq-capture", both.call_args.args[1])
+
+            payload["gex_terminal/wind_tunnel_saved_receipt_compat.py"] = "4" * 64
+            self.assertEqual(self.launch(saved_data="NQ", captured_session=self.capture), 0)
+        terminal, wind = both.call_args.args
+        self.assertEqual(terminal[-len(terminal_args):], terminal_args)
+        self.assertEqual(wind[wind.index("--saved-nq-capture") + 1], str(frozen))
+        self.assertEqual(wind[wind.index("--saved-capture-sha256") + 1], plan["capture_sha256"])
+        self.assertEqual(wind[wind.index("--workspace") + 1], str(self.research / "wind-tunnel-saved-nq"))
 
     def test_launch_reports_saved_period_and_actual_playback_policy(self):
         for policy, clock, expected in (("fast_load", "none", "fast-loads"),
@@ -241,8 +282,43 @@ class StarterSavedDataTests(unittest.TestCase):
         wind = both.call_args.args[1]
         self.assertEqual(wind[wind.index("--checkpoint") + 1], primary["checkpoint_path"])
         self.assertEqual(wind[wind.index("--comparison-checkpoint") + 1], other["checkpoint_path"])
+        self.assertNotIn("--saved-es-capture", wind)
+        self.assertNotIn("--comparison-capture-sha256", wind)
         remembered = install_app.saved_sources(self.research)["sessions"]["NQ"]
         self.assertEqual(remembered["checkpoint_sha256"], "3" * 64)
+
+    def test_switching_capable_launch_forwards_both_captures_and_receipt_workspaces(self):
+        primary = {**self.plan, "checkpoint_sha256": "3" * 64}
+        es_capture = self.root / "ES capture.gex-session.jsonl"
+        es_capture.write_bytes(b"verified alternate capture")
+        other = {**self.plan, "symbol": "ES", "checkpoint_path": str(self.root / "es-checkpoint.json"),
+                 "checkpoint_sha256": "4" * 64, "capture_path": str(es_capture),
+                 "capture_sha256": install_app.digest(es_capture)}
+        install_app.remember_saved_data(self.research, other)
+        self.receipt["active"]["payload_sha256"].update({
+            "gex_terminal/wind_tunnel_sources.py": "5" * 64,
+            "gex_terminal/wind_tunnel_saved_switching.py": "6" * 64,
+        })
+        verification = json.dumps({"symbol": "ES", "checkpoint_sha256": other["checkpoint_sha256"]})
+        with patch.object(install_app, "prepare_saved_data", return_value=primary) as prepare, \
+                patch.object(install_app, "run", return_value=verification) as run, \
+                patch.object(install_app, "run_both", return_value=0) as both:
+            self.assertEqual(self.launch(saved_data="NQ", captured_session=self.capture), 0)
+        prepare.assert_called_once()
+        self.assertEqual(run.call_args.args[0][-5:], [other["checkpoint_path"], other["capture_path"], "ES",
+                                                     other["checkpoint_sha256"], other["capture_sha256"]])
+        terminal, wind = both.call_args.args
+        self.assertEqual(terminal[-len(primary["terminal_args"]):], primary["terminal_args"])
+        expected = {
+            "--checkpoint": primary["checkpoint_path"], "--saved-nq-capture": primary["capture_path"],
+            "--saved-capture-sha256": primary["capture_sha256"],
+            "--workspace": str(self.research / "wind-tunnel-saved-nq"),
+            "--comparison-checkpoint": other["checkpoint_path"], "--saved-es-capture": other["capture_path"],
+            "--comparison-capture-sha256": other["capture_sha256"],
+            "--comparison-workspace": str(self.research / "wind-tunnel-saved-es"),
+        }
+        for flag, value in expected.items():
+            self.assertEqual(wind[wind.index(flag) + 1], value, flag)
 
     def test_optional_stale_or_legacy_registration_skips_safely_and_primary_launches(self):
         self.receipt["active"]["payload_sha256"]["gex_terminal/wind_tunnel_sources.py"] = "5" * 64

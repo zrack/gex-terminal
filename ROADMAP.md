@@ -6,8 +6,8 @@ This file contains planned and deferred work only. Shipped work belongs in
 [Product Vision](docs/product-vision.md), and the evidence behind the strategy
 belongs in [Competitive Landscape](docs/market-analysis.md).
 
-Priorities reconciled October 19, 2026 against the current `0.6.0` source and
-the refreshed [Competitive Landscape](docs/market-analysis.md) and
+The October 19, 2026 reconciliation used the `0.6.0` baseline, the refreshed
+[Competitive Landscape](docs/market-analysis.md), and the
 [Application Review](docs/application-review.md). The checkpoint handoff,
 guided native captured-session intake and separately frozen current-build
 study kit are merged. The implemented demo/replay handoff and its
@@ -23,6 +23,13 @@ markers and focused strike views are implemented. They belong to the
 [current guides](docs/README.md), not the future-feature queue. Saved historical
 validation and local performance measurements do not complete a live-provider,
 participant, predictive or commercial gate.
+
+Wind Tunnel now explains saved ES/NQ net-GEX sign changes with contract
+contributions and a driving-update counterfactual. It supports paired saved
+flip investigations and [Blind Replay Review](docs/wind-tunnel.md#review-a-saved-flip-blind)
+for individual and paired captures. The [changelog](CHANGELOG.md) records the
+implemented scope. A study of the current workflows needs its own reviewed
+build and task record.
 
 ## Current Work Order
 
@@ -147,9 +154,10 @@ collection with a recorded reason.
 
 ## Prioritized Feature Candidates
 
-The checkpoint handoff, guided native capture intake and saved-session model
-comparisons are implemented in their bounded offline scopes; their usage and
-evidence belong to the guides and work packets. The remaining items
+The checkpoint handoff, guided native capture intake, saved-session model
+comparisons, flip investigations and blind review are implemented in their
+bounded offline scopes. The guides and work packets record their use and
+evidence. The remaining items
 below are hypotheses ordered by dependency and the inspected workflow gaps,
 not measured demand, promised delivery dates, estimated returns or current
 implementation authority. Reuse existing research, export and lifecycle
@@ -159,10 +167,10 @@ capabilities before adding parallel systems.
 | --- | --- | --- |
 | P1 | Qualify real-user session input | Bounded native captured-session intake is shipped; remaining gates are authorized real-user inputs, source/rights and quality qualification, and a user completing and repeating the named investigation; any additional format needs its own demand and contract decision |
 | P1 | Quote freshness and chain bootstrap | Captured health, pricing coverage and accepted-IV ages are shipped. Extend evidence to quote age/spreads and provider bootstrap only when those inputs and an explicit IV policy are available; do not infer quote freshness from an accepted IV timestamp |
-| P1 | Explain this change | Reconcile matched results to contract, expiry, quantity, IV/time/price and assumption changes; expose interactions and describe model-output effects without market-causation claims |
+| P1 | Attribute multiple input changes | Extend the shipped one-update flip investigation to decompose how expiry, quantity, IV, time and price act together across a selected interval. Require a repeat research task and make interactions explicit |
 | P1 | Preserve and compare builds | Retain the executable environment for an old receipt; separately identify original-model reproduction and intentional current-model restatement; fail clearly if unavailable |
 | P1 | Contract/session conventions | Declare exercise style, expiry timezone, session/holiday rules, futures linkage and supported approximations; validate authoritative metadata independently |
-| P2 | Daily research review | Assemble existing journal/corpus tools into a repeated hypothesis → scenario → later review loop; retain null, failed-data and unresolved cases |
+| P2 | Review investigations across days | Test repeated use of individual and paired blind reviews. Connect retained receipts to journal/corpus workflows when the observed task warrants it. Preserve null, failed-data and unresolved cases |
 | P2 | Skew and term-structure stresses | Require usable IV inputs and an explicit surface policy; distinguish observed and assumed regions before moving beyond uniform IV shifts |
 | P2 | Quality-aware alerts and one chart handoff | Require observed workflow demand and recurring live scope for live alerts; existing static TradingView export is not a new feature |
 | P2/P3 | Small SDK/read-only API, then MCP | Demonstrated developer job and versioned domain semantics; the internal Wind loopback service is a starting point, not a supported public API |

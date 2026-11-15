@@ -298,6 +298,17 @@ of predictive validity. See [Wind Tunnel](wind-tunnel.md#save-export-and-reprodu
 for size limits, workspace ownership and reproduction rules, and
 [model comparison](model-comparison.md) for interpretation.
 
+### Saved Flip And Blind Review Receipts
+
+An investigation of a saved session binds the original capture checksum, flip
+sequence and reproduced contract contributions. A blind review receipt also
+retains the committed read and revealed outcome, including the observed futures
+path available at the declared horizon. Paired receipts bind each source and
+review independently. Reproduce an individual receipt with the original saved
+capture, and a paired receipt with both originals. See
+[saved flip investigations](wind-tunnel.md#investigate-saved-session-flips) and
+[blind review](wind-tunnel.md#review-a-saved-flip-blind) for the matching CLI flags.
+
 ## Tradovate Certification Reports
 
 The explicit read-only probe writes redacted JSON or Markdown:

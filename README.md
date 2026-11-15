@@ -4,9 +4,9 @@
 
 `gex-terminal` is an open-source workbench for inspecting gamma exposure (GEX)
 proxies in ES, NQ, and related options markets. Use the **Terminal** to inspect a
-session and its strike-level structure. Use the **Market Wind Tunnel** to change
-assumptions and explore how that structure responds. Start either component on
-its own, or choose **Both** in the starter.
+session and its strike-level structure. Use **Market Wind Tunnel** to stress
+assumptions, explain changes in a saved session, and review what happened after
+a modeled flip. Start either component on its own, or choose **Both** in the starter.
 
 Both components work offline with bundled synthetic data. **Saved data — Both**
 opens a completed ES or NQ capture in both views without new provider requests.
@@ -19,7 +19,7 @@ opens a completed ES or NQ capture in both views without new provider requests.
 | Component | What you do | What you see |
 | --- | --- | --- |
 | [Terminal](#terminal) | Load a replay, inspect exposure and source quality, adjust model controls, export a snapshot | A keyboard-driven dashboard with metrics, strike rows, walls and replay controls |
-| [Market Wind Tunnel](#market-wind-tunnel) | Change price, volatility, time or expiry assumptions; compare scenarios and save reproducible results | A browser workbench with exposure landscapes, comparisons, fragility maps and bounded break searches |
+| [Market Wind Tunnel](#market-wind-tunnel) | Stress assumptions, investigate saved flips, compare sessions and preserve receipts | A local browser workbench with exposure charts, scenario tools and blind replay reviews |
 
 ### Terminal
 
@@ -76,6 +76,30 @@ NQ replay: +100 price points, +1 IV point and +30 minutes of model time.
 result and accepted-IV age. This legacy fixture has no reportable pricing
 coverage metadata; the app leaves that coverage unavailable. The figures are
 conditional examples, not observations from the saved Databento day.*
+
+### Investigate A Flip And Review Its Outcome
+
+Choose the bundled **Zero-Gamma Flip** replay and select **Investigate net-GEX
+flip**. Compare the exact before-and-after states, trace the exposure change to
+the 5,950 call-volume update, and remove that update at the same cutoff to see
+whether the modeled flip survives. [Synthetic walkthrough](docs/wind-tunnel.md#investigate-the-synthetic-es-flip)
+
+On a [saved ES or NQ capture](docs/wind-tunnel.md#investigate-saved-session-flips),
+select **Find net-GEX flips** and open a timeline marker. Inspect the contract
+contributions, test the driving update, and save the investigation. You can
+compare flips from two distinct saved sessions and reproduce the comparison
+with both original captures. [Saved flip comparison](docs/wind-tunnel.md#compare-flips-across-saved-sessions)
+
+In **Blind Replay Review**, commit your read before revealing the modeled sign
+at 30 minutes and the observed futures price path. Review two distinct captures
+side by side, including two ES sessions, two NQ sessions, or one of each. Each
+side reveals independently. Save one comparison receipt after both reveals.
+[Blind replay walkthrough](docs/wind-tunnel.md#review-a-saved-flip-blind)
+
+![Blind Replay Review comparing two synthetic ES captures with committed reads and revealed 30-minute paths](assets/wind-tunnel-blind-session-comparison.png)
+
+*Two synthetic ES captures in Blind Replay Review. Each panel keeps its own
+flip, read and observed path.*
 
 Capture settings, source identity and image hashes are recorded in
 [Visual Assets](assets/README.md). Older study screenshots remain dated records.
@@ -147,10 +171,11 @@ shortcuts remain available. For a manual wheel installation:
 gex-terminal wind-tunnel
 ```
 
-The local browser workbench includes three worked examples. Change spot, IV,
-time or expiry assumptions, compare the resulting structure and save a receipt.
-Charts and calculations use bundled synthetic data and work without a provider
-account or internet connection. See [Market Wind Tunnel](docs/wind-tunnel.md).
+The local browser workbench includes three worked scenario examples. Change
+spot, IV, time or expiry assumptions, compare the structure and save a receipt.
+Choose **Zero-Gamma Flip** to investigate a synthetic sign change. Charts and
+calculations use bundled synthetic data and work without a provider account or
+internet connection. See [Market Wind Tunnel](docs/wind-tunnel.md).
 
 Choose **Terminal**, open **Start Terminal.command**, or run **`"./GEX App/run-gex"`**
 to open a bundled synthetic replay directly. For a manual wheel installation,
@@ -186,6 +211,8 @@ The two interfaces are backed by the same research tools:
 - Keep open interest, raw trade volume, and directionalized volume as separate
   position models.
 - Replay bundled sessions and provider-shaped fixtures without credentials.
+- Reconcile modeled exposure changes in saved futures sessions and record a
+  read before reviewing later evidence.
 - Build portable packs with authorized input, separated model comparisons and
   verifiable receipts; support local diagnosis, backup and recovery.
 - Keep provider readiness, runtime connection state, model verification and
@@ -200,9 +227,10 @@ advanced traders who want an inspectable local workflow. See
 
 ## Current Status
 
-Version **0.6.0 — Market Wind Tunnel** is a research alpha. The
-repository and reviewed Git tag are the release record; no PyPI publication or
-hosted GitHub Release is claimed.
+Version **0.6.0 — Market Wind Tunnel** is a research alpha. Saved flip
+investigation, comparisons and blind review are in the current source and the
+[unreleased changelog](CHANGELOG.md#unreleased--es-and-nq-flip-investigations).
+The repository and its reviewed Git tags are the release record.
 
 Bundled demo/replay is `offline-certified`. Databento is `live-uncertified`;
 Tradovate and IBKR remain scaffolds; yfinance is delayed. Details belong in
@@ -224,6 +252,8 @@ canonical guide:
 | --- | --- | --- |
 | Open saved ES or NQ in both components | Starter → **Saved data — Both** | [Saved-data startup](docs/first-run.md#open-saved-es-or-nq-data) |
 | Compare default and directionalized scenarios | Wind Tunnel → **Model comparison** | [Model Comparison](docs/model-comparison.md) |
+| Investigate a saved net-GEX flip | Wind Tunnel → **Find net-GEX flips** | [Saved Flip Investigations](docs/wind-tunnel.md#investigate-saved-session-flips) |
+| Commit a read and reveal later evidence | `gex-terminal wind-tunnel serve --blind-review` with the capture flags | [Blind Replay Review](docs/wind-tunnel.md#review-a-saved-flip-blind) |
 | Inspect a local captured session | `gex-terminal wind-tunnel` → **Open local session** | [Guided Intake](docs/wind-tunnel.md#bring-a-local-captured-session) |
 | Stress market structure offline | `gex-terminal wind-tunnel` | [Market Wind Tunnel](docs/wind-tunnel.md) |
 | Diagnose a local installation | `gex-terminal doctor` | [Offline Doctor](docs/doctor.md) |
